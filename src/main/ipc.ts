@@ -42,6 +42,10 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
       // The reply arrives through the change feed; the call only hands the message over
       run: (a: { sessionId: number; text: string }) => void chat.send(a.sessionId, a.text),
     },
+    'questions.answer': {
+      args: z.object({ id, choice: z.string().min(1) }),
+      run: (a: { id: number; choice: string }) => chat.questions.answer(a.id, a.choice),
+    },
     'members.list': {
       args: z.object({ projectId: id }),
       run: (a: { projectId: number }) => crew.describe(store.listMembers(a.projectId)),

@@ -1,20 +1,42 @@
-import type { CanUseTool } from '@anthropic-ai/claude-agent-sdk';
+import fs from 'node:fs';
+import path from 'node:path';
 import { AgentRun, type QueryFn } from './agent';
-import type { Store } from './db';
-import { type Crew, toolsOf } from './crew';
+import type { Member, Project, Store } from './db';
+import { type Crew, type Definition, toolsOf } from './crew';
+import { guardMember, type Policy } from './guard';
+import { Questions } from './questions';
 
 export type Emit = (channel: 'changed' | 'stream', payload: unknown) => void;
+// Where members' own files go, and the files no member may touch
+export type Paths = { output: string; protected: string[] };
 
 // The user's conversation with 비서, one live run per session at most
 export class Chat {
   live = new Map<number, AgentRun>();
+  questions: Questions;
 
   constructor(
     public store: Store,
     public queryFn: () => Promise<QueryFn>,
     public crew: Crew,
     public emit: Emit,
-  ) {}
+    public paths: Paths,
+  ) {
+    this.questions = new Questions(store, emit);
+  }
+
+  policy(def: Definition, project: Project, scope: string): Policy {
+    const output = path.join(this.paths.output, String(project.id), scope);
+    fs.mkdirSync(output, { recursive: true });
+    return { key: def.key, role: def.role, tools: toolsOf(def), write: def.write, mcp: def.mcp, project: project.path, output, protected: this.paths.protected };
+  }
+
+  guard(member: Member, project: Project, sessionId: number, taskId: number | null) {
+    const scope = taskId ? `task-${taskId}` : `session-${sessionId}`;
+    // Read on every call, so a definition or permission changed mid-run applies to the next call
+    const policy = () => this.policy(this.crew.find(member.key), project, scope);
+    return guardMember({ store: this.store, questions: this.questions, policy, sessionId, taskId, member });
+  }
 
   seed(projectId: number) {
     this.store.seedMembers(projectId, this.crew.defs);
@@ -37,8 +59,7 @@ export class Chat {
       model: member.model,
       system: this.crew.system(def),
       resume: agentSession.claudeId,
-      allowedTools: toolsOf(def),
-      canUseTool: denyOthers,
+      canUseTool: this.guard(member, project, sessionId, null),
       onText: (delta) => this.emit('stream', { sessionId, delta }),
       onReply: (reply) => {
         store.addMessage(sessionId, 'secretary', reply);
@@ -58,9 +79,6 @@ export class Chat {
     }
   }
 }
-
-// Until the guard exists, anything a role does not pre-allow is refused
-const denyOthers: CanUseTool = async (name) => ({ behavior: 'deny', message: `${name} is not allowed for this role` });
 
 function failureText(status: string, error?: string) {
   if (status === 'limit') return '모델 사용 한도에 도달해 답하지 못했습니다. 한도가 풀린 뒤 다시 말씀해 주세요.';

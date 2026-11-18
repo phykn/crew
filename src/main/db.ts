@@ -26,13 +26,49 @@ const MIGRATIONS = [
      turns INTEGER NOT NULL DEFAULT 0, input_tokens INTEGER NOT NULL DEFAULT 0, output_tokens INTEGER NOT NULL DEFAULT 0,
      cost_usd REAL NOT NULL DEFAULT 0, error TEXT);`,
   `ALTER TABLE members ADD COLUMN status TEXT NOT NULL DEFAULT 'hired' CHECK (status IN ('hired', 'unhired'));`,
+  `CREATE TABLE questions (
+     id INTEGER PRIMARY KEY, session_id INTEGER NOT NULL REFERENCES sessions (id) ON DELETE CASCADE, task_id INTEGER,
+     kind TEXT NOT NULL CHECK (kind IN ('approval', 'choice')), prompt TEXT NOT NULL, options TEXT NOT NULL,
+     payload TEXT NOT NULL DEFAULT '{}', answer TEXT, created_at TEXT NOT NULL, answered_at TEXT);
+   ALTER TABLE messages ADD COLUMN question_id INTEGER REFERENCES questions (id);
+   CREATE TABLE events (
+     id INTEGER PRIMARY KEY, session_id INTEGER NOT NULL REFERENCES sessions (id) ON DELETE CASCADE, task_id INTEGER,
+     member_id INTEGER REFERENCES members (id), kind TEXT NOT NULL, text TEXT NOT NULL, detail TEXT, at TEXT NOT NULL);`,
 ];
 
 export type Project = { id: number; path: string; name: string };
 export type Session = { id: number; projectId: number; number: number; createdAt: string };
 export type Member = { id: number; projectId: number; key: string; nickname: string; model: string; status: 'hired' | 'unhired' };
 export type AgentSession = { id: number; sessionId: number; memberId: number; claudeId: string | null };
-export type Message = { id: number; sessionId: number; author: 'user' | 'secretary'; text: string; createdAt: string };
+export type Question = {
+  id: number;
+  sessionId: number;
+  taskId: number | null;
+  kind: 'approval' | 'choice';
+  prompt: string;
+  options: string[];
+  payload: Record<string, unknown>;
+  answer: string | null;
+};
+export type Message = {
+  id: number;
+  sessionId: number;
+  author: 'user' | 'secretary';
+  text: string;
+  createdAt: string;
+  question: Question | null;
+};
+export type Event = {
+  id: number;
+  sessionId: number;
+  taskId: number | null;
+  memberId: number | null;
+  kind: string;
+  text: string;
+  detail: string | null;
+  at: string;
+};
+type QuestionRow = Omit<Question, 'options' | 'payload'> & { options: string; payload: string };
 export type Run = {
   id: number;
   agentSessionId: number;
@@ -174,17 +210,65 @@ export class Store {
     this.db.prepare('UPDATE agent_sessions SET claude_id = ? WHERE id = ?').run(claudeId, agentSessionId);
   }
 
-  addMessage(sessionId: number, author: Message['author'], text: string): Message {
-    const { lastInsertRowid } = this.db
-      .prepare('INSERT INTO messages (session_id, author, text, created_at) VALUES (?, ?, ?, ?)')
-      .run(sessionId, author, text, now());
-    return { id: Number(lastInsertRowid), sessionId, author, text, createdAt: now() };
+  addMessage(sessionId: number, author: Message['author'], text: string, questionId: number | null = null) {
+    this.db
+      .prepare('INSERT INTO messages (session_id, author, text, created_at, question_id) VALUES (?, ?, ?, ?, ?)')
+      .run(sessionId, author, text, now(), questionId);
   }
 
   listMessages(sessionId: number): Message[] {
+    const rows = this.db
+      .prepare(
+        'SELECT id, session_id AS sessionId, author, text, created_at AS createdAt, question_id AS questionId FROM messages WHERE session_id = ? ORDER BY id',
+      )
+      .all(sessionId) as (Omit<Message, 'question'> & { questionId: number | null })[];
+    return rows.map(({ questionId, ...m }) => ({ ...m, question: questionId ? this.readQuestion(questionId) : null }));
+  }
+
+  addQuestion(q: Omit<Question, 'id' | 'answer'>): number {
+    const { lastInsertRowid } = this.db
+      .prepare('INSERT INTO questions (session_id, task_id, kind, prompt, options, payload, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(q.sessionId, q.taskId, q.kind, q.prompt, JSON.stringify(q.options), JSON.stringify(q.payload), now());
+    return Number(lastInsertRowid);
+  }
+
+  readQuestion(id: number): Question {
+    const row = this.db
+      .prepare(
+        'SELECT id, session_id AS sessionId, task_id AS taskId, kind, prompt, options, payload, answer FROM questions WHERE id = ?',
+      )
+      .get(id) as QuestionRow | undefined;
+    if (!row) throw new Error(`no question ${id}`);
+    return { ...row, options: JSON.parse(row.options), payload: JSON.parse(row.payload) };
+  }
+
+  answerQuestion(id: number, answer: string) {
+    this.db.prepare('UPDATE questions SET answer = ?, answered_at = ? WHERE id = ? AND answer IS NULL').run(answer, now(), id);
+  }
+
+  // An approval counts only inside the task (or, before tasks, the session) it was given in
+  isGranted(sessionId: number, taskId: number | null, memberId: number, tool: string) {
+    const row = this.db
+      .prepare(
+        `SELECT 1 FROM questions WHERE session_id = ? AND task_id IS ? AND kind = 'approval' AND answer = '허용'
+         AND json_extract(payload, '$.memberId') = ? AND json_extract(payload, '$.tool') = ?`,
+      )
+      .get(sessionId, taskId, memberId, tool);
+    return !!row;
+  }
+
+  addEvent(e: Omit<Event, 'id' | 'at'>) {
+    this.db
+      .prepare('INSERT INTO events (session_id, task_id, member_id, kind, text, detail, at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(e.sessionId, e.taskId, e.memberId, e.kind, e.text, e.detail, now());
+  }
+
+  listEvents(sessionId: number): Event[] {
     return this.db
-      .prepare('SELECT id, session_id AS sessionId, author, text, created_at AS createdAt FROM messages WHERE session_id = ? ORDER BY id')
-      .all(sessionId) as Message[];
+      .prepare(
+        'SELECT id, session_id AS sessionId, task_id AS taskId, member_id AS memberId, kind, text, detail, at FROM events WHERE session_id = ? ORDER BY id',
+      )
+      .all(sessionId) as Event[];
   }
 
   startRun(agentSessionId: number, model: string): number {

@@ -28,10 +28,12 @@ function createWindow() {
 
 app.whenReady().then(() => {
   // Tests point AI_CREW_DB at a scratch file so they never touch the real record
-  const store = new Store(process.env.AI_CREW_DB || path.join(app.getPath('userData'), 'ai-crew.db'));
+  const dbFile = process.env.AI_CREW_DB || path.join(app.getPath('userData'), 'ai-crew.db');
+  const store = new Store(dbFile);
   const crewDir = app.isPackaged ? path.join(process.resourcesPath, 'crew') : path.join(app.getAppPath(), 'crew');
   const crew = new Crew(crewDir);
-  const chat = new Chat(store, loadQuery, crew, (channel, payload) => win?.webContents.send(channel, payload));
+  const paths = { output: path.join(path.dirname(dbFile), 'output'), protected: [dbFile, `${dbFile}-wal`, `${dbFile}-shm`, crewDir] };
+  const chat = new Chat(store, loadQuery, crew, (channel, payload) => win?.webContents.send(channel, payload), paths);
   // A definition added since the last start joins every project it is missing from
   for (const p of store.listProjects()) chat.seed(p.id);
   registerHandlers(createHandlers(store, crew, chat, () => win));

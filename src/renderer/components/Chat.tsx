@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Message, Session } from '../../main/db';
+import type { Message, Question, Session } from '../../main/db';
 import { call, onChanged, onStream } from '../api';
 
 export function Chat({ session }: { session: Session }) {
@@ -41,7 +41,7 @@ export function Chat({ session }: { session: Session }) {
     <div className="chat">
       <div className="messages" aria-label="대화">
         {messages.map((m) => (
-          <Bubble key={m.id} author={m.author} text={m.text} />
+          <Bubble key={m.id} author={m.author} text={m.text} question={m.question} />
         ))}
         {streaming !== null && <Bubble author="secretary" text={streaming} pending />}
         <div ref={end} />
@@ -77,7 +77,9 @@ export function Chat({ session }: { session: Session }) {
   );
 }
 
-function Bubble({ author, text, pending }: { author: Message['author']; text: string; pending?: boolean }) {
+type BubbleProps = { author: Message['author']; text: string; pending?: boolean; question?: Question | null };
+
+function Bubble({ author, text, pending, question }: BubbleProps) {
   const mine = author === 'user';
   return (
     <div className={`message ${author}`} data-pending={pending || undefined}>
@@ -98,7 +100,33 @@ function Bubble({ author, text, pending }: { author: Message['author']; text: st
       </div>
       <div className="message-body">
         <div className="author">{mine ? '나' : '비서'}</div>
-        <div className="bubble">{text ? renderInline(text) : pending ? <span className="typing">···</span> : ''}</div>
+        {question ? (
+          <AnswerCard question={question} />
+        ) : (
+          <div className="bubble">{text ? renderInline(text) : pending ? <span className="typing">···</span> : ''}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AnswerCard({ question }: { question: Question }) {
+  const answered = question.answer !== null;
+  return (
+    <div className="answer-card" data-answered={answered || undefined}>
+      <div className="answer-prompt">{renderInline(question.prompt)}</div>
+      <div className="answer-options">
+        {question.options.map((o, i) => (
+          <button
+            key={o}
+            className={`answer-option${i === question.options.length - 1 ? ' primary' : ''}`}
+            data-chosen={question.answer === o || undefined}
+            disabled={answered}
+            onClick={() => call('questions.answer', { id: question.id, choice: o })}
+          >
+            {o}
+          </button>
+        ))}
       </div>
     </div>
   );

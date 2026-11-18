@@ -9,7 +9,6 @@ export type RunInput = {
   model: string;
   system: string;
   resume?: string | null;
-  allowedTools: string[];
   canUseTool: CanUseTool;
   mcpServers?: Options['mcpServers'];
   onText?: (delta: string) => void;
@@ -75,9 +74,8 @@ export class AgentRun {
         model: input.model,
         resume: input.resume ?? undefined,
         systemPrompt: input.system,
-        allowedTools: input.allowedTools,
+        // No tool is pre-allowed and the mode asks, so every call that is not read-only reaches the guard
         canUseTool: input.canUseTool,
-        // Manual approval keeps every call that is not pre-allowed going through canUseTool
         permissionMode: 'default',
         mcpServers: input.mcpServers,
         mcpServersDelivery: 'initialize',

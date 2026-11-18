@@ -295,3 +295,20 @@ button { font: inherit; color: inherit; }
 .def-meta { color: var(--muted); font-size: 14px; }
 .def-body { white-space: pre-wrap; font-family: inherit; font-size: 14px; line-height: 1.6; background: var(--card); padding: 14px; border-radius: 8px; }
 .button { height: 36px; padding: 0 16px; background: #34323f; border: none; border-radius: 8px; cursor: pointer; }
+
+.answer-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.answer-prompt { padding: 12px 16px; font-size: 16px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; border-bottom: 1px solid var(--line); }
+.answer-options { display: flex; gap: 12px; padding: 14px 16px; flex-wrap: wrap; }
+.answer-option {
+  flex: 1;
+  min-width: 120px;
+  height: 48px;
+  border-radius: 8px;
+  border: 1px solid #8c87a0;
+  background: transparent;
+  font-size: 16px;
+  cursor: pointer;
+}
+.answer-option.primary { background: var(--accent); border-color: var(--accent); }
+.answer-option:disabled { cursor: default; opacity: 0.4; }
+.answer-option[data-chosen] { opacity: 1; outline: 2px solid var(--accent-soft); }
