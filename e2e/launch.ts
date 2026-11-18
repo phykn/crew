@@ -24,3 +24,11 @@ export async function answerFolderDialog(app: ElectronApplication, folder: strin
     dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [picked] })) as typeof dialog.showOpenDialog;
   }, folder);
 }
+
+export async function openProject(app: ElectronApplication, folder: string) {
+  const page = await app.firstWindow();
+  await answerFolderDialog(app, folder);
+  await page.getByLabel('프로젝트').click();
+  await page.getByRole('option', { name: '폴더 열기…' }).click();
+  return page;
+}

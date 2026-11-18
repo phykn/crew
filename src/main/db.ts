@@ -25,11 +25,12 @@ const MIGRATIONS = [
      status TEXT NOT NULL CHECK (status IN ('running', 'done', 'failed', 'stopped', 'limit')),
      turns INTEGER NOT NULL DEFAULT 0, input_tokens INTEGER NOT NULL DEFAULT 0, output_tokens INTEGER NOT NULL DEFAULT 0,
      cost_usd REAL NOT NULL DEFAULT 0, error TEXT);`,
+  `ALTER TABLE members ADD COLUMN status TEXT NOT NULL DEFAULT 'hired' CHECK (status IN ('hired', 'unhired'));`,
 ];
 
 export type Project = { id: number; path: string; name: string };
 export type Session = { id: number; projectId: number; number: number; createdAt: string };
-export type Member = { id: number; projectId: number; key: string; nickname: string; model: string };
+export type Member = { id: number; projectId: number; key: string; nickname: string; model: string; status: 'hired' | 'unhired' };
 export type AgentSession = { id: number; sessionId: number; memberId: number; claudeId: string | null };
 export type Message = { id: number; sessionId: number; author: 'user' | 'secretary'; text: string; createdAt: string };
 export type Run = {
@@ -132,21 +133,30 @@ export class Store {
 
   listMembers(projectId: number): Member[] {
     return this.db
-      .prepare('SELECT id, project_id AS projectId, key, nickname, model FROM members WHERE project_id = ? ORDER BY id')
+      .prepare('SELECT id, project_id AS projectId, key, nickname, model, status FROM members WHERE project_id = ? ORDER BY id')
       .all(projectId) as Member[];
   }
 
   readMember(projectId: number, key: string): Member {
     const row = this.db
-      .prepare('SELECT id, project_id AS projectId, key, nickname, model FROM members WHERE project_id = ? AND key = ?')
+      .prepare('SELECT id, project_id AS projectId, key, nickname, model, status FROM members WHERE project_id = ? AND key = ?')
       .get(projectId, key) as Member | undefined;
     if (!row) throw new Error(`no member ${key} in project ${projectId}`);
     return row;
   }
 
-  updateMember(id: number, change: { nickname?: string; model?: string }) {
+  updateMember(id: number, change: { nickname?: string; model?: string; status?: Member['status'] }) {
     if (change.nickname !== undefined) this.db.prepare('UPDATE members SET nickname = ? WHERE id = ?').run(change.nickname, id);
     if (change.model !== undefined) this.db.prepare('UPDATE members SET model = ? WHERE id = ?').run(change.model, id);
+    if (change.status !== undefined) this.db.prepare('UPDATE members SET status = ? WHERE id = ?').run(change.status, id);
+  }
+
+  readMemberById(id: number): Member {
+    const row = this.db
+      .prepare('SELECT id, project_id AS projectId, key, nickname, model, status FROM members WHERE id = ?')
+      .get(id) as Member | undefined;
+    if (!row) throw new Error(`no member ${id}`);
+    return row;
   }
 
   openAgentSession(sessionId: number, memberId: number): AgentSession {

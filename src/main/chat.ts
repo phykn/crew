@@ -1,28 +1,23 @@
 import type { CanUseTool } from '@anthropic-ai/claude-agent-sdk';
 import { AgentRun, type QueryFn } from './agent';
 import type { Store } from './db';
-import { type Definition, readDefinitions, readRules, toolsOf } from './crew';
+import { type Crew, toolsOf } from './crew';
 
 export type Emit = (channel: 'changed' | 'stream', payload: unknown) => void;
 
 // The user's conversation with 비서, one live run per session at most
 export class Chat {
-  defs: Definition[];
-  rules: string;
   live = new Map<number, AgentRun>();
 
   constructor(
     public store: Store,
     public queryFn: () => Promise<QueryFn>,
-    crewDir: string,
+    public crew: Crew,
     public emit: Emit,
-  ) {
-    this.defs = readDefinitions(crewDir);
-    this.rules = readRules(crewDir);
-  }
+  ) {}
 
   seed(projectId: number) {
-    this.store.seedMembers(projectId, this.defs);
+    this.store.seedMembers(projectId, this.crew.defs);
   }
 
   async send(sessionId: number, text: string) {
@@ -34,13 +29,13 @@ export class Chat {
     if (live) return live.say(text);
 
     const project = store.readProject(store.readSession(sessionId).projectId);
-    const def = this.defs.find((d) => d.key === 'secretary')!;
+    const def = this.crew.find('orchestrator');
     const member = store.readMember(project.id, def.key);
     const agentSession = store.openAgentSession(sessionId, member.id);
     const run = new AgentRun(await this.queryFn(), {
       cwd: project.path,
       model: member.model,
-      system: `${this.rules}\n\n${def.instructions}`,
+      system: this.crew.system(def),
       resume: agentSession.claudeId,
       allowedTools: toolsOf(def),
       canUseTool: denyOthers,

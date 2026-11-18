@@ -3,9 +3,10 @@ import os from 'node:os';
 import path from 'node:path';
 import type { Options, SDKMessage, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
 import type { QueryFn } from '../src/main/agent';
+import { Crew } from '../src/main/crew';
 import { Store } from '../src/main/db';
 
-export const CREW_DIR = path.resolve(__dirname, '../crew');
+export const CREW = new Crew(path.resolve(__dirname, '../crew'));
 
 // A scratch record and project folder per test, so tests never touch real data
 export function makeScratch(files: Record<string, string> = {}) {

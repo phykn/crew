@@ -2,12 +2,12 @@ import { BrowserWindow, dialog, ipcMain } from 'electron';
 import { z } from 'zod';
 import type { Store } from './db';
 import type { Chat } from './chat';
-import { MODELS } from './crew';
+import { type Crew, KEPT, MODELS } from './crew';
 
 const id = z.number().int().positive();
 
 // Every call the window can make, with the schema its arguments must pass
-export function createHandlers(store: Store, chat: Chat, win: () => BrowserWindow | null) {
+export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => BrowserWindow | null) {
   return {
     'projects.list': { args: z.undefined(), run: () => store.listProjects() },
     'projects.open': {
@@ -42,10 +42,29 @@ export function createHandlers(store: Store, chat: Chat, win: () => BrowserWindo
       // The reply arrives through the change feed; the call only hands the message over
       run: (a: { sessionId: number; text: string }) => void chat.send(a.sessionId, a.text),
     },
-    'members.list': { args: z.object({ projectId: id }), run: (a: { projectId: number }) => store.listMembers(a.projectId) },
+    'members.list': {
+      args: z.object({ projectId: id }),
+      run: (a: { projectId: number }) => crew.describe(store.listMembers(a.projectId)),
+    },
     'members.update': {
-      args: z.object({ id, nickname: z.string().trim().min(1).max(20).optional(), model: z.enum(MODELS).optional() }),
-      run: (a: { id: number; nickname?: string; model?: string }) => store.updateMember(a.id, a),
+      args: z.object({
+        id,
+        nickname: z.string().trim().min(1).max(12).optional(),
+        model: z.enum(MODELS).optional(),
+        status: z.enum(['hired', 'unhired']).optional(),
+      }),
+      run: (a: { id: number; nickname?: string; model?: string; status?: 'hired' | 'unhired' }) => {
+        // The crew stops working without 비서 or 인사, so the window cannot let them go
+        if (a.status === 'unhired' && KEPT.includes(store.readMemberById(a.id).key)) throw new Error('this member cannot be let go');
+        store.updateMember(a.id, a);
+      },
+    },
+    'members.definition': {
+      args: z.object({ id }),
+      run: (a: { id: number }) => {
+        const def = crew.find(store.readMemberById(a.id).key);
+        return { role: def.role, description: def.description, tools: def.tools, write: def.write, instructions: def.instructions };
+      },
     },
   };
 }

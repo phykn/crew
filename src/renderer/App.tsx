@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
 import type { Project, Session } from '../main/db';
+import type { CrewMember } from '../main/crew';
 import { call } from './api';
 import { TitleBar } from './components/TitleBar';
 import { ProjectBar } from './components/ProjectBar';
 import { Chat } from './components/Chat';
+import { Legend } from './components/Legend';
 
 export function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [project, setProject] = useState<Project | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [session, setSession] = useState<Session | null>(null);
+  const [members, setMembers] = useState<CrewMember[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -27,6 +30,7 @@ export function App() {
     if (list.length === 0) list = [await call('sessions.create', { projectId: p.id })];
     setProject(p);
     setSessions(list);
+    setMembers(await call('members.list', { projectId: p.id }));
     selectSession(list.find((s) => s.id === sessionId) ?? list[0], p);
   }
 
@@ -52,7 +56,9 @@ export function App() {
     <div className="app">
       <TitleBar />
       <main className="body">
-        <section className="camp" aria-label="캠프" />
+        <section className="camp" aria-label="캠프">
+          {project && <Legend members={members} onChange={async () => setMembers(await call('members.list', { projectId: project.id }))} />}
+        </section>
         <aside className="panel">
           <ProjectBar
             projects={projects}

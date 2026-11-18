@@ -1,0 +1,28 @@
+// Kit icons drawn on a 20px grid; each has its tile color, like the skill bar in the concept image
+const ICONS: Record<string, { bg: string; path: React.ReactNode }> = {
+  list: { bg: '#3b82f6', path: <path d="M6 6h9M6 10h9M6 14h9M3.5 6h.5M3.5 10h.5M3.5 14h.5" /> },
+  sparkle: { bg: '#8b5cf6', path: <path d="M10 3l1.6 4.4L16 9l-4.4 1.6L10 15l-1.6-4.4L4 9l4.4-1.6z" fill="currentColor" /> },
+  code: { bg: '#16a34a', path: <path d="M7.5 6L4 10l3.5 4M12.5 6L16 10l-3.5 4" /> },
+  wrench: { bg: '#f59e0b', path: <path d="M13.5 3.5a3.5 3.5 0 0 0-3.3 4.7L4 14.4 5.6 16l6.2-6.2a3.5 3.5 0 0 0 4.7-3.3l-2 2-2-2z" fill="currentColor" /> },
+  eye: { bg: '#6366f1', path: <><path d="M2.5 10s3-5 7.5-5 7.5 5 7.5 5-3 5-7.5 5-7.5-5-7.5-5z" /><circle cx="10" cy="10" r="2" fill="currentColor" /></> },
+  check: { bg: '#2563eb', path: <path d="M4.5 10.5l3.5 3.5 7.5-8" /> },
+  bug: { bg: '#ec4899', path: <><ellipse cx="10" cy="11" rx="3.5" ry="4.5" fill="currentColor" /><path d="M10 6.5V4M6.5 9H3.5M16.5 9h-3M6.5 13H3.5M16.5 13h-3M7.5 5l1 1.5M12.5 5l-1 1.5" /></> },
+  palette: { bg: '#65a30d', path: <><path d="M10 3a7 7 0 1 0 0 14c1 0 1.5-.7 1.2-1.6-.4-1 .3-1.9 1.3-1.9H15a2 2 0 0 0 2-2A7 7 0 0 0 10 3z" /><circle cx="6.5" cy="9" r="1" fill="currentColor" /><circle cx="9.5" cy="6.2" r="1" fill="currentColor" /><circle cx="13" cy="7.5" r="1" fill="currentColor" /></> },
+  book: { bg: '#b45309', path: <path d="M3.5 4.5h4.5a2 2 0 0 1 2 2V16a2 2 0 0 0-2-2H3.5zM16.5 4.5H12a2 2 0 0 0-2 2V16a2 2 0 0 1 2-2h4.5z" /> },
+  image: { bg: '#db2777', path: <><rect x="3" y="4" width="14" height="12" rx="1.5" /><path d="M3.5 14l4-4 3 3 2-2 4 3.5" /><circle cx="13" cy="7.5" r="1.2" fill="currentColor" /></> },
+  user: { bg: '#0ea5e9', path: <><circle cx="10" cy="7" r="3" /><path d="M4 16.5a6 6 0 0 1 12 0" /></> },
+  puzzle: { bg: '#ea580c', path: <path d="M4 7h3a2 2 0 1 1 4 0h3v3a2 2 0 1 1 0 4v3h-3a2 2 0 1 0-4 0H4v-3a2 2 0 1 0 0-4z" /> },
+  scroll: { bg: '#a16207', path: <path d="M6 4h9v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1h9v1a2 2 0 0 0 2 2M6 4a2 2 0 0 0-2 2v7M9 8h3M9 11h3" /> },
+  browser: { bg: '#0891b2', path: <><rect x="3" y="4" width="14" height="12" rx="1.5" /><path d="M3 7.5h14M5.5 5.8h.5M7.5 5.8h.5" /></> },
+};
+
+export function KitIcon({ icon, label }: { icon: string; label: string }) {
+  const item = ICONS[icon] ?? ICONS.puzzle;
+  return (
+    <span className="kit-icon" style={{ background: item.bg }} title={label} aria-label={label} role="img">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        {item.path}
+      </svg>
+    </span>
+  );
+}

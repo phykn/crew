@@ -2,6 +2,7 @@ import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import { Store } from './db';
 import { Chat } from './chat';
+import { Crew } from './crew';
 import { loadQuery } from './agent';
 import { createHandlers, registerHandlers } from './ipc';
 
@@ -29,10 +30,11 @@ app.whenReady().then(() => {
   // Tests point AI_CREW_DB at a scratch file so they never touch the real record
   const store = new Store(process.env.AI_CREW_DB || path.join(app.getPath('userData'), 'ai-crew.db'));
   const crewDir = app.isPackaged ? path.join(process.resourcesPath, 'crew') : path.join(app.getAppPath(), 'crew');
-  const chat = new Chat(store, loadQuery, crewDir, (channel, payload) => win?.webContents.send(channel, payload));
+  const crew = new Crew(crewDir);
+  const chat = new Chat(store, loadQuery, crew, (channel, payload) => win?.webContents.send(channel, payload));
   // A definition added since the last start joins every project it is missing from
   for (const p of store.listProjects()) chat.seed(p.id);
-  registerHandlers(createHandlers(store, chat, () => win));
+  registerHandlers(createHandlers(store, crew, chat, () => win));
   createWindow();
 });
 
