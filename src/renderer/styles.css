@@ -99,3 +99,72 @@ button { font: inherit; color: inherit; }
 .tab-body { flex: 1; min-height: 0; overflow: auto; padding-top: 12px; }
 .tab-body[data-state='inactive'] { display: none; }
 .empty { color: var(--muted); text-align: center; margin-top: 40px; }
+
+.tab-body[data-state='active']:has(.chat) { display: flex; overflow: hidden; }
+.chat { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; padding: 8px 2px 16px; }
+.message { display: flex; gap: 14px; align-items: flex-start; }
+.avatar {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #3a3846;
+  color: #d9d5e6;
+}
+.avatar svg { width: 24px; height: 24px; }
+.message.secretary .avatar { background: #8b5cf6; color: #f3edff; }
+.message-body { min-width: 0; max-width: 86%; display: flex; flex-direction: column; gap: 8px; }
+.author { font-size: 17px; }
+.bubble {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 16px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.message.user .bubble { background: #2a2934; border-color: transparent; }
+.typing { color: var(--muted); letter-spacing: 3px; }
+
+.composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 8px 8px 18px;
+  background: var(--bg);
+}
+.composer:focus-within { border-color: #4b4760; }
+.composer textarea {
+  flex: 1;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 17px;
+  max-height: 160px;
+  padding: 8px 0;
+}
+.composer textarea::placeholder { color: var(--muted); }
+.send {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: white;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.send:disabled { opacity: 0.45; cursor: default; }
+.send svg { width: 22px; height: 22px; }
+.bubble code { font-family: 'Cascadia Code', Consolas, monospace; font-size: 14px; background: #2c2a38; padding: 1px 6px; border-radius: 5px; }

@@ -1,11 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-// The window gets exactly two doors into the main process: a call and a change feed
+// The window gets exactly two doors into the main process: calls, and the feeds it may listen to
 contextBridge.exposeInMainWorld('crew', {
   call: (name: string, args?: unknown) => ipcRenderer.invoke('call', name, args),
-  onChange: (fn: (topic: string) => void) => {
-    const listener = (_e: unknown, topic: string) => fn(topic);
-    ipcRenderer.on('changed', listener);
-    return () => ipcRenderer.removeListener('changed', listener);
+  on: (channel: 'changed' | 'stream', fn: (payload: unknown) => void) => {
+    const listener = (_e: unknown, payload: unknown) => fn(payload);
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
   },
 });

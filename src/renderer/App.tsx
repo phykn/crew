@@ -4,6 +4,7 @@ import type { Project, Session } from '../main/db';
 import { call } from './api';
 import { TitleBar } from './components/TitleBar';
 import { ProjectBar } from './components/ProjectBar';
+import { Chat } from './components/Chat';
 
 export function App() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -70,7 +71,7 @@ export function App() {
               <Tabs.Trigger value="memory">메모리</Tabs.Trigger>
             </Tabs.List>
             <Tabs.Content value="chat" className="tab-body">
-              {!project && <p className="empty">폴더를 열어 프로젝트를 시작하세요.</p>}
+              {session ? <Chat session={session} /> : <p className="empty">폴더를 열어 프로젝트를 시작하세요.</p>}
             </Tabs.Content>
             <Tabs.Content value="log" className="tab-body" />
             <Tabs.Content value="memory" className="tab-body" />

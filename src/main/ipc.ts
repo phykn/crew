@@ -1,11 +1,13 @@
 import { BrowserWindow, dialog, ipcMain } from 'electron';
 import { z } from 'zod';
 import type { Store } from './db';
+import type { Chat } from './chat';
+import { MODELS } from './crew';
 
 const id = z.number().int().positive();
 
 // Every call the window can make, with the schema its arguments must pass
-export function createHandlers(store: Store, win: () => BrowserWindow | null) {
+export function createHandlers(store: Store, chat: Chat, win: () => BrowserWindow | null) {
   return {
     'projects.list': { args: z.undefined(), run: () => store.listProjects() },
     'projects.open': {
@@ -15,7 +17,10 @@ export function createHandlers(store: Store, win: () => BrowserWindow | null) {
         const picked = w
           ? await dialog.showOpenDialog(w, { properties: ['openDirectory'] })
           : await dialog.showOpenDialog({ properties: ['openDirectory'] });
-        return picked.canceled || !picked.filePaths[0] ? null : store.addProject(picked.filePaths[0]);
+        if (picked.canceled || !picked.filePaths[0]) return null;
+        const project = store.addProject(picked.filePaths[0]);
+        chat.seed(project.id);
+        return project;
       },
     },
     'sessions.list': { args: z.object({ projectId: id }), run: (a: { projectId: number }) => store.listSessions(a.projectId) },
@@ -30,6 +35,17 @@ export function createHandlers(store: Store, win: () => BrowserWindow | null) {
     'last.write': {
       args: z.object({ projectId: id.optional(), sessionId: id.optional() }),
       run: (a: { projectId?: number; sessionId?: number }) => store.writeSetting('last', JSON.stringify(a)),
+    },
+    'messages.list': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => store.listMessages(a.sessionId) },
+    'messages.send': {
+      args: z.object({ sessionId: id, text: z.string().trim().min(1).max(20_000) }),
+      // The reply arrives through the change feed; the call only hands the message over
+      run: (a: { sessionId: number; text: string }) => void chat.send(a.sessionId, a.text),
+    },
+    'members.list': { args: z.object({ projectId: id }), run: (a: { projectId: number }) => store.listMembers(a.projectId) },
+    'members.update': {
+      args: z.object({ id, nickname: z.string().trim().min(1).max(20).optional(), model: z.enum(MODELS).optional() }),
+      run: (a: { id: number; nickname?: string; model?: string }) => store.updateMember(a.id, a),
     },
   };
 }

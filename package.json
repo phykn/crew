@@ -14,10 +14,11 @@
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "test": "vitest run",
+    "test": "vitest run --project unit",
     "test:e2e": "electron-forge package && playwright test",
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint && oxfmt --check"
+    "lint": "oxlint && oxfmt --check",
+    "test:live": "vitest run --project live"
   },
   "devDependencies": {
     "@electron-forge/cli": "^8.0.1",
