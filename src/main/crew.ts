@@ -39,8 +39,28 @@ const Front = z.object({
   description: z.string().min(1),
 });
 
-const KitItem = z.object({ icon: z.string(), label: z.string(), use: z.string() });
+// readTools lists an MCP server's tools that only look, for members given read access to it
+const KitItem = z.object({ icon: z.string(), label: z.string(), use: z.string(), readTools: z.array(z.string()).optional() });
 const Kit = z.object({ skills: z.record(z.string(), KitItem), mcp: z.record(z.string(), KitItem) });
+const McpFile = z.object({ mcpServers: z.record(z.string(), z.record(z.string(), z.unknown())) });
+
+type ToolKind = keyof typeof TOOL_KINDS;
+export const TOOL_KIND_NAMES = Object.keys(TOOL_KINDS) as ToolKind[];
+export type Access = 'all' | 'read';
+// What the user changed for one member in one project; anything left out follows the definition
+export const Config = z.object({
+  tools: z.array(z.enum(TOOL_KIND_NAMES as [ToolKind])).optional(),
+  write: z.enum(['project', 'output', 'none']).optional(),
+  skills: z.array(z.string()).optional(),
+  mcp: z.array(z.object({ server: z.string(), access: z.enum(['all', 'read']) })).optional(),
+});
+export type Config = z.infer<typeof Config>;
+export type Settings = {
+  tools: ToolKind[];
+  write: 'project' | 'output' | 'none';
+  skills: string[];
+  mcp: { server: string; access: Access }[];
+};
 
 export type Definition = z.infer<typeof Front> & { key: string; instructions: string };
 export type Skill = { name: string; icon: string; label: string; use: string };
@@ -70,6 +90,8 @@ export class Crew {
   defs: Definition[];
   rules: string;
   kit: z.infer<typeof Kit>;
+  servers: Record<string, Record<string, unknown>>;
+  skillTexts: Record<string, string>;
 
   constructor(public dir: string) {
     const agents = path.join(dir, 'agents');
@@ -79,6 +101,17 @@ export class Crew {
       .map((f) => parseDefinition(f.slice(0, -3), fs.readFileSync(path.join(agents, f), 'utf-8')));
     this.rules = fs.readFileSync(path.join(dir, 'RULES.md'), 'utf-8');
     this.kit = Kit.parse(JSON.parse(fs.readFileSync(path.join(dir, 'kit.json'), 'utf-8')));
+    this.servers = McpFile.parse(JSON.parse(fs.readFileSync(path.join(dir, 'mcp.json'), 'utf-8'))).mcpServers;
+    // A skill with a SKILL.md gives its whole procedure; one without gives its one-line use
+    this.skillTexts = Object.fromEntries(
+      Object.entries(this.kit.skills).map(([name, item]) => {
+        const file = path.join(dir, 'skills', name, 'SKILL.md');
+        const body = fs.existsSync(file) ? fs.readFileSync(file, 'utf-8').replace(/^---[\s\S]*?---\s*/, '') : item.use;
+        return [name, body.trim()];
+      }),
+    );
+    const unserved = Object.keys(this.kit.mcp).filter((name) => !this.servers[name]);
+    if (unserved.length) throw new Error(`kit.json names MCP servers missing from mcp.json: ${unserved.join(', ')}`);
     for (const d of this.defs) {
       const unknown = [...d.skills.filter((s) => !this.kit.skills[s]), ...d.mcp.filter((s) => !this.kit.mcp[s])];
       if (unknown.length) throw new Error(`${d.key}.md names kit items missing from kit.json: ${unknown.join(', ')}`);
@@ -91,8 +124,31 @@ export class Crew {
     return def;
   }
 
-  system(def: Definition) {
-    return `${this.rules}\n\n${def.instructions}`;
+  settings(def: Definition, config: Config): Settings {
+    return {
+      tools: config.tools ?? def.tools,
+      write: config.write ?? def.write,
+      skills: config.skills ?? def.skills,
+      mcp: config.mcp ?? def.mcp.map((server) => ({ server, access: 'all' as Access })),
+    };
+  }
+
+  system(def: Definition, settings: Settings) {
+    const skills = settings.skills.map((name) => `## Skill: ${name}\n\n${this.skillTexts[name]}`);
+    return [this.rules, def.instructions, ...skills].join('\n\n');
+  }
+
+  // Only the servers this member holds are started for its run
+  mcpServers(settings: Settings) {
+    return Object.fromEntries(settings.mcp.map(({ server }) => [server, this.servers[server]])) as Record<string, never>;
+  }
+
+  checkConfig(config: Config) {
+    const unknown = [
+      ...(config.skills ?? []).filter((s) => !this.kit.skills[s]),
+      ...(config.mcp ?? []).filter((m) => !this.kit.mcp[m.server]).map((m) => m.server),
+    ];
+    if (unknown.length) throw new Error(`not in the kit: ${unknown.join(', ')}`);
   }
 
   describe(members: Member[]): CrewMember[] {
@@ -100,14 +156,15 @@ export class Crew {
     return members
       .map((m) => {
         const def = this.find(m.key);
+        const settings = this.settings(def, m.config);
         return {
           ...m,
           role: def.role,
           color: def.color,
           kept: KEPT.includes(m.key),
           skills: [
-            ...def.skills.map((name) => ({ name, ...this.kit.skills[name] })),
-            ...def.mcp.map((name) => ({ name, ...this.kit.mcp[name] })),
+            ...settings.skills.map((name) => ({ name, ...this.kit.skills[name] })),
+            ...settings.mcp.map(({ server }) => ({ name: server, ...this.kit.mcp[server] })),
           ],
           look: def.look,
           description: def.description,
@@ -117,6 +174,6 @@ export class Crew {
   }
 }
 
-export function toolsOf(def: Definition): string[] {
-  return def.tools.flatMap((k) => TOOL_KINDS[k]);
+export function toolsOf(settings: Settings): string[] {
+  return settings.tools.flatMap((k) => TOOL_KINDS[k]);
 }

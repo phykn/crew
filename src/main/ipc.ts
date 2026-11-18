@@ -2,7 +2,7 @@ import { BrowserWindow, dialog, ipcMain } from 'electron';
 import { z } from 'zod';
 import type { Store } from './db';
 import type { Chat } from './chat';
-import { type Crew, KEPT, MODELS } from './crew';
+import { Config, type Crew, KEPT, MODELS } from './crew';
 
 const id = z.number().int().positive();
 
@@ -63,11 +63,23 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
         store.updateMember(a.id, a);
       },
     },
+    'members.permissions': {
+      args: z.object({ id }),
+      run: (a: { id: number }) => ({
+        settings: chat.settings(store.readMemberById(a.id)),
+        kit: crew.kit,
+        changes: store.listPermissionChanges(a.id),
+      }),
+    },
+    'members.setPermissions': {
+      args: z.object({ id, config: Config }),
+      run: (a: { id: number; config: Config }) => chat.setPermissions(a.id, a.config),
+    },
     'members.definition': {
       args: z.object({ id }),
       run: (a: { id: number }) => {
         const def = crew.find(store.readMemberById(a.id).key);
-        return { role: def.role, description: def.description, tools: def.tools, write: def.write, instructions: def.instructions };
+        return { role: def.role, description: def.description, instructions: def.instructions };
       },
     },
   };

@@ -292,7 +292,6 @@ button { font: inherit; color: inherit; }
   z-index: 21;
 }
 .dialog h2 { margin: 0 0 6px; font-size: 20px; }
-.def-meta { color: var(--muted); font-size: 14px; }
 .def-body { white-space: pre-wrap; font-family: inherit; font-size: 14px; line-height: 1.6; background: var(--card); padding: 14px; border-radius: 8px; }
 .button { height: 36px; padding: 0 16px; background: #34323f; border: none; border-radius: 8px; cursor: pointer; }
 
@@ -312,3 +311,14 @@ button { font: inherit; color: inherit; }
 .answer-option.primary { background: var(--accent); border-color: var(--accent); }
 .answer-option:disabled { cursor: default; opacity: 0.4; }
 .answer-option[data-chosen] { opacity: 1; outline: 2px solid var(--accent-soft); }
+
+.permissions { margin: 14px 0; }
+.permissions h3 { font-size: 16px; margin: 0 0 8px; }
+.perm-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.perm-label { width: 44px; color: var(--muted); font-size: 14px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-size: 14px; cursor: pointer; }
+.chip .kit-icon { width: 22px; height: 22px; margin: 0; }
+.chip .kit-icon svg { width: 14px; height: 14px; }
+.permissions select { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 6px; height: 28px; }
+.perm-changes { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: 13px; }
+.perm-changes time { margin-right: 6px; }

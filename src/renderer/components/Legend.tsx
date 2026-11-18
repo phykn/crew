@@ -5,10 +5,11 @@ import * as Dialog from '@radix-ui/react-dialog';
 import type { CrewMember } from '../../main/crew';
 import { call } from '../api';
 import { KitIcon } from './Icons';
+import { Permissions } from './Permissions';
 
 const MODEL_LABELS: Record<string, string> = { haiku: 'Haiku', sonnet: 'Sonnet', opus: 'Opus' };
 
-type Definition = Awaited<ReturnType<typeof call<'members.definition'>>>;
+type Definition = Awaited<ReturnType<typeof call<'members.definition'>>> & { id: number };
 
 export function Legend({ members, onChange }: { members: CrewMember[]; onChange: () => void }) {
   const [open, setOpen] = useState(true);
@@ -67,7 +68,7 @@ export function Legend({ members, onChange }: { members: CrewMember[]; onChange:
                       <button
                         className="md"
                         aria-label={`${m.role} 정의`}
-                        onClick={async () => setShown(await call('members.definition', { id: m.id }))}
+                        onClick={async () => setShown({ ...(await call('members.definition', { id: m.id })), id: m.id })}
                       >
                         MD
                       </button>
@@ -99,9 +100,7 @@ export function Legend({ members, onChange }: { members: CrewMember[]; onChange:
           <Dialog.Content className="dialog">
             <Dialog.Title>{shown?.role} 정의</Dialog.Title>
             <Dialog.Description className="muted">{shown?.description}</Dialog.Description>
-            <p className="def-meta">
-              도구: {shown?.tools.join(', ')} · 쓰기: {shown && WRITE_LABELS[shown.write]}
-            </p>
+            {shown && <Permissions memberId={shown.id} onChange={onChange} />}
             <pre className="def-body">{shown?.instructions}</pre>
             <Dialog.Close className="button">닫기</Dialog.Close>
           </Dialog.Content>
@@ -110,8 +109,6 @@ export function Legend({ members, onChange }: { members: CrewMember[]; onChange:
     </div>
   );
 }
-
-const WRITE_LABELS: Record<string, string> = { project: '프로젝트 폴더', output: '자기 산출물 폴더', none: '없음' };
 
 function Nickname({ member, onSave }: { member: CrewMember; onSave: (n: string) => void }) {
   const [draft, setDraft] = useState<string | null>(null);

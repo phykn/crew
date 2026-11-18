@@ -34,11 +34,26 @@ const MIGRATIONS = [
    CREATE TABLE events (
      id INTEGER PRIMARY KEY, session_id INTEGER NOT NULL REFERENCES sessions (id) ON DELETE CASCADE, task_id INTEGER,
      member_id INTEGER REFERENCES members (id), kind TEXT NOT NULL, text TEXT NOT NULL, detail TEXT, at TEXT NOT NULL);`,
+  `ALTER TABLE members ADD COLUMN config TEXT NOT NULL DEFAULT '{}';
+   CREATE TABLE permission_changes (
+     id INTEGER PRIMARY KEY, member_id INTEGER NOT NULL REFERENCES members (id) ON DELETE CASCADE,
+     change TEXT NOT NULL, at TEXT NOT NULL);`,
 ];
 
 export type Project = { id: number; path: string; name: string };
 export type Session = { id: number; projectId: number; number: number; createdAt: string };
-export type Member = { id: number; projectId: number; key: string; nickname: string; model: string; status: 'hired' | 'unhired' };
+export type Member = {
+  id: number;
+  projectId: number;
+  key: string;
+  nickname: string;
+  model: string;
+  status: 'hired' | 'unhired';
+  config: Record<string, unknown>;
+};
+type MemberRow = Omit<Member, 'config'> & { config: string };
+const MEMBER = 'SELECT id, project_id AS projectId, key, nickname, model, status, config FROM members';
+const toMember = (r: MemberRow): Member => ({ ...r, config: JSON.parse(r.config) });
 export type AgentSession = { id: number; sessionId: number; memberId: number; claudeId: string | null };
 export type Question = {
   id: number;
@@ -168,17 +183,13 @@ export class Store {
   }
 
   listMembers(projectId: number): Member[] {
-    return this.db
-      .prepare('SELECT id, project_id AS projectId, key, nickname, model, status FROM members WHERE project_id = ? ORDER BY id')
-      .all(projectId) as Member[];
+    return (this.db.prepare(`${MEMBER} WHERE project_id = ? ORDER BY id`).all(projectId) as MemberRow[]).map(toMember);
   }
 
   readMember(projectId: number, key: string): Member {
-    const row = this.db
-      .prepare('SELECT id, project_id AS projectId, key, nickname, model, status FROM members WHERE project_id = ? AND key = ?')
-      .get(projectId, key) as Member | undefined;
+    const row = this.db.prepare(`${MEMBER} WHERE project_id = ? AND key = ?`).get(projectId, key) as MemberRow | undefined;
     if (!row) throw new Error(`no member ${key} in project ${projectId}`);
-    return row;
+    return toMember(row);
   }
 
   updateMember(id: number, change: { nickname?: string; model?: string; status?: Member['status'] }) {
@@ -188,11 +199,24 @@ export class Store {
   }
 
   readMemberById(id: number): Member {
-    const row = this.db
-      .prepare('SELECT id, project_id AS projectId, key, nickname, model, status FROM members WHERE id = ?')
-      .get(id) as Member | undefined;
+    const row = this.db.prepare(`${MEMBER} WHERE id = ?`).get(id) as MemberRow | undefined;
     if (!row) throw new Error(`no member ${id}`);
-    return row;
+    return toMember(row);
+  }
+
+  // The config and the record of what changed land together, so no change goes unrecorded
+  writeConfig(id: number, config: Record<string, unknown>, change: string) {
+    this.transact(() => {
+      this.db.prepare('UPDATE members SET config = ? WHERE id = ?').run(JSON.stringify(config), id);
+      this.db.prepare('INSERT INTO permission_changes (member_id, change, at) VALUES (?, ?, ?)').run(id, change, now());
+    });
+  }
+
+  listPermissionChanges(memberId: number): { change: string; at: string }[] {
+    return this.db.prepare('SELECT change, at FROM permission_changes WHERE member_id = ? ORDER BY id').all(memberId) as {
+      change: string;
+      at: string;
+    }[];
   }
 
   openAgentSession(sessionId: number, memberId: number): AgentSession {
@@ -246,14 +270,15 @@ export class Store {
     this.db.prepare('UPDATE questions SET answer = ?, answered_at = ? WHERE id = ? AND answer IS NULL').run(answer, now(), id);
   }
 
-  // An approval counts only inside the task (or, before tasks, the session) it was given in
+  // An approval counts only inside the task (or, before tasks, the session) it was given in, and only until the member's permissions change
   isGranted(sessionId: number, taskId: number | null, memberId: number, tool: string) {
     const row = this.db
       .prepare(
-        `SELECT 1 FROM questions WHERE session_id = ? AND task_id IS ? AND kind = 'approval' AND answer = '허용'
-         AND json_extract(payload, '$.memberId') = ? AND json_extract(payload, '$.tool') = ?`,
+        `SELECT 1 FROM questions q WHERE session_id = ? AND task_id IS ? AND kind = 'approval' AND answer = '허용'
+         AND json_extract(payload, '$.memberId') = ? AND json_extract(payload, '$.tool') = ?
+         AND answered_at > COALESCE((SELECT MAX(at) FROM permission_changes WHERE member_id = ?), '')`,
       )
-      .get(sessionId, taskId, memberId, tool);
+      .get(sessionId, taskId, memberId, tool, memberId);
     return !!row;
   }
 

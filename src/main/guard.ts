@@ -9,7 +9,8 @@ export type Policy = {
   role: string;
   tools: string[];
   write: 'project' | 'output' | 'none';
-  mcp: string[];
+  // Each MCP server the member holds; read access opens only the server's looking tools
+  mcp: { server: string; readTools: string[] | null }[];
   project: string;
   output: string;
   // The app's own record and crew files: a member who could rewrite these could switch the guard off
@@ -61,7 +62,12 @@ function checkMcp(policy: Policy, tool: string, input: Record<string, unknown>, 
   const server = tool.split('__')[1];
   // The app's own in-process tools are how members report; everyone has them
   if (server === 'crew') return { kind: 'allow' };
-  if (!policy.mcp.includes(server)) return { kind: 'ask', reason: `${policy.role}에게 ${server} MCP 서버가 없습니다` };
+  const held = policy.mcp.find((m) => m.server === server);
+  if (!held) return { kind: 'ask', reason: `${policy.role}에게 ${server} MCP 서버가 없습니다` };
+  const name = tool.split('__').slice(2).join('__');
+  if (held.readTools && !held.readTools.includes(name)) {
+    return { kind: 'ask', reason: `${policy.role}은 ${server}를 읽기로만 쓸 수 있어 ${name}을 쓰려면 승인이 필요합니다` };
+  }
   const file = input.filename;
   return typeof file === 'string' ? checkWrite({ ...policy, write: 'output' }, path.resolve(cwd, file)) : { kind: 'allow' };
 }
@@ -202,8 +208,11 @@ export function makeCanUseTool(policy: () => Policy, hooks: GuardHooks): CanUseT
     if (hooks.granted(tool)) return { behavior: 'allow', updatedInput: input };
     const ok = await hooks.ask(tool, input, verdict.reason);
     hooks.record(ok ? 'approved' : 'refused', `${tool} ${ok ? '승인' : '거절'}: ${verdict.reason}`);
-    // The permission may have been revoked while the user was deciding
-    if (ok && checkCall(policy(), tool, input).kind === 'deny') return { behavior: 'deny', message: refused('permission changed') };
+    // The permissions may have changed while the user was deciding; the approval answered the question as it was asked
+    const now = checkCall(policy(), tool, input);
+    if (ok && now.kind !== 'allow' && !(now.kind === 'ask' && now.reason === verdict.reason)) {
+      return { behavior: 'deny', message: refused('permissions changed while waiting for approval') };
+    }
     return ok ? { behavior: 'allow', updatedInput: input } : { behavior: 'deny', message: refused('the user did not allow it') };
   };
 }

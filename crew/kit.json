@@ -1,20 +1,88 @@
 {
   "skills": {
-    "brief": { "icon": "list", "label": "업무 정리", "use": "Turn a request into a brief: goal, scope, done-when, and who does what." },
-    "plan": { "icon": "sparkle", "label": "전략 수립", "use": "Write a change plan: scope, order of steps, risks, and checks that prove it worked." },
-    "code": { "icon": "code", "label": "코드 작성", "use": "Change code the way the project already works and confirm each change is saved." },
-    "tools": { "icon": "wrench", "label": "빠른 점검", "use": "Run quick checks on what changed: the touched tests, a type check, or a plain run." },
-    "review": { "icon": "eye", "label": "코드 리뷰", "use": "Judge one change for behavior, edge cases, test coverage, breakage and security." },
-    "verify": { "icon": "check", "label": "전체 검증", "use": "Run the project's full test suite and build exactly as the project defines them." },
-    "debug": { "icon": "bug", "label": "실패 분석", "use": "Read a failure, rerun it alone, and say whether it is real, flaky, or older than the change." },
-    "style": { "icon": "palette", "label": "표준 점검", "use": "Judge whether one change fits the project: structure, names, comments, leftovers, standard library first." },
-    "research": { "icon": "book", "label": "출처 조사", "use": "Find facts in official sources and cite each with its URL and the date read." },
-    "image": { "icon": "image", "label": "이미지 처리", "use": "Read, describe, crop, resize, and convert images with what the machine already has." },
-    "hire": { "icon": "user", "label": "인력 설계", "use": "Design a new crew member: role, tools, model, and instructions." },
-    "kit": { "icon": "puzzle", "label": "도구 관리", "use": "Bring in a skill or MCP server and give it only to the members whose work needs it." },
-    "report": { "icon": "scroll", "label": "보고서 양식", "use": "Write a report to keep: lead with the conclusion, then evidence, then what could not be checked." }
+    "brief": {
+      "icon": "list",
+      "label": "업무 정리",
+      "use": "Turn a request into a brief: goal, scope, done-when, and who does what."
+    },
+    "plan": {
+      "icon": "sparkle",
+      "label": "전략 수립",
+      "use": "Write a change plan: scope, order of steps, risks, and checks that prove it worked."
+    },
+    "code": {
+      "icon": "code",
+      "label": "코드 작성",
+      "use": "Change code the way the project already works and confirm each change is saved."
+    },
+    "tools": {
+      "icon": "wrench",
+      "label": "빠른 점검",
+      "use": "Run quick checks on what changed: the touched tests, a type check, or a plain run."
+    },
+    "review": {
+      "icon": "eye",
+      "label": "코드 리뷰",
+      "use": "Judge one change for behavior, edge cases, test coverage, breakage and security."
+    },
+    "verify": {
+      "icon": "check",
+      "label": "전체 검증",
+      "use": "Run the project's full test suite and build exactly as the project defines them."
+    },
+    "debug": {
+      "icon": "bug",
+      "label": "실패 분석",
+      "use": "Read a failure, rerun it alone, and say whether it is real, flaky, or older than the change."
+    },
+    "style": {
+      "icon": "palette",
+      "label": "표준 점검",
+      "use": "Judge whether one change fits the project: structure, names, comments, leftovers, standard library first."
+    },
+    "research": {
+      "icon": "book",
+      "label": "출처 조사",
+      "use": "Find facts in official sources and cite each with its URL and the date read."
+    },
+    "image": {
+      "icon": "image",
+      "label": "이미지 처리",
+      "use": "Read, describe, crop, resize, and convert images with what the machine already has."
+    },
+    "hire": {
+      "icon": "user",
+      "label": "인력 설계",
+      "use": "Design a new crew member: role, tools, model, and instructions."
+    },
+    "kit": {
+      "icon": "puzzle",
+      "label": "도구 관리",
+      "use": "Bring in a skill or MCP server and give it only to the members whose work needs it."
+    },
+    "report": {
+      "icon": "scroll",
+      "label": "보고서 양식",
+      "use": "Write a report to keep: lead with the conclusion, then evidence, then what could not be checked."
+    }
   },
   "mcp": {
-    "browser": { "icon": "browser", "label": "브라우저", "use": "A real browser (Playwright MCP): open and operate web pages, read pages that need scripts, take screenshots." }
+    "browser": {
+      "icon": "browser",
+      "label": "브라우저",
+      "use": "A real browser (Playwright MCP): open and operate web pages, read pages that need scripts, take screenshots.",
+      "readTools": [
+        "browser_navigate",
+        "browser_navigate_back",
+        "browser_snapshot",
+        "browser_take_screenshot",
+        "browser_console_messages",
+        "browser_network_requests",
+        "browser_tabs",
+        "browser_wait_for",
+        "browser_resize",
+        "browser_close"
+      ]
+    }
   }
 }

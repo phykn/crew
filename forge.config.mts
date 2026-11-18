@@ -7,6 +7,8 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    // The crew's rules and definitions are read at runtime from resources/crew
+    extraResource: ['crew'],
   },
   rebuildConfig: {},
   // A zip needs no installer signing, which this classroom app does not do

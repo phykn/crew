@@ -67,7 +67,7 @@ test('write targets are read from redirects, tee, cp, sed -i, and PowerShell, no
 
 test('the app record and crew files are protected even from 개발', () => {
   const { store, chat, project, paths } = setup();
-  const policy = chat.policy(CREW.find('coder'), project, 'task-1');
+  const policy = chat.policy(store.readMember(project.id, 'coder'), project, 'task-1');
   expect(checkCall(policy, 'Write', { file_path: paths.protected[0] }).kind).toBe('deny');
   expect(checkCall(policy, 'Write', { file_path: path.join(project.path, 'src', 'a.ts') }).kind).toBe('allow');
   expect(checkCall(policy, 'Bash', { command: 'npm install -g left-pad' }).kind).toBe('deny');
