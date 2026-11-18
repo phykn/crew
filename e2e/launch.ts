@@ -1,0 +1,26 @@
+import { _electron as electron, type ElectronApplication } from '@playwright/test';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
+// A scratch record and a scratch project folder per test, so the real app data is never touched
+export function makeScratch() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-crew-e2e-'));
+  const project = path.join(dir, 'demo');
+  fs.mkdirSync(project);
+  return { db: path.join(dir, 'crew.db'), project };
+}
+
+export async function launchApp(db: string): Promise<ElectronApplication> {
+  const env = { ...process.env, AI_CREW_DB: db } as Record<string, string>;
+  // Set by editors that host Node in Electron; it would start Electron as plain Node
+  delete env.ELECTRON_RUN_AS_NODE;
+  return electron.launch({ args: ['.'], env });
+}
+
+// The native folder dialog cannot be clicked, so the test answers it from the main process
+export async function answerFolderDialog(app: ElectronApplication, folder: string) {
+  await app.evaluate(({ dialog }, picked) => {
+    dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [picked] })) as typeof dialog.showOpenDialog;
+  }, folder);
+}
