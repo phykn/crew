@@ -76,7 +76,7 @@ test('a refused reopen leaves no trace, and a step queued before a stop is not r
   await vi.waitFor(() => expect(fake.calls).toHaveLength(1));
   const task = chat.tasks.start(s.id, 'code', 't', 'r');
   expect(chat.tasks.reopen(task.id, 'X')).toBe(false);
-  expect(store.readTask(task.id).request).toBe('r');
+  expect(store.readTask(task.id).request).toBe(task.request);
   expect(store.listStepRuns(task.id).map((r) => r.stepId)).toEqual(['plan']);
 
   chat.tasks.stop(task.id);

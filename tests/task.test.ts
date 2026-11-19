@@ -1,4 +1,6 @@
 import { expect, test, vi } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
 import { Chat } from '../src/main/chat';
 import { nextStatus } from '../src/main/task';
 import { CREW, fakeCrew, handback, openScratch, reply, type Turn } from './support';
@@ -142,4 +144,41 @@ test('a check with one loop stops the task when its second look still sends the 
   await chat.send(s.id, '검색 고쳐줘');
   await vi.waitFor(() => expect(store.listTasks(s.id)[0].status).toBe('failed'), { timeout: 3000 });
   expect(fake.calls.filter((c) => c.role === '비서')[1].prompt).toContain('계획을 1번 고쳤지만');
+});
+
+test('a redo that changes no file and is sent back again stops the task for the user instead of looping', async () => {
+  const { store, project, paths } = openScratch({ 'a.js': 'a' });
+  let fake: ReturnType<typeof fakeCrew>;
+  const opens: Turn = (prompt, options) => {
+    void fake.tools.get('start_task')!({ kind: 'code', title: '수정', request: prompt, size: 'small' });
+    return reply('업무를 시작했습니다.', 'claude-secretary')(prompt, options);
+  };
+  const edits: Turn = (prompt, options) => {
+    fs.writeFileSync(path.join(project, 'a.js'), 'b');
+    return handback('claude-code', { summary: '고침', files: ['a.js'] })(prompt, options);
+  };
+  const no = handback('claude-review', { summary: '범위 밖', verdict: 'rework', points: ['범위 밖'] });
+  const pass = (id: string) => handback(id, { summary: '통과', verdict: 'pass', checks: ['ok'] });
+  fake = fakeCrew({
+    비서: [opens, reply('멈췄습니다.', 'claude-secretary')],
+    개발: [edits, handback('claude-code', { summary: '그대로 둠' })],
+    리뷰: [no, no],
+    시험: [pass('t'), pass('t')],
+    표준: [pass('s'), pass('s')],
+  });
+  const chat = new Chat(
+    store,
+    async () => fake.sdk,
+    CREW,
+    () => {},
+    paths,
+  );
+  const p = store.addProject(project);
+  chat.seed(p.id);
+  const s = store.createSession(p.id);
+
+  await chat.send(s.id, '고쳐줘');
+  await vi.waitFor(() => expect(store.listTasks(s.id)[0].status).toBe('failed'), { timeout: 3000 });
+  expect(store.listStepRuns(1).filter((r) => r.stepId === 'develop')).toHaveLength(2);
+  expect(fake.calls.filter((c) => c.role === '비서')[1].prompt).toContain('바뀐 것이 없는데 또 되돌려졌습니다');
 });

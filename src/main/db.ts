@@ -731,6 +731,11 @@ export class Store {
     return row ? { ...row, files: JSON.parse(row.files) } : null;
   }
 
+  versionSnapshot(id: number): Record<string, string> {
+    const row = this.db.prepare('SELECT snapshot FROM versions WHERE id = ?').get(id) as { snapshot: string };
+    return JSON.parse(row.snapshot);
+  }
+
   // A rework the user asked for after the report: recorded like a reviewer's, so the engine reruns from there
   addUserRework(taskId: number, memberId: number, target: string, text: string) {
     const id = this.startStepRun(taskId, '_user', memberId);

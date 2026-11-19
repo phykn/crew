@@ -90,6 +90,8 @@ const HANDBACK_SCHEMA = z.toJSONSchema(HandbackShape, { target: 'draft-7', io: '
 
 // Transient failures of one step are retried this many times
 const RETRIES = 3;
+const CODE_SCOPE =
+  'Always in scope (set by the app): a test for each new behavior or fixed bug, and the README or documents that describe what changed. This overrides any line above that leaves them out.';
 // What runStep returns when the model's usage limit stopped it
 const LIMIT = 'usage limit';
 const STOPPED = '중단되었습니다';
@@ -139,7 +141,17 @@ export class Tasks {
         ? solo(this.chat.crew.defOf(one).role, one.key)
         : this.chat.workflowFor(projectId, writer ? 'code' : kind).rules;
     const workflow = small || writer ? withoutPlan(rules) : rules;
-    const task = store.createTask({ sessionId, kind: one && !writer ? kind : workflow.kind, title, request, workflow });
+    // Set by the app rather than left to the brief's wording, so every step reads the same scope
+    const scoped = workflow.kind === 'code' ? `${request}
+
+${CODE_SCOPE}` : request;
+    const task = store.createTask({
+      sessionId,
+      kind: one && !writer ? kind : workflow.kind,
+      title,
+      request: scoped,
+      workflow,
+    });
     if (writer) for (const s of makers(workflow)) store.assign(task.id, s.id, writer.id);
     store.writeBaseline(task.id, snapshot(this.projectOf(task).path));
     this.chat.emit('changed', 'tasks');
@@ -243,6 +255,23 @@ export class Tasks {
       });
       if (overworked)
         return this.fail(task, `${overworked.label}을 ${limit(overworked)}번 고쳤지만 검증을 통과하지 못했습니다`);
+      // A redo that left the files as they were and is sent back again would only repeat itself: the user decides
+      const version = store.latestVersion(taskId)?.id ?? null;
+      const idle = w.steps.find((s) => {
+        const done = runs.filter((r) => r.stepId === s.id && r.status === 'done');
+        return (
+          version !== null &&
+          !s.verdict &&
+          done.length > 1 &&
+          done.at(-1)!.versionId === version &&
+          sentBack(w, runs, s.id, done.at(-1)!.id)
+        );
+      });
+      if (idle)
+        return this.fail(
+          task,
+          `${idle.label}이 다시 했지만 바뀐 것이 없는데 또 되돌려졌습니다. 지적과 지시가 맞지 않아 사용자 결정이 필요합니다`,
+        );
 
       const ready = w.steps.filter((s) => !holds(s.id) && s.after.every(holds));
       const latest = (s: Step) => lastDone(runs, s.id);
@@ -323,8 +352,10 @@ export class Tasks {
       // A verdict step that gives no verdict has not judged anything
       if (step.verdict && !hb.verdict) hb.verdict = 'rework';
       store.finishStepRun(runId, 'done', hb);
-      // A making step's result is a new change version
-      if (snap && files.length) store.addVersion(task.id, files, snap);
+      // A making step's result is a new change version, unless it left the files as the last one did
+      const last = store.latestVersion(task.id);
+      const same = last && JSON.stringify(store.versionSnapshot(last.id)) === JSON.stringify(snap);
+      if (snap && files.length && !same) store.addVersion(task.id, files, snap);
       log(`${role}: ${step.label} ${hb.verdict === 'rework' ? '수정 요청' : '완료'} — ${hb.summary}`, hb);
       this.chat.emit('changed', 'tasks');
       return 'done';
