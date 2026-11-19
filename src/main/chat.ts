@@ -10,6 +10,7 @@ import { Locks, realPath } from './locks';
 import { Questions } from './questions';
 import { secretaryTools } from './crew-tools';
 import { Tasks } from './task';
+import { Wiki } from './wiki';
 import { readWorkflows, validateWorkflow, Workflow as WorkflowShape, type Workflow } from './workflow';
 
 // 앞으로: new tasks from now on; 이번 업무에도: also this task's remaining steps; 이번에만: this task only
@@ -40,6 +41,7 @@ export class Chat {
   lanes = new Map<number, Promise<unknown>>();
   questions: Questions;
   tasks: Tasks;
+  wiki: Wiki;
   // Runs in progress per member, so a member let go at work leaves only when they end
   busy = new Map<number, number>();
   // Member runs at work on each task, so stopping a task can interrupt them
@@ -56,6 +58,7 @@ export class Chat {
     public paths: Paths,
   ) {
     this.questions = new Questions(store, emit);
+    this.wiki = new Wiki(store);
     this.workflows = readWorkflows(crew.dir);
     this.tasks = new Tasks(this);
   }
@@ -149,7 +152,7 @@ export class Chat {
     const run = new AgentRun((await this.sdk()).query, {
       cwd: project.path,
       model: member.model,
-      system: this.crew.system(def, settings),
+      system: `${this.crew.system(def, settings)}\n\n${this.wiki.context(project.id, member.id)}`,
       mcpServers: { ...this.crew.mcpServers(settings), ...opts.mcpServers },
       resume,
       canUseTool: this.guard(member, project, sessionId, taskId),
@@ -203,6 +206,20 @@ export class Chat {
     if (o.taskId && o.scope !== 'future') this.store.writeTaskWorkflow(o.taskId, rules);
     this.emit('changed', 'workflows');
     return { ok: true as const, version: this.workflowFor(o.projectId, o.kind).version };
+  }
+
+  // Deleting a document tied to a rule either leaves the rule in force or puts back the rule from before it
+  removeDoc(docId: number, releaseRule: boolean, by: { memberId: number | null; name: string }) {
+    const doc = this.wiki.read(docId);
+    if (releaseRule && doc.workflowKind && doc.workflowVersion) {
+      const prev = this.store.readWorkflowVersion(doc.projectId, doc.workflowKind, doc.workflowVersion - 1) ?? this.workflows.find((w) => w.kind === doc.workflowKind)!;
+      const base = this.workflowFor(doc.projectId, doc.workflowKind).version;
+      const r = this.saveWorkflow({ projectId: doc.projectId, kind: doc.workflowKind, base, rules: prev, author: by.name, scope: 'future' });
+      if (!r.ok) return r;
+    }
+    this.wiki.remove(docId, by);
+    this.emit('changed', 'wiki');
+    return { ok: true as const };
   }
 
   // /clear: a fresh session on the same project and crew; 비서 starts without context and the old session's tasks go on

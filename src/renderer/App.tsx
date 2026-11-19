@@ -9,6 +9,7 @@ import { Chat } from './components/Chat';
 import { Legend } from './components/Legend';
 import { Log } from './components/Log';
 import { ProjectTree } from './components/ProjectTree';
+import { Memory } from './components/Memory';
 
 export function App() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -18,6 +19,8 @@ export function App() {
   const [members, setMembers] = useState<CrewMember[]>([]);
   const [tab, setTab] = useState('chat');
   const [tree, setTree] = useState(false);
+  // The member whose memory the memory tab shows; null shows everyone's
+  const [memoryOf, setMemoryOf] = useState<number | null>(null);
   // The task the log shows; null shows every task in the session
   const [logTask, setLogTask] = useState<number | null>(null);
 
@@ -83,7 +86,16 @@ export function App() {
       <TitleBar />
       <main className="body">
         <section className="camp" aria-label="캠프">
-          {project && <Legend members={members} onChange={async () => setMembers(await call('members.list', { projectId: project.id }))} />}
+          {project && (
+            <Legend
+              members={members}
+              onChange={async () => setMembers(await call('members.list', { projectId: project.id }))}
+              onMemory={(id) => {
+                setMemoryOf(id);
+                setTab('memory');
+              }}
+            />
+          )}
         </section>
         <aside className="panel">
           <ProjectBar
@@ -121,7 +133,9 @@ export function App() {
             <Tabs.Content value="log" className="tab-body">
               {session && <Log session={session} members={members} taskId={logTask} onTask={setLogTask} />}
             </Tabs.Content>
-            <Tabs.Content value="memory" className="tab-body" />
+            <Tabs.Content value="memory" className="tab-body">
+              {project && <Memory projectId={project.id} members={members} memberId={memoryOf} onMember={setMemoryOf} />}
+            </Tabs.Content>
           </Tabs.Root>
         </aside>
       </main>

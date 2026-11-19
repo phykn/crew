@@ -65,6 +65,24 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
     'tasks.list': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => store.listTasks(a.sessionId) },
     'tasks.stop': { args: z.object({ id }), run: (a: { id: number }) => chat.tasks.stop(a.id) },
     'tasks.resume': { args: z.object({ id }), run: (a: { id: number }) => chat.tasks.resume(a.id) },
+    'wiki.list': { args: z.object({ projectId: id }), run: (a: { projectId: number }) => chat.wiki.list(a.projectId) },
+    'wiki.timeline': { args: z.object({ projectId: id }), run: (a: { projectId: number }) => chat.wiki.timeline(a.projectId) },
+    'wiki.change': { args: z.object({ id }), run: (a: { id: number }) => chat.wiki.change(a.id) },
+    'wiki.write': {
+      args: z.object({ projectId: id, title: z.string().trim().min(1).max(60), body: z.string() }),
+      run: (a: { projectId: number; title: string; body: string }) => {
+        chat.wiki.write(a.projectId, a.title, a.body, { memberId: null, name: '사용자' });
+        chat.emit('changed', 'wiki');
+      },
+    },
+    'wiki.remove': {
+      args: z.object({ id, releaseRule: z.boolean() }),
+      run: (a: { id: number; releaseRule: boolean }) => chat.removeDoc(a.id, a.releaseRule, { memberId: null, name: '사용자' }),
+    },
+    'memories.list': {
+      args: z.object({ projectId: id, memberId: id.optional() }),
+      run: (a: { projectId: number; memberId?: number }) => chat.wiki.memories(a.projectId, a.memberId),
+    },
     'events.list': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => store.listEvents(a.sessionId) },
     'questions.answer': {
       args: z.object({ id, choice: z.string().min(1) }),

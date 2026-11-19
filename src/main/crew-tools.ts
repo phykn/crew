@@ -13,6 +13,7 @@ const PEER_SCHEMA = z.toJSONSchema(PeerAnswer, { target: 'draft-7', io: 'input' 
 
 // The app's own tools for 비서 in one session; a call is how 비서 opens real work for the crew
 export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
+  const secretary = chat.store.readMember(chat.store.readSession(sessionId).projectId, 'orchestrator');
   const kinds = chat.workflows.map((w) => w.kind) as [string, ...string[]];
   const memberOf = (role: string) => {
     const project = chat.store.readProject(chat.store.readSession(sessionId).projectId);
@@ -23,6 +24,7 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
   return sdk.createSdkMcpServer({
     name: 'crew',
     tools: [
+      ...wikiTools(sdk, chat, secretary, sessionId, null),
       sdk.tool(
         'start_task',
         `Open a task for the crew when the request needs real work: changing files, research, or an improvement review. ` +
@@ -59,9 +61,15 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
           rules: z.record(z.string(), z.unknown()),
           scope: z.enum(['future', 'current', 'once']),
           task_id: z.number().int().optional(),
+          reason: z.string().optional().describe('Why, in Korean; kept as the rule\'s decision document in the wiki'),
         },
         async (a) => {
           const r = chat.saveWorkflow({ projectId: projectId(), kind: a.kind, base: a.base_version, rules: a.rules, author: '비서', scope: a.scope, taskId: a.task_id });
+          // A rule saved for later gets its decision document, tied to the version it made
+          if (r.ok && a.reason && a.scope !== 'once') {
+            chat.wiki.write(projectId(), `워크플로우: ${a.kind}`, a.reason, { memberId: secretary.id, name: '비서' }, { kind: a.kind, version: r.version });
+            chat.emit('changed', 'wiki');
+          }
           return text(r.ok ? `저장했습니다 (버전 ${r.version}).` : `저장하지 않았습니다: ${r.problems.join('; ')}`);
         },
       ),
@@ -130,6 +138,36 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
   });
 }
 
+// Reading and writing the project wiki and one's own memory, for 비서 and members alike
+function wikiTools(sdk: Sdk, chat: Chat, member: Member, sessionId: number, taskId: number | null) {
+  const { store, wiki } = chat;
+  const projectId = store.readSession(sessionId).projectId;
+  const by = () => ({ memberId: member.id, name: chat.crew.defOf(store.readMemberById(member.id)).role, taskId });
+  const text = (t: string) => ({ content: [{ type: 'text' as const, text: t }] });
+  return [
+    sdk.tool('wiki_read', 'Read one project wiki document by its title.', { title: z.string() }, async (a) => {
+      const doc = wiki.find(projectId, a.title);
+      return text(doc ? `# ${doc.title}\n\n${doc.body}` : `"${a.title}" is not in the wiki. Documents: ${wiki.list(projectId).map((d) => d.title).join(', ') || 'none'}`);
+    }),
+    sdk.tool(
+      'wiki_write',
+      'Create or replace a project wiki document: decisions, reasons, how to test, what later tasks should know. Read it first and keep what is still right.',
+      { title: z.string().min(1).max(60), body: z.string().min(1), files: z.array(z.string()).default([]).describe('Project files it is about') },
+      async (a) => {
+        const old = wiki.find(projectId, a.title);
+        wiki.write(projectId, a.title, a.body, { ...by(), files: a.files });
+        chat.emit('changed', 'wiki');
+        return text(`${old ? '수정' : '작성'}: ${a.title}`);
+      },
+    ),
+    sdk.tool('remember', 'Keep a note only you need in later runs in this project.', { text: z.string().min(1) }, async (a) => {
+      wiki.remember(projectId, member.id, a.text, { taskId, sessionId });
+      chat.emit('changed', 'wiki');
+      return text('기억했습니다.');
+    }),
+  ];
+}
+
 // Which task an unnamed follow-up means: the only finished one, or the one the user picks from a card
 async function pickTask(chat: Chat, sessionId: number, id: number | undefined, change: string) {
   const tasks = chat.store.listTasks(sessionId);
@@ -154,6 +192,7 @@ export function memberTools(sdk: Sdk, chat: Chat, task: Task, step: Step, member
   return sdk.createSdkMcpServer({
     name: 'crew',
     tools: [
+      ...wikiTools(sdk, chat, member, task.sessionId, task.id),
       sdk.tool(
         'ask_peer',
         'Ask another crew member directly for a check or an answer you need for your step, such as 표준 for a naming question. ' +

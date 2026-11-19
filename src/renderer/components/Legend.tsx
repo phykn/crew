@@ -11,7 +11,7 @@ const MODEL_LABELS: Record<string, string> = { haiku: 'Haiku', sonnet: 'Sonnet',
 
 type Definition = Awaited<ReturnType<typeof call<'members.definition'>>> & { id: number };
 
-export function Legend({ members, onChange }: { members: CrewMember[]; onChange: () => void }) {
+export function Legend({ members, onChange, onMemory }: { members: CrewMember[]; onChange: () => void; onMemory: (memberId: number) => void }) {
   const [open, setOpen] = useState(true);
   const [shown, setShown] = useState<Definition | null>(null);
 
@@ -102,7 +102,18 @@ export function Legend({ members, onChange }: { members: CrewMember[]; onChange:
             <Dialog.Description className="muted">{shown?.description}</Dialog.Description>
             {shown && <Permissions memberId={shown.id} onChange={onChange} />}
             <pre className="def-body">{shown?.instructions}</pre>
-            <Dialog.Close className="button">닫기</Dialog.Close>
+            <div className="dialog-actions">
+              <button
+                className="button"
+                onClick={() => {
+                  onMemory(shown!.id);
+                  setShown(null);
+                }}
+              >
+                메모리 보기
+              </button>
+              <Dialog.Close className="button">닫기</Dialog.Close>
+            </div>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
