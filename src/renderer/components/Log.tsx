@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { type CSSProperties, useEffect, useState } from 'react';
 import type { Event, Handback, Session, Task } from '../../main/db';
 import type { CrewMember } from '../../main/crew';
 import { call, onChanged } from '../api';
@@ -65,7 +65,7 @@ export function Log({ session, members, taskId, onTask }: { session: Session; me
           const m = who(e.memberId);
           const hb = e.kind === 'step' ? readHandback(e.detail) : null;
           return (
-            <li key={e.id} className="log-row" data-kind={e.kind}>
+            <li key={e.id} className="log-row" data-kind={e.kind} style={m ? ({ "--dot": m.color } as CSSProperties) : undefined}>
               <button className="log-line" disabled={!hb} aria-expanded={hb ? open === e.id : undefined} onClick={() => setOpen(open === e.id ? null : e.id)}>
                 <time>{e.at.slice(11, 19)}</time>
                 <span className="log-who" style={m ? { color: m.color } : undefined}>

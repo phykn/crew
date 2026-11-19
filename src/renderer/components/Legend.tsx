@@ -53,11 +53,13 @@ export function Legend({ members, onChange, onMemory }: { members: CrewMember[];
                     <Switch.Thumb className="switch-thumb" />
                   </Switch.Root>
                 </td>
-                <td className="role" style={{ color: m.color }}>
-                  {m.role}
-                </td>
+                <td className="role">{m.role}</td>
                 <td>
-                  <Nickname member={m} onSave={(nickname) => update(m, { nickname })} />
+                  {m.status === 'hired' ? (
+                    <Nickname member={m} onSave={(nickname) => update(m, { nickname })} />
+                  ) : (
+                    <span className="nickname-plain">{m.nickname}</span>
+                  )}
                 </td>
                 {m.status === 'hired' ? (
                   <>
