@@ -20,7 +20,7 @@ test('finds items containing the query', () => {
 });
 `;
 
-test('real Claude: 비서 opens a code task and the crew plans, reviews, changes, and verifies it', async () => {
+test('real Claude: 비서 opens a code task and the crew changes and verifies it', async () => {
   const scratch = makeScratch({
     'package.json': JSON.stringify({ name: 'demo', type: 'module', scripts: { test: 'node --test' } }, null, 2),
     'search.js': SEARCH,
@@ -71,7 +71,8 @@ test('real Claude: 비서 opens a code task and the crew plans, reviews, changes
     report: store.listMessages(s.id).at(-1)!.text,
   });
   expect(task.status).toBe('done');
-  expect(steps[0]).toBe('plan:done:');
+  // 비서 sizes the change: a large one starts with the plan, a small one with development
+  expect(['plan:done:', 'develop:done:']).toContain(steps[0]);
   const out = execFileSync(
     process.execPath,
     ['-e', `import('./search.js').then(m => console.log(JSON.stringify(m.search(['a','b'], ''))))`],
