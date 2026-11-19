@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest';
+import { Inbox } from '../src/main/agent';
 import { Chat } from '../src/main/chat';
 import { CREW, fakeQuery, openScratch, reply } from './support';
 
@@ -33,4 +34,10 @@ test('비서 answers in its own Claude session and runs on the model chosen last
     ['sonnet', 'done', 0.01],
     ['haiku', 'done', 0.01],
   ]);
+});
+
+test('a closed inbox refuses a line, so 비서 is told it in a new run instead of losing it', () => {
+  const inbox = new Inbox();
+  inbox.close();
+  expect(inbox.push('늦은 보고')).toBe(false);
 });

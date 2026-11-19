@@ -28,7 +28,7 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
       args: z.object({ sessionId: id, title: z.string().trim().min(1).max(30) }),
       run: (a: { sessionId: number; title: string }) => store.nameSession(a.sessionId, a.title, false),
     },
-      'sessions.clear': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => chat.clear(a.sessionId) },
+    'sessions.clear': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => chat.clear(a.sessionId) },
     'sessions.impact': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => store.impact(a) },
     'sessions.delete': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => chat.deleteSession(a.sessionId) },
     'projects.impact': { args: z.object({ projectId: id }), run: (a: { projectId: number }) => store.impact(a) },
@@ -121,7 +121,8 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
         if (a.status === 'unhired' && KEPT.includes(store.readMemberById(a.id).key)) throw new Error('this member cannot be let go');
         // Letting go goes through the crew, so a member at work leaves once, after its step
         if (a.status === 'unhired') chat.fire(a.id);
-        store.updateMember(a.id, { ...a, status: a.status === 'hired' ? 'hired' : undefined });
+        if (a.status === 'hired') chat.rehire(a.id);
+        store.updateMember(a.id, { ...a, status: undefined });
       },
     },
     'members.permissions': {

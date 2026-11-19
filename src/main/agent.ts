@@ -8,6 +8,9 @@ export type Sdk = {
   createSdkMcpServer: typeof import('@anthropic-ai/claude-agent-sdk').createSdkMcpServer;
 };
 
+// The error of a run refused because its member was let go while it waited
+export const NOT_HIRED = 'not hired';
+
 export type Usage = { turns: number; inputTokens: number; outputTokens: number; costUsd: number };
 
 export type RunInput = {
@@ -39,9 +42,12 @@ export class Inbox implements AsyncIterable<SDKUserMessage> {
   wake: (() => void) | null = null;
   closed = false;
 
+  // A closed inbox is never read again, so a line pushed then would be lost
   push(text: string) {
+    if (this.closed) return false;
     this.queue.push(text);
     this.wake?.();
+    return true;
   }
 
   close() {
@@ -134,7 +140,7 @@ export class AgentRun {
   }
 
   say(text: string) {
-    this.inbox.push(text);
+    return this.inbox.push(text);
   }
 
   async stop() {

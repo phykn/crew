@@ -38,3 +38,28 @@ test('a broken step fails after its retries; a stopped task leaves the other run
   expect(again.tasks.resume(three.id)).toBe(true);
   await vi.waitFor(() => expect(fresh.calls.map((c) => c.role)).toEqual(['기획', '리뷰']));
 });
+
+test('a refused reopen leaves no trace, and a step queued before a stop is not run again by the resume', async () => {
+  const { store, project, paths } = openScratch();
+  let release = () => {};
+  const held: Turn = (p, o) => new Promise((r) => (release = () => r(reply('', 'claude-plan')(p, o) as never)));
+  const never: Turn = () => new Promise(() => {});
+  const fake = fakeCrew({ 기획: [held, handback('claude-plan', { summary: '계획' })], 리뷰: [never] });
+  const chat = new Chat(store, async () => fake.sdk, CREW, () => {}, paths);
+  const p = store.addProject(project);
+  chat.seed(p.id);
+  const s = store.createSession(p.id);
+  // 기획's lane is busy, so the task's plan step waits behind it
+  void chat.runMember(store.readMember(p.id, 'advisor'), s.id, null, 'hold');
+  await vi.waitFor(() => expect(fake.calls).toHaveLength(1));
+  const task = chat.tasks.start(s.id, 'code', 't', 'r');
+  expect(chat.tasks.reopen(task.id, 'X')).toBe(false);
+  expect(store.readTask(task.id).request).toBe('r');
+  expect(store.listStepRuns(task.id).map((r) => r.stepId)).toEqual(['plan']);
+
+  chat.tasks.stop(task.id);
+  chat.tasks.resume(task.id);
+  release();
+  await vi.waitFor(() => expect(fake.calls.map((c) => c.role)).toContain('리뷰'));
+  expect(fake.calls.filter((c) => c.role === '기획')).toHaveLength(2);
+});

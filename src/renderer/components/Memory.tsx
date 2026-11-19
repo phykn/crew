@@ -45,6 +45,7 @@ function WikiView({ projectId, writing }: { projectId: number; writing: number }
   const [picked, setPicked] = useState<number | null>(null);
   const [draft, setDraft] = useState<{ title: string; body: string } | null>(null);
   const [asking, setAsking] = useState(false);
+  const [refusal, setRefusal] = useState<string | null>(null);
   const [detail, setDetail] = useState<{ id: number; added: string[]; removed: string[] } | null>(null);
 
   useEffect(() => {
@@ -70,7 +71,8 @@ function WikiView({ projectId, writing }: { projectId: number; writing: number }
     setDraft(null);
   }
   async function remove(releaseRule: boolean) {
-    await call('wiki.remove', { id: doc!.id, releaseRule });
+    const r = await call('wiki.remove', { id: doc!.id, releaseRule });
+    if (!r.ok) return setRefusal(r.problems.join(' '));
     setAsking(false);
     setPicked(null);
   }
@@ -108,11 +110,11 @@ function WikiView({ projectId, writing }: { projectId: number; writing: number }
               <pre className="wiki-body">{doc.body}</pre>
               <div className="wiki-actions">
                 <button className="button" onClick={() => setDraft({ title: doc.title, body: doc.body })}>편집</button>
-                <button className="button danger" onClick={() => (doc.workflowKind ? setAsking(true) : remove(false))}>삭제</button>
+                <button className="button danger" onClick={() => (doc.workflowKind ? (setRefusal(null), setAsking(true)) : remove(false))}>삭제</button>
               </div>
               {asking && (
                 <div className="confirm" role="alertdialog" aria-label="삭제 방법">
-                  <p>워크플로우 규칙과 연결된 문서입니다.</p>
+                  <p>{refusal ?? '워크플로우 규칙과 연결된 문서입니다.'}</p>
                   <div className="confirm-actions">
                     <button onClick={() => remove(false)}>문서만</button>
                     <button className="danger" onClick={() => remove(true)}>규칙도 해제</button>

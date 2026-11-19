@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test, vi } from 'vitest';
+import { NOT_HIRED } from '../src/main/agent';
 import { Chat } from '../src/main/chat';
 import { snapshot } from '../src/main/changes';
 import { secretaryTools } from '../src/main/crew-tools';
@@ -59,4 +60,18 @@ test('a step cut off right after saving resumes from that step and checks the sa
   expect(again.tasks.resume(task.id)).toBe(true);
   await vi.waitFor(() => expect(fresh.calls.map((c) => c.role)).toEqual(['개발']));
   expect(fresh.calls[0].prompt).toContain('cut off after changing: search.js');
+});
+
+test('비서 names members by key; a member let go while queued does not run, and hiring again keeps them', async () => {
+  const { store, fake, chat, p, s } = setup({});
+  secretaryTools(fake.sdk, chat, s.id);
+  const researcher = store.readMember(p.id, 'researcher');
+  await fake.tools.get('fire')!({ role: 'researcher' });
+  expect(store.readMemberById(researcher.id).status).toBe('unhired');
+  expect((await chat.runMember(researcher, s.id, null, 'x')).error).toBe(NOT_HIRED);
+  expect(fake.calls).toHaveLength(0);
+
+  store.writeLeaving(researcher.id, true);
+  chat.rehire(researcher.id);
+  expect(store.readMemberById(researcher.id)).toMatchObject({ status: 'hired', leaving: false });
 });

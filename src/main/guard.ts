@@ -21,6 +21,7 @@ export type Verdict = { kind: 'allow' } | { kind: 'deny'; reason: string } | { k
 
 // Tools that only read are fine for everyone; the rest must be in the member's own tool list
 const READ_ONLY = ['Read', 'Glob', 'Grep', 'LS', 'TodoWrite', 'NotebookRead'];
+const SHELLS = ['Bash', 'PowerShell'];
 
 // git options that may stand between git and its subcommand, such as -C . or --no-pager
 const GIT = String.raw`\bgit(?:\s+(?:--no-pager|--paginate|-p|-P|--bare|--no-optional-locks|-C\s+\S+|-c\s+\S+|--(?:git-dir|work-tree|namespace)(?:=|\s+)\S+))*`;
@@ -46,7 +47,7 @@ export function checkCall(policy: Policy, tool: string, input: Record<string, un
   if (READ_ONLY.includes(tool)) return { kind: 'allow' };
   // Where a call would write is settled first: no approval can open a place the role may never write
   const scope =
-    tool === 'Bash'
+    SHELLS.includes(tool)
       ? checkShell(policy, String(input.command ?? ''), cwd)
       : ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'].includes(tool)
         ? checkWrite(policy, path.resolve(cwd, String(input.file_path ?? input.notebook_path ?? '')))
@@ -196,12 +197,12 @@ function readOption(args: string[], names: string[]) {
 export function projectWrites(policy: Policy, tool: string, input: Record<string, unknown>, cwd = policy.project): string[] {
   if (policy.write !== 'project' || READ_ONLY.includes(tool) || tool.startsWith('mcp__')) return [];
   const files =
-    tool === 'Bash'
+    SHELLS.includes(tool)
       ? writeTargets(String(input.command ?? '')).filter((t) => !SILENT.includes(t.toLowerCase()))
       : ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'].includes(tool)
         ? [String(input.file_path ?? input.notebook_path ?? '')]
         : [];
-  if (tool === 'Bash' && (!files.length || files.some((t) => /^[~$%`]/.test(t)))) return [policy.project];
+  if (SHELLS.includes(tool) && (!files.length || files.some((t) => /^[~$%`]/.test(t)))) return [policy.project];
   return files.map((t) => resolveTarget(t, cwd)).filter((f) => inside(f, policy.project));
 }
 

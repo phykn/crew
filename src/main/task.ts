@@ -1,6 +1,7 @@
 import { getNextSnapshot, setup } from 'xstate';
 import { z } from 'zod';
 import type { Chat } from './chat';
+import { NOT_HIRED } from './agent';
 import type { Handback, Member, StepRun, Task, TaskStatus } from './db';
 import type { Step, Workflow } from './workflow';
 import { memberTools } from './crew-tools';
@@ -74,6 +75,10 @@ function sentBack(w: Workflow, runs: StepRun[], id: string, since: number) {
 }
 
 export class Tasks {
+  // Each task's current drive; a loop or a queued step from an earlier drive sees it is no longer current and ends
+  driving = new Map<number, number>();
+  drives = 0;
+
   constructor(public chat: Chat) {}
 
   start(sessionId: number, kind: string, title: string, request: string, one?: Member): Task {
@@ -115,9 +120,9 @@ export class Tasks {
     const { store } = this.chat;
     const task = store.readTask(taskId);
     const target = [...task.workflow.steps].reverse().find((s) => !s.verdict)!;
-    store.appendRequest(taskId, text);
-    store.addUserRework(taskId, store.readMember(this.projectOf(task).id, target.role).id, target.id, text);
     if (!this.move(taskId, 'REOPEN', '', `업무 "${task.title}" 다시 진행: ${text}`)) return false;
+    store.appendRequest(taskId, text);
+    store.addUserRework(taskId, this.memberFor(task, target).id, target.id, text);
     void this.drive(taskId, true);
     return true;
   }
@@ -154,8 +159,11 @@ export class Tasks {
   async drive(taskId: number, resumed = false) {
     const { store } = this.chat;
     const first = store.readTask(taskId);
+    const drive = ++this.drives;
+    this.driving.set(taskId, drive);
+    const current = () => this.driving.get(taskId) === drive;
     if (!resumed) this.move(taskId, 'START', '', `업무 "${first.title}" 시작`);
-    while (true) {
+    while (current()) {
       const task = store.readTask(taskId);
       if (task.status === 'stopping') return this.move(taskId, 'STOPPED', '', `업무 "${task.title}" 중단됨`);
       if (!['running', 'reviewing', 'fixing'].includes(task.status)) return;
@@ -174,7 +182,8 @@ export class Tasks {
       const fixing = ready.some((s) => latest(s) && sentBack(w, runs, s.id, latest(s)!.id));
       const stage = ready.map((s) => s.label).join('·');
       this.move(taskId, fixing ? 'REWORK' : ready.every((s) => s.verdict) ? 'REVIEW' : 'WORK', stage, `${stage} 진행`);
-      const results = await Promise.all(ready.map((s) => this.runStep(task, s)));
+      const results = await Promise.all(ready.map((s) => this.runStep(task, s, current)));
+      if (!current()) return;
       // A usage limit pauses the task instead of failing it: nothing is wrong with the work, it can resume later
       if (results.includes(LIMIT)) return this.pause(store.readTask(taskId));
       const broken = results.find((r) => r !== 'done');
@@ -182,13 +191,14 @@ export class Tasks {
     }
   }
 
-  async runStep(task: Task, step: Step): Promise<string> {
+  async runStep(task: Task, step: Step, current: () => boolean = () => true): Promise<string> {
     const { store, crew } = this.chat;
     const project = store.readProject(store.readSession(task.sessionId).projectId);
     const member = this.memberFor(task, step);
     const role = crew.defOf(member).role;
     // A member let go takes no new step; 비서 hears of it and can hand the step to someone else
-    if (member.status !== 'hired' || member.leaving) return `${role}이 고용되어 있지 않아 ${step.label}을 진행할 수 없습니다. 다른 담당자를 붙여야 합니다`;
+    const absent = `${role}이 고용되어 있지 않아 ${step.label}을 진행할 수 없습니다. 다른 담당자를 붙여야 합니다`;
+    if (member.status !== 'hired' || member.leaving) return absent;
     let prompt = this.brief(task, step);
     const log = (text: string, detail: unknown = null) =>
       store.addEvent({ sessionId: task.sessionId, taskId: task.id, memberId: member.id, kind: 'step', text, detail: detail ? JSON.stringify(detail) : null });
@@ -202,9 +212,16 @@ export class Tasks {
         .runMember(member, task.sessionId, task.id, prompt, {
           schema: HANDBACK_SCHEMA,
           mcpServers: { crew: memberTools(await this.chat.sdk(), this.chat, task, step, member) },
+          alive: current,
         })
         // The run has really ended here, so nothing it started can still be writing
         .finally(() => this.chat.locksOf(project).release(task.id));
+      // A drive no longer current, such as one for a deleted session, leaves the record alone
+      if (!current()) return '중단되었습니다';
+      if (out.error === NOT_HIRED) {
+        store.finishStepRun(runId, 'stopped', null, out.error);
+        return absent;
+      }
       const handback = out.status === 'done' ? HandbackShape.safeParse(out.structured) : null;
       // A making step's files are what really changed since the task began, whatever the handback lists
       const snap = !step.verdict && handback?.success ? snapshot(project.path) : null;

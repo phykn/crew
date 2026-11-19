@@ -16,9 +16,10 @@ const PEER_SCHEMA = z.toJSONSchema(PeerAnswer, { target: 'draft-7', io: 'input' 
 export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
   const secretary = chat.store.readMember(chat.store.readSession(sessionId).projectId, 'orchestrator');
   const kinds = chat.workflows.map((w) => w.kind) as [string, ...string[]];
-  const memberOf = (role: string) => {
-    const project = chat.store.readProject(chat.store.readSession(sessionId).projectId);
-    return chat.store.listMembers(project.id).find((m) => m.status === 'hired' && chat.crew.defOf(m).role === role) ?? null;
+  const anyMember = (name: string) => chat.store.listMembers(projectId()).find((m) => m.key === name || chat.crew.defOf(m).role === name) ?? null;
+  const memberOf = (name: string) => {
+    const m = anyMember(name);
+    return m?.status === 'hired' ? m : null;
   };
   const text = (t: string) => ({ content: [{ type: 'text' as const, text: t }] });
   const projectId = () => chat.store.readSession(sessionId).projectId;
@@ -35,7 +36,7 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
           kind: z.enum(kinds),
           title: z.string().min(1).max(40).describe('A few Korean words naming the task, shown on its card'),
           request: z.string().min(1).describe("The user's request in full, with any scope you settled with them"),
-          role: z.string().optional().describe('Give the whole request to this one member instead, such as a temp you just hired (Korean role)'),
+          role: z.string().optional().describe('Give the whole request to this one member instead, such as a temp you just hired: its key or Korean role'),
         },
         async (a) => {
           const one = a.role ? memberOf(a.role) : null;
@@ -105,25 +106,28 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
       sdk.tool(
         'fire',
         'Let a member go when the user asks, or a temp whose work is done. One at work finishes or hands back its step first.',
-        { role: z.string() },
+        { role: z.string().describe('The member: its key or Korean role') },
         async (a) => {
           const m = memberOf(a.role);
           if (!m) return text(`${a.role}은 지금 고용되어 있지 않습니다.`);
           if (KEPT.includes(m.key)) return text(`${a.role}은 내보낼 수 없습니다.`);
-          chat.fire(m.id);
+          if (!chat.fire(m.id)) return text(`${a.role}(${m.nickname})은 이미 퇴장 중입니다.`);
           return text(`${a.role}(${m.nickname}) 퇴장 처리했습니다.`);
         },
       ),
       sdk.tool(
         'reassign',
         "Give a task's steps from a member who left to another, such as a new temp, before reopening or resuming it. The new member gets the saved handback.",
-        { task_id: z.number().int(), from_role: z.string(), to_role: z.string() },
+        { task_id: z.number().int(), from_role: z.string().describe('Key or Korean role'), to_role: z.string().describe('Key or Korean role') },
         async (a) => {
           const to = memberOf(a.to_role);
           if (!to) return text(`${a.to_role}은 지금 고용되어 있지 않습니다.`);
+          // The member who left is no longer hired, so it is looked up among everyone
+          const from = anyMember(a.from_role);
+          if (!from) return text(`${a.from_role}은 크루에 없습니다.`);
           const task = chat.store.listTasks(sessionId).find((t) => t.id === a.task_id);
           if (!task) return text(`업무 #${a.task_id}는 이 세션에 없습니다.`);
-          const moved = chat.tasks.reassign(task, a.from_role, to);
+          const moved = chat.tasks.reassign(task, chat.crew.defOf(from).role, to);
           return text(moved.length ? `${moved.join(', ')} 단계를 ${a.to_role}에게 넘겼습니다.` : `${a.from_role}이 맡은 단계가 없습니다.`);
         },
       ),

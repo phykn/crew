@@ -74,5 +74,8 @@ test('the app record and crew files are protected even from 개발', () => {
   expect(checkCall(policy, 'Bash', { command: 'pip install requests' }).kind).toBe('deny');
   expect(checkCall(policy, 'Bash', { command: '.venv/Scripts/pip install requests' }).kind).toBe('allow');
   expect(checkCall(policy, 'Bash', { command: 'rm -rf build' }).kind).toBe('deny');
+  // PowerShell is a shell too, so an approval for it never opens a forbidden command or a write outside scope
+  expect(checkCall(policy, 'PowerShell', { command: 'Remove-Item -Recurse build' }).kind).toBe('deny');
+  expect(checkCall(policy, 'PowerShell', { command: 'Set-Content -Path C:/elsewhere/x.txt -Value hi' }).kind).toBe('deny');
   expect(store.listMembers(project.id).length).toBe(11);
 });

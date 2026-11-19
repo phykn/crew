@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Options } from '@anthropic-ai/claude-agent-sdk';
-import { AgentRun, type RunOutput, type Sdk } from './agent';
+import { AgentRun, NOT_HIRED, type RunOutput, type Sdk } from './agent';
 import type { Member, Project, Store } from './db';
 import { z } from 'zod';
 import { Config, type Crew, parseDefinition, type Settings, toolsOf } from './crew';
@@ -33,6 +33,8 @@ type RunOptions = {
   mcpServers?: Options['mcpServers'];
   onText?: (delta: string) => void;
   onReply?: (text: string) => void;
+  // False once the run is no longer wanted, such as a step of a task driven again since it queued
+  alive?: () => boolean;
 };
 
 // The hub of one app: the user's conversation with 비서, and every member run the crew's tasks start
@@ -144,6 +146,7 @@ export class Chat {
     const { store } = this;
     // The member may have changed while it waited in its lane
     member = store.readMemberById(member.id);
+    if (member.status !== 'hired' || member.leaving) return { claudeId: null, text: '', status: 'failed', usage: { turns: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 }, error: NOT_HIRED } as RunOutput;
     const project = store.readProject(store.readSession(sessionId).projectId);
     const def = this.crew.defOf(member);
     const settings = this.settings(member);
@@ -151,13 +154,14 @@ export class Chat {
     // A Claude session started on another model is not continued; the new one is handed what came before
     const resume = agentSession.claudeId && agentSession.model === member.model ? agentSession.claudeId : null;
     if (agentSession.claudeId && !resume) prompt = `${this.handoff(member, sessionId)}\n\n${prompt}`;
-    const run = new AgentRun((await this.sdk()).query, {
+    const sdk = await this.sdk();
+    const run = new AgentRun(sdk.query, {
       cwd: project.path,
       model: member.model,
       system: `${this.crew.system(def, settings)}\n\n${this.wiki.context(project.id, member.id)}`,
       mcpServers: {
         ...this.crew.mcpServers(settings),
-        ...(settings.mcp.some((m) => m.server === 'app') ? { app: appServer(await this.sdk(), this, sessionId) } : {}),
+        ...(settings.mcp.some((m) => m.server === 'app') ? { app: appServer(sdk, this, sessionId) } : {}),
         ...opts.mcpServers,
       },
       resume,
@@ -169,7 +173,7 @@ export class Chat {
     const secretary = member.key === 'orchestrator';
     if (secretary) this.live.set(sessionId, run);
     // A run that waited in its lane for a task the user stopped meanwhile never starts
-    if (taskId && ['stopping', 'stopped'].includes(store.readTask(taskId).status)) return { status: 'stopped', text: '' } as RunOutput;
+    if ((taskId && ['stopping', 'stopped'].includes(store.readTask(taskId).status)) || opts.alive?.() === false) return { status: 'stopped', text: '' } as RunOutput;
     const mine = taskId ? (this.working.get(taskId) ?? new Set<AgentRun>()) : null;
     if (taskId && mine) this.working.set(taskId, mine.add(run));
     const runId = store.startRun(agentSession.id, member.model, taskId);
@@ -218,6 +222,9 @@ export class Chat {
   removeDoc(docId: number, releaseRule: boolean, by: { memberId: number | null; name: string }) {
     const doc = this.wiki.read(docId);
     if (releaseRule && doc.workflowKind && doc.workflowVersion) {
+      if (this.workflowFor(doc.projectId, doc.workflowKind).version !== doc.workflowVersion) {
+        return { ok: false as const, problems: ['이 문서 뒤에 저장된 규칙이 있어 되돌리지 않았습니다. 워크플로우 탭에서 직접 고치세요'] };
+      }
       const prev = this.store.readWorkflowVersion(doc.projectId, doc.workflowKind, doc.workflowVersion - 1) ?? this.workflows.find((w) => w.kind === doc.workflowKind)!;
       const base = this.workflowFor(doc.projectId, doc.workflowKind).version;
       const r = this.saveWorkflow({ projectId: doc.projectId, kind: doc.workflowKind, base, rules: prev, author: by.name, scope: 'future' });
@@ -239,7 +246,10 @@ export class Chat {
 
   // A deleted session's work stops first, so nothing keeps writing for a record that is gone
   deleteSession(sessionId: number) {
-    for (const t of this.store.listTasks(sessionId)) this.tasks.stop(t.id);
+    for (const t of this.store.listTasks(sessionId)) {
+      this.tasks.stop(t.id);
+      this.tasks.driving.delete(t.id);
+    }
     this.live.get(sessionId)?.stop();
     this.store.deleteSession(sessionId);
   }
@@ -258,6 +268,13 @@ export class Chat {
       this.note(m, 'leave', `${this.crew.defOf(m).role}(${m.nickname}) 퇴장 예정: 맡은 단계를 마치고 나갑니다`);
     } else this.leave(memberId);
     return true;
+  }
+
+  rehire(memberId: number) {
+    this.store.transact(() => {
+      this.store.writeLeaving(memberId, false);
+      this.store.updateMember(memberId, { status: 'hired' });
+    });
   }
 
   leave(memberId: number) {
@@ -332,7 +349,7 @@ export class Chat {
   // Hands 비서 something to answer in the chat: the user's words, or a task's result to report
   async tell(sessionId: number, text: string) {
     const live = this.live.get(sessionId);
-    if (live) return live.say(text);
+    if (live?.say(text)) return;
     const { store } = this;
     const project = store.readProject(store.readSession(sessionId).projectId);
     const member = store.readMember(project.id, 'orchestrator');
