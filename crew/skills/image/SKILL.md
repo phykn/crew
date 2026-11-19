@@ -1,11 +1,19 @@
 ---
 name: image
-description: Read, describe, crop, resize, and convert images with what the machine already has.
+description: Put an image into words for a reader who cannot see it: the answer first, every piece of text, and what each kind of image shows.
 ---
 
 # Image
 
-- To read an image, open it with Read; describe only what is visible.
-- To process an image, use what the machine already has: Python with a library the project already depends on, or PowerShell's `System.Drawing` on Windows. Write the output with a new name unless you are told the target, and never overwrite the original without being told to.
-- To capture a web page, open it with the browser tools and take a screenshot to a file path written out in full. Use the browser for nothing else.
-- Generating new images from nothing is beyond your tools; say so instead of faking it.
+Your reader cannot see the image; what you write is all it gets.
+
+1. Answer the asker's question first, then describe the rest of the image that bears on it.
+2. Say what kind of image it is: a screenshot, a chart, a diagram, a photo, or a scanned page.
+3. Copy every piece of text exactly as written, with where it sits, such as the top bar, the left panel, a button, or a label.
+4. By kind:
+   - a screen: its regions in reading order, and each control with its label and state, such as selected, disabled, or an error;
+   - a chart: its type, the axes with their units, the ranges, peaks, and end points, and the legend, as drawn;
+   - a diagram: each box with its label, and each arrow from what to what;
+   - a photo: what is in it and where, without guessing who or why.
+5. Describe only what is visible. Mark anything too small or blurred to read "확인 필요"; to read it, crop or enlarge a copy into your output folder with what the machine already has: Python, or PowerShell's `System.Drawing` on Windows.
+6. To see a web page, open it with the browser tools and take a screenshot into your output folder; use the browser for nothing else.
