@@ -6,9 +6,6 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
 const config: ForgeConfig = {
   packagerConfig: {
-    // The files are named crew; productName stays, since the app's record folder is named after it
-    name: 'crew',
-    executableName: 'crew',
     asar: true,
     // The crew's rules and definitions are read at runtime from resources/crew
     extraResource: ['crew'],
