@@ -394,3 +394,16 @@ button { font: inherit; color: inherit; }
 .usage { border-collapse: collapse; font-size: 12px; width: 100%; }
 .usage th { text-align: left; color: var(--muted); font-weight: 500; padding: 3px 6px; border-bottom: 1px solid var(--line); }
 .usage td { padding: 3px 6px; font-variant-numeric: tabular-nums; }
+
+/* Workflow edit screen */
+.workflow-view { flex: 1; display: flex; flex-direction: column; min-height: 0; background: var(--bg); }
+.workflow-head { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--line); }
+.workflow-head h2 { margin: 0; font-size: 16px; margin-right: auto; }
+.workflow-kinds { display: flex; gap: 6px; }
+.workflow-kinds button { background: transparent; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 3px 10px; font-size: 12px; cursor: pointer; }
+.workflow-kinds button[aria-pressed='true'] { border-color: var(--accent); color: var(--accent-soft); }
+.workflow-canvas { flex: 1; display: flex; gap: 40px; padding: 30px; overflow: auto; align-items: center; }
+.workflow-column { display: flex; flex-direction: column; gap: 18px; }
+.workflow-node { background: var(--card); border: 2px solid var(--line); border-radius: var(--radius); padding: 10px 14px; min-width: 150px; font-size: 13px; }
+.workflow-role { font-weight: 700; margin-bottom: 2px; }
+.body[hidden] { display: none; }

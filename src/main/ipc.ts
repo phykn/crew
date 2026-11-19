@@ -84,6 +84,11 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
       run: (a: { projectId: number; memberId?: number }) => chat.wiki.memories(a.projectId, a.memberId),
     },
     'usage.list': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => store.usage(a.sessionId) },
+    'workflows.kinds': { args: z.undefined(), run: () => chat.workflows.map((w) => ({ kind: w.kind, label: w.label })) },
+    'workflows.read': {
+      args: z.object({ projectId: id, kind: z.string() }),
+      run: (a: { projectId: number; kind: string }) => chat.workflowFor(a.projectId, a.kind),
+    },
     'events.list': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => store.listEvents(a.sessionId) },
     'questions.answer': {
       args: z.object({ id, choice: z.string().min(1) }),

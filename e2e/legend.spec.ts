@@ -5,7 +5,7 @@ test('the legend lists the crew and keeps nickname, model, and hiring changes', 
   const scratch = makeScratch();
   let app = await launchApp(scratch.db);
   let page = await openProject(app, scratch.project);
-  const roles = ['비서', '인사', '도구', '기획', '개발', '리뷰', '시험', '표준', '조사', '그림'];
+  const roles = ['비서', '인사', '도구', '기획', '개발', '리뷰', '시험', '표준', '조사', '그림', '도우미'];
   await expect(page.locator('.legend-table tbody tr .role')).toHaveText(roles);
   await expect(page.getByLabel('비서 고용')).toBeDisabled();
   await expect(page.getByRole('row', { name: '개발' }).locator('.kit-icon')).toHaveCount(2);

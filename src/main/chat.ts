@@ -9,6 +9,7 @@ import { guardMember, projectWrites, type Policy } from './guard';
 import { Locks, realPath } from './locks';
 import { Questions } from './questions';
 import { secretaryTools } from './crew-tools';
+import { appServer } from './app-mcp';
 import { Tasks } from './task';
 import { Wiki } from './wiki';
 import { readWorkflows, validateWorkflow, Workflow as WorkflowShape, type Workflow } from './workflow';
@@ -16,7 +17,7 @@ import { readWorkflows, validateWorkflow, Workflow as WorkflowShape, type Workfl
 // 앞으로: new tasks from now on; 이번 업무에도: also this task's remaining steps; 이번에만: this task only
 export type Scope = 'future' | 'current' | 'once';
 
-export type Emit = (channel: 'changed' | 'stream', payload: unknown) => void;
+export type Emit = (channel: 'changed' | 'stream' | 'navigate', payload: unknown) => void;
 // Where members' own files go, and the files no member may touch
 export type Paths = { output: string; protected: string[] };
 
@@ -153,7 +154,11 @@ export class Chat {
       cwd: project.path,
       model: member.model,
       system: `${this.crew.system(def, settings)}\n\n${this.wiki.context(project.id, member.id)}`,
-      mcpServers: { ...this.crew.mcpServers(settings), ...opts.mcpServers },
+      mcpServers: {
+        ...this.crew.mcpServers(settings),
+        ...(settings.mcp.some((m) => m.server === 'app') ? { app: appServer(await this.sdk(), this, sessionId) } : {}),
+        ...opts.mcpServers,
+      },
       resume,
       canUseTool: this.guard(member, project, sessionId, taskId),
       schema: opts.schema,

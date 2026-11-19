@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
 import type { Project, Session } from '../main/db';
 import type { CrewMember } from '../main/crew';
-import { call } from './api';
+import { call, onNavigate } from './api';
 import { TitleBar } from './components/TitleBar';
 import { ProjectBar } from './components/ProjectBar';
 import { Chat } from './components/Chat';
@@ -10,6 +10,7 @@ import { Legend } from './components/Legend';
 import { Log } from './components/Log';
 import { ProjectTree } from './components/ProjectTree';
 import { Memory } from './components/Memory';
+import { WorkflowView } from './components/WorkflowView';
 
 export function App() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -21,6 +22,22 @@ export function App() {
   const [tree, setTree] = useState(false);
   // The member whose memory the memory tab shows; null shows everyone's
   const [memoryOf, setMemoryOf] = useState<number | null>(null);
+  // The workflow kind being edited; null when the editor is closed
+  const [editing, setEditing] = useState<string | null>(null);
+
+  // 도우미 moves the window the way the user would by clicking
+  useEffect(
+    () =>
+      onNavigate((ev) => {
+        if (ev.sessionId !== session?.id) return;
+        if (ev.view === 'log') {
+          setLogTask(ev.taskId ?? null);
+          setTab('log');
+        } else if (ev.view === 'wiki') setTab('memory');
+        else setEditing(ev.kind ?? 'code');
+      }),
+    [session?.id],
+  );
   // The task the log shows; null shows every task in the session
   const [logTask, setLogTask] = useState<number | null>(null);
 
@@ -84,7 +101,10 @@ export function App() {
   return (
     <div className="app">
       <TitleBar />
-      <main className="body">
+      {project && editing && (
+        <WorkflowView project={project} members={members} kind={editing} onKind={setEditing} onClose={() => setEditing(null)} />
+      )}
+      <main className="body" hidden={!!(project && editing)}>
         <section className="camp" aria-label="캠프">
           {project && (
             <Legend
@@ -108,6 +128,7 @@ export function App() {
             onSession={(s) => selectSession(s)}
             onNewSession={newSession}
             onTree={() => setTree(true)}
+            onWorkflow={() => setEditing('code')}
           />
           <ProjectTree open={tree} onClose={() => setTree(false)} onDeleted={afterDelete} />
           <Tabs.Root className="tabs" value={tab} onValueChange={setTab}>

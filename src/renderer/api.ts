@@ -4,7 +4,7 @@ declare global {
   interface Window {
     crew: {
       call: (name: string, args?: unknown) => Promise<unknown>;
-      on: (channel: 'changed' | 'stream', fn: (payload: unknown) => void) => () => void;
+      on: (channel: 'changed' | 'stream' | 'navigate', fn: (payload: unknown) => void) => () => void;
     };
   }
 }
@@ -23,6 +23,13 @@ export type StreamEvent = { sessionId: number; delta?: string; done?: boolean };
 
 export function onChanged(fn: (topic: string) => void) {
   return window.crew.on('changed', (p) => fn(p as string));
+}
+
+// 도우미 opening a screen, the way a click would
+export type Navigate = { sessionId: number; view: 'log' | 'wiki' | 'workflow'; taskId?: number; kind?: string };
+
+export function onNavigate(fn: (ev: Navigate) => void) {
+  return window.crew.on('navigate', (p) => fn(p as Navigate));
 }
 
 export function onStream(fn: (ev: StreamEvent) => void) {

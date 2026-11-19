@@ -4,6 +4,7 @@ import type { Chat } from './chat';
 import type { Member, PeerLine, Task } from './db';
 import type { Step } from './workflow';
 import { KEPT } from './crew';
+import { readHelp } from './app-mcp';
 
 const PeerAnswer = z.object({
   answer: z.string().describe('Your answer in Korean, or empty when you need to ask back first'),
@@ -41,6 +42,17 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
           if (a.role && !one) return text(`${a.role}은 지금 고용되어 있지 않습니다.`);
           const task = chat.tasks.start(sessionId, a.kind, a.title, a.request, one ?? undefined);
           return text(`업무 #${task.id} "${task.title}"을 시작했습니다.`);
+        },
+      ),
+      sdk.tool('read_help', "Read the app's help before answering how to use AI Crew.", {}, async () => text(readHelp(chat.crew.dir))),
+      sdk.tool(
+        'ask_helper',
+        'Hand 도우미 something the user wants done in the app itself: find a task, open a screen, resume work. Its answer comes back as the result.',
+        { request: z.string().min(1).describe("The user's request in their words") },
+        async (a) => {
+          const helper = chat.store.readMember(projectId(), 'helper');
+          const out = await chat.runMember(helper, sessionId, null, a.request);
+          return text(out.status === 'done' ? out.text : `도우미가 답하지 못했습니다: ${out.error ?? out.status}`);
         },
       ),
       sdk.tool(

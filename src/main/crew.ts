@@ -6,9 +6,9 @@ import type { Member } from './db';
 export const MODELS = ['haiku', 'sonnet', 'opus'] as const;
 
 // The legend lists the starting crew in this order; anyone hired later follows in the order they joined
-const ORDER = ['orchestrator', 'hr', 'tools', 'advisor', 'coder', 'reviewer', 'tester', 'stylist', 'researcher', 'images'];
+const ORDER = ['orchestrator', 'hr', 'tools', 'advisor', 'coder', 'reviewer', 'tester', 'stylist', 'researcher', 'images', 'helper'];
 // The crew cannot run without these: 비서 takes every request, and only 인사 and 도구 bring in people and tools
-export const KEPT = ['orchestrator', 'hr', 'tools'];
+export const KEPT = ['orchestrator', 'hr', 'tools', 'helper'];
 
 // Each kind of tool a definition can ask for, and the Claude Code tools it opens
 const TOOL_KINDS = {
@@ -110,7 +110,8 @@ export class Crew {
         return [name, body.trim()];
       }),
     );
-    const unserved = Object.keys(this.kit.mcp).filter((name) => !this.servers[name]);
+    // The app's own server runs inside the app, so it has no command in mcp.json
+    const unserved = Object.keys(this.kit.mcp).filter((name) => !this.servers[name] && name !== 'app');
     if (unserved.length) throw new Error(`kit.json names MCP servers missing from mcp.json: ${unserved.join(', ')}`);
     for (const d of this.defs) {
       const unknown = [...d.skills.filter((s) => !this.kit.skills[s]), ...d.mcp.filter((s) => !this.kit.mcp[s])];
@@ -148,7 +149,8 @@ export class Crew {
 
   // Only the servers this member holds are started for its run
   mcpServers(settings: Settings) {
-    return Object.fromEntries(settings.mcp.map(({ server }) => [server, this.servers[server]])) as Record<string, never>;
+    // A server with no command, such as the app's own, is started in process by the caller
+    return Object.fromEntries(settings.mcp.filter(({ server }) => this.servers[server]).map(({ server }) => [server, this.servers[server]])) as Record<string, never>;
   }
 
   checkConfig(config: Config) {

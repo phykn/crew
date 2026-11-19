@@ -24,8 +24,9 @@ export function scriptSdk(file: string): Sdk {
         if (!turn) throw new Error(`no scripted turn left for ${role}`);
         if (turn.tool) await options!.canUseTool!(turn.tool.name, turn.tool.input, { signal: new AbortController().signal, toolUseID: 'script' } as never);
         if (turn.write) fs.writeFileSync(path.join(options!.cwd!, turn.write.file), turn.write.text);
-        if (turn.call) await tools.get(turn.call.name)!(turn.call.input);
-        const text = turn.text ?? '';
+        const result = turn.call ? ((await tools.get(turn.call.name)!(turn.call.input)) as { content: { text: string }[] }) : null;
+        // {{result}} in the text stands for what the app tool answered, as a model would quote it
+        const text = (turn.text ?? '').replace('{{result}}', result?.content[0]?.text ?? '');
         yield { type: 'system', subtype: 'init', session_id: `script-${role}`, model: options!.model } as never;
         yield { type: 'stream_event', parent_tool_use_id: null, event: { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text } } } as never;
         yield {

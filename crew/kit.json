@@ -83,6 +83,18 @@
         "browser_resize",
         "browser_close"
       ]
+    },
+    "app": {
+      "icon": "list",
+      "label": "앱 조작",
+      "use": "The AI Crew app itself: read its help, find tasks, open screens, and resume work in this project.",
+      "readTools": [
+        "read_help",
+        "find_tasks",
+        "open_log",
+        "open_wiki_history",
+        "open_workflow_editor"
+      ]
     }
   }
 }
