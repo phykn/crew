@@ -114,15 +114,15 @@ test('skills set before a skill was renamed or split keep it under its new names
   const coder = store.readMember(p.id, 'coder');
   store.writeConfig(coder.id, { skills: ['code', 'tools', 'review', 'report'], tools: ['read'] }, 'test');
   const version = (store.db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
-  // The renames rerun after them, so the table made since goes first
-  store.db.exec(`DROP TABLE skills; PRAGMA user_version = ${version - 3}`);
+  // The renames rerun after them, so what was added since goes first
+  store.db.exec(`DROP TABLE skills; ALTER TABLE projects DROP COLUMN mode; PRAGMA user_version = ${version - 4}`);
   expect(new Store(db).readMemberById(coder.id).config).toEqual({
     skills: ['code', 'check', 'plan-review', 'code-review', 'report'],
     tools: ['read'],
   });
 });
 
-test('도구 makes a skill and deletes a shipped one for this project only, each on an approved card', async () => {
+test('도구 makes, deletes, and resets skills for this project only, each on an approved card in manual mode', async () => {
   const { store, project, paths } = openScratch();
   const fake = fakeQuery([]);
   const chat = new Chat(
@@ -166,4 +166,14 @@ test('도구 makes a skill and deletes a shipped one for this project only, each
   expect(chat.settings(store.readMember(p.id, 'coder')).skills).not.toContain('code');
   expect(chat.kit(other.id).skills.code).toBeDefined();
   expect(chat.kit(other.id).skills.changelog).toBeUndefined();
+
+  // Back to the shipped kit: the made skill goes, the deleted one returns to the members who held it
+  await run('reset_skills', { reason: '처음대로' });
+  expect(chat.kit(p.id).skills.changelog).toBeUndefined();
+  expect(chat.settings(store.readMember(p.id, 'coder')).skills).toContain('code');
+  // Outside manual mode a change applies without a card
+  store.setMode(p.id, 'auto');
+  const cards = store.listMessages(s.id).length;
+  await fake.tools.get('delete_skill')!({ name: 'code', reason: '쓰지 않습니다' });
+  expect([chat.kit(p.id).skills.code, store.listMessages(s.id).length]).toEqual([undefined, cards]);
 });

@@ -1,7 +1,7 @@
 import { BrowserWindow, dialog, ipcMain } from 'electron';
 import { z } from 'zod';
 import { campState } from './camp-feed';
-import type { Store } from './db';
+import { MODES, type Mode, type Store } from './db';
 import type { Chat } from './chat';
 import { Config, type Crew, KEPT, MODELS } from './crew';
 
@@ -33,6 +33,10 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
     'sessions.delete': {
       args: z.object({ sessionId: id }),
       run: (a: { sessionId: number }) => chat.deleteSession(a.sessionId),
+    },
+    'projects.setMode': {
+      args: z.object({ projectId: id, mode: z.enum(MODES) }),
+      run: (a: { projectId: number; mode: Mode }) => store.setMode(a.projectId, a.mode),
     },
     'projects.impact': { args: z.object({ projectId: id }), run: (a: { projectId: number }) => store.impact(a) },
     'projects.remove': {

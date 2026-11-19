@@ -104,3 +104,19 @@ test('the app record and crew files are protected even from 개발', () => {
   );
   expect(store.listMembers(project.id).length).toBe(11);
 });
+
+test('auto mode allows a tool outside the role without a card but still denies; bypass checks nothing', async () => {
+  const { store, chat, project, session } = setup();
+  const reviewer = store.readMember(project.id, 'reviewer');
+  const researcher = store.readMember(project.id, 'researcher');
+  const push = () => chat.guard(reviewer, project, session.id, 7)(...call('Bash', { command: 'git push origin main' }));
+
+  store.setMode(project.id, 'auto');
+  expect((await chat.guard(researcher, project, session.id, 7)(...call('Bash', { command: 'ls' })))!.behavior).toBe(
+    'allow',
+  );
+  expect(store.listMessages(session.id)).toEqual([]);
+  expect((await push())!.behavior).toBe('deny');
+  store.setMode(project.id, 'bypass');
+  expect((await push())!.behavior).toBe('allow');
+});

@@ -121,6 +121,29 @@ export class Chat {
     this.emit('changed', 'members');
   }
 
+  // Back to the shipped kit for one skill or all: what the project made goes, and members hold the shipped skills again
+  resetSkills(projectId: number, name?: string) {
+    this.store.transact(() => {
+      const made = this.store
+        .listSkills(projectId)
+        .filter((r) => (!name || r.name === name) && !this.crew.kit.skills[r.name])
+        .map((r) => r.name);
+      this.store.clearSkills(projectId, name);
+      for (const m of this.store.listMembers(projectId)) {
+        const shipped = this.crew.defOf(m).skills;
+        const held = this.settings(m).skills;
+        const next = name
+          ? [
+              ...held.filter((s) => !made.includes(s)),
+              ...(shipped.includes(name) && !held.includes(name) ? [name] : []),
+            ]
+          : shipped;
+        if (next.join() !== held.join()) this.setPermissions(m.id, { skills: next });
+      }
+    });
+    this.emit('changed', 'members');
+  }
+
   settings(member: Member) {
     return this.crew.settings(this.crew.defOf(member), Config.parse(member.config));
   }
@@ -142,6 +165,8 @@ export class Chat {
       project: project.path,
       output,
       protected: this.paths.protected,
+      // Read fresh, so a mode changed mid-run applies to the next call
+      mode: this.store.readProject(project.id).mode,
     };
   }
 

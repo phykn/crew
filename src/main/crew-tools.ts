@@ -382,7 +382,9 @@ export function kitTools(sdk: Sdk, chat: Chat, sessionId: number) {
   const { store, crew } = chat;
   const projectId = store.projectOf(sessionId).id;
   const hired = () => store.listMembers(projectId).filter((m) => m.status === 'hired');
+  // Outside manual mode a kit change applies without a card, like any other call
   const approve = async (prompt: string) =>
+    store.readProject(projectId).mode !== 'manual' ||
     (await chat.questions.ask({
       sessionId,
       taskId: null,
@@ -462,6 +464,29 @@ export function kitTools(sdk: Sdk, chat: Chat, sessionId: number) {
             return cancelled;
           chat.deleteSkill(projectId, a.name);
           return text(`Deleted the skill ${a.name}.`);
+        },
+      ),
+      sdk.tool(
+        'reset_skills',
+        "Put one skill, or the whole kit when no name is given, back as shipped: the project's own versions and the skills it made are dropped, and members hold their shipped skills again. The user approves or cancels it on a card.",
+        {
+          name: z.string().optional().describe('One skill; leave out to reset every skill and who holds them'),
+          reason: z.string().min(1).describe('Why, in Korean, for the card'),
+        },
+        async (a) => {
+          const rows = store.listSkills(projectId).filter((r) => !a.name || r.name === a.name);
+          if (a.name && !rows.length && !crew.kit.skills[a.name])
+            return text(`${a.name} is not a skill in this project's kit.`);
+          const what = a.name ? `스킬 ${a.name}을` : `스킬 전체와 멤버별 스킬 배정을`;
+          const changed = rows.map(
+            (r) => `- ${r.name}: ${crew.kit.skills[r.name] ? (r.deleted ? '다시 생김' : '기본 내용으로') : '사라짐'}`,
+          );
+          const list = changed.length ? `\n\n${changed.join('\n')}` : '';
+          if (!(await approve(`${what} 기본값으로 되돌릴까요?\n${a.reason}${list}`))) return cancelled;
+          chat.resetSkills(projectId, a.name);
+          return text(
+            a.name ? `Reset the skill ${a.name} to the shipped one.` : 'Reset the whole kit to the shipped one.',
+          );
         },
       ),
       sdk.tool(

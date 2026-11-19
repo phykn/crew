@@ -1191,8 +1191,29 @@ code {
   color: var(--text);
   font-size: var(--fs-sm);
 }
-.workflow-role,
-.workflow-side legend {
+/* Big dots to drag a link from and onto */
+.workflow-node .react-flow__handle {
+  width: var(--sp-3);
+  height: var(--sp-3);
+  background: var(--wood-light);
+  border: var(--bw) solid var(--wood-dark);
+}
+.workflow-unlink {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: var(--icon);
+  height: var(--icon);
+  padding: 0;
+  background: var(--danger);
+  border: var(--bw) solid var(--danger-dark);
+  border-radius: 50%;
+  color: var(--on-accent);
+  font-size: var(--fs-xs);
+  line-height: 1;
+  pointer-events: all;
+}
+.workflow-role {
   color: var(--muted);
   font-size: var(--fs-xs);
 }
@@ -1220,15 +1241,6 @@ code {
 .workflow-side textarea {
   min-height: var(--h-side-textarea);
   resize: vertical;
-}
-.workflow-side fieldset {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  margin: 0;
-  padding: var(--sp-2);
-  border: var(--bw) solid var(--line);
-  border-radius: var(--r-sm);
 }
 .workflow-side .choice {
   width: 100%;

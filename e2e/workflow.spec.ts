@@ -26,18 +26,23 @@ test('the editor saves review and test in parallel after 개발 as a new version
   await open();
   const editor = page.getByLabel('워크플로우 편집');
   await expect(editor.getByLabel('단계 개발')).toContainText('개발');
-  const side = editor.getByLabel('선행 단계');
+  const handle = (id: string, end: 'source' | 'target') =>
+    editor.locator(`.react-flow__node[data-id="${id}"] .react-flow__handle.${end}`);
+  const relink = async (from: string, to: string, cut: string) => {
+    // Links from 개발 fan out and overlap at their middles, so the click goes to the named link itself
+    await editor.getByLabel(cut).dispatchEvent('click');
+    await editor.getByLabel('연결 끊기').click();
+    await handle(from, 'source').dragTo(handle(to, 'target'));
+  };
 
-  // 시험 after 코드 리뷰 (one after the other), saved as version 1
-  await editor.getByLabel('단계 시험').click();
-  await side.getByLabel('개발').uncheck();
-  await side.getByLabel('코드 리뷰').check();
+  // 시험 after 코드 리뷰 (one after the other), saved as version 1; its rework still goes to 개발
+  await relink('review', 'test', '개발 → 시험');
+  await expect(editor.getByLabel('코드 리뷰 → 시험')).toBeVisible();
+  await expect(editor.getByLabel('단계 시험')).toContainText('안 되면 개발로');
   await editor.getByRole('button', { name: '저장' }).click();
   await expect(editor).toContainText('버전 1 저장');
   // Back to both after 개발, side by side, and the node moved down: version 2
-  await editor.getByLabel('단계 시험').click();
-  await side.getByLabel('코드 리뷰').uncheck();
-  await side.getByLabel('개발').check();
+  await relink('develop', 'test', '코드 리뷰 → 시험');
   const box = (await editor.getByLabel('단계 시험').boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
@@ -55,9 +60,8 @@ test('the editor saves review and test in parallel after 개발 as a new version
   await open();
   await expect(editor).toContainText('버전 2');
   await expect(editor.locator('.react-flow__edge')).toHaveCount(5);
-  await editor.getByLabel('단계 시험').click();
-  await expect(side.getByLabel('개발')).toBeChecked();
-  await expect(side.getByLabel('코드 리뷰')).not.toBeChecked();
+  await expect(editor.getByLabel('개발 → 시험')).toBeVisible();
+  await expect(editor.getByLabel('코드 리뷰 → 시험')).toHaveCount(0);
   expect(await where()).toBe(moved);
   await expect(page.getByLabel('세션')).toHaveText('자료 조사해줘');
   await app.close();

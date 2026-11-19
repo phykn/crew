@@ -95,12 +95,16 @@ const MIGRATIONS = [
      project_id INTEGER NOT NULL REFERENCES projects (id) ON DELETE CASCADE, name TEXT NOT NULL,
      label TEXT NOT NULL, purpose TEXT NOT NULL, body TEXT NOT NULL, deleted INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL,
      PRIMARY KEY (project_id, name));`,
+  `ALTER TABLE projects ADD COLUMN mode TEXT NOT NULL DEFAULT 'manual';`,
 ];
 
 // A project's change to the kit: a skill written over the shipped one or new, or one deleted
 export type SkillRow = { name: string; label: string; use: string; body: string; deleted: boolean };
 
-export type Project = { id: number; path: string; name: string };
+// How calls outside the guard's plain allow are handled: asked on a card, allowed at once, or not checked at all
+export const MODES = ['manual', 'auto', 'bypass'] as const;
+export type Mode = (typeof MODES)[number];
+export type Project = { id: number; path: string; name: string; mode: Mode };
 // A session is named after what the user first asked in it, so sessions can be told apart
 export type Session = { id: number; projectId: number; number: number; createdAt: string; title: string | null };
 export type Member = {
@@ -284,15 +288,23 @@ export class Store {
     this.db
       .prepare('INSERT OR IGNORE INTO projects (path, name, added_at) VALUES (?, ?, ?)')
       .run(full, path.basename(full), now());
-    return this.db.prepare('SELECT id, path, name FROM projects WHERE path = ?').get(full) as Project;
+    return this.db.prepare('SELECT id, path, name, mode FROM projects WHERE path = ?').get(full) as Project;
   }
 
   listProjects(): Project[] {
-    return this.db.prepare('SELECT id, path, name FROM projects ORDER BY added_at DESC, id DESC').all() as Project[];
+    return this.db
+      .prepare('SELECT id, path, name, mode FROM projects ORDER BY added_at DESC, id DESC')
+      .all() as Project[];
+  }
+
+  setMode(id: number, mode: Mode) {
+    this.db.prepare('UPDATE projects SET mode = ? WHERE id = ?').run(mode, id);
   }
 
   readProject(id: number): Project {
-    const row = this.db.prepare('SELECT id, path, name FROM projects WHERE id = ?').get(id) as Project | undefined;
+    const row = this.db.prepare('SELECT id, path, name, mode FROM projects WHERE id = ?').get(id) as
+      | Project
+      | undefined;
     if (!row) throw new Error(`no project ${id}`);
     return row;
   }
@@ -455,6 +467,13 @@ export class Store {
          ON CONFLICT (project_id, name) DO UPDATE SET label = excluded.label, purpose = excluded.purpose, body = excluded.body, deleted = 0, updated_at = excluded.updated_at`,
       )
       .run(projectId, s.name, s.label, s.use, s.body, now());
+  }
+
+  // Drops the project's own version of one skill, or of all, so the shipped one shows again
+  clearSkills(projectId: number, name?: string) {
+    this.db
+      .prepare('DELETE FROM skills WHERE project_id = ? AND (? IS NULL OR name = ?)')
+      .run(projectId, name ?? null, name ?? null);
   }
 
   removeSkill(projectId: number, name: string) {

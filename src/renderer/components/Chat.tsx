@@ -1,14 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Message, Question, Session, Task } from '../../main/db';
+import type { Message, Mode, Question, Session, Task } from '../../main/db';
 import { call, onChanged, onStream } from '../api';
+import { Choice } from './Choice';
 import { TaskCards } from './TaskCards';
+
+const MODE_LABELS: Record<Mode, string> = { manual: '수동 승인', auto: '자동 승인', bypass: '바이패스' };
 
 export function Chat({
   session,
+  mode,
+  onMode,
   onLog,
   onClear,
 }: {
   session: Session;
+  mode: Mode;
+  onMode: (m: Mode) => void;
   onLog: (taskId: number) => void;
   onClear: () => void;
 }) {
@@ -81,6 +88,13 @@ export function Chat({
               send();
             }
           }}
+        />
+        <Choice
+          label="승인 모드"
+          className="small"
+          value={mode}
+          options={Object.entries(MODE_LABELS).map(([value, label]) => ({ value, label }))}
+          onChange={(m) => onMode(m as Mode)}
         />
         <button type="submit" className="send" aria-label="보내기" disabled={!draft.trim()}>
           <svg viewBox="0 0 20 20" aria-hidden="true">

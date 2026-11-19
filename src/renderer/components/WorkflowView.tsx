@@ -2,12 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ReactFlow,
   Background,
+  BaseEdge,
   Controls,
+  EdgeLabelRenderer,
   Handle,
   Position,
   applyNodeChanges,
-  applyEdgeChanges,
+  getBezierPath,
   type Edge,
+  type EdgeProps,
   type Node,
   type NodeProps,
   type NodeChange,
@@ -22,9 +25,9 @@ import { call } from '../api';
 import { Choice } from './Choice';
 
 type Read = Awaited<ReturnType<typeof call<'workflows.read'>>>;
-type StepNode = Node<{ step: Step; member?: CrewMember }, 'step'>;
+type StepNode = Node<{ step: Step; member?: CrewMember; back?: string }, 'step'>;
+type LinkEdge = Edge<{ remove: () => void }, 'link'>;
 type Layout = Record<string, { x: number; y: number }>;
-const NONE = 'none';
 
 // The workflow tab: this project's rules for one task kind, drawn as nodes and saved as a new version
 export function WorkflowView({
@@ -74,12 +77,27 @@ export function WorkflowView({
           data: {
             step: steps.find((s) => s.id === n.id)!,
             member: members.find((m) => m.key === steps.find((s) => s.id === n.id)?.role),
+            back: steps.find((s) => s.id === reworkOf(n.id, steps))?.label,
           },
         }))
         .filter((n) => n.data.step),
     [nodes, steps, members],
   );
-  const edges: Edge[] = steps.flatMap((s) => s.after.map((a) => ({ id: `${a}->${s.id}`, source: a, target: s.id })));
+  const [link, setLink] = useState<string | null>(null);
+  const label = (id: string) => steps.find((s) => s.id === id)?.label ?? id;
+  const unlink = (from: string, to: string) =>
+    edit(to, { after: steps.find((s) => s.id === to)!.after.filter((a) => a !== from) });
+  const edges: LinkEdge[] = steps.flatMap((s) =>
+    s.after.map((a) => ({
+      id: `${a}->${s.id}`,
+      source: a,
+      target: s.id,
+      type: 'link',
+      selected: link === `${a}->${s.id}`,
+      ariaLabel: `${label(a)} → ${s.label}`,
+      data: { remove: () => unlink(a, s.id) },
+    })),
+  );
   const edit = (id: string, change: Partial<Step>) => {
     setDirty(true);
     setSteps((all) => all.map((s) => (s.id === id ? { ...s, ...change } : s)));
@@ -90,12 +108,10 @@ export function WorkflowView({
       edit(c.target, { after: [...new Set([...steps.find((s) => s.id === c.target)!.after, c.source])] });
   }
   function onEdgesChange(changes: EdgeChange[]) {
-    for (const ch of changes)
-      if (ch.type === 'remove') {
-        const [from, to] = ch.id.split('->');
-        edit(to, { after: steps.find((s) => s.id === to)!.after.filter((a) => a !== from) });
-      }
-    applyEdgeChanges(changes, edges);
+    for (const ch of changes) {
+      if (ch.type === 'remove') unlink(...(ch.id.split('->') as [string, string]));
+      if (ch.type === 'select') setLink(ch.selected ? ch.id : null);
+    }
   }
   function onNodesChange(changes: NodeChange<StepNode>[]) {
     if (changes.some((ch) => ch.type === 'remove' || (ch.type === 'position' && ch.dragging))) setDirty(true);
@@ -127,7 +143,11 @@ export function WorkflowView({
     const layout = Object.fromEntries(
       nodes.map((n) => [n.id, { x: Math.round(n.position.x), y: Math.round(n.position.y) }]),
     );
-    const rules = { ...w!.rules, steps };
+    // A check sends rework to the nearest making step it follows, so the links alone decide it
+    const rules = {
+      ...w!.rules,
+      steps: steps.map((s) => ({ ...s, rework: s.verdict ? reworkOf(s.id, steps) : undefined })),
+    };
     const r = await call('workflows.save', { projectId: project.id, kind, base: w!.version, rules, layout });
     if (r.ok) {
       setNote({ ok: true, text: `버전 ${r.version} 저장, 새 업무부터 적용` });
@@ -187,6 +207,7 @@ export function WorkflowView({
               onConnect={onConnect}
               onNodeClick={(_, n) => setPicked(n.id)}
               onPaneClick={() => setPicked(null)}
+              edgeTypes={EDGE_TYPES}
               colorMode="light"
               fitView
               // Fits the whole flow but never enlarges past real size
@@ -227,64 +248,14 @@ export function WorkflowView({
                 onChange={(e) => edit(step.id, { does: e.target.value })}
               />
             </label>
-            <fieldset aria-label="선행 단계">
-              <legend>선행 단계</legend>
-              {steps
-                .filter((s) => s.id !== step.id)
-                .map((s) => (
-                  <label key={s.id} className="check">
-                    <input
-                      type="checkbox"
-                      checked={step.after.includes(s.id)}
-                      onChange={(e) =>
-                        edit(step.id, {
-                          after: e.target.checked ? [...step.after, s.id] : step.after.filter((a) => a !== s.id),
-                        })
-                      }
-                    />
-                    {s.label}
-                  </label>
-                ))}
-            </fieldset>
             <label className="check">
               <input
                 type="checkbox"
                 checked={step.verdict}
                 onChange={(e) => edit(step.id, { verdict: e.target.checked })}
               />
-              판정 단계
+              검토 단계
             </label>
-            {step.verdict && (
-              <label>
-                되돌릴 단계
-                <Choice
-                  label="되돌릴 단계"
-                  value={step.rework ?? NONE}
-                  options={[
-                    { value: NONE, label: '—' },
-                    ...steps.filter((s) => s.id !== step.id).map((s) => ({ value: s.id, label: s.label })),
-                  ]}
-                  onChange={(v) => edit(step.id, { rework: v === NONE ? undefined : v })}
-                />
-              </label>
-            )}
-            <fieldset>
-              <legend>필수 인계</legend>
-              {(['files', 'checks'] as const).map((k) => (
-                <label key={k} className="check">
-                  <input
-                    type="checkbox"
-                    checked={step.requires.includes(k)}
-                    onChange={(e) =>
-                      edit(step.id, {
-                        requires: e.target.checked ? [...step.requires, k] : step.requires.filter((r) => r !== k),
-                      })
-                    }
-                  />
-                  {k === 'files' ? '변경 파일' : '실행한 검사'}
-                </label>
-              ))}
-            </fieldset>
           </aside>
         )}
       </div>
@@ -293,7 +264,7 @@ export function WorkflowView({
 }
 
 function StepBox({ data }: NodeProps<StepNode>) {
-  const { step, member } = data;
+  const { step, member, back } = data;
   return (
     <div className="workflow-node" aria-label={`단계 ${step.label}`}>
       <Handle type="target" position={Position.Top} />
@@ -302,12 +273,58 @@ function StepBox({ data }: NodeProps<StepNode>) {
         <div className="workflow-role">{member?.role ?? step.role}</div>
       )}
       <div>{step.label}</div>
-      {step.verdict && <div className="muted">판정</div>}
+      {step.verdict && <div className="muted">{back ? `안 되면 ${back}로` : '앞 단계에 이어 주세요'}</div>}
       <Handle type="source" position={Position.Bottom} />
     </div>
   );
 }
 const NODE_TYPES = { step: StepBox };
+
+// A picked link shows its own remove button, so nothing else on the screen is needed to cut one
+function LinkLine({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  selected,
+  data,
+}: EdgeProps<LinkEdge>) {
+  const [line, x, y] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
+  return (
+    <>
+      <BaseEdge id={id} path={line} />
+      {selected && (
+        <EdgeLabelRenderer>
+          <button
+            className="workflow-unlink nodrag nopan"
+            style={{ transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }}
+            aria-label="연결 끊기"
+            onClick={data?.remove}
+          >
+            ×
+          </button>
+        </EdgeLabelRenderer>
+      )}
+    </>
+  );
+}
+const EDGE_TYPES = { link: LinkLine };
+
+// The nearest step before this one that makes something rather than checks it
+function reworkOf(id: string, steps: Step[]): string | undefined {
+  const queue = [...(steps.find((s) => s.id === id)?.after ?? [])];
+  for (const seen = new Set<string>(); queue.length; ) {
+    const at = queue.shift()!;
+    if (seen.has(at)) continue;
+    seen.add(at);
+    const s = steps.find((x) => x.id === at);
+    if (s && !s.verdict) return at;
+    queue.push(...(s?.after ?? []));
+  }
+}
 
 // Saved positions where there are some; otherwise rows by how many steps come before, since the panel is tall and narrow
 function toNodes(steps: Step[], layout: Layout, members: CrewMember[]): StepNode[] {

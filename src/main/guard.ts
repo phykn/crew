@@ -1,6 +1,6 @@
 import path from 'node:path';
 import type { CanUseTool } from '@anthropic-ai/claude-agent-sdk';
-import type { Member, Store } from './db';
+import type { Member, Mode, Store } from './db';
 import { ALLOW, type Questions, REFUSE } from './questions';
 
 // What one member may do right now; read fresh on every call so a revoked permission applies at once
@@ -15,6 +15,7 @@ export type Policy = {
   output: string;
   // The app's own record and crew files: a member who could rewrite these could switch the guard off
   protected: string[];
+  mode: Mode;
 };
 
 export type Verdict = { kind: 'allow' } | { kind: 'deny'; reason: string } | { kind: 'ask'; reason: string };
@@ -250,11 +251,17 @@ export function makeCanUseTool(policy: () => Policy, hooks: GuardHooks): CanUseT
       : ({ behavior: 'allow', updatedInput: input } as const);
   };
   return async (tool, input) => {
+    const { mode } = policy();
+    if (mode === 'bypass') return allow(tool, input);
     const verdict = checkCall(policy(), tool, input);
     if (verdict.kind === 'allow') return allow(tool, input);
     if (verdict.kind === 'deny') {
       hooks.record('denied', `${tool} 거부: ${verdict.reason}`);
       return { behavior: 'deny', message: refused(verdict.reason) };
+    }
+    if (mode === 'auto') {
+      hooks.record('approved', `${tool} 자동 승인: ${verdict.reason}`);
+      return allow(tool, input);
     }
     if (hooks.granted(tool)) return allow(tool, input);
     const ok = await hooks.ask(tool, input, verdict.reason);

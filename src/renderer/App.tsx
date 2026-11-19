@@ -163,6 +163,12 @@ export function App() {
               {session ? (
                 <Chat
                   session={session}
+                  mode={project!.mode}
+                  onMode={async (mode) => {
+                    await call('projects.setMode', { projectId: project!.id, mode });
+                    setProject({ ...project!, mode });
+                    setProjects(await call('projects.list'));
+                  }}
                   onClear={clearSession}
                   onLog={(id) => {
                     setLogTask(id);
