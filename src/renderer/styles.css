@@ -1131,6 +1131,42 @@ code {
   min-height: var(--h-textarea);
   resize: vertical;
 }
+/* A document as one dot; a topic linked to but not written yet is dashed */
+.wiki-dot {
+  max-width: var(--w-node);
+  padding: var(--sp-1) var(--sp-3);
+  background: var(--card);
+  border: var(--bw) solid var(--line-hi);
+  border-radius: var(--r-lg);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  word-break: keep-all;
+  text-align: center;
+  cursor: pointer;
+}
+.wiki-dot[data-missing] {
+  border-style: dashed;
+  color: var(--muted);
+}
+/* Lines meet at the dot's middle, and there is nothing to drag from */
+.wiki-dot .wiki-dot-end {
+  top: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+.wiki-link {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--accent-dark);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.wiki-link[data-missing] {
+  color: var(--muted);
+  text-decoration-style: dashed;
+}
 .wiki-body {
   margin: 0;
   font-size: var(--fs-md);
@@ -1197,7 +1233,13 @@ code {
 .workflow-canvas {
   flex: 1;
 }
-.workflow-canvas .react-flow {
+.wiki-graph {
+  flex: 1;
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r);
+}
+.workflow-canvas .react-flow,
+.wiki-graph .react-flow {
   --xy-background-color: var(--paper);
   --xy-background-pattern-color: var(--line);
 }

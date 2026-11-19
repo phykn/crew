@@ -27,7 +27,7 @@ test('a run starts with its own memory and this project wiki only; a rule docume
 
   await chat.runMember(tester, store.createSession(a.id).id, null, 'hi');
   const system = String(fake.calls[0].options.systemPrompt);
-  expect(system).toContain('- 테스트 방법');
+  expect(system).toContain('- 테스트 방법: npm test');
   expect(system).toContain('- coder (개발):');
   expect(system).toContain('node --test를 쓴다');
   expect(system).not.toContain('다른 프로젝트 문서');
@@ -43,4 +43,30 @@ test('a run starts with its own memory and this project wiki only; a rule docume
   chat.removeDoc(link(1).id, true, user);
   expect(chat.workflowFor(a.id, 'code').version).toBe(2);
   expect(chat.workflowFor(a.id, 'code').rules.steps.map((s) => s.id)).toContain('test');
+});
+
+test('the wiki graph draws each [[link]] once and shows a linked title with no document as one to write', () => {
+  const { store, project, paths } = openScratch();
+  const chat = new Chat(
+    store,
+    async () => fakeCrew({}).sdk,
+    CREW,
+    () => {},
+    paths,
+  );
+  const p = store.addProject(project);
+  const user = { memberId: null, name: '사용자' };
+  chat.wiki.write(p.id, '테스트 방법', '[[계산 모듈]]을 [[계산 모듈]]처럼 돌립니다. [[CLI]]도 봅니다.', user);
+  chat.wiki.write(p.id, '계산 모듈', 'calc.py의 함수들', user);
+  expect(chat.wiki.graph(p.id)).toEqual({
+    nodes: [
+      { title: '계산 모듈', id: 2 },
+      { title: '테스트 방법', id: 1 },
+      { title: 'CLI', id: null },
+    ],
+    edges: [
+      { from: '테스트 방법', to: '계산 모듈' },
+      { from: '테스트 방법', to: 'CLI' },
+    ],
+  });
 });

@@ -230,7 +230,7 @@ function wikiTools(sdk: Sdk, chat: Chat, member: Member, sessionId: number, task
     }),
     sdk.tool(
       'wiki_write',
-      'Create or replace a project wiki document: decisions, reasons, how to test, what later tasks should know. Read it first and keep what is still right.',
+      'Create or replace a project wiki document on one topic, its first line saying what it covers; point to related documents with [[title]]. Read it first and keep what is still right.',
       {
         title: z.string().min(1).max(60),
         body: z.string().min(1),

@@ -3,6 +3,7 @@ import type { CrewMember } from '../../main/crew';
 import type { Change, Doc, Memory as Note } from '../../main/wiki';
 import { call, onChanged } from '../api';
 import { Choice } from './Choice';
+import { WikiGraph } from './WikiGraph';
 
 const KIND: Record<Change['kind'], string> = { create: '생성', edit: '수정', delete: '삭제' };
 const ALL = 'all';
@@ -21,6 +22,7 @@ export function Memory({
 }) {
   const [view, setView] = useState<'wiki' | 'agents'>(memberId ? 'agents' : 'wiki');
   const [writing, setWriting] = useState(0);
+  const [graph, setGraph] = useState(false);
   useEffect(() => {
     if (memberId) setView('agents');
   }, [memberId]);
@@ -35,6 +37,16 @@ export function Memory({
             기억
           </button>
         </div>
+        {view === 'wiki' && (
+          <div className="seg" role="group" aria-label="위키 보기">
+            <button aria-pressed={!graph} onClick={() => setGraph(false)}>
+              목록
+            </button>
+            <button aria-pressed={graph} onClick={() => setGraph(true)}>
+              그래프
+            </button>
+          </div>
+        )}
         <span className="toolbar-end">
           {view === 'wiki' ? (
             <button className="button" onClick={() => setWriting((n) => n + 1)}>
@@ -54,7 +66,7 @@ export function Memory({
         </span>
       </div>
       {view === 'wiki' ? (
-        <WikiView projectId={projectId} writing={writing} />
+        <WikiView projectId={projectId} writing={writing} graph={graph} onList={() => setGraph(false)} />
       ) : (
         <Notes projectId={projectId} members={members} memberId={memberId} />
       )}
@@ -62,7 +74,17 @@ export function Memory({
   );
 }
 
-function WikiView({ projectId, writing }: { projectId: number; writing: number }) {
+function WikiView({
+  projectId,
+  writing,
+  graph,
+  onList,
+}: {
+  projectId: number;
+  writing: number;
+  graph: boolean;
+  onList: () => void;
+}) {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [changes, setChanges] = useState<Change[]>([]);
   const [picked, setPicked] = useState<number | null>(null);
@@ -99,10 +121,19 @@ function WikiView({ projectId, writing }: { projectId: number; writing: number }
     setAsking(false);
     setPicked(null);
   }
+  // A linked title opens its document, or a draft of it when it is still to be written
+  function openTitle(title: string) {
+    const target = docs.find((d) => d.title === title);
+    setPicked(target?.id ?? null);
+    setDraft(target ? null : { title, body: '' });
+    setAsking(false);
+    onList();
+  }
   async function open(c: Change) {
     setDetail(detail?.id === c.id ? null : { id: c.id, ...(await call('wiki.change', { id: c.id })) });
   }
 
+  if (graph) return <WikiGraph projectId={projectId} onOpen={openTitle} />;
   return (
     <div className="wiki">
       <div className="wiki-top" data-single={!docs.length || undefined}>
@@ -151,7 +182,23 @@ function WikiView({ projectId, writing }: { projectId: number; writing: number }
           ) : doc ? (
             <>
               <h3>{doc.title}</h3>
-              <pre className="wiki-body">{doc.body}</pre>
+              <pre className="wiki-body">
+                {doc.body.split(/(\[\[[^\]\n]+\]\])/).map((part, i) => {
+                  const title = part.match(/^\[\[(.+)\]\]$/)?.[1].trim();
+                  return title ? (
+                    <button
+                      key={i}
+                      className="wiki-link"
+                      data-missing={!docs.some((d) => d.title === title) || undefined}
+                      onClick={() => openTitle(title)}
+                    >
+                      {title}
+                    </button>
+                  ) : (
+                    part
+                  );
+                })}
+              </pre>
               <div className="wiki-actions">
                 <button className="button" onClick={() => setDraft({ title: doc.title, body: doc.body })}>
                   편집

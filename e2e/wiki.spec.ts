@@ -44,6 +44,10 @@ test('the wiki keeps one document with two changes by two members, and they surv
     await expect(timeline).toContainText('업무 #2');
     await page.getByLabel('위키 목차').getByRole('button', { name: '테스트 방법' }).click();
     await expect(page.getByLabel('위키 본문')).toContainText('npm run test:e2e');
+    // The graph shows the document as a dot that opens it
+    await page.getByRole('button', { name: '그래프' }).click();
+    await page.getByLabel('위키 그래프').getByLabel('문서 테스트 방법').click();
+    await expect(page.getByLabel('위키 본문')).toContainText('npm run test:e2e');
   };
   await check();
   await app.close();

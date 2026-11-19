@@ -28,6 +28,11 @@ export type Memory = {
   sessionId: number | null;
   at: string;
 };
+// The titles a body points to with [[title]], each once
+export function links(body: string) {
+  return [...new Set([...body.matchAll(/\[\[([^\]\n]+)\]\]/g)].map((m) => m[1].trim()))];
+}
+
 // Who wrote: a member (by id, so a renamed member keeps its record) or the user
 export type Author = { memberId: number | null; name: string; taskId?: number | null; files?: string[] };
 
@@ -125,6 +130,24 @@ export class Wiki {
       );
   }
 
+  // Documents and the [[links]] between them; a title linked to with no document is a topic still to write
+  graph(projectId: number) {
+    const docs = this.list(projectId);
+    const edges = docs.flatMap((d) =>
+      links(d.body)
+        .filter((t) => t !== d.title)
+        .map((to) => ({ from: d.title, to })),
+    );
+    const missing = [...new Set(edges.map((e) => e.to))].filter((t) => !docs.some((d) => d.title === t));
+    return {
+      nodes: [
+        ...docs.map((d) => ({ title: d.title, id: d.id as number | null })),
+        ...missing.map((title) => ({ title, id: null })),
+      ],
+      edges,
+    };
+  }
+
   timeline(projectId: number): Change[] {
     const rows = this.db.prepare(`${CHANGE} WHERE project_id = ? ORDER BY id DESC`).all(projectId) as (Omit<
       Change,
@@ -175,9 +198,11 @@ export class Wiki {
     return [
       '# Your memory in this project',
       own.length ? own.map((m) => `- ${m.text}`).join('\n') : '(none yet)',
-      '# Project wiki',
-      docs.length ? docs.map((d) => `- ${d.title}`).join('\n') : '(no documents yet)',
-      'Read a document with wiki_read when your work needs it. Write down what the next task should know with wiki_write, and what only you need with remember.',
+      '# Project wiki index',
+      docs.length
+        ? docs.map((d) => `- ${d.title}: ${d.body.split('\n')[0].slice(0, 120)}`).join('\n')
+        : '(no documents yet)',
+      'Read a document with wiki_read when your work needs it. Keep the wiki as the crew rules say with wiki_write, and what only you need with remember.',
     ].join('\n\n');
   }
 }

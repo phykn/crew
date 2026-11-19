@@ -99,6 +99,10 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
       args: z.object({ projectId: id }),
       run: (a: { projectId: number }) => chat.wiki.timeline(a.projectId),
     },
+    'wiki.graph': {
+      args: z.object({ projectId: id }),
+      run: (a: { projectId: number }) => chat.wiki.graph(a.projectId),
+    },
     'wiki.change': { args: z.object({ id }), run: (a: { id: number }) => chat.wiki.change(a.id) },
     'wiki.write': {
       args: z.object({ projectId: id, title: z.string().trim().min(1).max(60), body: z.string() }),
