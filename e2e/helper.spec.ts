@@ -15,7 +15,7 @@ test("비서 answers from the help and 도우미 opens this project's workflow e
   const page = await openProject(app, scratch.project);
   await page.getByLabel('메시지').fill('워크플로우는 어디서 바꿔?');
   await page.getByLabel('메시지').press('Enter');
-  await expect(page.locator('.messages')).toContainText('워크플로우** 탭');
+  await expect(page.locator('.messages')).toContainText('워크플로우 탭');
 
   await page.getByLabel('메시지').fill('편집기 열어줘');
   await page.getByLabel('메시지').press('Enter');
