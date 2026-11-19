@@ -174,6 +174,27 @@ export class Chat {
     return out;
   }
 
+  // /clear: a fresh session on the same project and crew; 비서 starts without context and the old session's tasks go on
+  clear(sessionId: number) {
+    const { store } = this;
+    const old = store.readSession(sessionId);
+    const next = store.createSession(old.projectId);
+    store.addEvent({ sessionId, taskId: null, memberId: null, kind: 'clear', text: `/clear: 세션 ${String(next.number).padStart(2, '0')}에서 새로 시작`, detail: null });
+    return next;
+  }
+
+  // A deleted session's work stops first, so nothing keeps writing for a record that is gone
+  deleteSession(sessionId: number) {
+    for (const t of this.store.listTasks(sessionId)) this.tasks.stop(t.id);
+    this.live.get(sessionId)?.stop();
+    this.store.deleteSession(sessionId);
+  }
+
+  removeProject(projectId: number) {
+    for (const s of this.store.listSessions(projectId)) this.deleteSession(s.id);
+    this.store.removeProject(projectId);
+  }
+
   // Letting go is idempotent: a second press while leaving or gone changes nothing
   fire(memberId: number) {
     const m = this.store.readMemberById(memberId);

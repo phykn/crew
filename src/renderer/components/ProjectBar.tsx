@@ -3,6 +3,7 @@ import type { Project, Session } from '../../main/db';
 
 const OPEN = 'open';
 const NEW = 'new';
+const TREE = 'tree';
 
 type Props = {
   projects: Project[];
@@ -13,6 +14,7 @@ type Props = {
   onOpenFolder: () => void;
   onSession: (s: Session) => void;
   onNewSession: () => void;
+  onTree: () => void;
 };
 
 export function sessionLabel(s: Session) {
@@ -25,7 +27,7 @@ export function ProjectBar(props: Props) {
     <div className="project-bar">
       <Select.Root
         value={project ? String(project.id) : ''}
-        onValueChange={(v) => (v === OPEN ? props.onOpenFolder() : props.onProject(projects.find((p) => String(p.id) === v)!))}
+        onValueChange={(v) => (v === OPEN ? props.onOpenFolder() : v === TREE ? props.onTree() : props.onProject(projects.find((p) => String(p.id) === v)!))}
       >
         <Select.Trigger className="picker project-picker" aria-label="프로젝트">
           <FolderIcon />
@@ -44,6 +46,9 @@ export function ProjectBar(props: Props) {
               ))}
               <Select.Item value={OPEN} className="menu-item action">
                 <Select.ItemText>폴더 열기…</Select.ItemText>
+              </Select.Item>
+              <Select.Item value={TREE} className="menu-item action">
+                <Select.ItemText>프로젝트 트리…</Select.ItemText>
               </Select.Item>
             </Select.Viewport>
           </Select.Content>

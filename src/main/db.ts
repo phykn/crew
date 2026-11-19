@@ -247,6 +247,42 @@ export class Store {
     return row;
   }
 
+  // What deleting would take with it, shown before the user confirms
+  impact(where: { sessionId: number } | { projectId: number }) {
+    const scope = 'sessionId' in where ? 'session_id = ?' : 'session_id IN (SELECT id FROM sessions WHERE project_id = ?)';
+    const arg = 'sessionId' in where ? where.sessionId : where.projectId;
+    const count = (table: string) => (this.db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE ${scope}`).get(arg) as { n: number }).n;
+    const sessions = 'sessionId' in where ? 1 : (this.db.prepare('SELECT COUNT(*) AS n FROM sessions WHERE project_id = ?').get(arg) as { n: number }).n;
+    return { sessions, tasks: count('tasks'), events: count('events'), messages: count('messages') };
+  }
+
+  // Only the record goes; the project folder on disk is never touched
+  deleteSession(sessionId: number) {
+    this.transact(() => {
+      // Rows that point at each other inside the session go together; checked once the whole delete is done
+      this.db.exec('PRAGMA defer_foreign_keys = ON');
+      this.db.prepare('DELETE FROM sessions WHERE id = ?').run(sessionId);
+    });
+  }
+
+  removeProject(projectId: number) {
+    this.transact(() => {
+      this.db.exec('PRAGMA defer_foreign_keys = ON');
+      this.db.prepare('DELETE FROM sessions WHERE project_id = ?').run(projectId);
+      this.db.prepare('DELETE FROM projects WHERE id = ?').run(projectId);
+    });
+  }
+
+  // Each session's agent sessions, for the project tree
+  listAgentTree(sessionId: number) {
+    return this.db
+      .prepare(
+        `SELECT a.id, a.member_id AS memberId, (SELECT COUNT(*) FROM runs r WHERE r.agent_session_id = a.id) AS runs
+         FROM agent_sessions a WHERE a.session_id = ? ORDER BY a.id`,
+      )
+      .all(sessionId) as { id: number; memberId: number; runs: number }[];
+  }
+
   listSessions(projectId: number): Session[] {
     return this.db
       .prepare(

@@ -8,6 +8,7 @@ import { ProjectBar } from './components/ProjectBar';
 import { Chat } from './components/Chat';
 import { Legend } from './components/Legend';
 import { Log } from './components/Log';
+import { ProjectTree } from './components/ProjectTree';
 
 export function App() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -16,6 +17,7 @@ export function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [members, setMembers] = useState<CrewMember[]>([]);
   const [tab, setTab] = useState('chat');
+  const [tree, setTree] = useState(false);
   // The task the log shows; null shows every task in the session
   const [logTask, setLogTask] = useState<number | null>(null);
 
@@ -50,6 +52,26 @@ export function App() {
     await selectProject(p);
   }
 
+  // After a removal the window falls back to what is left, or to an empty start
+  async function afterDelete() {
+    const list = await call('projects.list');
+    setProjects(list);
+    const still = list.find((p) => p.id === project?.id) ?? list[0];
+    if (still) await selectProject(still, session?.id);
+    else {
+      setProject(null);
+      setSessions([]);
+      setSession(null);
+      setMembers([]);
+    }
+  }
+
+  async function clearSession() {
+    const s = await call('sessions.clear', { sessionId: session!.id });
+    setSessions(await call('sessions.list', { projectId: project!.id }));
+    selectSession(s);
+  }
+
   async function newSession() {
     const s = await call('sessions.create', { projectId: project!.id });
     setSessions(await call('sessions.list', { projectId: project!.id }));
@@ -73,7 +95,9 @@ export function App() {
             onOpenFolder={openFolder}
             onSession={(s) => selectSession(s)}
             onNewSession={newSession}
+            onTree={() => setTree(true)}
           />
+          <ProjectTree open={tree} onClose={() => setTree(false)} onDeleted={afterDelete} />
           <Tabs.Root className="tabs" value={tab} onValueChange={setTab}>
             <Tabs.List className="tab-list">
               <Tabs.Trigger value="chat">대화</Tabs.Trigger>
@@ -84,6 +108,7 @@ export function App() {
               {session ? (
                 <Chat
                   session={session}
+                  onClear={clearSession}
                   onLog={(id) => {
                     setLogTask(id);
                     setTab('log');

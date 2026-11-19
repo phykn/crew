@@ -23,6 +23,26 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
         return project;
       },
     },
+    'sessions.clear': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => chat.clear(a.sessionId) },
+    'sessions.impact': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => store.impact(a) },
+    'sessions.delete': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => chat.deleteSession(a.sessionId) },
+    'projects.impact': { args: z.object({ projectId: id }), run: (a: { projectId: number }) => store.impact(a) },
+    'projects.remove': { args: z.object({ projectId: id }), run: (a: { projectId: number }) => chat.removeProject(a.projectId) },
+    // 프로젝트 → 세션 → 에이전트 세션
+    'tree.list': {
+      args: z.undefined(),
+      run: () =>
+        store.listProjects().map((project) => ({
+          project,
+          sessions: store.listSessions(project.id).map((session) => ({
+            session,
+            agents: store.listAgentTree(session.id).map((a) => {
+              const m = store.readMemberById(a.memberId);
+              return { ...a, role: crew.defOf(m).role, nickname: m.nickname };
+            }),
+          })),
+        })),
+    },
     'sessions.list': { args: z.object({ projectId: id }), run: (a: { projectId: number }) => store.listSessions(a.projectId) },
     'sessions.create': {
       args: z.object({ projectId: id }),

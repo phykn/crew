@@ -3,7 +3,7 @@ import type { Message, Question, Session, Task } from '../../main/db';
 import { call, onChanged, onStream } from '../api';
 import { TaskCards } from './TaskCards';
 
-export function Chat({ session, onLog }: { session: Session; onLog: (taskId: number) => void }) {
+export function Chat({ session, onLog, onClear }: { session: Session; onLog: (taskId: number) => void; onClear: () => void }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [streaming, setStreaming] = useState<string | null>(null);
@@ -36,6 +36,8 @@ export function Chat({ session, onLog }: { session: Session; onLog: (taskId: num
     const text = draft.trim();
     if (!text) return;
     setDraft('');
+    // /clear is the window's own command: a new session, not a message to 비서
+    if (text === '/clear') return onClear();
     // Shows the thinking state at once; the first streamed words replace it
     setStreaming((s) => s ?? '');
     call('messages.send', { sessionId: session.id, text });
