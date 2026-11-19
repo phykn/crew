@@ -1,11 +1,13 @@
 ---
 name: code
-description: Change code the way the project already works and confirm each change is saved.
+description: Make the planned change the way the project works: cause first, only what is used, every place a name appears, then cut and confirm.
 ---
 
 # Code
 
-1. Read the project's `CLAUDE.md` and README and the code around the change. Note how the project names things, splits files, handles errors, and tests.
-2. Make the change the plan asks for, and only that. Prefer the standard library and what the project already depends on; if a new dependency is unavoidable, stop and say why.
-3. Add a test for each new behavior and each fixed bug in the project's own test setup, unless the project has no tests.
-4. Before you hand back, read each file you say you changed and confirm the change is saved. Never report a change you have not seen in the file.
+1. Read the project's `CLAUDE.md`, README, and the code around the change, and write to your conventions skill.
+2. For a bug, find its cause before editing and fix it where it arises, not where it shows. Leave one regression test that the unfixed code fails.
+3. Write only what something uses: before adding a function, option, or file, name what calls it. Unasked, add only a regression test for a bug you fixed, a test for behavior the plan asks for, and validation of input from outside the program, each in the project's own test setup unless it has none. Add a dependency only when the plan names it; otherwise say in your handback why it is needed.
+4. Behavior that changes loses its old form, along with the tests that covered only that form; leave no compatibility code.
+5. A rename or a config key change updates every caller, test, document, and config that names it. A change in behavior updates the README and `CLAUDE.md` in the same step.
+6. Before you hand back, cut what this change wrote that your conventions rule out, and delete temporary files. Read each file you changed and confirm the change is saved; never report a change you have not seen in the file.

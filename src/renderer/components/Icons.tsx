@@ -3,6 +3,7 @@ const ICONS: Record<string, { path: React.ReactNode }> = {
   list: { path: <path d="M6 6h9M6 10h9M6 14h9M3.5 6h.5M3.5 10h.5M3.5 14h.5" /> },
   sparkle: { path: <path d="M10 3l1.6 4.4L16 9l-4.4 1.6L10 15l-1.6-4.4L4 9l4.4-1.6z" fill="currentColor" /> },
   code: { path: <path d="M7.5 6L4 10l3.5 4M12.5 6L16 10l-3.5 4" /> },
+  ruler: { path: <path d="M3 13L13 3l4 4L7 17zM6 10l1.5 1.5M8.5 7.5L10 9M11 5l1.5 1.5" /> },
   wrench: {
     path: (
       <path

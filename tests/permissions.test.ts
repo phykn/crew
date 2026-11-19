@@ -3,6 +3,7 @@ import path from 'node:path';
 import { expect, test } from 'vitest';
 import { Chat } from '../src/main/chat';
 import { Crew } from '../src/main/crew';
+import { Store } from '../src/main/db';
 import { CREW, fakeQuery, openScratch } from './support';
 
 function setup(crew = CREW) {
@@ -100,4 +101,15 @@ test('a permission change is recorded by name, never with the server settings it
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('skills set before the quick-check skill was renamed keep it under its new name', () => {
+  const { store, project, db } = openScratch();
+  const p = store.addProject(project);
+  store.seedMembers(p.id, [{ key: 'coder', nickname: '모루', model: 'sonnet' }]);
+  const coder = store.readMember(p.id, 'coder');
+  store.writeConfig(coder.id, { skills: ['code', 'tools'], tools: ['read'] }, 'test');
+  const version = (store.db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
+  store.db.exec(`PRAGMA user_version = ${version - 1}`);
+  expect(new Store(db).readMemberById(coder.id).config).toEqual({ skills: ['code', 'check'], tools: ['read'] });
 });

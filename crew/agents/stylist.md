@@ -4,7 +4,7 @@ color: #b8e04a
 model: sonnet
 tools: read, search, shell
 write: output
-skills: style, report
+skills: style, conventions, report
 look: hat, tunic, wraps
 description: Checks whether the coder's change fits the project: structure, names, comments, dead or duplicated code, standard library first. Returns PASS or the points to fix. Never edits the code.
 ---

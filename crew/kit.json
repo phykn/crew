@@ -13,12 +13,17 @@
     "code": {
       "icon": "code",
       "label": "코드 작성",
-      "use": "Change code the way the project already works and confirm each change is saved."
+      "use": "Make the planned change the way the project works: cause first, only what is used, every place a name appears, then cut and confirm."
     },
-    "tools": {
+    "conventions": {
+      "icon": "ruler",
+      "label": "작성 기준",
+      "use": "The standard code is written and judged to: the project first, then structure, names, comments, deletion, and errors."
+    },
+    "check": {
       "icon": "wrench",
       "label": "빠른 점검",
-      "use": "Run quick checks on what changed: the touched tests, a type check, or a plain run."
+      "use": "Check your own change with the cheapest command that would fail if it were wrong."
     },
     "review": {
       "icon": "eye",
@@ -38,7 +43,7 @@
     "style": {
       "icon": "palette",
       "label": "표준 점검",
-      "use": "Judge whether one change fits the project: structure, names, comments, leftovers, standard library first."
+      "use": "Judge whether one change fits the standard in the conventions skill."
     },
     "research": {
       "icon": "book",

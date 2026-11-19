@@ -82,6 +82,9 @@ const MIGRATIONS = [
      member_id INTEGER NOT NULL REFERENCES members (id) ON DELETE CASCADE, text TEXT NOT NULL,
      task_id INTEGER REFERENCES tasks (id) ON DELETE SET NULL, session_id INTEGER REFERENCES sessions (id) ON DELETE SET NULL, at TEXT NOT NULL);`,
   `ALTER TABLE sessions ADD COLUMN title TEXT;`,
+  `UPDATE members SET config = json_set(config, '$.skills',
+     json((SELECT json_group_array(CASE value WHEN 'tools' THEN 'check' ELSE value END) FROM json_each(members.config, '$.skills'))))
+   WHERE json_type(config, '$.skills') = 'array';`,
 ];
 
 export type Project = { id: number; path: string; name: string };
