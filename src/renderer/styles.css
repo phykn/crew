@@ -618,16 +618,19 @@ code {
   outline: var(--bw) solid var(--link);
   outline-offset: var(--bw-thin);
 }
+/* The send button stays at the bottom while the box grows upward */
 .composer {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: var(--sp-2);
   padding: var(--sp-1) var(--sp-1) var(--sp-1) var(--sp-3);
   border-color: var(--line-hi);
   border-radius: var(--r-lg);
 }
+/* Grows with wrapped and broken lines, up to the cap, then scrolls */
 .composer textarea {
   flex: 1;
+  field-sizing: content;
   max-height: var(--h-compose-max);
   padding: var(--sp-2) 0;
   background: transparent;
