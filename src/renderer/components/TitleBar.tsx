@@ -8,7 +8,7 @@ export function TitleBar() {
         <path d="M8 8c1 1 2 2 2 3.5a2 2 0 0 1-4 0C6 10 7 9 8 8z" fill="#fde68a" />
         <path d="M3 14l10-2M3 12l10 2" stroke="#8b5a2b" strokeWidth="1.4" />
       </svg>
-      <span className="title">AI Crew</span>
+      <span className="title">crew</span>
       <span className="version">v{__APP_VERSION__}</span>
     </header>
   );

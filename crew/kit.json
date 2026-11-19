@@ -87,7 +87,7 @@
     "app": {
       "icon": "list",
       "label": "앱 조작",
-      "use": "The AI Crew app itself: read its help, find tasks, open screens, and resume work in this project.",
+      "use": "The crew app itself: read its help, find tasks, open screens, and resume work in this project.",
       "readTools": [
         "read_help",
         "find_tasks",

@@ -11,6 +11,9 @@ export type Sdk = {
 // The error of a run refused because its member was let go while it waited
 export const NOT_HIRED = 'not hired';
 
+// What an in-process tool answers
+export const text = (t: string) => ({ content: [{ type: 'text' as const, text: t }] });
+
 export type Usage = { turns: number; inputTokens: number; outputTokens: number; costUsd: number };
 
 export type RunInput = {
@@ -152,6 +155,11 @@ export class AgentRun {
 
 function emptyUsage(): Usage {
   return { turns: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 };
+}
+
+// The result of a run that never started
+export function skipped(status: RunOutput['status'], error?: string): RunOutput {
+  return { claudeId: null, text: '', status, usage: emptyUsage(), error };
 }
 
 function sumUsage(models: Record<string, ModelUsage>, key: 'inputTokens' | 'outputTokens') {

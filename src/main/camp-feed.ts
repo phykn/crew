@@ -5,7 +5,7 @@ export type CampLine = { id: number; who: string; to?: string; text: string; kin
 // What the camp shows for one session: who is at work on what, and the record lines that play as scenes
 export function campState(chat: Chat, sessionId: number) {
   const { store, crew } = chat;
-  const projectId = store.readSession(sessionId).projectId;
+  const projectId = store.projectOf(sessionId).id;
   const members = store.listMembers(projectId);
   const keyOf = (id: number | null) => members.find((m) => m.id === id)?.key;
   const keyOfRole = (role: string) => members.find((m) => crew.defOf(m).role === role)?.key;

@@ -48,6 +48,7 @@ const HANDBACK_SCHEMA = z.toJSONSchema(HandbackShape, { target: 'draft-7', io: '
 const RETRIES = 3;
 // What runStep returns when the model's usage limit stopped it
 const LIMIT = 'usage limit';
+const STOPPED = '중단되었습니다';
 const FIXES = 3;
 
 function lastDone(runs: StepRun[], id: string) {
@@ -84,7 +85,7 @@ export class Tasks {
   start(sessionId: number, kind: string, title: string, request: string, one?: Member): Task {
     const { store } = this.chat;
     // A request given to one member is a one-step task of its own
-    const projectId = store.readSession(sessionId).projectId;
+    const projectId = store.projectOf(sessionId).id;
     const workflow = one ? solo(this.chat.crew.defOf(one).role, one.key) : this.chat.workflowFor(projectId, kind).rules;
     const task = store.createTask({ sessionId, kind: one ? kind : workflow.kind, title, request, workflow });
     store.writeBaseline(task.id, snapshot(this.projectOf(task).path));
@@ -111,8 +112,12 @@ export class Tasks {
   }
 
   projectOf(task: Task) {
-    const { store } = this.chat;
-    return store.readProject(store.readSession(task.sessionId).projectId);
+    return this.chat.store.projectOf(task.sessionId);
+  }
+
+  // A stopped task takes no new run, even one already waiting in a lane
+  halted(taskId: number) {
+    return ['stopping', 'stopped'].includes(this.chat.store.readTask(taskId).status);
   }
 
   // The user asks for more on a finished task: same task, earlier report kept, the work goes back to its last making step
@@ -132,11 +137,17 @@ export class Tasks {
     const { store } = this.chat;
     const task = store.readTask(taskId);
     if (!this.move(taskId, 'STOP', '', `업무 "${task.title}" 중단 요청`)) return false;
-    for (const run of this.chat.working.get(taskId) ?? []) void run.stop();
+    for (const run of this.chat.runsOf(taskId)) void run.stop();
     for (const id of store.openQuestionIds(taskId)) this.chat.questions.answer(id, REFUSE);
     // A task with nothing running reaches stopped at once; otherwise drive does when its runs end
-    if (!this.chat.working.get(taskId)?.size) this.move(taskId, 'STOPPED', '', `업무 "${task.title}" 중단됨`);
+    if (!this.chat.runsOf(taskId).length) this.move(taskId, 'STOPPED', '', `업무 "${task.title}" 중단됨`);
     return true;
+  }
+
+  // A deleted session's task: stopped, and its drive ends without touching the record that is gone
+  drop(taskId: number) {
+    this.stop(taskId);
+    this.driving.delete(taskId);
   }
 
   // Continues a stopped or failed task from the steps it has not finished
@@ -193,7 +204,7 @@ export class Tasks {
 
   async runStep(task: Task, step: Step, current: () => boolean = () => true): Promise<string> {
     const { store, crew } = this.chat;
-    const project = store.readProject(store.readSession(task.sessionId).projectId);
+    const project = this.projectOf(task);
     const member = this.memberFor(task, step);
     const role = crew.defOf(member).role;
     // A member let go takes no new step; 비서 hears of it and can hand the step to someone else
@@ -212,47 +223,48 @@ export class Tasks {
         .runMember(member, task.sessionId, task.id, prompt, {
           schema: HANDBACK_SCHEMA,
           mcpServers: { crew: memberTools(await this.chat.sdk(), this.chat, task, step, member) },
-          alive: current,
+          alive: () => current() && !this.halted(task.id),
         })
         // The run has really ended here, so nothing it started can still be writing
         .finally(() => this.chat.locksOf(project).release(task.id));
       // A drive no longer current, such as one for a deleted session, leaves the record alone
-      if (!current()) return '중단되었습니다';
+      if (!current()) return STOPPED;
       if (out.error === NOT_HIRED) {
         store.finishStepRun(runId, 'stopped', null, out.error);
         return absent;
       }
-      const handback = out.status === 'done' ? HandbackShape.safeParse(out.structured) : null;
+      if (out.status === 'limit' || out.status === 'stopped') {
+        store.finishStepRun(runId, 'stopped', null, out.error ?? out.status);
+        return out.status === 'limit' ? LIMIT : STOPPED;
+      }
+      const parsed = out.status === 'done' ? HandbackShape.safeParse(out.structured) : null;
+      if (!parsed?.success) {
+        const why = out.error ?? 'the result did not match the handback format';
+        store.finishStepRun(runId, 'failed', null, why);
+        errors.push(why.slice(0, 400));
+        continue;
+      }
+      const hb: Handback = parsed.data;
       // A making step's files are what really changed since the task began, whatever the handback lists
-      const snap = !step.verdict && handback?.success ? snapshot(project.path) : null;
+      const snap = step.verdict ? null : snapshot(project.path);
       const files = snap ? changedFiles(store.readBaseline(task.id), snap) : [];
-      if (handback?.success && files.length) handback.data.files = files;
-      const missing = handback?.success ? step.requires.filter((k) => handback.data[k].length === 0) : [];
-      if (handback?.success && missing.length) {
+      if (files.length) hb.files = files;
+      const missing = step.requires.filter((k) => hb[k].length === 0);
+      if (missing.length) {
         // An incomplete handoff goes back to the same member, in its own session, before anyone takes it
-        store.finishStepRun(runId, 'failed', handback.data, `missing ${missing.join(', ')}`);
+        store.finishStepRun(runId, 'failed', hb, `missing ${missing.join(', ')}`);
         log(`${role}: ${step.label} 인계 보완 요청 — ${missing.join(', ')} 없음`);
         prompt = `Your handback is missing ${missing.join(' and ')}, which the next step needs. Answer again with the complete handback.`;
         continue;
       }
-      if (handback?.success) {
-        const hb: Handback = handback.data;
-        // A verdict step that gives no verdict has not judged anything
-        if (step.verdict && !hb.verdict) hb.verdict = 'rework';
-        store.finishStepRun(runId, 'done', hb);
-        // A making step's result is a new change version
-        if (snap && files.length) store.addVersion(task.id, files, snap);
-        log(`${role}: ${step.label} ${hb.verdict === 'rework' ? '수정 요청' : '완료'} — ${hb.summary}`, hb);
-        this.chat.emit('changed', 'tasks');
-        return 'done';
-      }
-      if (out.status === 'limit' || out.status === 'stopped') {
-        store.finishStepRun(runId, 'stopped', null, out.error ?? out.status);
-        return out.status === 'limit' ? LIMIT : '중단되었습니다';
-      }
-      const why = out.error ?? 'the result did not match the handback format';
-      store.finishStepRun(runId, 'failed', null, why);
-      errors.push(why.slice(0, 400));
+      // A verdict step that gives no verdict has not judged anything
+      if (step.verdict && !hb.verdict) hb.verdict = 'rework';
+      store.finishStepRun(runId, 'done', hb);
+      // A making step's result is a new change version
+      if (snap && files.length) store.addVersion(task.id, files, snap);
+      log(`${role}: ${step.label} ${hb.verdict === 'rework' ? '수정 요청' : '완료'} — ${hb.summary}`, hb);
+      this.chat.emit('changed', 'tasks');
+      return 'done';
     }
     log(`${role}: ${step.label} 실패 (${RETRIES}번 다시 시도)`, { errors });
     return `${step.label}이 ${RETRIES}번 다시 시도해도 실패했습니다`;
@@ -260,10 +272,10 @@ export class Tasks {
 
   // What one member needs to do its step: the request, its step, and every earlier step's handback
   brief(task: Task, step: Step) {
-    const { store, crew } = this.chat;
+    const { store } = this.chat;
     const w = task.workflow;
     const runs = store.listStepRuns(task.id);
-    const project = store.readProject(store.readSession(task.sessionId).projectId);
+    const project = this.projectOf(task);
     const own = lastDone(runs, step.id);
     // A run cut off by a restart may have saved files already; the new run checks them instead of starting over
     const cut = runs.filter((r) => r.stepId === step.id).at(-1)?.error === 'app restarted';

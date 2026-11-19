@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Options } from '@anthropic-ai/claude-agent-sdk';
-import { AgentRun, NOT_HIRED, type RunOutput, type Sdk } from './agent';
+import { AgentRun, NOT_HIRED, type RunOutput, type Sdk, skipped } from './agent';
 import type { Member, Project, Store } from './db';
 import { z } from 'zod';
 import { Config, type Crew, parseDefinition, type Settings, toolsOf } from './crew';
@@ -33,23 +33,21 @@ type RunOptions = {
   mcpServers?: Options['mcpServers'];
   onText?: (delta: string) => void;
   onReply?: (text: string) => void;
-  // False once the run is no longer wanted, such as a step of a task driven again since it queued
+  // False once the run is no longer wanted, such as a step of a stopped task or of a drive since replaced
   alive?: () => boolean;
 };
 
+type Active = { run: AgentRun; memberId: number; sessionId: number; taskId: number | null; secretary: boolean };
+
 // The hub of one app: the user's conversation with 비서, and every member run the crew's tasks start
 export class Chat {
-  // 비서's live run per session, so what the user adds mid-answer joins it
-  live = new Map<number, AgentRun>();
+  // Every run at work now: who is busy, what a task has running, and 비서's live run are all read from it
+  active = new Set<Active>();
   // One lane per agent session: a member works on one task at a time and the rest wait their turn
   lanes = new Map<number, Promise<unknown>>();
   questions: Questions;
   tasks: Tasks;
   wiki: Wiki;
-  // Runs in progress per member, so a member let go at work leaves only when they end
-  busy = new Map<number, number>();
-  // Member runs at work on each task, so stopping a task can interrupt them
-  working = new Map<number, Set<AgentRun>>();
   // Write reservations per project folder
   locks = new Map<number, Locks>();
   workflows: Workflow[];
@@ -65,6 +63,24 @@ export class Chat {
     this.wiki = new Wiki(store);
     this.workflows = readWorkflows(crew.dir);
     this.tasks = new Tasks(this);
+  }
+
+  busy(memberId: number) {
+    return [...this.active].some((a) => a.memberId === memberId);
+  }
+
+  runsOf(taskId: number) {
+    return [...this.active].filter((a) => a.taskId === taskId).map((a) => a.run);
+  }
+
+  // 비서's run in this session, so what the user adds mid-answer joins it
+  liveOf(sessionId: number) {
+    return [...this.active].find((a) => a.secretary && a.sessionId === sessionId)?.run;
+  }
+
+  // A member as the crew names it: by key, as the rules say, or by its Korean role
+  findMember(projectId: number, name: string) {
+    return this.store.listMembers(projectId).find((m) => m.key === name || this.crew.defOf(m).role === name) ?? null;
   }
 
   settings(member: Member) {
@@ -146,8 +162,8 @@ export class Chat {
     const { store } = this;
     // The member may have changed while it waited in its lane
     member = store.readMemberById(member.id);
-    if (member.status !== 'hired' || member.leaving) return { claudeId: null, text: '', status: 'failed', usage: { turns: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 }, error: NOT_HIRED } as RunOutput;
-    const project = store.readProject(store.readSession(sessionId).projectId);
+    if (member.status !== 'hired' || member.leaving) return skipped('failed', NOT_HIRED);
+    const project = store.projectOf(sessionId);
     const def = this.crew.defOf(member);
     const settings = this.settings(member);
     const agentSession = store.openAgentSession(sessionId, member.id);
@@ -170,21 +186,14 @@ export class Chat {
       onText: opts.onText,
       onReply: opts.onReply,
     });
-    const secretary = member.key === 'orchestrator';
-    if (secretary) this.live.set(sessionId, run);
-    // A run that waited in its lane for a task the user stopped meanwhile never starts
-    if ((taskId && ['stopping', 'stopped'].includes(store.readTask(taskId).status)) || opts.alive?.() === false) return { status: 'stopped', text: '' } as RunOutput;
-    const mine = taskId ? (this.working.get(taskId) ?? new Set<AgentRun>()) : null;
-    if (taskId && mine) this.working.set(taskId, mine.add(run));
+    // A run that waited in its lane for work no longer wanted never starts
+    if (opts.alive?.() === false) return skipped('stopped');
+    const active = { run, memberId: member.id, sessionId, taskId, secretary: member.key === 'orchestrator' };
+    this.active.add(active);
     const runId = store.startRun(agentSession.id, member.model, taskId);
-    this.busy.set(member.id, (this.busy.get(member.id) ?? 0) + 1);
-    const out = await run.run(prompt).finally(() => {
-      if (secretary) this.live.delete(sessionId);
-      mine?.delete(run);
-      this.busy.set(member.id, this.busy.get(member.id)! - 1);
-    });
+    const out = await run.run(prompt).finally(() => this.active.delete(active));
     // A member let go mid-run leaves once this run, its last, has ended
-    if (!this.busy.get(member.id) && store.readMemberById(member.id).leaving) this.leave(member.id);
+    if (!this.busy(member.id) && store.readMemberById(member.id).leaving) this.leave(member.id);
     if (out.claudeId) store.writeClaudeId(agentSession.id, out.claudeId, member.model);
     store.finishRun(runId, out);
     return out;
@@ -246,11 +255,8 @@ export class Chat {
 
   // A deleted session's work stops first, so nothing keeps writing for a record that is gone
   deleteSession(sessionId: number) {
-    for (const t of this.store.listTasks(sessionId)) {
-      this.tasks.stop(t.id);
-      this.tasks.driving.delete(t.id);
-    }
-    this.live.get(sessionId)?.stop();
+    for (const t of this.store.listTasks(sessionId)) this.tasks.drop(t.id);
+    this.liveOf(sessionId)?.stop();
     this.store.deleteSession(sessionId);
   }
 
@@ -263,7 +269,7 @@ export class Chat {
   fire(memberId: number) {
     const m = this.store.readMemberById(memberId);
     if (m.status !== 'hired' || m.leaving) return false;
-    if (this.busy.get(memberId)) {
+    if (this.busy(memberId)) {
       this.store.writeLeaving(memberId, true);
       this.note(m, 'leave', `${this.crew.defOf(m).role}(${m.nickname}) 퇴장 예정: 맡은 단계를 마치고 나갑니다`);
     } else this.leave(memberId);
@@ -296,7 +302,7 @@ export class Chat {
   // 인사 designs the missing member; the app checks the definition and adds it as a regular or a temp
   async hire(sessionId: number, need: string, temp: boolean) {
     const { store } = this;
-    const project = store.readProject(store.readSession(sessionId).projectId);
+    const project = store.projectOf(sessionId);
     const members = store.listMembers(project.id);
     const existing = members.map((m) => `- ${this.crew.defOf(m).role} (${m.key}): ${this.crew.defOf(m).description}`).join('\n');
     const nicknames = members.map((m) => m.nickname).join(', ');
@@ -348,26 +354,23 @@ export class Chat {
 
   // Hands 비서 something to answer in the chat: the user's words, or a task's result to report
   async tell(sessionId: number, text: string) {
-    const live = this.live.get(sessionId);
-    if (live?.say(text)) return;
+    if (this.liveOf(sessionId)?.say(text)) return;
     const { store } = this;
-    const project = store.readProject(store.readSession(sessionId).projectId);
-    const member = store.readMember(project.id, 'orchestrator');
+    const member = store.readMember(store.projectOf(sessionId).id, 'orchestrator');
     const sdk = await this.sdk();
     const out = await this.runMember(member, sessionId, null, text, {
       mcpServers: { crew: secretaryTools(sdk, this, sessionId) },
       onText: (delta) => this.emit('stream', { sessionId, delta }),
-      onReply: (reply) => {
-        store.addMessage(sessionId, 'secretary', reply);
-        this.emit('stream', { sessionId, done: true });
-        this.emit('changed', 'messages');
-      },
+      onReply: (reply) => this.post(sessionId, reply),
     });
-    if (out.status !== 'done') {
-      store.addMessage(sessionId, 'secretary', failureText(out.status, out.error));
-      this.emit('stream', { sessionId, done: true });
-      this.emit('changed', 'messages');
-    }
+    if (out.status !== 'done') this.post(sessionId, failureText(out.status, out.error));
+  }
+
+  // 비서's words in the chat: the message, the end of its stream, and a refresh
+  post(sessionId: number, text: string) {
+    this.store.addMessage(sessionId, 'secretary', text);
+    this.emit('stream', { sessionId, done: true });
+    this.emit('changed', 'messages');
   }
 }
 

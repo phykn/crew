@@ -258,6 +258,10 @@ export class Store {
     return this.readSession(Number(lastInsertRowid));
   }
 
+  projectOf(sessionId: number): Project {
+    return this.readProject(this.readSession(sessionId).projectId);
+  }
+
   readSession(id: number): Session {
     const row = this.db
       .prepare('SELECT id, project_id AS projectId, number, created_at AS createdAt, title FROM sessions WHERE id = ?')

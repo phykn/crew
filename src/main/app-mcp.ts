@@ -1,15 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
-import type { Sdk } from './agent';
+import { type Sdk, text } from './agent';
 import type { Chat } from './chat';
 import type { Task } from './db';
 
 // The app's own MCP server, in process: each tool does what the matching click in the window does
 export function appServer(sdk: Sdk, chat: Chat, sessionId: number) {
   const { store } = chat;
-  const projectId = store.readSession(sessionId).projectId;
-  const text = (t: string) => ({ content: [{ type: 'text' as const, text: t }] });
+  const projectId = store.projectOf(sessionId).id;
   // Only this project's tasks exist for the caller; any other id is answered as missing, with nothing opened
   const ownTask = (id: number) => {
     try {

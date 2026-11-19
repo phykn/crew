@@ -17,7 +17,7 @@ function createWindow() {
     minWidth: 420,
     minHeight: 640,
     backgroundColor: '#14131a',
-    title: 'AI Crew',
+    title: 'crew',
     // The title bar is drawn by the window itself, like the concept image; the OS keeps only its buttons
     titleBarStyle: 'hidden',
     titleBarOverlay: { color: '#8a4f22', symbolColor: '#fff1d6', height: 46 },

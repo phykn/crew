@@ -1,6 +1,6 @@
 <div align="center">
 
-# AI Crew
+# crew
 
 비서 한 명에게 맡기고, Claude 에이전트 팀이 일하는 모습을 픽셀 캠프에서 지켜보는 데스크톱 앱
 

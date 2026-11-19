@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Sdk } from './agent';
+import { type Sdk, text } from './agent';
 import type { Chat } from './chat';
 import type { Member, PeerLine, Task } from './db';
 import type { Step } from './workflow';
@@ -14,15 +14,13 @@ const PEER_SCHEMA = z.toJSONSchema(PeerAnswer, { target: 'draft-7', io: 'input' 
 
 // The app's own tools for 비서 in one session; a call is how 비서 opens real work for the crew
 export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
-  const secretary = chat.store.readMember(chat.store.readSession(sessionId).projectId, 'orchestrator');
+  const projectId = () => chat.store.projectOf(sessionId).id;
+  const secretary = chat.store.readMember(projectId(), 'orchestrator');
   const kinds = chat.workflows.map((w) => w.kind) as [string, ...string[]];
-  const anyMember = (name: string) => chat.store.listMembers(projectId()).find((m) => m.key === name || chat.crew.defOf(m).role === name) ?? null;
   const memberOf = (name: string) => {
-    const m = anyMember(name);
+    const m = chat.findMember(projectId(), name);
     return m?.status === 'hired' ? m : null;
   };
-  const text = (t: string) => ({ content: [{ type: 'text' as const, text: t }] });
-  const projectId = () => chat.store.readSession(sessionId).projectId;
   return sdk.createSdkMcpServer({
     name: 'crew',
     tools: [
@@ -45,7 +43,7 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
           return text(`업무 #${task.id} "${task.title}"을 시작했습니다.`);
         },
       ),
-      sdk.tool('read_help', "Read the app's help before answering how to use AI Crew.", {}, async () => text(readHelp(chat.crew.dir))),
+      sdk.tool('read_help', "Read the app's help before answering how to use the crew app.", {}, async () => text(readHelp(chat.crew.dir))),
       sdk.tool(
         'ask_helper',
         'Hand 도우미 something the user wants done in the app itself: find a task, open a screen, resume work. Its answer comes back as the result.',
@@ -123,7 +121,7 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
           const to = memberOf(a.to_role);
           if (!to) return text(`${a.to_role}은 지금 고용되어 있지 않습니다.`);
           // The member who left is no longer hired, so it is looked up among everyone
-          const from = anyMember(a.from_role);
+          const from = chat.findMember(projectId(), a.from_role);
           if (!from) return text(`${a.from_role}은 크루에 없습니다.`);
           const task = chat.store.listTasks(sessionId).find((t) => t.id === a.task_id);
           if (!task) return text(`업무 #${a.task_id}는 이 세션에 없습니다.`);
@@ -141,9 +139,9 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
         },
         async (a) => {
           const task = await pickTask(chat, sessionId, a.task_id, a.change);
-          if (!task) return { content: [{ type: 'text', text: a.task_id ? `업무 #${a.task_id}는 이 세션에 없습니다.` : '다시 열 업무가 없습니다.' }] };
+          if (!task) return text(a.task_id ? `업무 #${a.task_id}는 이 세션에 없습니다.` : '다시 열 업무가 없습니다.');
           const ok = chat.tasks.reopen(task.id, a.change);
-          return { content: [{ type: 'text', text: ok ? `업무 #${task.id}를 다시 진행합니다.` : `업무 #${task.id}는 지금 다시 열 수 없습니다 (${task.status}).` }] };
+          return text(ok ? `업무 #${task.id}를 다시 진행합니다.` : `업무 #${task.id}는 지금 다시 열 수 없습니다 (${task.status}).`);
         },
       ),
       ...(['stop', 'resume'] as const).map((verb) =>
@@ -155,9 +153,9 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
           { task_id: z.number().int() },
           async (a) => {
             const task = chat.store.listTasks(sessionId).find((t) => t.id === a.task_id);
-            if (!task) return { content: [{ type: 'text', text: `업무 #${a.task_id}는 이 세션에 없습니다.` }] };
+            if (!task) return text(`업무 #${a.task_id}는 이 세션에 없습니다.`);
             const ok = verb === 'stop' ? chat.tasks.stop(task.id) : chat.tasks.resume(task.id);
-            return { content: [{ type: 'text', text: ok ? `업무 #${task.id}: ${verb === 'stop' ? '중단' : '재개'}했습니다.` : `업무 #${task.id}는 지금 ${task.status} 상태라 할 수 없습니다.` }] };
+            return text(ok ? `업무 #${task.id}: ${verb === 'stop' ? '중단' : '재개'}했습니다.` : `업무 #${task.id}는 지금 ${task.status} 상태라 할 수 없습니다.`);
           },
         ),
       ),
@@ -168,9 +166,8 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
 // Reading and writing the project wiki and one's own memory, for 비서 and members alike
 function wikiTools(sdk: Sdk, chat: Chat, member: Member, sessionId: number, taskId: number | null) {
   const { store, wiki } = chat;
-  const projectId = store.readSession(sessionId).projectId;
+  const projectId = store.projectOf(sessionId).id;
   const by = () => ({ memberId: member.id, name: chat.crew.defOf(store.readMemberById(member.id)).role, taskId });
-  const text = (t: string) => ({ content: [{ type: 'text' as const, text: t }] });
   return [
     sdk.tool('wiki_read', 'Read one project wiki document by its title.', { title: z.string() }, async (a) => {
       const doc = wiki.find(projectId, a.title);
@@ -230,7 +227,7 @@ export function memberTools(sdk: Sdk, chat: Chat, task: Task, step: Step, member
           expected: z.string().default('').describe('What you need back'),
           request_id: z.number().int().optional().describe('The request you are continuing'),
         },
-        async (a) => ({ content: [{ type: 'text', text: await askPeer(chat, task, step, member, a) }] }),
+        async (a) => text(await askPeer(chat, task, step, member, a)),
       ),
     ],
   });
@@ -244,8 +241,7 @@ export async function askPeer(
   a: { role: string; message: string; expected?: string; request_id?: number },
 ) {
   const { store, crew } = chat;
-  const project = store.readProject(store.readSession(task.sessionId).projectId);
-  const peer = store.listMembers(project.id).find((m) => m.key === a.role || crew.defOf(m).role === a.role);
+  const peer = chat.findMember(store.projectOf(task.sessionId).id, a.role);
   if (!peer) return `${a.role} is not a crew member.`;
   if (peer.status !== 'hired') return `${a.role} is not hired now; say so in your handback.`;
   // Each member works one run at a time, so asking oneself, or a member at work, would wait on a run that waits on this one
@@ -254,7 +250,7 @@ export async function askPeer(
   const to = crew.defOf(peer).role;
   const busy = () => `${to} is at work on its own step now; decide without it and note the open question in your handback.`;
   // Refused before a request is recorded, so a busy peer leaves no empty thread behind
-  if (a.request_id === undefined && chat.busy.get(peer.id)) return busy();
+  if (a.request_id === undefined && chat.busy(peer.id)) return busy();
   const id =
     a.request_id ??
     store.createRequest({ taskId: task.id, stepId: step.id, fromMember: member.id, toRole: to, expected: a.expected ?? '' });
@@ -264,7 +260,7 @@ export async function askPeer(
   // A resent line that was already answered is not run again: the answer on record is returned
   const at = req.thread.findIndex((l, i) => l.from === from && l.text === a.message && req.thread[i + 1]);
   if (at >= 0) return reply(id, req.thread[at + 1]);
-  if (chat.busy.get(peer.id)) return busy();
+  if (chat.busy(peer.id)) return busy();
   const thread: PeerLine[] = [...req.thread, { from, text: a.message }];
   store.writeThread(id, thread);
   store.addEvent({ sessionId: task.sessionId, taskId: task.id, memberId: member.id, kind: 'request', text: `${from} → ${to}: ${a.message}`, detail: JSON.stringify({ requestId: id }) });
@@ -276,7 +272,7 @@ export async function askPeer(
   ]
     .filter(Boolean)
     .join('\n\n');
-  const out = await chat.runMember(peer, task.sessionId, task.id, prompt, { schema: PEER_SCHEMA });
+  const out = await chat.runMember(peer, task.sessionId, task.id, prompt, { schema: PEER_SCHEMA, alive: () => !chat.tasks.halted(task.id) });
   const parsed = PeerAnswer.safeParse(out.structured);
   const line: PeerLine = parsed.success
     ? { from: to, text: parsed.data.ask_back ? `?${parsed.data.ask_back}` : parsed.data.answer }
@@ -295,8 +291,7 @@ function reply(id: number, line: PeerLine) {
 // The tools member's view of the kit and its one way to change it: a proposal the user approves on a card
 function kitTools(sdk: Sdk, chat: Chat, sessionId: number) {
   const { store, crew } = chat;
-  const projectId = store.readSession(sessionId).projectId;
-  const text = (t: string) => ({ content: [{ type: 'text' as const, text: t }] });
+  const projectId = store.projectOf(sessionId).id;
   const hired = () => store.listMembers(projectId).filter((m) => m.status === 'hired');
   return sdk.createSdkMcpServer({
     name: 'crew',
@@ -322,8 +317,8 @@ function kitTools(sdk: Sdk, chat: Chat, sessionId: number) {
           reason: z.string().min(1).describe('Why, in Korean, for the card'),
         },
         async (a) => {
-          const m = hired().find((x) => x.key === a.member || crew.defOf(x).role === a.member);
-          if (!m) return text(`${a.member} is not a hired member.`);
+          const m = chat.findMember(projectId, a.member);
+          if (m?.status !== 'hired') return text(`${a.member} is not a hired member.`);
           if (m.temp && a.mcp?.length) return text('A temp gets no MCP server.');
           const config = { ...(a.skills ? { skills: a.skills } : {}), ...(a.mcp ? { mcp: a.mcp } : {}) };
           try {
