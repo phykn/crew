@@ -92,16 +92,19 @@ export function fakeCrew(scripts: Record<string, Turn[]>) {
   const calls: { role: string; prompt: string; options: Options }[] = [];
   fake.sdk.query = ({ prompt, options }) => {
     const role = String(options.systemPrompt).match(/You are the crew's \*\*(.+?)\*\*/)?.[1] ?? '?';
+    // An interrupt ends the turn under way, as the real SDK does
+    let cut = () => {};
+    const cutOff = new Promise<SDKMessage[]>((resolve) => (cut = () => resolve([])));
     async function* run() {
       for await (const msg of prompt as AsyncIterable<SDKUserMessage>) {
         const text = String(msg.message.content);
         calls.push({ role, prompt: text, options });
         const turn = scripts[role]?.shift();
         if (!turn) throw new Error(`no scripted turn left for ${role}`);
-        yield* await turn(text, options);
+        yield* await Promise.race([turn(text, options), cutOff]);
       }
     }
-    return Object.assign(run(), { interrupt: async () => undefined }) as unknown as ReturnType<QueryFn>;
+    return Object.assign(run(), { interrupt: async () => cut() }) as unknown as ReturnType<QueryFn>;
   };
   return { ...fake, calls };
 }

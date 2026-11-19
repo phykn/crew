@@ -658,6 +658,12 @@ code {
   width: var(--icon-md);
   height: var(--icon-md);
 }
+/* While 비서 answers, the same spot stops it */
+.send.stop {
+  background: var(--danger);
+  border-color: var(--danger-dark);
+  box-shadow: 0 var(--bw) 0 var(--danger-dark);
+}
 .send:disabled {
   background: var(--disabled-bg);
   border-color: var(--disabled-line);

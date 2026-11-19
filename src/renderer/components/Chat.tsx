@@ -141,11 +141,24 @@ export function Chat({
           options={Object.entries(MODE_LABELS).map(([value, label]) => ({ value, label }))}
           onChange={(m) => onMode(m as Mode)}
         />
-        <button type="submit" className="send" aria-label="보내기" disabled={!draft.trim()}>
-          <svg viewBox="0 0 20 20" aria-hidden="true">
-            <path d="M3 3l15 7-15 7 2.5-7z" fill="currentColor" />
-          </svg>
-        </button>
+        {streaming !== null ? (
+          <button
+            type="button"
+            className="send stop"
+            aria-label="중지"
+            onClick={() => call('messages.stop', { sessionId: session.id })}
+          >
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <rect x="5" y="5" width="10" height="10" rx="1.5" fill="currentColor" />
+            </svg>
+          </button>
+        ) : (
+          <button type="submit" className="send" aria-label="보내기" disabled={!draft.trim()}>
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M3 3l15 7-15 7 2.5-7z" fill="currentColor" />
+            </svg>
+          </button>
+        )}
       </form>
     </div>
   );

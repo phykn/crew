@@ -83,6 +83,11 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
       // The reply arrives through the change feed; the call only hands the message over
       run: (a: { sessionId: number; text: string }) => void chat.send(a.sessionId, a.text),
     },
+    // Stops only 비서's answer; tasks it started go on and have their own stop
+    'messages.stop': {
+      args: z.object({ sessionId: id }),
+      run: (a: { sessionId: number }) => void chat.liveOf(a.sessionId)?.stop(),
+    },
     'tasks.list': {
       args: z.object({ sessionId: id }),
       run: (a: { sessionId: number }) => store.listTasks(a.sessionId),

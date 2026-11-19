@@ -1,7 +1,7 @@
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import { Inbox } from '../src/main/agent';
 import { Chat } from '../src/main/chat';
-import { CREW, fakeQuery, openScratch, reply } from './support';
+import { CREW, fakeCrew, fakeQuery, openScratch, reply } from './support';
 
 test('비서 answers in its own Claude session and runs on the model chosen last', async () => {
   const { store, project, paths } = openScratch();
@@ -46,4 +46,25 @@ test('a closed inbox refuses a line, so 비서 is told it in a new run instead o
   const inbox = new Inbox();
   inbox.close();
   expect(inbox.push('늦은 보고')).toBe(false);
+});
+
+test('stopping 비서 mid-answer ends that run and says so in the chat', async () => {
+  const { store, project, paths } = openScratch();
+  const fake = fakeCrew({ 비서: [() => new Promise(() => {})] });
+  const chat = new Chat(
+    store,
+    async () => fake.sdk,
+    CREW,
+    () => {},
+    paths,
+  );
+  const p = store.addProject(project);
+  chat.seed(p.id);
+  const s = store.createSession(p.id);
+
+  const answering = chat.send(s.id, '길게 설명해줘');
+  await vi.waitFor(() => expect(chat.liveOf(s.id)).toBeDefined());
+  await chat.liveOf(s.id)!.stop();
+  await answering;
+  expect(store.listMessages(s.id).at(-1)!.text).toBe('답변을 멈췄습니다.');
 });
