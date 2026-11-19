@@ -599,14 +599,11 @@ code {
   height: var(--h-touch);
   background: var(--card);
 }
-.answer-option:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-.answer-option[data-chosen] {
-  opacity: 1;
-  outline: var(--bw) solid var(--link);
-  outline-offset: var(--bw-thin);
+.answer-result {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  color: var(--accent-dark);
+  font-weight: var(--fw-bold);
 }
 /* The send button stays at the bottom while the box grows upward */
 .composer {

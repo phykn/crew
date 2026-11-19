@@ -184,23 +184,32 @@ function Bubble({ author, text, pending, question }: BubbleProps) {
 }
 
 function AnswerCard({ question }: { question: Question }) {
-  const answered = question.answer !== null;
+  // The pick shows at once, before the record comes back with it
+  const [picked, setPicked] = useState<string | null>(null);
+  const answer = question.answer ?? picked;
   return (
-    <div className="answer-card" data-answered={answered || undefined}>
+    <div className="answer-card" data-answered={answer !== null || undefined}>
       <div className="answer-prompt">{renderInline(question.prompt)}</div>
-      <div className="answer-options">
-        {question.options.map((o, i) => (
-          <button
-            key={o}
-            className={`answer-option${i === question.options.length - 1 ? ' primary' : ''}`}
-            data-chosen={question.answer === o || undefined}
-            disabled={answered}
-            onClick={() => call('questions.answer', { id: question.id, choice: o })}
-          >
-            {o}
-          </button>
-        ))}
-      </div>
+      {answer !== null ? (
+        <p className="answer-result" role="status">
+          ✓ {answer}
+        </p>
+      ) : (
+        <div className="answer-options">
+          {question.options.map((o, i) => (
+            <button
+              key={o}
+              className={`answer-option${i === question.options.length - 1 ? ' primary' : ''}`}
+              onClick={() => {
+                setPicked(o);
+                call('questions.answer', { id: question.id, choice: o });
+              }}
+            >
+              {o}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

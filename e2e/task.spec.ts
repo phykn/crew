@@ -36,6 +36,8 @@ test('a message opens a pinned task card, the answer card lets it go on, and the
   const card = page.getByLabel('업무 검색 개선');
   await expect(card).toContainText('내 답변 대기');
   await page.getByRole('button', { name: '허용' }).click();
+  // The card keeps only the answer, so it reads as done
+  await expect(page.getByRole('status').filter({ hasText: '✓ 허용' })).toBeVisible();
   await expect(page.getByText('검색을 고쳤고 리뷰와 시험을 통과했습니다.')).toBeVisible();
   await expect(card).toHaveCount(0);
 
