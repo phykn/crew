@@ -45,6 +45,8 @@ const HANDBACK_SCHEMA = z.toJSONSchema(HandbackShape, { target: 'draft-7', io: '
 
 // Transient failures of one step are retried this many times; verification sends work back at most this many times
 const RETRIES = 3;
+// What runStep returns when the model's usage limit stopped it
+const LIMIT = 'usage limit';
 const FIXES = 3;
 
 function lastDone(runs: StepRun[], id: string) {
@@ -173,6 +175,8 @@ export class Tasks {
       const stage = ready.map((s) => s.label).join('·');
       this.move(taskId, fixing ? 'REWORK' : ready.every((s) => s.verdict) ? 'REVIEW' : 'WORK', stage, `${stage} 진행`);
       const results = await Promise.all(ready.map((s) => this.runStep(task, s)));
+      // A usage limit pauses the task instead of failing it: nothing is wrong with the work, it can resume later
+      if (results.includes(LIMIT)) return this.pause(store.readTask(taskId));
       const broken = results.find((r) => r !== 'done');
       if (broken && store.readTask(taskId).status !== 'stopping') return this.fail(store.readTask(taskId), broken);
     }
@@ -225,7 +229,7 @@ export class Tasks {
       }
       if (out.status === 'limit' || out.status === 'stopped') {
         store.finishStepRun(runId, 'stopped', null, out.error ?? out.status);
-        return out.status === 'limit' ? '모델 사용 한도에 도달했습니다' : '중단되었습니다';
+        return out.status === 'limit' ? LIMIT : '중단되었습니다';
       }
       const why = out.error ?? 'the result did not match the handback format';
       store.finishStepRun(runId, 'failed', null, why);
@@ -273,6 +277,12 @@ export class Tasks {
     void this.chat.tell(task.sessionId, this.report(task, 'done'));
   }
 
+  pause(task: Task) {
+    if (!this.move(task.id, 'STOP', '', `업무 "${task.title}" 사용 한도로 멈춤`)) return;
+    this.move(task.id, 'STOPPED', '', `업무 "${task.title}" 중단됨`);
+    void this.chat.tell(task.sessionId, this.report(task, LIMIT));
+  }
+
   fail(task: Task, why: string) {
     if (!this.move(task.id, 'FAIL', '', `업무 "${task.title}" 실패: ${why}`)) return;
     void this.chat.tell(task.sessionId, this.report(task, why));
@@ -294,11 +304,14 @@ export class Tasks {
     const steps = task.workflow.steps
       .filter((s) => lastDone(runs, s.id))
       .map((s) => section(`${s.label} (${this.roleOf(task, s)})`, lastDone(runs, s.id)!.handback!));
+    const left = task.workflow.steps.filter((s) => !satisfied(task.workflow, runs, s.id)).map((s) => s.label);
     const head =
       outcome === 'done'
         ? `[Task #${task.id} finished] "${task.title}" passed every check. Report it to the user now: what changed (files), how it was verified, and anything left.`
-        : `[Task #${task.id} stopped] "${task.title}" could not finish: ${outcome}. Tell the user what was done, what blocked it, and what they can decide.`;
-    return [head, ...steps].join('\n\n');
+        : outcome === LIMIT
+          ? `[Task #${task.id} paused] "${task.title}" stopped at the model usage limit. Tell the user what is done, what is left, and that they can resume it once the limit resets.`
+          : `[Task #${task.id} stopped] "${task.title}" could not finish: ${outcome}. Tell the user what was done, what blocked it, and what they can decide.`;
+    return [head, ...steps, ...(outcome !== 'done' && left.length ? [`## Left to do\n${left.map((l) => `- ${l}`).join('\n')}`] : [])].join('\n\n');
   }
 }
 

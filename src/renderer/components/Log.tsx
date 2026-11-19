@@ -8,11 +8,13 @@ export function Log({ session, members, taskId, onTask }: { session: Session; me
   const [events, setEvents] = useState<Event[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [open, setOpen] = useState<number | null>(null);
+  const [usage, setUsage] = useState<Awaited<ReturnType<typeof call<'usage.list'>>>>([]);
 
   useEffect(() => {
     const load = async () => {
       setEvents(await call('events.list', { sessionId: session.id }));
       setTasks(await call('tasks.list', { sessionId: session.id }));
+      setUsage(await call('usage.list', { sessionId: session.id }));
     };
     load();
     return onChanged((topic) => ['tasks', 'messages'].includes(topic) && load());
@@ -30,6 +32,34 @@ export function Log({ session, members, taskId, onTask }: { session: Session; me
           </option>
         ))}
       </select>
+      {usage.length > 0 && (
+        <table className="usage" aria-label="사용량">
+          <thead>
+            <tr>
+              <th>역할</th>
+              <th>모델</th>
+              <th>횟수</th>
+              <th>시간</th>
+              <th>토큰 (입력/출력)</th>
+              <th>비용</th>
+            </tr>
+          </thead>
+          <tbody>
+            {usage.map((u) => (
+              <tr key={`${u.memberId}-${u.model}`}>
+                <td style={{ color: who(u.memberId)?.color }}>{who(u.memberId)?.role ?? '?'}</td>
+                <td>{u.model}</td>
+                <td>{u.runs}</td>
+                <td>{Math.round(u.seconds)}초</td>
+                <td>
+                  {u.inputTokens.toLocaleString()} / {u.outputTokens.toLocaleString()}
+                </td>
+                <td>${u.costUsd.toFixed(3)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
       <ol className="log-list" aria-label="업무 로그">
         {shown.map((e) => {
           const m = who(e.memberId);

@@ -83,6 +83,7 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
       args: z.object({ projectId: id, memberId: id.optional() }),
       run: (a: { projectId: number; memberId?: number }) => chat.wiki.memories(a.projectId, a.memberId),
     },
+    'usage.list': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => store.usage(a.sessionId) },
     'events.list': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => store.listEvents(a.sessionId) },
     'questions.answer': {
       args: z.object({ id, choice: z.string().min(1) }),

@@ -389,3 +389,8 @@ button { font: inherit; color: inherit; }
 .log-detail .removed { color: #fca5a5; margin: 0; white-space: pre-wrap; }
 .note { font-size: 13px; padding: 4px 0; }
 .dialog-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* Usage table in the log */
+.usage { border-collapse: collapse; font-size: 12px; width: 100%; }
+.usage th { text-align: left; color: var(--muted); font-weight: 500; padding: 3px 6px; border-bottom: 1px solid var(--line); }
+.usage td { padding: 3px 6px; font-variant-numeric: tabular-nums; }

@@ -477,6 +477,19 @@ export class Store {
       .run(now(), out.status, u.turns, u.inputTokens, u.outputTokens, u.costUsd, out.error ?? null, id);
   }
 
+  // Runs per member and model in a session: how many, how long, how many tokens, what it cost
+  usage(sessionId: number) {
+    return this.db
+      .prepare(
+        `SELECT a.member_id AS memberId, r.model, COUNT(*) AS runs,
+                COALESCE(SUM((julianday(r.ended_at) - julianday(r.started_at)) * 86400), 0) AS seconds,
+                SUM(r.input_tokens) AS inputTokens, SUM(r.output_tokens) AS outputTokens, SUM(r.cost_usd) AS costUsd
+         FROM runs r JOIN agent_sessions a ON a.id = r.agent_session_id WHERE a.session_id = ?
+         GROUP BY a.member_id, r.model ORDER BY costUsd DESC`,
+      )
+      .all(sessionId) as { memberId: number; model: string; runs: number; seconds: number; inputTokens: number; outputTokens: number; costUsd: number }[];
+  }
+
   listRuns(sessionId: number): Run[] {
     return this.db
       .prepare(
