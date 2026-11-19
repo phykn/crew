@@ -3,17 +3,17 @@
     "brief": {
       "icon": "list",
       "label": "업무 정리",
-      "use": "Turn a request into a brief: goal, scope, done-when, what was settled, and what was assumed."
+      "use": "Turn a request into a brief: goal, scope, kind, done-when, what was settled, and what was assumed."
     },
     "plan": {
       "icon": "sparkle",
       "label": "전략 수립",
-      "use": "Write a change plan: scope, order of steps, risks, and checks that prove it worked."
+      "use": "Plan a large change by its kind, only what will be used, with done-when as checks; or find what to improve."
     },
     "code": {
       "icon": "code",
       "label": "코드 작성",
-      "use": "Make the planned change the way the project works: cause first, only what is used, every place a name appears, then cut and confirm."
+      "use": "Make a code change the way the project works: cause first, only what is used, every place a name appears, then cut and confirm."
     },
     "conventions": {
       "icon": "ruler",
@@ -33,7 +33,7 @@
     "code-review": {
       "icon": "eye",
       "label": "코드 리뷰",
-      "use": "Judge one code change for behavior, screens, tests, breakage, security, and the plan's done-when."
+      "use": "Judge one code change for behavior, screens, tests, breakage, security, and its done-when."
     },
     "verify": {
       "icon": "check",

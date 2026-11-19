@@ -13,7 +13,7 @@ When your step follows a step that makes changes:
 
 1. Read the change in the files the earlier step lists: `git diff -- <files>`, or the files themselves outside git. Other uncommitted changes are the user's own. When it lists no files, PASS: there is nothing to check.
 2. Check the change against the standard: structure, names, comments, deletion, dependencies, and errors.
-3. When the plan names the change a refactor, also check that compatibility code, old formats, and stale aliases went with their tests, that text which moved (help, messages) is identical to the character, and that changes made on purpose are reported apart from the kept behavior.
+3. When the plan, or the brief when there is no plan, names the change a refactor, also check that compatibility code, old formats, and stale aliases went with their tests, that text which moved (help, messages) is identical to the character, and that changes made on purpose are reported apart from the kept behavior.
 4. Every point names its source, which file and which rule, and the exact fix. Skip anything the sources do not support.
 
 ## Structure review

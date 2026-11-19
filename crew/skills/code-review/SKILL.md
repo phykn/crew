@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Judge one code change for behavior, screens, tests, breakage, security, and the plan's done-when.
+description: Judge one code change for behavior, screens, tests, breakage, security, and its done-when.
 ---
 
 # Code review
@@ -12,6 +12,6 @@ description: Judge one code change for behavior, screens, tests, breakage, secur
    - Tests: each new behavior and fixed bug has a test in the files, unless the project has none, and a regression test would fail on the unfixed code.
    - Breakage: callers, configs, and documents that name what changed still agree with it.
    - Security: input from outside is validated, and no secret, command injection, or unsafe path handling was added.
-   - Done: the plan's done-when holds.
+   - Done: the done-when holds, from the plan, or from the brief when a small change has no plan.
 3. Run only small checks that prove an edge case you suspect.
 4. Investigate handling with no obvious purpose before calling it a defect.
