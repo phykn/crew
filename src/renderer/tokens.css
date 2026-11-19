@@ -118,6 +118,9 @@
   --w-legend-role: 3.6em;
   --w-legend-nick: 3.4em;
   --w-field: 120px;
+  /* Every workflow node is this wide, so the arranged rows line up */
+  --w-node: 150px;
+  --h-node-row: 130px;
   --w-field-sm: 76px;
   /* Narrow label and data columns, and the switch */
   --w-col: 40px;

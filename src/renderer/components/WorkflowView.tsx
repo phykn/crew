@@ -16,6 +16,7 @@ import {
   type NodeChange,
   type EdgeChange,
   type Connection,
+  type ReactFlowInstance,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import type { CrewMember } from '../../main/crew';
@@ -51,6 +52,7 @@ export function WorkflowView({
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   // Unsaved edits are marked, so leaving them behind is a known choice
   const [dirty, setDirty] = useState(false);
+  const [flow, setFlow] = useState<ReactFlowInstance<StepNode, LinkEdge> | null>(null);
 
   useEffect(() => {
     call('workflows.kinds').then(setKinds);
@@ -128,6 +130,13 @@ export function WorkflowView({
       );
     setNodes((ns) => applyNodeChanges(changes, ns));
   }
+  // Lays every node out again by order, for when hand-placed nodes have got tangled
+  function tidy() {
+    const auto = arrange(steps);
+    setNodes((ns) => ns.map((n) => ({ ...n, position: auto[n.id] ?? n.position })));
+    setDirty(true);
+    requestAnimationFrame(() => flow?.fitView(FIT));
+  }
   function addStep() {
     const id = nextId(steps);
     setDirty(true);
@@ -179,6 +188,9 @@ export function WorkflowView({
         </div>
         <span className="badge">버전 {w?.version ?? 0}</span>
         <span className="toolbar-end">
+          <button className="button" onClick={tidy}>
+            정렬
+          </button>
           <button className="button" onClick={addStep}>
             단계 추가
           </button>
@@ -213,8 +225,8 @@ export function WorkflowView({
               edgeTypes={EDGE_TYPES}
               colorMode="light"
               fitView
-              // Fits the whole flow but never enlarges past real size
-              fitViewOptions={{ maxZoom: 1, padding: 0.15 }}
+              onInit={setFlow}
+              fitViewOptions={FIT}
               deleteKeyCode={['Backspace', 'Delete']}
             >
               <Background />
@@ -297,6 +309,8 @@ function StepBox({ data }: NodeProps<StepNode>) {
   );
 }
 const NODE_TYPES = { step: StepBox };
+// Fits the whole flow but never enlarges past real size
+const FIT = { maxZoom: 1, padding: 0.15 };
 
 // A picked link shows its own remove button, so nothing else on the screen is needed to cut one
 function LinkLine({
@@ -344,24 +358,32 @@ function reworkOf(id: string, steps: Step[]): string | undefined {
   }
 }
 
-// Saved positions where there are some; otherwise rows by how many steps come before, since the panel is tall and narrow
+// Saved positions where there are some; otherwise rows by how many steps come before, each row centered, since the panel is tall and narrow
 function toNodes(steps: Step[], layout: Layout, members: CrewMember[]): StepNode[] {
+  const auto = arrange(steps);
+  return steps.map((s) => ({
+    id: s.id,
+    type: 'step',
+    position: layout[s.id] ?? auto[s.id],
+    data: { step: s, member: members.find((m) => m.key === s.role) },
+  }));
+}
+
+function arrange(steps: Step[]): Layout {
+  const token = (name: string) => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
+  const [width, gap, rowHeight] = [token('--w-node'), token('--sp-4'), token('--h-node-row')];
   const depth = (id: string, seen: string[] = []): number => {
     const s = steps.find((x) => x.id === id);
     const before = (s?.after ?? []).filter((a) => !seen.includes(a));
     return before.length ? 1 + Math.max(...before.map((a) => depth(a, [...seen, id]))) : 0;
   };
-  const rows: Record<number, number> = {};
-  return steps.map((s) => {
-    const d = depth(s.id);
-    const row = (rows[d] = (rows[d] ?? -1) + 1);
-    return {
-      id: s.id,
-      type: 'step',
-      position: layout[s.id] ?? { x: row * 170, y: d * 100 },
-      data: { step: s, member: members.find((m) => m.key === s.role) },
-    };
-  });
+  const rows: Record<number, string[]> = {};
+  for (const s of steps) (rows[depth(s.id)] ??= []).push(s.id);
+  return Object.fromEntries(
+    Object.entries(rows).flatMap(([d, ids]) =>
+      ids.map((id, i) => [id, { x: (i - (ids.length - 1) / 2) * (width + gap), y: Number(d) * rowHeight }]),
+    ),
+  );
 }
 
 // Step ids are lowercase letters and underscores, so a new one is step_a, step_b, ...

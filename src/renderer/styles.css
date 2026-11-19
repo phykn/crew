@@ -1186,7 +1186,9 @@ code {
   --xy-background-pattern-color: var(--line);
 }
 .workflow-node {
-  min-width: var(--w-field);
+  width: var(--w-node);
+  /* Korean wraps between words, not inside one */
+  word-break: keep-all;
   padding: var(--sp-2) var(--sp-3);
   background: var(--card);
   border: var(--bw) solid var(--line-hi);
