@@ -4,7 +4,7 @@ import { call, onChanged, onStream } from '../api';
 import { Choice } from './Choice';
 import { TaskCards } from './TaskCards';
 
-const MODE_LABELS: Record<Mode, string> = { manual: '수동 승인', auto: '자동 승인', bypass: '바이패스' };
+const MODE_LABELS: Record<Mode, string> = { manual: '묻기', auto: '자동', bypass: '전부' };
 
 export function Chat({
   session,

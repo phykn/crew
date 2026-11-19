@@ -629,6 +629,9 @@ code {
   color: var(--text);
   font-size: var(--fs-md);
 }
+.composer .choice {
+  height: var(--h-touch);
+}
 .composer textarea::placeholder {
   color: var(--muted);
 }
