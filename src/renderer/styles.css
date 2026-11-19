@@ -1,9 +1,10 @@
 /* Farm-menu look: parchment in wood frames, flat pastel fills, no gradients. Every value comes from tokens.css;
    shared shapes are defined once in the first section and the parts below only add what differs */
 
+/* Areas still scroll by wheel, touch, and keys; the bars only took room */
 * {
   box-sizing: border-box;
-  scrollbar-color: var(--wood-light) var(--card-hi);
+  scrollbar-width: none;
 }
 html,
 body,
@@ -52,18 +53,6 @@ code {
   flex: none;
   width: var(--icon);
   height: var(--icon);
-}
-::-webkit-scrollbar {
-  width: var(--scrollbar);
-  height: var(--scrollbar);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--wood-light);
-  border: var(--bw) solid var(--card-hi);
-  border-radius: var(--r-sm);
-}
-::-webkit-scrollbar-track {
-  background: var(--card-hi);
 }
 
 /* ---- Shared shapes ---- */
