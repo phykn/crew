@@ -3,7 +3,8 @@ import path from 'node:path';
 import type { Options } from '@anthropic-ai/claude-agent-sdk';
 import { AgentRun, type RunOutput, type Sdk } from './agent';
 import type { Member, Project, Store } from './db';
-import { Config, type Crew, type Settings, toolsOf } from './crew';
+import { z } from 'zod';
+import { Config, type Crew, parseDefinition, type Settings, toolsOf } from './crew';
 import { guardMember, projectWrites, type Policy } from './guard';
 import { Locks, realPath } from './locks';
 import { Questions } from './questions';
@@ -14,6 +15,12 @@ import { readWorkflows, type Workflow } from './workflow';
 export type Emit = (channel: 'changed' | 'stream', payload: unknown) => void;
 // Where members' own files go, and the files no member may touch
 export type Paths = { output: string; protected: string[] };
+
+const Draft = z.object({
+  key: z.string().regex(/^[a-z][a-z0-9_]*$/).describe('The role in lowercase English, such as translator'),
+  definition: z.string().describe('The whole definition: front matter and instructions'),
+});
+const HIRE_SCHEMA = z.toJSONSchema(Draft, { target: 'draft-7', io: 'input' }) as Record<string, unknown>;
 
 type RunOptions = {
   schema?: Record<string, unknown>;
@@ -30,6 +37,8 @@ export class Chat {
   lanes = new Map<number, Promise<unknown>>();
   questions: Questions;
   tasks: Tasks;
+  // Runs in progress per member, so a member let go at work leaves only when they end
+  busy = new Map<number, number>();
   // Member runs at work on each task, so stopping a task can interrupt them
   working = new Map<number, Set<AgentRun>>();
   // Write reservations per project folder
@@ -49,11 +58,11 @@ export class Chat {
   }
 
   settings(member: Member) {
-    return this.crew.settings(this.crew.find(member.key), Config.parse(member.config));
+    return this.crew.settings(this.crew.defOf(member), Config.parse(member.config));
   }
 
   policy(member: Member, project: Project, scope: string): Policy {
-    const def = this.crew.find(member.key);
+    const def = this.crew.defOf(member);
     const settings = this.settings(member);
     const output = this.outputDir(project, scope);
     const mcp = settings.mcp.map(({ server, access }) => ({
@@ -128,7 +137,7 @@ export class Chat {
     // The member may have changed while it waited in its lane
     member = store.readMemberById(member.id);
     const project = store.readProject(store.readSession(sessionId).projectId);
-    const def = this.crew.find(member.key);
+    const def = this.crew.defOf(member);
     const settings = this.settings(member);
     const agentSession = store.openAgentSession(sessionId, member.id);
     // A Claude session started on another model is not continued; the new one is handed what came before
@@ -152,13 +161,73 @@ export class Chat {
     const mine = taskId ? (this.working.get(taskId) ?? new Set<AgentRun>()) : null;
     if (taskId && mine) this.working.set(taskId, mine.add(run));
     const runId = store.startRun(agentSession.id, member.model, taskId);
+    this.busy.set(member.id, (this.busy.get(member.id) ?? 0) + 1);
     const out = await run.run(prompt).finally(() => {
       if (secretary) this.live.delete(sessionId);
       mine?.delete(run);
+      this.busy.set(member.id, this.busy.get(member.id)! - 1);
     });
+    // A member let go mid-run leaves once this run, its last, has ended
+    if (!this.busy.get(member.id) && store.readMemberById(member.id).leaving) this.leave(member.id);
     if (out.claudeId) store.writeClaudeId(agentSession.id, out.claudeId, member.model);
     store.finishRun(runId, out);
     return out;
+  }
+
+  // Letting go is idempotent: a second press while leaving or gone changes nothing
+  fire(memberId: number) {
+    const m = this.store.readMemberById(memberId);
+    if (m.status !== 'hired' || m.leaving) return false;
+    if (this.busy.get(memberId)) {
+      this.store.writeLeaving(memberId, true);
+      this.note(m, 'leave', `${this.crew.defOf(m).role}(${m.nickname}) 퇴장 예정: 맡은 단계를 마치고 나갑니다`);
+    } else this.leave(memberId);
+    return true;
+  }
+
+  leave(memberId: number) {
+    const m = this.store.readMemberById(memberId);
+    this.store.transact(() => {
+      this.store.writeLeaving(memberId, false);
+      this.store.updateMember(memberId, { status: 'unhired' });
+    });
+    this.note(m, 'leave', `${this.crew.defOf(m).role}(${m.nickname}) 퇴장`);
+    this.emit('changed', 'members');
+  }
+
+  // A crew change is logged in the project's latest session, where the user is looking
+  note(m: Member, kind: string, text: string) {
+    const session = this.store.listSessions(m.projectId).at(-1);
+    if (session) this.store.addEvent({ sessionId: session.id, taskId: null, memberId: m.id, kind, text, detail: null });
+  }
+
+  // 인사 designs the missing member; the app checks the definition and adds it as a regular or a temp
+  async hire(sessionId: number, need: string, temp: boolean) {
+    const { store } = this;
+    const project = store.readProject(store.readSession(sessionId).projectId);
+    const members = store.listMembers(project.id);
+    const existing = members.map((m) => `- ${this.crew.defOf(m).role} (${m.key}, ${m.nickname}): ${this.crew.defOf(m).description}`).join('\n');
+    const kit = `Skills: ${Object.keys(this.crew.kit.skills).join(', ')}. MCP servers: ${Object.keys(this.crew.kit.mcp).join(', ')}.`;
+    const prompt = [`[Hire] The crew needs: ${need}`, `As a ${temp ? 'temp (알바)' : 'regular'}.`, `# Existing members\n${existing}`, `# Kit\n${kit}`].join('\n\n');
+    const out = await this.runMember(store.readMember(project.id, 'hr'), sessionId, null, prompt, { schema: HIRE_SCHEMA });
+    const draft = Draft.safeParse(out.structured);
+    if (!draft.success) return `인사가 정의를 만들지 못했습니다: ${out.error ?? '형식이 맞지 않습니다'}`;
+    const { key } = draft.data;
+    let definition = draft.data.definition;
+    let def;
+    try {
+      def = parseDefinition(key, definition);
+      this.crew.checkConfig({ skills: def.skills, mcp: def.mcp.map((server) => ({ server, access: 'all' as const })) });
+    } catch (err) {
+      return `인사의 정의가 맞지 않습니다: ${String(err)}`;
+    }
+    if (members.some((m) => m.key === key || this.crew.defOf(m).role === def.role)) return `${def.role}(${key})는 이미 있습니다.`;
+    // The role line is how a run knows who it is; a draft that left it out still gets it
+    if (!def.instructions.includes(`**${def.role}**`)) definition = definition.replace(/\n---\r?\n/, `\n---\n\nYou are the crew's **${def.role}**.\n\n`);
+    const member = store.addMember(project.id, { key, nickname: def.nickname, model: def.model, definition, temp });
+    this.note(member, 'hire', `${def.role}(${def.nickname}) ${temp ? '알바로' : '정규로'} 고용`);
+    this.emit('changed', 'members');
+    return `${def.role}(${def.nickname})을 ${temp ? '알바로' : '정규로'} 고용했습니다. key: ${key}`;
   }
 
   // What a member's earlier Claude session knew, for a fresh one: the conversation for 비서, its own handbacks for the rest

@@ -64,7 +64,9 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
       run: (a: { id: number; nickname?: string; model?: string; status?: 'hired' | 'unhired' }) => {
         // The crew stops working without 비서 or 인사, so the window cannot let them go
         if (a.status === 'unhired' && KEPT.includes(store.readMemberById(a.id).key)) throw new Error('this member cannot be let go');
-        store.updateMember(a.id, a);
+        // Letting go goes through the crew, so a member at work leaves once, after its step
+        if (a.status === 'unhired') chat.fire(a.id);
+        store.updateMember(a.id, { ...a, status: a.status === 'hired' ? 'hired' : undefined });
       },
     },
     'members.permissions': {
@@ -82,7 +84,7 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
     'members.definition': {
       args: z.object({ id }),
       run: (a: { id: number }) => {
-        const def = crew.find(store.readMemberById(a.id).key);
+        const def = crew.defOf(store.readMemberById(a.id));
         return { role: def.role, description: def.description, instructions: def.instructions };
       },
     },

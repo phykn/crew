@@ -1,7 +1,7 @@
 import { getNextSnapshot, setup } from 'xstate';
 import { z } from 'zod';
 import type { Chat } from './chat';
-import type { Handback, StepRun, Task, TaskStatus } from './db';
+import type { Handback, Member, StepRun, Task, TaskStatus } from './db';
 import type { Step, Workflow } from './workflow';
 import { memberTools } from './crew-tools';
 import { changedFiles, snapshot } from './changes';
@@ -74,15 +74,33 @@ function sentBack(w: Workflow, runs: StepRun[], id: string, since: number) {
 export class Tasks {
   constructor(public chat: Chat) {}
 
-  start(sessionId: number, kind: string, title: string, request: string): Task {
+  start(sessionId: number, kind: string, title: string, request: string, one?: Member): Task {
     const { store } = this.chat;
-    const workflow = this.chat.workflows.find((w) => w.kind === kind);
+    // A request given to one member is a one-step task of its own
+    const workflow = one ? solo(this.chat.crew.defOf(one).role, one.key) : this.chat.workflows.find((w) => w.kind === kind);
     if (!workflow) throw new Error(`no workflow ${kind}`);
-    const task = store.createTask({ sessionId, kind, title, request, workflow });
+    const task = store.createTask({ sessionId, kind: workflow.kind, title, request, workflow });
     store.writeBaseline(task.id, snapshot(this.projectOf(task).path));
     this.chat.emit('changed', 'tasks');
     void this.drive(task.id);
     return task;
+  }
+
+  // Who does a step: the member it was handed to, or the one holding its role
+  memberFor(task: Task, step: Step) {
+    const { store } = this.chat;
+    const id = store.assignee(task.id, step.id);
+    return id ? store.readMemberById(id) : store.readMember(this.projectOf(task).id, step.role);
+  }
+
+  roleOf(task: Task, step: Step) {
+    return this.chat.crew.defOf(this.memberFor(task, step)).role;
+  }
+
+  reassign(task: Task, fromRole: string, to: Member) {
+    const steps = task.workflow.steps.filter((s) => this.roleOf(task, s) === fromRole);
+    for (const s of steps) this.chat.store.assign(task.id, s.id, to.id);
+    return steps.map((s) => s.label);
   }
 
   projectOf(task: Task) {
@@ -163,9 +181,10 @@ export class Tasks {
   async runStep(task: Task, step: Step): Promise<string> {
     const { store, crew } = this.chat;
     const project = store.readProject(store.readSession(task.sessionId).projectId);
-    const member = store.readMember(project.id, step.role);
-    const role = crew.find(step.role).role;
-    if (member.status !== 'hired') return `${role}이 고용되어 있지 않아 ${step.label}을 진행할 수 없습니다`;
+    const member = this.memberFor(task, step);
+    const role = crew.defOf(member).role;
+    // A member let go takes no new step; 비서 hears of it and can hand the step to someone else
+    if (member.status !== 'hired' || member.leaving) return `${role}이 고용되어 있지 않아 ${step.label}을 진행할 수 없습니다. 다른 담당자를 붙여야 합니다`;
     let prompt = this.brief(task, step);
     const log = (text: string, detail: unknown = null) =>
       store.addEvent({ sessionId: task.sessionId, taskId: task.id, memberId: member.id, kind: 'step', text, detail: detail ? JSON.stringify(detail) : null });
@@ -227,7 +246,7 @@ export class Tasks {
     const saved = cut && !step.verdict ? changedFiles(store.readBaseline(task.id), snapshot(project.path)) : [];
     const earlier = w.steps
       .filter((s) => s.id !== step.id && lastDone(runs, s.id) && (step.after.includes(s.id) || isAncestor(w, s.id, step.id)))
-      .map((s) => section(`${s.label} (${crew.find(s.role).role})`, lastDone(runs, s.id)!.handback!));
+      .map((s) => section(`${s.label} (${this.roleOf(task, s)})`, lastDone(runs, s.id)!.handback!));
     const sentBackBy = runs
       .filter((r) => r.status === 'done' && r.verdict === 'rework' && (!own || r.id > own.id) && (w.steps.find((s) => s.id === r.stepId)?.rework ?? r.handback?.target) === step.id)
       .map((r) => section(`Sent back by ${w.steps.find((s) => s.id === r.stepId)?.label ?? 'the user after the report'}`, r.handback!));
@@ -237,6 +256,8 @@ export class Tasks {
       `Your step: ${step.label}. ${step.does}`,
       `Project folder: ${project.path}\nYour output folder for reports: ${this.chat.outputDir(project, `task-${task.id}`)}`,
       ...(earlier.length ? ['# Earlier steps', ...earlier] : []),
+      // A step handed over from a member who left continues from what they saved
+      ...(own && own.memberId !== this.memberFor(task, step).id ? ['# This step so far, by the member before you', section(step.label, own.handback!)] : []),
       ...(sentBackBy.length ? ['# Fix exactly these points', ...sentBackBy] : []),
       ...(saved.length ? [`# Cut off by a restart\nYour earlier run of this step was cut off after changing: ${saved.join(', ')}. Read them, keep what is right, and finish the step.`] : []),
       step.verdict
@@ -248,6 +269,7 @@ export class Tasks {
 
   finish(task: Task) {
     this.move(task.id, 'DONE', '', `업무 "${task.title}" 완료`);
+    this.dismissTemps(task);
     void this.chat.tell(task.sessionId, this.report(task, 'done'));
   }
 
@@ -256,18 +278,32 @@ export class Tasks {
     void this.chat.tell(task.sessionId, this.report(task, why));
   }
 
+  // A temp's work is the task it came for; once that is done and nothing else needs it, it leaves
+  dismissTemps(task: Task) {
+    const { store } = this.chat;
+    const open = store.listTasks(task.sessionId).filter((t) => t.id !== task.id && !['done', 'failed', 'stopped'].includes(t.status));
+    for (const s of task.workflow.steps) {
+      const m = this.memberFor(task, s);
+      if (m.temp && !open.some((t) => t.workflow.steps.some((x) => this.memberFor(t, x).id === m.id))) this.chat.fire(m.id);
+    }
+  }
+
   // 비서 is told what happened and words the report to the user itself
   report(task: Task, outcome: string) {
     const runs = this.chat.store.listStepRuns(task.id);
     const steps = task.workflow.steps
       .filter((s) => lastDone(runs, s.id))
-      .map((s) => section(`${s.label} (${this.chat.crew.find(s.role).role})`, lastDone(runs, s.id)!.handback!));
+      .map((s) => section(`${s.label} (${this.roleOf(task, s)})`, lastDone(runs, s.id)!.handback!));
     const head =
       outcome === 'done'
         ? `[Task #${task.id} finished] "${task.title}" passed every check. Report it to the user now: what changed (files), how it was verified, and anything left.`
         : `[Task #${task.id} stopped] "${task.title}" could not finish: ${outcome}. Tell the user what was done, what blocked it, and what they can decide.`;
     return [head, ...steps].join('\n\n');
   }
+}
+
+function solo(role: string, key: string): Workflow {
+  return { kind: 'solo', label: role, use: '', steps: [{ id: 'work', role: key, label: `${role} 작업`, does: 'Do the request.', after: [], verdict: false, requires: [] }] };
 }
 
 function isAncestor(w: Workflow, maybe: string, of: string): boolean {

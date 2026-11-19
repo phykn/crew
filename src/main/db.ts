@@ -58,6 +58,12 @@ const MIGRATIONS = [
      files TEXT NOT NULL, snapshot TEXT NOT NULL, created_at TEXT NOT NULL);
    ALTER TABLE step_runs ADD COLUMN version_id INTEGER REFERENCES versions (id);`,
   `ALTER TABLE agent_sessions ADD COLUMN model TEXT;`,
+  `ALTER TABLE members ADD COLUMN definition TEXT;
+   ALTER TABLE members ADD COLUMN temp INTEGER NOT NULL DEFAULT 0;
+   ALTER TABLE members ADD COLUMN leaving INTEGER NOT NULL DEFAULT 0;
+   CREATE TABLE assignees (
+     task_id INTEGER NOT NULL REFERENCES tasks (id) ON DELETE CASCADE, step_id TEXT NOT NULL,
+     member_id INTEGER NOT NULL REFERENCES members (id), PRIMARY KEY (task_id, step_id));`,
 ];
 
 export type Project = { id: number; path: string; name: string };
@@ -70,10 +76,16 @@ export type Member = {
   model: string;
   status: 'hired' | 'unhired';
   config: Record<string, unknown>;
+  // A member 인사 designed is defined here instead of in crew/agents
+  definition: string | null;
+  // A temp (알바) is gone once let go, instead of staying as 미고용
+  temp: boolean;
+  // Let go while at work: it finishes or hands back its step, then leaves
+  leaving: boolean;
 };
-type MemberRow = Omit<Member, 'config'> & { config: string };
-const MEMBER = 'SELECT id, project_id AS projectId, key, nickname, model, status, config FROM members';
-const toMember = (r: MemberRow): Member => ({ ...r, config: JSON.parse(r.config) });
+type MemberRow = Omit<Member, 'config' | 'temp' | 'leaving'> & { config: string; temp: number; leaving: number };
+const MEMBER = 'SELECT id, project_id AS projectId, key, nickname, model, status, config, definition, temp, leaving FROM members';
+const toMember = (r: MemberRow): Member => ({ ...r, config: JSON.parse(r.config), temp: r.temp === 1, leaving: r.leaving === 1 });
 export type AgentSession = { id: number; sessionId: number; memberId: number; claudeId: string | null; model: string | null };
 export type Question = {
   id: number;
@@ -256,6 +268,26 @@ export class Store {
     const row = this.db.prepare(`${MEMBER} WHERE project_id = ? AND key = ?`).get(projectId, key) as MemberRow | undefined;
     if (!row) throw new Error(`no member ${key} in project ${projectId}`);
     return toMember(row);
+  }
+
+  addMember(projectId: number, m: { key: string; nickname: string; model: string; definition: string; temp: boolean }): Member {
+    const { lastInsertRowid } = this.db
+      .prepare('INSERT INTO members (project_id, key, nickname, model, definition, temp) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(projectId, m.key, m.nickname, m.model, m.definition, m.temp ? 1 : 0);
+    return this.readMemberById(Number(lastInsertRowid));
+  }
+
+  writeLeaving(id: number, leaving: boolean) {
+    this.db.prepare('UPDATE members SET leaving = ? WHERE id = ?').run(leaving ? 1 : 0, id);
+  }
+
+  assign(taskId: number, stepId: string, memberId: number) {
+    this.db.prepare('INSERT OR REPLACE INTO assignees (task_id, step_id, member_id) VALUES (?, ?, ?)').run(taskId, stepId, memberId);
+  }
+
+  assignee(taskId: number, stepId: string): number | null {
+    const row = this.db.prepare('SELECT member_id AS id FROM assignees WHERE task_id = ? AND step_id = ?').get(taskId, stepId) as { id: number } | undefined;
+    return row?.id ?? null;
   }
 
   updateMember(id: number, change: { nickname?: string; model?: string; status?: Member['status'] }) {

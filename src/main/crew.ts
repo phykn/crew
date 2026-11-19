@@ -118,6 +118,14 @@ export class Crew {
     }
   }
 
+  // A member's definition: its own when 인사 wrote it, the shipped one otherwise
+  defOf(member: Member): Definition {
+    if (!member.definition) return this.find(member.key);
+    const def = parseDefinition(member.key, member.definition);
+    // A temp may only read, search, and write into its output folder, with no MCP server
+    return member.temp ? { ...def, tools: def.tools.filter((t) => ['read', 'search', 'write'].includes(t)), write: 'output', mcp: [] } : def;
+  }
+
   find(key: string): Definition {
     const def = this.defs.find((d) => d.key === key);
     if (!def) throw new Error(`no definition ${key}`);
@@ -154,8 +162,10 @@ export class Crew {
   describe(members: Member[]): CrewMember[] {
     const rank = (key: string) => (ORDER.includes(key) ? ORDER.indexOf(key) : ORDER.length);
     return members
+      // A temp is on the legend only while hired
+      .filter((m) => !(m.temp && m.status !== 'hired'))
       .map((m) => {
-        const def = this.find(m.key);
+        const def = this.defOf(m);
         const settings = this.settings(def, m.config);
         return {
           ...m,
