@@ -57,6 +57,7 @@ const MIGRATIONS = [
      id INTEGER PRIMARY KEY, task_id INTEGER NOT NULL REFERENCES tasks (id) ON DELETE CASCADE,
      files TEXT NOT NULL, snapshot TEXT NOT NULL, created_at TEXT NOT NULL);
    ALTER TABLE step_runs ADD COLUMN version_id INTEGER REFERENCES versions (id);`,
+  `ALTER TABLE agent_sessions ADD COLUMN model TEXT;`,
 ];
 
 export type Project = { id: number; path: string; name: string };
@@ -73,7 +74,7 @@ export type Member = {
 type MemberRow = Omit<Member, 'config'> & { config: string };
 const MEMBER = 'SELECT id, project_id AS projectId, key, nickname, model, status, config FROM members';
 const toMember = (r: MemberRow): Member => ({ ...r, config: JSON.parse(r.config) });
-export type AgentSession = { id: number; sessionId: number; memberId: number; claudeId: string | null };
+export type AgentSession = { id: number; sessionId: number; memberId: number; claudeId: string | null; model: string | null };
 export type Question = {
   id: number;
   sessionId: number;
@@ -290,13 +291,13 @@ export class Store {
       .run(sessionId, memberId, now());
     return this.db
       .prepare(
-        'SELECT id, session_id AS sessionId, member_id AS memberId, claude_id AS claudeId FROM agent_sessions WHERE session_id = ? AND member_id = ?',
+        'SELECT id, session_id AS sessionId, member_id AS memberId, claude_id AS claudeId, model FROM agent_sessions WHERE session_id = ? AND member_id = ?',
       )
       .get(sessionId, memberId) as AgentSession;
   }
 
-  writeClaudeId(agentSessionId: number, claudeId: string) {
-    this.db.prepare('UPDATE agent_sessions SET claude_id = ? WHERE id = ?').run(claudeId, agentSessionId);
+  writeClaudeId(agentSessionId: number, claudeId: string, model: string) {
+    this.db.prepare('UPDATE agent_sessions SET claude_id = ?, model = ? WHERE id = ?').run(claudeId, model, agentSessionId);
   }
 
   addMessage(sessionId: number, author: Message['author'], text: string, questionId: number | null = null) {

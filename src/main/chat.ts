@@ -131,12 +131,15 @@ export class Chat {
     const def = this.crew.find(member.key);
     const settings = this.settings(member);
     const agentSession = store.openAgentSession(sessionId, member.id);
+    // A Claude session started on another model is not continued; the new one is handed what came before
+    const resume = agentSession.claudeId && agentSession.model === member.model ? agentSession.claudeId : null;
+    if (agentSession.claudeId && !resume) prompt = `${this.handoff(member, sessionId)}\n\n${prompt}`;
     const run = new AgentRun((await this.sdk()).query, {
       cwd: project.path,
       model: member.model,
       system: this.crew.system(def, settings),
       mcpServers: { ...this.crew.mcpServers(settings), ...opts.mcpServers },
-      resume: agentSession.claudeId,
+      resume,
       canUseTool: this.guard(member, project, sessionId, taskId),
       schema: opts.schema,
       onText: opts.onText,
@@ -153,9 +156,23 @@ export class Chat {
       if (secretary) this.live.delete(sessionId);
       mine?.delete(run);
     });
-    if (out.claudeId) store.writeClaudeId(agentSession.id, out.claudeId);
+    if (out.claudeId) store.writeClaudeId(agentSession.id, out.claudeId, member.model);
     store.finishRun(runId, out);
     return out;
+  }
+
+  // What a member's earlier Claude session knew, for a fresh one: the conversation for 비서, its own handbacks for the rest
+  handoff(member: Member, sessionId: number) {
+    const { store } = this;
+    const lines =
+      member.key === 'orchestrator'
+        ? store.listMessages(sessionId).slice(-30).map((m) => `${m.author === 'user' ? 'User' : '비서'}: ${m.text}`)
+        : store
+            .listTasks(sessionId)
+            .flatMap((t) => store.listStepRuns(t.id).filter((r) => r.memberId === member.id && r.handback))
+            .slice(-10)
+            .map((r) => `Task #${r.taskId} ${r.stepId}: ${r.handback!.summary}`);
+    return ['[Handoff] Your earlier session in this conversation cannot be continued (the model changed). What happened so far:', ...lines].join('\n');
   }
 
   async send(sessionId: number, text: string) {

@@ -33,11 +33,15 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
       ),
       sdk.tool(
         'reopen_task',
-        'When the user asks to change the result of a finished task, reopen that same task with what they want changed instead of starting a new one. A separate request is a new task.',
-        { task_id: z.number().int(), change: z.string().min(1).describe("What the user wants changed, in their words") },
+        'When the user asks to change the result of a finished task, reopen that same task with what they want changed instead of starting a new one. ' +
+          'Leave task_id out when the user did not say which task ("그거 다시 해줘"): the app then asks the user with a card. A separate request is a new task.',
+        {
+          task_id: z.number().int().optional(),
+          change: z.string().min(1).describe('What the user wants changed, in their words'),
+        },
         async (a) => {
-          const task = chat.store.listTasks(sessionId).find((t) => t.id === a.task_id);
-          if (!task) return { content: [{ type: 'text', text: `업무 #${a.task_id}는 이 세션에 없습니다.` }] };
+          const task = await pickTask(chat, sessionId, a.task_id, a.change);
+          if (!task) return { content: [{ type: 'text', text: a.task_id ? `업무 #${a.task_id}는 이 세션에 없습니다.` : '다시 열 업무가 없습니다.' }] };
           const ok = chat.tasks.reopen(task.id, a.change);
           return { content: [{ type: 'text', text: ok ? `업무 #${task.id}를 다시 진행합니다.` : `업무 #${task.id}는 지금 다시 열 수 없습니다 (${task.status}).` }] };
         },
@@ -59,6 +63,25 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
       ),
     ],
   });
+}
+
+// Which task an unnamed follow-up means: the only finished one, or the one the user picks from a card
+async function pickTask(chat: Chat, sessionId: number, id: number | undefined, change: string) {
+  const tasks = chat.store.listTasks(sessionId);
+  if (id) return tasks.find((t) => t.id === id) ?? null;
+  const done = tasks.filter((t) => t.status === 'done');
+  if (done.length <= 1) return done[0] ?? null;
+  const label = (t: Task) => `#${t.id} ${t.title}`;
+  // Held until the user answers: reopening the wrong task would redo finished work
+  const choice = await chat.questions.ask({
+    sessionId,
+    taskId: null,
+    kind: 'choice',
+    prompt: `"${change}" — 어느 업무를 다시 할까요?`,
+    options: done.map(label),
+    payload: {},
+  });
+  return done.find((t) => label(t) === choice) ?? null;
 }
 
 // The app's tools for a member at work on one step: asking a colleague without going through 비서

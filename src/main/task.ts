@@ -224,6 +224,9 @@ export class Tasks {
     const runs = store.listStepRuns(task.id);
     const project = store.readProject(store.readSession(task.sessionId).projectId);
     const own = lastDone(runs, step.id);
+    // A run cut off by a restart may have saved files already; the new run checks them instead of starting over
+    const cut = runs.filter((r) => r.stepId === step.id).at(-1)?.error === 'app restarted';
+    const saved = cut && !step.verdict ? changedFiles(store.readBaseline(task.id), snapshot(project.path)) : [];
     const earlier = w.steps
       .filter((s) => s.id !== step.id && lastDone(runs, s.id) && (step.after.includes(s.id) || isAncestor(w, s.id, step.id)))
       .map((s) => section(`${s.label} (${crew.find(s.role).role})`, lastDone(runs, s.id)!.handback!));
@@ -237,6 +240,7 @@ export class Tasks {
       `Project folder: ${project.path}\nYour output folder for reports: ${this.chat.outputDir(project, `task-${task.id}`)}`,
       ...(earlier.length ? ['# Earlier steps', ...earlier] : []),
       ...(sentBackBy.length ? ['# Fix exactly these points', ...sentBackBy] : []),
+      ...(saved.length ? [`# Cut off by a restart\nYour earlier run of this step was cut off after changing: ${saved.join(', ')}. Read them, keep what is right, and finish the step.`] : []),
       step.verdict
         ? 'Judge it and answer with verdict pass, or rework with each point to fix.'
         : 'Do the step, then answer with your handback.',

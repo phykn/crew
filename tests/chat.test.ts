@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import { Chat } from '../src/main/chat';
 import { CREW, fakeQuery, openScratch, reply } from './support';
 
-test('비서 answers, resumes its own Claude session, and runs on the model chosen last', async () => {
+test('비서 answers in its own Claude session and runs on the model chosen last', async () => {
   const { store, project, paths } = openScratch();
   const fake = fakeQuery([reply('파일은 README.md 하나입니다.'), reply('README.md라고 했습니다.')]);
   const streamed: string[] = [];
@@ -27,7 +27,7 @@ test('비서 answers, resumes its own Claude session, and runs on the model chos
   expect(streamed).toEqual(['파일은 README.md 하나입니다.', 'README.md라고 했습니다.']);
   expect(fake.calls.map((o) => [o.resume, o.model, o.cwd])).toEqual([
     [undefined, 'opus', store.readProject(p.id).path],
-    ['claude-1', 'haiku', store.readProject(p.id).path],
+    [undefined, 'haiku', store.readProject(p.id).path],
   ]);
   expect(store.listRuns(s.id).map((r) => [r.model, r.status, r.costUsd])).toEqual([
     ['opus', 'done', 0.01],
