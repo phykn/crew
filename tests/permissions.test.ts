@@ -93,7 +93,10 @@ test('a permission change is recorded by name, never with the server settings it
     fs.writeFileSync(file, JSON.stringify(mcp));
     const { store, chat, project } = setup(new Crew(dir));
     const reviewer = store.readMember(project.id, 'reviewer');
-    chat.setPermissions(reviewer.id, { mcp: [{ server: 'browser', access: 'read' }], skills: ['review'] });
+    chat.setPermissions(reviewer.id, {
+      mcp: [{ server: 'browser', access: 'read' }],
+      skills: ['plan-review', 'code-review'],
+    });
 
     const [change] = store.listPermissionChanges(reviewer.id);
     expect(change.change).toBe('스킬 -report, MCP +browser(읽기), MCP -browser(전체)');
@@ -103,13 +106,16 @@ test('a permission change is recorded by name, never with the server settings it
   }
 });
 
-test('skills set before the quick-check skill was renamed keep it under its new name', () => {
+test('skills set before a skill was renamed or split keep it under its new names', () => {
   const { store, project, db } = openScratch();
   const p = store.addProject(project);
   store.seedMembers(p.id, [{ key: 'coder', nickname: '모루', model: 'sonnet' }]);
   const coder = store.readMember(p.id, 'coder');
-  store.writeConfig(coder.id, { skills: ['code', 'tools'], tools: ['read'] }, 'test');
+  store.writeConfig(coder.id, { skills: ['code', 'tools', 'review', 'report'], tools: ['read'] }, 'test');
   const version = (store.db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
-  store.db.exec(`PRAGMA user_version = ${version - 1}`);
-  expect(new Store(db).readMemberById(coder.id).config).toEqual({ skills: ['code', 'check'], tools: ['read'] });
+  store.db.exec(`PRAGMA user_version = ${version - 2}`);
+  expect(new Store(db).readMemberById(coder.id).config).toEqual({
+    skills: ['code', 'check', 'plan-review', 'code-review', 'report'],
+    tools: ['read'],
+  });
 });

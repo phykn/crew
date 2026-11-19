@@ -85,6 +85,12 @@ const MIGRATIONS = [
   `UPDATE members SET config = json_set(config, '$.skills',
      json((SELECT json_group_array(CASE value WHEN 'tools' THEN 'check' ELSE value END) FROM json_each(members.config, '$.skills'))))
    WHERE json_type(config, '$.skills') = 'array';`,
+  `UPDATE members SET config = json_set(config, '$.skills', json((SELECT json_group_array(v) FROM (
+     SELECT value AS v, key AS k, 0 AS o FROM json_each(members.config, '$.skills') WHERE value <> 'review'
+     UNION ALL SELECT 'plan-review', key, 0 FROM json_each(members.config, '$.skills') WHERE value = 'review'
+     UNION ALL SELECT 'code-review', key, 1 FROM json_each(members.config, '$.skills') WHERE value = 'review'
+     ORDER BY k, o))))
+   WHERE json_type(config, '$.skills') = 'array';`,
 ];
 
 export type Project = { id: number; path: string; name: string };

@@ -1,0 +1,11 @@
+---
+name: plan-review
+description: Judge a plan against the brief and the planning standard before anyone edits code.
+---
+
+# Plan review
+
+- It reaches the goal, neither smaller nor larger than the brief.
+- It names the kind of change and what done means for that kind.
+- It plans only what something will use. A rename or a config key change lists every caller, test, document, and config that names it; a change in behavior lists the README and `CLAUDE.md` lines to update.
+- Its done-when is a list of checks, and no step would break callers.

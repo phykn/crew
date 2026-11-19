@@ -16,7 +16,7 @@
       "after": ["plan"],
       "verdict": true,
       "rework": "plan",
-      "does": "Review the plan before anyone edits code."
+      "does": "Review the plan with your plan-review skill before anyone edits code."
     },
     {
       "id": "develop",
@@ -33,7 +33,7 @@
       "after": ["develop"],
       "verdict": true,
       "rework": "develop",
-      "does": "Review the code change for correctness."
+      "does": "Review the code change with your code-review skill."
     },
     {
       "id": "test",

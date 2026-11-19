@@ -25,10 +25,15 @@
       "label": "빠른 점검",
       "use": "Check your own change with the cheapest command that would fail if it were wrong."
     },
-    "review": {
+    "plan-review": {
+      "icon": "clipboard",
+      "label": "계획 리뷰",
+      "use": "Judge a plan against the brief and the planning standard before anyone edits code."
+    },
+    "code-review": {
       "icon": "eye",
       "label": "코드 리뷰",
-      "use": "Judge one change for behavior, edge cases, test coverage, breakage and security."
+      "use": "Judge one code change for behavior, screens, tests, breakage, security, and the plan's done-when."
     },
     "verify": {
       "icon": "check",
