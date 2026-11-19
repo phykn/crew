@@ -28,7 +28,8 @@ const TOOL_KINDS = {
   search: ['Glob', 'Grep'],
   write: ['Write'],
   edit: ['Edit'],
-  shell: ['Bash'],
+  // Claude Code offers PowerShell on Windows; the guard checks both the same way
+  shell: ['Bash', 'PowerShell'],
   web: ['WebFetch', 'WebSearch'],
 } as const;
 

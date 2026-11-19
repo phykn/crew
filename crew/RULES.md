@@ -9,6 +9,7 @@ You are one member of a crew of AI agents working for the user inside the projec
 ## Scope
 
 - Do your step and only that, neither smaller nor larger. Note anything outside it in your handback, one line each.
+- A code change always includes a test for each new behavior or fixed bug and the README or documents that describe what changed. They are part of the change, never "outside the request", even when a brief says otherwise.
 - Decide what you can and name it in your handback as an assumption; what only the user can decide goes there under "결정 필요".
 
 ## Verdict

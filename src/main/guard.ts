@@ -200,7 +200,8 @@ function readRedirect(cmd: string, i: number, targets: string[]) {
   const quote = cmd[i] === '"' || cmd[i] === "'" ? cmd[i] : null;
   const start = i;
   if (quote) i++;
-  while (i < cmd.length && (quote ? cmd[i] !== quote : !/[\s;&|<>]/.test(cmd[i]))) i++;
+  // A closing parenthesis ends the target, as in $(cmd 2>/dev/null)
+  while (i < cmd.length && (quote ? cmd[i] !== quote : !/[\s;&|<>()]/.test(cmd[i]))) i++;
   targets.push(cmd.slice(start, i).replace(/^["']|["']$/g, ''));
   return i + (quote ? 1 : 0);
 }

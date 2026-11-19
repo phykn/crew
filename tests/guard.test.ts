@@ -75,6 +75,7 @@ test('write targets are read from redirects, tee, cp, sed -i, and PowerShell, no
   expect(writeTargets('cat x | tee log.txt; cp a.txt dist/a.txt')).toEqual(['log.txt', 'dist/a.txt']);
   expect(writeTargets("sed -i 's/a/b/' file.js")).toEqual(['file.js']);
   expect(writeTargets('Set-Content -Path notes.md -Value hi')).toEqual(['notes.md']);
+  expect(writeTargets('x=$(python cli.py 2>/dev/null)')).toEqual(['/dev/null']);
 });
 
 test('비서 may edit the project itself, but not a file a task is writing', async () => {
