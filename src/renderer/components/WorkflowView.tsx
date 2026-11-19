@@ -257,7 +257,7 @@ export function WorkflowView({
                 checked={step.verdict}
                 onChange={(e) => edit(step.id, { verdict: e.target.checked })}
               />
-              루프 가능
+              되돌리기
             </label>
             {step.verdict && (
               <label>
