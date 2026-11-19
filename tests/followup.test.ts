@@ -34,7 +34,7 @@ test('"그거 다시 해줘" with two finished tasks waits on a card, then reope
 test('a model change starts a fresh Claude session that is handed the conversation', async () => {
   const { store, fake, chat, p, s } = setup({ 비서: [reply('안녕하세요', 'claude-a'), reply('네', 'claude-b')] });
   await chat.send(s.id, '첫 질문');
-  store.updateMember(store.readMember(p.id, 'orchestrator').id, { model: 'sonnet' });
+  store.updateMember(store.readMember(p.id, 'orchestrator').id, { model: 'opus' });
   await chat.send(s.id, '두 번째');
   expect(fake.calls.map((c) => c.options.resume)).toEqual([undefined, undefined]);
   expect(fake.calls[1].prompt).toContain('[Handoff]');

@@ -23,6 +23,7 @@ export type Paths = { output: string; protected: string[] };
 
 const Draft = z.object({
   key: z.string().regex(/^[a-z][a-z0-9_]*$/).describe('The role in lowercase English, such as translator'),
+  nickname: z.string().min(1).max(12).describe('A Korean nickname unlike the ones in use'),
   definition: z.string().describe('The whole definition: front matter and instructions'),
 });
 const HIRE_SCHEMA = z.toJSONSchema(Draft, { target: 'draft-7', io: 'input' }) as Record<string, unknown>;
@@ -127,7 +128,7 @@ export class Chat {
   }
 
   seed(projectId: number) {
-    this.store.seedMembers(projectId, this.crew.defs);
+    this.store.seedMembers(projectId, this.crew.defs.map((d) => ({ ...d, nickname: this.crew.nicknames[d.key] })));
   }
 
   // Runs one member in its own Claude session for this app session, after whatever it is already doing
@@ -280,13 +281,14 @@ export class Chat {
     const { store } = this;
     const project = store.readProject(store.readSession(sessionId).projectId);
     const members = store.listMembers(project.id);
-    const existing = members.map((m) => `- ${this.crew.defOf(m).role} (${m.key}, ${m.nickname}): ${this.crew.defOf(m).description}`).join('\n');
+    const existing = members.map((m) => `- ${this.crew.defOf(m).role} (${m.key}): ${this.crew.defOf(m).description}`).join('\n');
+    const nicknames = members.map((m) => m.nickname).join(', ');
     const kit = `Skills: ${Object.keys(this.crew.kit.skills).join(', ')}. MCP servers: ${Object.keys(this.crew.kit.mcp).join(', ')}.`;
-    const prompt = [`[Hire] The crew needs: ${need}`, `As a ${temp ? 'temp (알바)' : 'regular'}.`, `# Existing members\n${existing}`, `# Kit\n${kit}`].join('\n\n');
+    const prompt = [`[Hire] The crew needs: ${need}`, `As a ${temp ? 'temp (알바)' : 'regular'}.`, `# Existing members\n${existing}`, `# Nicknames in use\n${nicknames}`, `# Kit\n${kit}`].join('\n\n');
     const out = await this.runMember(store.readMember(project.id, 'hr'), sessionId, null, prompt, { schema: HIRE_SCHEMA });
     const draft = Draft.safeParse(out.structured);
     if (!draft.success) return `인사가 정의를 만들지 못했습니다: ${out.error ?? '형식이 맞지 않습니다'}`;
-    const { key } = draft.data;
+    const { key, nickname } = draft.data;
     let definition = draft.data.definition;
     let def;
     try {
@@ -297,11 +299,11 @@ export class Chat {
     }
     if (members.some((m) => m.key === key || this.crew.defOf(m).role === def.role)) return `${def.role}(${key})는 이미 있습니다.`;
     // The role line is how a run knows who it is; a draft that left it out still gets it
-    if (!def.instructions.includes(`**${def.role}**`)) definition = definition.replace(/\n---\r?\n/, `\n---\n\nYou are the crew's **${def.role}**.\n\n`);
-    const member = store.addMember(project.id, { key, nickname: def.nickname, model: def.model, definition, temp });
-    this.note(member, 'hire', `${def.role}(${def.nickname}) ${temp ? '알바로' : '정규로'} 고용`);
+    if (!def.instructions.includes(`**${def.role}**`)) definition = definition.replace(/\n---\r?\n/, `\n---\n\nYou are the crew's **${def.role}** (${key}).\n\n`);
+    const member = store.addMember(project.id, { key, nickname, model: def.model, definition, temp });
+    this.note(member, 'hire', `${def.role}(${nickname}) ${temp ? '알바로' : '정규로'} 고용`);
     this.emit('changed', 'members');
-    return `${def.role}(${def.nickname})을 ${temp ? '알바로' : '정규로'} 고용했습니다. key: ${key}`;
+    return `${def.role}(${nickname})을 ${temp ? '알바로' : '정규로'} 고용했습니다. key: ${key}`;
   }
 
   // What a member's earlier Claude session knew, for a fresh one: the conversation for 비서, its own handbacks for the rest

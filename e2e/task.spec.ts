@@ -12,6 +12,7 @@ const SCRIPT = {
   // 개발 reaches for a tool outside its role, which becomes an answer card
   개발: [{ tool: { name: 'WebFetch', input: { url: 'https://example.com/docs' } }, write: { file: 'search.js', text: 'v1' }, ...hb('검색 수정') }],
   시험: [hb('시험 통과', { verdict: 'pass', checks: ['npm test → 3 passed'] })],
+  표준: [hb('스타일 통과', { verdict: 'pass' })],
 };
 
 test('a message opens a pinned task card, the answer card lets it go on, and the log opens the handback', async () => {

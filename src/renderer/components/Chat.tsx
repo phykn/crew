@@ -62,7 +62,7 @@ export function Chat({ session, onLog, onClear }: { session: Session; onLog: (ta
       >
         <textarea
           value={draft}
-          placeholder="비서에게 메시지 보내기"
+          placeholder="메시지 보내기"
           aria-label="메시지"
           rows={1}
           onChange={(e) => setDraft(e.target.value)}

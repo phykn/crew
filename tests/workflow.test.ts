@@ -12,7 +12,7 @@ test('rule versions: broken or stale saves are refused, and each scope reaches o
   const base = chat.workflowFor(p.id, 'code');
   const save = (rules: unknown, o: { base?: number; scope?: 'future' | 'current' | 'once'; taskId?: number } = {}) =>
     chat.saveWorkflow({ projectId: p.id, kind: 'code', base: o.base ?? chat.workflowFor(p.id, 'code').version, rules, author: 'test', scope: o.scope ?? 'future', taskId: o.taskId });
-  const withStyle = { ...base.rules, steps: [...base.rules.steps, { id: 'style', role: 'stylist', label: '표준 리뷰', does: '이름과 형식', after: ['develop'], verdict: true, rework: 'develop' }] };
+  const withDocs = { ...base.rules, steps: [...base.rules.steps, { id: 'docs', role: 'researcher', label: '문서 확인', does: '문서 확인', after: ['develop'], verdict: true, rework: 'develop' }] };
   const ids = (taskId: number) => store.readTask(taskId).workflow.steps.map((x) => x.id);
 
   const cyclic = { ...base.rules, steps: base.rules.steps.map((x) => (x.id === 'plan' ? { ...x, after: ['test'] } : x)) };
@@ -22,11 +22,11 @@ test('rule versions: broken or stale saves are refused, and each scope reaches o
   expect(chat.workflowFor(p.id, 'code').version).toBe(0);
 
   const running = chat.tasks.start(s.id, 'code', '진행 중', 'r');
-  expect(save(withStyle)).toEqual({ ok: true, version: 1 });
+  expect(save(withDocs)).toEqual({ ok: true, version: 1 });
   // Saved from version 0 again: it would overwrite version 1, so it is refused
   expect(save(base.rules, { base: 0 }).ok).toBe(false);
-  expect(ids(running.id)).not.toContain('style');
-  expect(ids(chat.tasks.start(s.id, 'code', '새 업무', 'r').id)).toContain('style');
+  expect(ids(running.id)).not.toContain('docs');
+  expect(ids(chat.tasks.start(s.id, 'code', '새 업무', 'r').id)).toContain('docs');
 
   const lean = { ...base.rules, steps: base.rules.steps.filter((x) => x.id !== 'plan_review').map((x) => ({ ...x, after: x.after.filter((a) => a !== 'plan_review').concat(x.id === 'develop' ? ['plan'] : []) })) };
   expect(save(lean, { scope: 'once', taskId: running.id }).ok).toBe(true);

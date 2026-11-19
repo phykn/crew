@@ -24,6 +24,7 @@ test('기획 → 리뷰 (sent back once) → 기획 → 리뷰 → 개발 → �
     ],
     개발: [handback('claude-code', { summary: '검색 수정', files: ['search.js'] })],
     시험: [handback('claude-test', { summary: '시험 통과', verdict: 'pass', checks: ['npm test: 3 passed'] })],
+    표준: [handback('claude-style', { summary: '스타일 통과', verdict: 'pass' })],
   });
   const chat = new Chat(store, async () => fake.sdk, CREW, () => {}, paths);
   const p = store.addProject(project);
@@ -43,6 +44,7 @@ test('기획 → 리뷰 (sent back once) → 기획 → 리뷰 → 개발 → �
     ['develop', null],
     ['review', 'pass'],
     ['test', 'pass'],
+    ['style', 'pass'],
   ]);
   // The fix round gets the reviewer's point, and the second plan run resumes the first one's session
   const plans = fake.calls.filter((c) => c.role === '기획');
@@ -54,6 +56,7 @@ test('기획 → 리뷰 (sent back once) → 기획 → 리뷰 → 개발 → �
     ['reviewer', 'claude-review'],
     ['coder', 'claude-code'],
     ['tester', 'claude-test'],
+    ['stylist', 'claude-style'],
   ]);
   expect(store.listEvents(s.id).filter((e) => e.kind === 'status').map((e) => e.detail)).toEqual([
     'running',

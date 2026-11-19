@@ -56,6 +56,17 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
         },
       ),
       sdk.tool(
+        'ask_tools',
+        'Hand the tools member a request about skills or MCP servers: who should get or lose one, or what tool the crew lacks. Each change it makes waits for the user on a card. Its answer comes back as the result.',
+        { request: z.string().min(1).describe("The user's request in their words") },
+        async (a) => {
+          const member = chat.store.readMember(projectId(), 'tools');
+          if (member.status !== 'hired') return text('도구가 지금 고용되어 있지 않습니다.');
+          const out = await chat.runMember(member, sessionId, null, a.request, { mcpServers: { crew: kitTools(sdk, chat, sessionId) } });
+          return text(out.status === 'done' ? out.text : `도구가 답하지 못했습니다: ${out.error ?? out.status}`);
+        },
+      ),
+      sdk.tool(
         'read_workflow',
         "Read a task kind's current rules for this project, with the version to base a change on.",
         { kind: z.enum(kinds) },
@@ -210,7 +221,7 @@ export function memberTools(sdk: Sdk, chat: Chat, task: Task, step: Step, member
         'Ask another crew member directly for a check or an answer you need for your step, such as 표준 for a naming question. ' +
           'Their answer comes back as the result. If they ask you back, call again with the same request_id and your reply.',
         {
-          role: z.string().describe('The Korean role to ask, such as 표준'),
+          role: z.string().describe('The member to ask: its key, such as stylist, or its Korean role'),
           message: z.string().describe('Your question, or your reply to their question'),
           expected: z.string().default('').describe('What you need back'),
           request_id: z.number().int().optional().describe('The request you are continuing'),
@@ -230,21 +241,29 @@ export async function askPeer(
 ) {
   const { store, crew } = chat;
   const project = store.readProject(store.readSession(task.sessionId).projectId);
-  const peer = store.listMembers(project.id).find((m) => crew.defOf(m).role === a.role);
-  if (!peer) return `${a.role} is not a crew role.`;
-  if (peer.status !== 'hired') return `${a.role} is not hired now; tell 비서 in your handback.`;
+  const peer = store.listMembers(project.id).find((m) => m.key === a.role || crew.defOf(m).role === a.role);
+  if (!peer) return `${a.role} is not a crew member.`;
+  if (peer.status !== 'hired') return `${a.role} is not hired now; say so in your handback.`;
+  // Each member works one run at a time, so asking oneself, or a member at work, would wait on a run that waits on this one
+  if (peer.id === member.id) return 'You cannot ask yourself; decide it in your step.';
+  // The record names the peer by its role, however it was asked for
+  const to = crew.defOf(peer).role;
+  const busy = () => `${to} is at work on its own step now; decide without it and note the open question in your handback.`;
+  // Refused before a request is recorded, so a busy peer leaves no empty thread behind
+  if (a.request_id === undefined && chat.busy.get(peer.id)) return busy();
   const id =
     a.request_id ??
-    store.createRequest({ taskId: task.id, stepId: step.id, fromMember: member.id, toRole: a.role, expected: a.expected ?? '' });
+    store.createRequest({ taskId: task.id, stepId: step.id, fromMember: member.id, toRole: to, expected: a.expected ?? '' });
   const req = store.readRequest(id);
   if (req.taskId !== task.id) return `Request ${id} belongs to another task.`;
   const from = crew.defOf(member).role;
   // A resent line that was already answered is not run again: the answer on record is returned
   const at = req.thread.findIndex((l, i) => l.from === from && l.text === a.message && req.thread[i + 1]);
   if (at >= 0) return reply(id, req.thread[at + 1]);
+  if (chat.busy.get(peer.id)) return busy();
   const thread: PeerLine[] = [...req.thread, { from, text: a.message }];
   store.writeThread(id, thread);
-  store.addEvent({ sessionId: task.sessionId, taskId: task.id, memberId: member.id, kind: 'request', text: `${from} → ${a.role}: ${a.message}`, detail: JSON.stringify({ requestId: id }) });
+  store.addEvent({ sessionId: task.sessionId, taskId: task.id, memberId: member.id, kind: 'request', text: `${from} → ${to}: ${a.message}`, detail: JSON.stringify({ requestId: id }) });
   const prompt = [
     `[Request #${id} in task #${task.id} "${task.title}"] ${from} asks you during the step ${step.label}.`,
     req.expected ? `They need: ${req.expected}` : '',
@@ -256,10 +275,10 @@ export async function askPeer(
   const out = await chat.runMember(peer, task.sessionId, task.id, prompt, { schema: PEER_SCHEMA });
   const parsed = PeerAnswer.safeParse(out.structured);
   const line: PeerLine = parsed.success
-    ? { from: a.role, text: parsed.data.ask_back ? `?${parsed.data.ask_back}` : parsed.data.answer }
-    : { from: a.role, text: `!${out.error ?? 'no answer'}` };
+    ? { from: to, text: parsed.data.ask_back ? `?${parsed.data.ask_back}` : parsed.data.answer }
+    : { from: to, text: `!${out.error ?? 'no answer'}` };
   store.writeThread(id, [...thread, line]);
-  store.addEvent({ sessionId: task.sessionId, taskId: task.id, memberId: peer.id, kind: 'request', text: `${a.role} → ${from}: ${line.text}`, detail: JSON.stringify({ requestId: id }) });
+  store.addEvent({ sessionId: task.sessionId, taskId: task.id, memberId: peer.id, kind: 'request', text: `${to} → ${from}: ${line.text}`, detail: JSON.stringify({ requestId: id }) });
   return reply(id, line);
 }
 
@@ -267,4 +286,65 @@ function reply(id: number, line: PeerLine) {
   if (line.text.startsWith('?')) return `Request ${id}: ${line.from} asks back: ${line.text.slice(1)} Reply with ask_peer, request_id ${id}.`;
   if (line.text.startsWith('!')) return `Request ${id}: ${line.from} could not answer (${line.text.slice(1)}).`;
   return `Request ${id}: ${line.from} answers: ${line.text}`;
+}
+
+// The tools member's view of the kit and its one way to change it: a proposal the user approves on a card
+function kitTools(sdk: Sdk, chat: Chat, sessionId: number) {
+  const { store, crew } = chat;
+  const projectId = store.readSession(sessionId).projectId;
+  const text = (t: string) => ({ content: [{ type: 'text' as const, text: t }] });
+  const hired = () => store.listMembers(projectId).filter((m) => m.status === 'hired');
+  return sdk.createSdkMcpServer({
+    name: 'crew',
+    tools: [
+      sdk.tool('read_kit', 'Read every skill and MCP server in the kit, and which hired member holds which.', {}, async () => {
+        const kit = [
+          ...Object.entries(crew.kit.skills).map(([name, k]) => `- skill ${name}: ${k.use}`),
+          ...Object.entries(crew.kit.mcp).map(([name, k]) => `- mcp ${name}: ${k.use}`),
+        ];
+        const holders = hired().map((m) => {
+          const s = chat.settings(m);
+          return `- ${m.key} (${crew.defOf(m).role}${m.temp ? ', temp' : ''}): skills ${s.skills.join(', ') || 'none'}; mcp ${s.mcp.map((x) => `${x.server}(${x.access})`).join(', ') || 'none'}`;
+        });
+        return text(['# Kit', ...kit, '# Members', ...holders].join('\n'));
+      }),
+      sdk.tool(
+        'assign',
+        "Propose one member's new full list of skills and/or MCP servers. The user approves or cancels it on a card; the answer says which.",
+        {
+          member: z.string().describe('The member: its key or Korean role'),
+          skills: z.array(z.string()).optional().describe('Its full new list of skills'),
+          mcp: z.array(z.object({ server: z.string(), access: z.enum(['all', 'read']) })).optional().describe('Its full new list of MCP servers'),
+          reason: z.string().min(1).describe('Why, in Korean, for the card'),
+        },
+        async (a) => {
+          const m = hired().find((x) => x.key === a.member || crew.defOf(x).role === a.member);
+          if (!m) return text(`${a.member} is not a hired member.`);
+          if (m.temp && a.mcp?.length) return text('A temp gets no MCP server.');
+          const config = { ...(a.skills ? { skills: a.skills } : {}), ...(a.mcp ? { mcp: a.mcp } : {}) };
+          try {
+            crew.checkConfig(config);
+          } catch (err) {
+            return text(String(err));
+          }
+          const shown = [
+            ...(a.skills ? [`스킬: ${a.skills.map((s) => crew.kit.skills[s].label).join(', ') || '없음'}`] : []),
+            ...(a.mcp ? [`MCP: ${a.mcp.map((x) => `${crew.kit.mcp[x.server].label}(${x.access === 'all' ? '전체' : '읽기'})`).join(', ') || '없음'}`] : []),
+          ];
+          const choice = await chat.questions.ask({
+            sessionId,
+            taskId: null,
+            kind: 'choice',
+            prompt: `도구가 ${crew.defOf(m).role}(${m.nickname})의 권한을 바꾸려 합니다.\n${shown.join('\n')}\n${a.reason}`,
+            options: ['취소', '적용'],
+            payload: {},
+          });
+          if (choice !== '적용') return text('The user cancelled this change; do not propose it again.');
+          chat.setPermissions(m.id, config);
+          chat.emit('changed', 'members');
+          return text(`Applied to ${m.key}.`);
+        },
+      ),
+    ],
+  });
 }

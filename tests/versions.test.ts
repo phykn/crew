@@ -20,6 +20,7 @@ test('each change is a version the verdicts judge, and a follow-up reopens the s
     리뷰: [pass('claude-review'), pass('claude-review'), pass('claude-review')],
     개발: [edit('v1'), edit('v2')],
     시험: [pass('claude-test'), pass('claude-test')],
+    표준: [pass('claude-style'), pass('claude-style')],
   });
   const chat = new Chat(store, async () => fake.sdk, CREW, () => {}, paths);
   const p = store.addProject(project);

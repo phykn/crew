@@ -27,7 +27,6 @@ const list = z
 
 const Front = z.object({
   role: z.string().min(1),
-  nickname: z.string().min(1),
   color: z.string().regex(/^#[0-9a-f]{6}$/i),
   model: z.enum(MODELS),
   tools: list.pipe(z.array(z.enum(Object.keys(TOOL_KINDS) as [keyof typeof TOOL_KINDS]))),
@@ -92,6 +91,8 @@ export class Crew {
   kit: z.infer<typeof Kit>;
   servers: Record<string, Record<string, unknown>>;
   skillTexts: Record<string, string>;
+  // The starting crew's nicknames; the user may rename anyone, so they live apart from the definitions
+  nicknames: Record<string, string>;
 
   constructor(public dir: string) {
     const agents = path.join(dir, 'agents');
@@ -100,6 +101,9 @@ export class Crew {
       .filter((f) => f.endsWith('.md'))
       .map((f) => parseDefinition(f.slice(0, -3), fs.readFileSync(path.join(agents, f), 'utf-8')));
     this.rules = fs.readFileSync(path.join(dir, 'RULES.md'), 'utf-8');
+    this.nicknames = z.record(z.string(), z.string().min(1)).parse(JSON.parse(fs.readFileSync(path.join(dir, 'nicknames.json'), 'utf-8')));
+    const unnamed = this.defs.filter((d) => !this.nicknames[d.key]).map((d) => d.key);
+    if (unnamed.length) throw new Error(`nicknames.json has no nickname for: ${unnamed.join(', ')}`);
     this.kit = Kit.parse(JSON.parse(fs.readFileSync(path.join(dir, 'kit.json'), 'utf-8')));
     this.servers = McpFile.parse(JSON.parse(fs.readFileSync(path.join(dir, 'mcp.json'), 'utf-8'))).mcpServers;
     // A skill with a SKILL.md gives its whole procedure; one without gives its one-line use

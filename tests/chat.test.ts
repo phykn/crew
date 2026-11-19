@@ -26,11 +26,11 @@ test('비서 answers in its own Claude session and runs on the model chosen last
   ]);
   expect(streamed).toEqual(['파일은 README.md 하나입니다.', 'README.md라고 했습니다.']);
   expect(fake.calls.map((o) => [o.resume, o.model, o.cwd])).toEqual([
-    [undefined, 'opus', store.readProject(p.id).path],
+    [undefined, 'sonnet', store.readProject(p.id).path],
     [undefined, 'haiku', store.readProject(p.id).path],
   ]);
   expect(store.listRuns(s.id).map((r) => [r.model, r.status, r.costUsd])).toEqual([
-    ['opus', 'done', 0.01],
+    ['sonnet', 'done', 0.01],
     ['haiku', 'done', 0.01],
   ]);
 });

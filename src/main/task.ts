@@ -261,7 +261,7 @@ export class Tasks {
       `[Task #${task.id}] ${task.title}`,
       `The user's request, through 비서:\n${task.request}`,
       `Your step: ${step.label}. ${step.does}`,
-      `Project folder: ${project.path}\nYour output folder for reports: ${this.chat.outputDir(project, `task-${task.id}`)}`,
+      `Project folder: ${project.path}\nYour output folder for files you produce: ${this.chat.outputDir(project, `task-${task.id}`)}`,
       ...(earlier.length ? ['# Earlier steps', ...earlier] : []),
       // A step handed over from a member who left continues from what they saved
       ...(own && own.memberId !== this.memberFor(task, step).id ? ['# This step so far, by the member before you', section(step.label, own.handback!)] : []),

@@ -3,9 +3,8 @@ import { Chat } from '../src/main/chat';
 import { secretaryTools } from '../src/main/crew-tools';
 import { CREW, fakeCrew, handback, openScratch, reply, type Turn } from './support';
 
-const md = (role: string, nickname: string) => `---
+const md = (role: string) => `---
 role: ${role}
-nickname: ${nickname}
 color: #44aa88
 model: sonnet
 tools: read, search, write, shell
@@ -23,7 +22,7 @@ test('인사 drafts a temp, 비서 brings it in and it leaves once; its work is 
   let release = () => {};
   const held: Turn = (p, o) => new Promise((r) => (release = () => r(handback('t2', { summary: '번역 수정' })(p, o) as never)));
   const fake = fakeCrew({
-    인사: [reply('', 'hr', { key: 'translator', definition: md('번역', '라온') }), reply('', 'hr', { key: 'translator2', definition: md('통역', '가람') })],
+    인사: [reply('', 'hr', { key: 'translator', nickname: '라온', definition: md('번역') }), reply('', 'hr', { key: 'translator2', nickname: '가람', definition: md('통역') })],
     번역: [handback('t1', { summary: '번역 완료', body: '안녕하세요' })],
     통역: [held],
     비서: [reply('보고 1'), reply('보고 2')],

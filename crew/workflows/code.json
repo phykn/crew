@@ -1,7 +1,7 @@
 {
   "kind": "code",
   "label": "코드 변경",
-  "use": "Change code or files in the project: plan, plan review, development, then code review and tests in parallel.",
+  "use": "Change code or files in the project: plan, plan review, development, then code review, style check, and tests in parallel.",
   "steps": [
     {
       "id": "plan",
@@ -56,6 +56,17 @@
       "requires": [
         "checks"
       ]
+    },
+    {
+      "id": "style",
+      "role": "stylist",
+      "label": "스타일 검토",
+      "after": [
+        "develop"
+      ],
+      "verdict": true,
+      "rework": "develop",
+      "does": "Check that the change fits the project's conventions."
     }
   ]
 }

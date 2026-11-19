@@ -45,7 +45,7 @@ test('the editor saves review and test in parallel after 개발 as a new version
 
   await open();
   await expect(editor).toContainText('버전 2');
-  await expect(editor.locator('.react-flow__edge')).toHaveCount(4);
+  await expect(editor.locator('.react-flow__edge')).toHaveCount(5);
   await editor.getByLabel('단계 시험').click();
   await expect(side.getByLabel('개발')).toBeChecked();
   await expect(side.getByLabel('코드 리뷰')).not.toBeChecked();

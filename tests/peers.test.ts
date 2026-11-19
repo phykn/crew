@@ -17,6 +17,8 @@ test('a peer request asked back stays one thread, a resent line runs once, and a
   const coder = store.readMember(p.id, 'coder');
   const step = task.workflow.steps.find((x) => x.id === 'develop')!;
 
+  // Asking oneself would wait on one's own run
+  expect(await askPeer(chat, task, step, coder, { role: 'coder', message: '?' })).toContain('cannot ask yourself');
   const first = await askPeer(chat, task, step, coder, { role: '표준', message: '이름 괜찮나요?' });
   expect(first).toContain('asks back: 어느 파일인가요?');
   const id = Number(first.match(/Request (\d+)/)![1]);
