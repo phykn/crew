@@ -89,6 +89,11 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
       args: z.object({ projectId: id, kind: z.string() }),
       run: (a: { projectId: number; kind: string }) => chat.workflowFor(a.projectId, a.kind),
     },
+    'workflows.save': {
+      args: z.object({ projectId: id, kind: z.string(), base: z.number().int().min(0), rules: z.unknown(), layout: z.record(z.string(), z.object({ x: z.number(), y: z.number() })) }),
+      run: (a: { projectId: number; kind: string; base: number; rules: unknown; layout: Record<string, { x: number; y: number }> }) =>
+        chat.saveWorkflow({ ...a, author: '사용자', scope: 'future' }),
+    },
     'events.list': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => store.listEvents(a.sessionId) },
     'questions.answer': {
       args: z.object({ id, choice: z.string().min(1) }),

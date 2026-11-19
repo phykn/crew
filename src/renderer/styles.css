@@ -412,3 +412,15 @@ button { font: inherit; color: inherit; }
 .camp-canvas { position: absolute; inset: 0; }
 .camp-canvas canvas { image-rendering: pixelated; }
 .camp-canvas canvas { width: 100%; height: 100%; display: block; }
+.workflow-body { flex: 1; display: flex; min-height: 0; }
+.workflow-body .workflow-canvas { flex: 1; padding: 0; display: block; }
+.workflow-note { margin: 0; padding: 8px 20px; font-size: 13px; color: #86efac; border-bottom: 1px solid var(--line); }
+.workflow-note.bad { color: #fca5a5; }
+.workflow-side { width: 280px; border-left: 1px solid var(--line); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; font-size: 13px; }
+.workflow-side label { display: flex; flex-direction: column; gap: 4px; }
+.workflow-side label.check { flex-direction: row; align-items: center; gap: 6px; }
+.workflow-side input:not([type]), .workflow-side select, .workflow-side textarea { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font: inherit; }
+.workflow-side textarea { min-height: 70px; resize: vertical; }
+.workflow-side fieldset { border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; display: flex; flex-direction: column; gap: 4px; }
+.workflow-side legend { color: var(--muted); font-size: 12px; }
+.button.primary { background: var(--accent); border-color: var(--accent); }

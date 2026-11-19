@@ -16,7 +16,7 @@ test('the wiki keeps one document with two changes by two members, and they surv
   for (const [say, done] of [['테스트 방법 정리해줘', '보고 1'], ['e2e 명령도 넣어줘', '보고 2']]) {
     await page.getByLabel('메시지').fill(say);
     await page.getByLabel('메시지').press('Enter');
-    await expect(page.getByText(done)).toBeVisible();
+    await expect(page.locator('.message .bubble', { hasText: done }).first()).toBeVisible();
   }
   const check = async () => {
     await page.getByRole('tab', { name: '메모리' }).click();
