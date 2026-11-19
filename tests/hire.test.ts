@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { expect, test, vi } from 'vitest';
 import { Chat } from '../src/main/chat';
 import { secretaryTools } from '../src/main/crew-tools';
@@ -29,7 +31,16 @@ test('인사 drafts a temp, 비서 brings it in and it leaves once; its work is 
       reply('', 'hr', { key: 'translator', nickname: '라온', definition: md('번역') }),
       reply('', 'hr', { key: 'translator2', nickname: '가람', definition: md('통역') }),
     ],
-    번역: [handback('t1', { summary: '번역 완료', body: '안녕하세요' })],
+    // The temp may write only to its output folder, so its file waits there for the user's word
+    번역: [
+      (p, o) => {
+        fs.writeFileSync(
+          path.join(p.match(/Your output folder for files you produce: (.+)/)![1], 'a.ja.md'),
+          'こんにちは',
+        );
+        return handback('t1', { summary: '번역 완료', body: '안녕하세요' })(p, o);
+      },
+    ],
     통역: [held],
     비서: [reply('보고 1'), reply('보고 2')],
   });
@@ -55,7 +66,10 @@ test('인사 drafts a temp, 비서 brings it in and it leaves once; its work is 
   expect(roles()).toContain('번역');
   await tool('start_task', { kind: 'code', title: '번역', request: 'a.md 번역', role: '번역' });
   const [task] = store.listTasks(s.id);
-  await vi.waitFor(() => expect(store.readTask(task.id).status).toBe('done'));
+  await vi.waitFor(() => expect(store.openQuestionIds(task.id)).toHaveLength(1));
+  chat.questions.answer(store.openQuestionIds(task.id)[0], '프로젝트로 옮기기');
+  await vi.waitFor(() => expect(fs.readFileSync(path.join(p.path, 'a.ja.md'), 'utf8')).toBe('こんにちは'));
+  expect(store.readTask(task.id).status).toBe('done');
   expect(roles()).not.toContain('번역');
   chat.fire(temp.id);
   expect(

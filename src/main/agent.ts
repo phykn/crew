@@ -122,7 +122,8 @@ export class AgentRun {
     } catch (err) {
       out = { ...out, status: 'failed', error: String(err) };
     }
-    if (this.stopped) out.status = 'stopped';
+    // A stop makes the SDK throw an abort error; it says nothing the stopped status does not
+    if (this.stopped) out = { ...out, status: 'stopped', error: undefined };
     return out;
   }
 

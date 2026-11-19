@@ -216,9 +216,14 @@ function AnswerCard({ question }: { question: Question }) {
 
 // Agents write file names in backticks and lead points in bold; those two are the only formatting chat needs
 function renderInline(text: string) {
-  return text.split(/(`[^`\n]+`|\*\*[^*\n]+\*\*)/).map((part, i) => {
-    if (part.length > 2 && part.startsWith('`') && part.endsWith('`')) return <code key={i}>{part.slice(1, -1)}</code>;
-    if (part.length > 4 && part.startsWith('**') && part.endsWith('**')) return <b key={i}>{part.slice(2, -2)}</b>;
-    return part;
-  });
+  // A heading slips in now and then despite the rules; it reads as a bold line instead of stray #s
+  return text
+    .replace(/^#{1,6}\s+(.+?)\s*$/gm, '**$1**')
+    .split(/(`[^`\n]+`|\*\*[^*\n]+\*\*)/)
+    .map((part, i) => {
+      if (part.length > 2 && part.startsWith('`') && part.endsWith('`'))
+        return <code key={i}>{part.slice(1, -1)}</code>;
+      if (part.length > 4 && part.startsWith('**') && part.endsWith('**')) return <b key={i}>{part.slice(2, -2)}</b>;
+      return part;
+    });
 }
