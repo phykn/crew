@@ -32,6 +32,13 @@ const TOOL_KINDS = {
   web: ['WebFetch', 'WebSearch'],
 } as const;
 
+// The sprite parts src/renderer/camp/paint/sprites.js draws, as head, upper, lower
+export const LOOKS = {
+  head: ['hood', 'hair', 'helm', 'hat', 'braids'],
+  upper: ['tunic', 'robe', 'armor', 'vest'],
+  lower: ['boots', 'gown', 'greaves', 'wraps'],
+} as const;
+
 const list = z
   .string()
   .default('')
@@ -51,7 +58,7 @@ const Front = z.object({
   write: z.enum(['project', 'output', 'none']),
   skills: list,
   mcp: list,
-  look: list,
+  look: list.pipe(z.tuple([z.enum(LOOKS.head), z.enum(LOOKS.upper), z.enum(LOOKS.lower)])),
   description: z.string().min(1),
 });
 

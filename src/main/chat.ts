@@ -22,12 +22,17 @@ export type Emit = (channel: 'changed' | 'stream' | 'navigate', payload: unknown
 export type Paths = { output: string; protected: string[] };
 
 const Draft = z.object({
+  fits: z
+    .object({ key: z.string(), reason: z.string() })
+    .optional()
+    .describe('An existing member who already fits the work, instead of a new one: its key and why, in Korean'),
   key: z
     .string()
     .regex(/^[a-z][a-z0-9_]*$/)
+    .optional()
     .describe('The role in lowercase English, such as translator'),
-  nickname: z.string().min(1).max(12).describe('A Korean nickname unlike the ones in use'),
-  definition: z.string().describe('The whole definition: front matter and instructions'),
+  nickname: z.string().min(1).max(12).optional().describe('A Korean nickname unlike the ones in use'),
+  definition: z.string().optional().describe('The whole definition: front matter and instructions'),
 });
 const HIRE_SCHEMA = z.toJSONSchema(Draft, { target: 'draft-7', io: 'input' }) as Record<string, unknown>;
 
@@ -413,7 +418,11 @@ export class Chat {
     });
     const draft = Draft.safeParse(out.structured);
     if (!draft.success) return `인사가 정의를 만들지 못했습니다: ${out.error ?? '형식이 맞지 않습니다'}`;
-    const { key, nickname } = draft.data;
+    const { fits, key, nickname } = draft.data;
+    const fit = fits && this.findMember(project.id, fits.key);
+    if (fit) return `새로 뽑지 않았습니다. ${this.crew.defOf(fit).role}(${fit.key})이 이미 맞습니다: ${fits.reason}`;
+    if (!key || !nickname || !draft.data.definition)
+      return '인사가 정의를 만들지 못했습니다: 키, 별명, 정의가 모두 있어야 합니다';
     let definition = draft.data.definition;
     let def;
     try {

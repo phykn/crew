@@ -10,7 +10,7 @@ model: sonnet
 tools: read, search, write, shell
 write: project
 skills: research
-look: cap, coat, boots
+look: hood, robe, boots
 description: Translates the project's text.
 ---
 
@@ -86,4 +86,31 @@ test('인사 drafts a temp, 비서 brings it in and it leaves once; its work is 
       .filter((e) => e.kind === 'leave')
       .map((e) => e.text),
   ).toEqual(['번역(라온) 퇴장', '통역(가람) 퇴장 예정: 맡은 단계를 마치고 나갑니다', '통역(가람) 퇴장']);
+});
+
+test('인사 names a member who already fits instead of drafting, and a draft with a sprite part the camp lacks is refused', async () => {
+  const { store, project, paths } = openScratch();
+  const fake = fakeCrew({
+    인사: [
+      reply('', 'hr', { fits: { key: 'researcher', reason: '공식 문서 조사가 이미 조사의 일입니다' } }),
+      reply('', 'hr', {
+        key: 'translator',
+        nickname: '라온',
+        definition: md('번역').replace('hood, robe, boots', 'cap, coat, boots'),
+      }),
+    ],
+  });
+  const chat = new Chat(
+    store,
+    async () => fake.sdk,
+    CREW,
+    () => {},
+    paths,
+  );
+  const p = store.addProject(project);
+  chat.seed(p.id);
+  const s = store.createSession(p.id);
+  expect(await chat.hire(s.id, '버전 조사', false)).toContain('조사(researcher)이 이미 맞습니다');
+  expect(await chat.hire(s.id, '번역', false)).toContain('정의가 맞지 않습니다');
+  expect(store.listMembers(p.id)).toHaveLength(11);
 });
