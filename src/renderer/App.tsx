@@ -7,6 +7,7 @@ import { TitleBar } from './components/TitleBar';
 import { ProjectBar } from './components/ProjectBar';
 import { Chat } from './components/Chat';
 import { Legend } from './components/Legend';
+import { Log } from './components/Log';
 
 export function App() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -14,6 +15,9 @@ export function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [session, setSession] = useState<Session | null>(null);
   const [members, setMembers] = useState<CrewMember[]>([]);
+  const [tab, setTab] = useState('chat');
+  // The task the log shows; null shows every task in the session
+  const [logTask, setLogTask] = useState<number | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -70,16 +74,28 @@ export function App() {
             onSession={(s) => selectSession(s)}
             onNewSession={newSession}
           />
-          <Tabs.Root className="tabs" defaultValue="chat">
+          <Tabs.Root className="tabs" value={tab} onValueChange={setTab}>
             <Tabs.List className="tab-list">
               <Tabs.Trigger value="chat">대화</Tabs.Trigger>
               <Tabs.Trigger value="log">로그</Tabs.Trigger>
               <Tabs.Trigger value="memory">메모리</Tabs.Trigger>
             </Tabs.List>
             <Tabs.Content value="chat" className="tab-body">
-              {session ? <Chat session={session} /> : <p className="empty">폴더를 열어 프로젝트를 시작하세요.</p>}
+              {session ? (
+                <Chat
+                  session={session}
+                  onLog={(id) => {
+                    setLogTask(id);
+                    setTab('log');
+                  }}
+                />
+              ) : (
+                <p className="empty">폴더를 열어 프로젝트를 시작하세요.</p>
+              )}
             </Tabs.Content>
-            <Tabs.Content value="log" className="tab-body" />
+            <Tabs.Content value="log" className="tab-body">
+              {session && <Log session={session} members={members} taskId={logTask} onTask={setLogTask} />}
+            </Tabs.Content>
             <Tabs.Content value="memory" className="tab-body" />
           </Tabs.Root>
         </aside>

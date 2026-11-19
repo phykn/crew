@@ -4,6 +4,7 @@ import { Store } from './db';
 import { Chat } from './chat';
 import { Crew } from './crew';
 import { loadSdk } from './agent';
+import { scriptSdk } from './script-sdk';
 import { createHandlers, registerHandlers } from './ipc';
 
 let win: BrowserWindow | null = null;
@@ -33,7 +34,11 @@ app.whenReady().then(() => {
   const crewDir = app.isPackaged ? path.join(process.resourcesPath, 'crew') : path.join(app.getAppPath(), 'crew');
   const crew = new Crew(crewDir);
   const paths = { output: path.join(path.dirname(dbFile), 'output'), protected: [dbFile, `${dbFile}-wal`, `${dbFile}-shm`, crewDir] };
-  const chat = new Chat(store, loadSdk, crew, (channel, payload) => win?.webContents.send(channel, payload), paths);
+  // Window tests run the crew from a script instead of Claude
+  const script = process.env.AI_CREW_SCRIPT;
+  const scripted = script ? scriptSdk(script) : null;
+  const sdk = scripted ? async () => scripted : loadSdk;
+  const chat = new Chat(store, sdk, crew, (channel, payload) => win?.webContents.send(channel, payload), paths);
   // A definition added since the last start joins every project it is missing from
   for (const p of store.listProjects()) chat.seed(p.id);
   store.recoverInterrupted();

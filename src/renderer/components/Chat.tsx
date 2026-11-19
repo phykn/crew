@@ -1,18 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Message, Question, Session } from '../../main/db';
+import type { Message, Question, Session, Task } from '../../main/db';
 import { call, onChanged, onStream } from '../api';
+import { TaskCards } from './TaskCards';
 
-export function Chat({ session }: { session: Session }) {
+export function Chat({ session, onLog }: { session: Session; onLog: (taskId: number) => void }) {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [streaming, setStreaming] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const end = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const load = () => call('messages.list', { sessionId: session.id }).then(setMessages);
+    const loadTasks = () => call('tasks.list', { sessionId: session.id }).then(setTasks);
     load();
+    loadTasks();
     setStreaming(null);
-    const offChanged = onChanged((topic) => topic === 'messages' && load());
+    const offChanged = onChanged((topic) => (topic === 'messages' ? load() : topic === 'tasks' && loadTasks()));
     const offStream = onStream((ev) => {
       if (ev.sessionId !== session.id) return;
       setStreaming((s) => (ev.done ? null : (s ?? '') + (ev.delta ?? '')));
@@ -39,6 +43,7 @@ export function Chat({ session }: { session: Session }) {
 
   return (
     <div className="chat">
+      <TaskCards tasks={tasks} messages={messages} onLog={onLog} />
       <div className="messages" aria-label="대화">
         {messages.map((m) => (
           <Bubble key={m.id} author={m.author} text={m.text} question={m.question} />

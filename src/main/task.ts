@@ -181,6 +181,10 @@ export class Tasks {
         // The run has really ended here, so nothing it started can still be writing
         .finally(() => this.chat.locksOf(project).release(task.id));
       const handback = out.status === 'done' ? HandbackShape.safeParse(out.structured) : null;
+      // A making step's files are what really changed since the task began, whatever the handback lists
+      const snap = !step.verdict && handback?.success ? snapshot(project.path) : null;
+      const files = snap ? changedFiles(store.readBaseline(task.id), snap) : [];
+      if (handback?.success && files.length) handback.data.files = files;
       const missing = handback?.success ? step.requires.filter((k) => handback.data[k].length === 0) : [];
       if (handback?.success && missing.length) {
         // An incomplete handoff goes back to the same member, in its own session, before anyone takes it
@@ -193,15 +197,9 @@ export class Tasks {
         const hb: Handback = handback.data;
         // A verdict step that gives no verdict has not judged anything
         if (step.verdict && !hb.verdict) hb.verdict = 'rework';
-        // A making step's result is a new change version: what it changed since the task began, as the files say
-        if (!step.verdict) {
-          const project = this.projectOf(task);
-          const snap = snapshot(project.path);
-          const files = changedFiles(store.readBaseline(task.id), snap);
-          if (files.length) hb.files = files;
-          store.finishStepRun(runId, 'done', hb);
-          if (files.length) store.addVersion(task.id, files, snap);
-        } else store.finishStepRun(runId, 'done', hb);
+        store.finishStepRun(runId, 'done', hb);
+        // A making step's result is a new change version
+        if (snap && files.length) store.addVersion(task.id, files, snap);
         log(`${role}: ${step.label} ${hb.verdict === 'rework' ? '수정 요청' : '완료'} — ${hb.summary}`, hb);
         this.chat.emit('changed', 'tasks');
         return 'done';

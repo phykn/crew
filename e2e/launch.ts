@@ -4,15 +4,21 @@ import os from 'node:os';
 import path from 'node:path';
 
 // A scratch record and a scratch project folder per test, so the real app data is never touched
-export function makeScratch() {
+export function makeScratch(files: Record<string, string> = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-crew-e2e-'));
   const project = path.join(dir, 'demo');
   fs.mkdirSync(project);
+  for (const [name, text] of Object.entries(files)) fs.writeFileSync(path.join(project, name), text);
   return { db: path.join(dir, 'crew.db'), project };
 }
 
-export async function launchApp(db: string): Promise<ElectronApplication> {
+// A script makes the crew answer from it instead of Claude
+export async function launchApp(db: string, script?: unknown): Promise<ElectronApplication> {
   const env = { ...process.env, AI_CREW_DB: db } as Record<string, string>;
+  if (script) {
+    env.AI_CREW_SCRIPT = path.join(path.dirname(db), 'script.json');
+    fs.writeFileSync(env.AI_CREW_SCRIPT, JSON.stringify(script));
+  }
   // Set by editors that host Node in Electron; it would start Electron as plain Node
   delete env.ELECTRON_RUN_AS_NODE;
   return electron.launch({ args: ['.'], env });
