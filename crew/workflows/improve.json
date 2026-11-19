@@ -1,13 +1,19 @@
 {
   "kind": "improve",
   "label": "개선 제안",
-  "use": "Look across the whole project for what to improve and propose fixes without changing code.",
+  "use": "Look across the whole project for what to improve and propose fixes without changing code: behavior by the advisor, structure by the stylist, side by side.",
   "steps": [
     {
       "id": "advise",
       "role": "advisor",
       "label": "개선 제안",
-      "does": "With no change in hand, find what to improve across the project and propose fixes."
+      "does": "With no change in hand, find what to improve in the project's behavior and the user's complaints, and propose fixes."
+    },
+    {
+      "id": "structure",
+      "role": "stylist",
+      "label": "구조 리뷰",
+      "does": "Review the project's structure with your style skill's structure review."
     }
   ]
 }

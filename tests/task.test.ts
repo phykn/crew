@@ -74,6 +74,25 @@ test('기획 → 리뷰 (sent back once) → 기획 → 리뷰 → 개발 → �
   expect(report).toContain('npm test: 3 passed');
 });
 
+test('a task given to a member who writes the project gets a style check; one who does not, none', () => {
+  const { store, project, paths } = openScratch();
+  const never: Turn = () => new Promise(() => {});
+  const chat = new Chat(
+    store,
+    async () => fakeCrew({ 개발: [never], 조사: [never] }).sdk,
+    CREW,
+    () => {},
+    paths,
+  );
+  const p = store.addProject(project);
+  chat.seed(p.id);
+  const s = store.createSession(p.id);
+  const ids = (key: string) =>
+    chat.tasks.start(s.id, 'code', key, 'r', store.readMember(p.id, key)).workflow.steps.map((x) => x.id);
+  expect(ids('coder')).toEqual(['work', 'style']);
+  expect(ids('researcher')).toEqual(['work']);
+});
+
 test('the status machine refuses moves a task cannot make', () => {
   expect(nextStatus('done', 'REOPEN')).toBe('running');
   expect(nextStatus('stopping', 'STOPPED')).toBe('stopped');

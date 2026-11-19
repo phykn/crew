@@ -134,12 +134,40 @@ export class Tasks {
     const { store } = this.chat;
     // A request given to one member is a one-step task of its own
     const projectId = store.projectOf(sessionId).id;
-    const workflow = one ? solo(this.chat.crew.defOf(one).role, one.key) : this.chat.workflowFor(projectId, kind).rules;
+    const workflow = one ? this.solo(one) : this.chat.workflowFor(projectId, kind).rules;
     const task = store.createTask({ sessionId, kind: one ? kind : workflow.kind, title, request, workflow });
     store.writeBaseline(task.id, snapshot(this.projectOf(task).path));
     this.chat.emit('changed', 'tasks');
     void this.drive(task.id);
     return task;
+  }
+
+  // One member's task; a member who writes the project has its change checked by 표준, as in a code task
+  solo(one: Member): Workflow {
+    const { store, crew } = this.chat;
+    const role = crew.defOf(one).role;
+    const work: Step = {
+      id: 'work',
+      role: one.key,
+      label: `${role} 작업`,
+      does: 'Do the request.',
+      after: [],
+      verdict: false,
+      requires: [],
+    };
+    const stylist = store.readMember(one.projectId, 'stylist');
+    const checked = this.chat.settings(one).write === 'project' && one.id !== stylist.id && stylist.status === 'hired';
+    const style: Step = {
+      id: 'style',
+      role: 'stylist',
+      label: '스타일 검토',
+      does: 'Check the change with your style skill.',
+      after: ['work'],
+      verdict: true,
+      rework: 'work',
+      requires: [],
+    };
+    return { kind: 'solo', label: role, use: '', steps: checked ? [work, style] : [work] };
   }
 
   // Who does a step: the member it was handed to, or the one holding its role
@@ -426,25 +454,6 @@ export class Tasks {
       ...(outcome !== 'done' && left.length ? [`## Left to do\n${left.map((l) => `- ${l}`).join('\n')}`] : []),
     ].join('\n\n');
   }
-}
-
-function solo(role: string, key: string): Workflow {
-  return {
-    kind: 'solo',
-    label: role,
-    use: '',
-    steps: [
-      {
-        id: 'work',
-        role: key,
-        label: `${role} 작업`,
-        does: 'Do the request.',
-        after: [],
-        verdict: false,
-        requires: [],
-      },
-    ],
-  };
 }
 
 function isAncestor(w: Workflow, maybe: string, of: string): boolean {
