@@ -416,10 +416,10 @@ export class Tasks {
     const left = task.workflow.steps.filter((s) => !satisfied(task.workflow, runs, s.id)).map((s) => s.label);
     const head =
       outcome === 'done'
-        ? `[Task #${task.id} finished] "${task.title}" passed every check. Report it to the user now: what changed (files), how it was verified, and anything left.`
+        ? `[Task #${task.id} finished] "${task.title}" passed every check.`
         : outcome === LIMIT
-          ? `[Task #${task.id} paused] "${task.title}" stopped at the model usage limit. Tell the user what is done, what is left, and that they can resume it once the limit resets.`
-          : `[Task #${task.id} stopped] "${task.title}" could not finish: ${outcome}. Tell the user what was done, what blocked it, and what they can decide.`;
+          ? `[Task #${task.id} paused] "${task.title}" stopped at the model usage limit; it can resume once the limit resets.`
+          : `[Task #${task.id} stopped] "${task.title}" could not finish: ${outcome}.`;
     return [
       head,
       ...steps,

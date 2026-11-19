@@ -2,7 +2,7 @@
 
 # crew
 
-비서 한 명에게 맡기고, Claude 에이전트 팀이 일하는 모습을 픽셀 캠프에서 지켜보는 데스크톱 앱
+비서 한 명에게 맡기고, AI 에이전트 팀이 일하는 모습을 픽셀 캠프에서 지켜보는 데스크톱 앱
 
 ![Electron](https://img.shields.io/badge/Electron-45-47848F) ![React](https://img.shields.io/badge/React-19-61DAFB) ![Claude Agent SDK](https://img.shields.io/badge/Claude_Agent_SDK-0.3-D97757) ![SQLite](https://img.shields.io/badge/node:sqlite-builtin-003B57)
 

@@ -3,7 +3,7 @@
     "brief": {
       "icon": "list",
       "label": "업무 정리",
-      "use": "Turn a request into a brief: goal, scope, done-when, and who does what."
+      "use": "Turn a request into a brief: goal, scope, done-when, what was settled, and what was assumed."
     },
     "plan": {
       "icon": "sparkle",
