@@ -42,6 +42,10 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
       // The reply arrives through the change feed; the call only hands the message over
       run: (a: { sessionId: number; text: string }) => void chat.send(a.sessionId, a.text),
     },
+    'tasks.list': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => store.listTasks(a.sessionId) },
+    'tasks.stop': { args: z.object({ id }), run: (a: { id: number }) => chat.tasks.stop(a.id) },
+    'tasks.resume': { args: z.object({ id }), run: (a: { id: number }) => chat.tasks.resume(a.id) },
+    'events.list': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => store.listEvents(a.sessionId) },
     'questions.answer': {
       args: z.object({ id, choice: z.string().min(1) }),
       run: (a: { id: number; choice: string }) => chat.questions.answer(a.id, a.choice),

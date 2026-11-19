@@ -1,0 +1,80 @@
+import { expect, test, vi } from 'vitest';
+import { Chat } from '../src/main/chat';
+import { nextStatus } from '../src/main/task';
+import { CREW, fakeCrew, handback, openScratch, reply, type Turn } from './support';
+
+test('기획 → 리뷰 (sent back once) → 기획 → 리뷰 → 개발 → 리뷰·시험, each role in its own Claude session', async () => {
+  const { store, project, paths } = openScratch({ 'search.js': 'export const search = () => []' });
+  let fake: ReturnType<typeof fakeCrew>;
+  // 비서 opens the task the way the model would: by calling its start_task tool mid-turn
+  const opens: Turn = (prompt, options) => {
+    void fake.tools.get('start_task')!({ kind: 'code', title: '검색 개선', request: prompt });
+    return reply('업무를 시작했습니다.', 'claude-secretary')(prompt, options);
+  };
+  fake = fakeCrew({
+    비서: [opens, reply('검색을 고쳤고 리뷰와 시험을 통과했습니다.', 'claude-secretary')],
+    기획: [
+      handback('claude-plan', { summary: '계획 v1' }),
+      handback('claude-plan', { summary: '계획 v2' }),
+    ],
+    리뷰: [
+      handback('claude-review', { summary: '범위 누락', verdict: 'rework', points: ['빈 검색어 경우가 없습니다'] }),
+      handback('claude-review', { summary: '계획 통과', verdict: 'pass' }),
+      handback('claude-review', { summary: '코드 통과', verdict: 'pass' }),
+    ],
+    개발: [handback('claude-code', { summary: '검색 수정', files: ['search.js'] })],
+    시험: [handback('claude-test', { summary: '시험 통과', verdict: 'pass', checks: ['npm test: 3 passed'] })],
+  });
+  const chat = new Chat(store, async () => fake.sdk, CREW, () => {}, paths);
+  const p = store.addProject(project);
+  chat.seed(p.id);
+  const s = store.createSession(p.id);
+
+  await chat.send(s.id, '빈 검색어는 전체 목록을 보여주게 바꿔줘');
+  await vi.waitFor(() => expect(store.listMessages(s.id).at(-1)!.text).toContain('통과했습니다'), { timeout: 3000 });
+
+  const [task] = store.listTasks(s.id);
+  expect(task.status).toBe('done');
+  expect(store.listStepRuns(task.id).map((r) => [r.stepId, r.verdict])).toEqual([
+    ['plan', null],
+    ['plan_review', 'rework'],
+    ['plan', null],
+    ['plan_review', 'pass'],
+    ['develop', null],
+    ['review', 'pass'],
+    ['test', 'pass'],
+  ]);
+  // The fix round gets the reviewer's point, and the second plan run resumes the first one's session
+  const plans = fake.calls.filter((c) => c.role === '기획');
+  expect(plans[1].prompt).toContain('빈 검색어 경우가 없습니다');
+  expect(plans.map((c) => c.options.resume)).toEqual([undefined, 'claude-plan']);
+  expect(store.listAgentSessions(s.id).map((a) => [a.key, a.claudeId])).toEqual([
+    ['orchestrator', 'claude-secretary'],
+    ['advisor', 'claude-plan'],
+    ['reviewer', 'claude-review'],
+    ['coder', 'claude-code'],
+    ['tester', 'claude-test'],
+  ]);
+  expect(store.listEvents(s.id).filter((e) => e.kind === 'status').map((e) => e.detail)).toEqual([
+    'running',
+    'running',
+    'reviewing',
+    'fixing',
+    'reviewing',
+    'running',
+    'reviewing',
+    'done',
+  ]);
+  // The report 비서 is asked to give carries the changed files and the checks
+  const report = fake.calls.filter((c) => c.role === '비서')[1].prompt;
+  expect(report).toContain('[Task #1 finished]');
+  expect(report).toContain('search.js');
+  expect(report).toContain('npm test: 3 passed');
+});
+
+test('the status machine refuses moves a task cannot make', () => {
+  expect(nextStatus('done', 'REOPEN')).toBe('running');
+  expect(nextStatus('stopping', 'STOPPED')).toBe('stopped');
+  expect(nextStatus('done', 'WORK')).toBeNull();
+  expect(nextStatus('stopped', 'DONE')).toBeNull();
+});

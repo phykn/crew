@@ -1,0 +1,35 @@
+import { expect, test, vi } from 'vitest';
+import { Chat } from '../src/main/chat';
+import { askPeer } from '../src/main/crew-tools';
+import { CREW, fakeCrew, handback, openScratch, reply } from './support';
+
+test('a peer request asked back stays one thread, a resent line runs once, and a handoff without files is sent back', async () => {
+  const { store, project, paths } = openScratch();
+  const fake = fakeCrew({
+    표준: [reply('', 'claude-style', { answer: '', ask_back: '어느 파일인가요?' }), reply('', 'claude-style', { answer: 'searchItems가 맞습니다' })],
+    개발: [handback('claude-code', { summary: '수정했습니다' }), handback('claude-code', { summary: '수정했습니다', files: ['search.js'] })],
+  });
+  const chat = new Chat(store, async () => fake.sdk, CREW, () => {}, paths);
+  const p = store.addProject(project);
+  chat.seed(p.id);
+  const s = store.createSession(p.id);
+  const task = store.createTask({ sessionId: s.id, kind: 'code', title: 't', request: 'r', workflow: chat.workflows.find((w) => w.kind === 'code')! });
+  const coder = store.readMember(p.id, 'coder');
+  const step = task.workflow.steps.find((x) => x.id === 'develop')!;
+
+  const first = await askPeer(chat, task, step, coder, { role: '표준', message: '이름 괜찮나요?' });
+  expect(first).toContain('asks back: 어느 파일인가요?');
+  const id = Number(first.match(/Request (\d+)/)![1]);
+  const second = await askPeer(chat, task, step, coder, { role: '표준', message: 'search.js입니다', request_id: id });
+  const again = await askPeer(chat, task, step, coder, { role: '표준', message: 'search.js입니다', request_id: id });
+  expect(second).toContain('searchItems가 맞습니다');
+  expect(again).toBe(second);
+  expect(store.readRequest(id).thread.map((l) => l.from)).toEqual(['개발', '표준', '개발', '표준']);
+
+  await expect(chat.tasks.runStep(task, step)).resolves.toBe('done');
+  expect(store.listStepRuns(task.id).map((r) => [r.status, r.error])).toEqual([
+    ['failed', 'missing files'],
+    ['done', null],
+  ]);
+  await vi.waitFor(() => expect(fake.calls.filter((c) => c.role === '개발')[1].prompt).toContain('missing files'));
+});

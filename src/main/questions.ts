@@ -14,8 +14,10 @@ export class Questions {
   ask(q: Omit<Question, 'id' | 'answer'>): Promise<string> {
     const id = this.store.addQuestion(q);
     this.store.addMessage(q.sessionId, 'secretary', q.prompt, id);
+    // The waiter is in place before anyone hears of the card, so an instant answer is not lost
+    const answered = new Promise<string>((resolve) => this.waiters.set(id, resolve));
     this.emit('changed', 'messages');
-    return new Promise((resolve) => this.waiters.set(id, resolve));
+    return answered;
   }
 
   answer(id: number, choice: string) {

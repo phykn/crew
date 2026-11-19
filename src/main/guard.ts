@@ -126,9 +126,12 @@ export function writeTargets(cmd: string): string[] {
       const scripts = args.flatMap((w, n) => (['-e', '-f'].includes(w) ? [args[n + 1]] : []));
       targets.push(...(scripts.length ? plain.filter((w) => !scripts.includes(w)) : plain.slice(1)));
     } else if (['cp', 'copy', 'cpi', 'mv', 'move', 'mi', 'touch', 'mkdir'].includes(name) && plain.length) {
-      targets.push(...(['touch', 'mkdir'].includes(name) ? plain : [plain.at(-1)!]));
+      // A move changes both ends: the source disappears and the destination appears
+      const moved = ['mv', 'move', 'mi'].includes(name) ? plain : [plain.at(-1)!];
+      targets.push(...(['touch', 'mkdir'].includes(name) ? plain : moved));
     } else if (['copy-item', 'move-item'].includes(name)) {
       targets.push(readOption(args, ['-destination']) ?? plain[1] ?? '');
+      if (name === 'move-item') targets.push(readOption(args, ['-path', '-literalpath']) ?? plain[0] ?? '');
     } else if (['new-item', 'ni', 'out-file', 'set-content', 'add-content'].includes(name)) {
       targets.push(readOption(args, ['-path', '-filepath', '-literalpath']) ?? plain[0] ?? '');
     }
@@ -189,23 +192,42 @@ function readOption(args: string[], names: string[]) {
   return at >= 0 ? args[at + 1] : undefined;
 }
 
+// The project paths a call writes, or the whole project when the command's text does not say
+export function projectWrites(policy: Policy, tool: string, input: Record<string, unknown>, cwd = policy.project): string[] {
+  if (policy.write !== 'project' || READ_ONLY.includes(tool) || tool.startsWith('mcp__')) return [];
+  const files =
+    tool === 'Bash'
+      ? writeTargets(String(input.command ?? '')).filter((t) => !SILENT.includes(t.toLowerCase()))
+      : ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'].includes(tool)
+        ? [String(input.file_path ?? input.notebook_path ?? '')]
+        : [];
+  if (tool === 'Bash' && (!files.length || files.some((t) => /^[~$%`]/.test(t)))) return [policy.project];
+  return files.map((t) => resolveTarget(t, cwd)).filter((f) => inside(f, policy.project));
+}
+
 export type GuardHooks = {
   // An approval already given for this tool in this task
   granted: (tool: string) => boolean;
   // Asks the user through 비서's chat; resolves true when they allow it
   ask: (tool: string, input: Record<string, unknown>, reason: string) => Promise<boolean>;
   record: (kind: 'denied' | 'approved' | 'refused', text: string) => void;
+  // Holds the write reservation for an allowed call; a reason comes back when the call must not go ahead yet
+  reserve?: (tool: string, input: Record<string, unknown>) => Promise<string | null>;
 };
 
 export function makeCanUseTool(policy: () => Policy, hooks: GuardHooks): CanUseTool {
+  const allow = async (tool: string, input: Record<string, unknown>) => {
+    const late = await hooks.reserve?.(tool, input);
+    return late ? ({ behavior: 'deny', message: late } as const) : ({ behavior: 'allow', updatedInput: input } as const);
+  };
   return async (tool, input) => {
     const verdict = checkCall(policy(), tool, input);
-    if (verdict.kind === 'allow') return { behavior: 'allow', updatedInput: input };
+    if (verdict.kind === 'allow') return allow(tool, input);
     if (verdict.kind === 'deny') {
       hooks.record('denied', `${tool} 거부: ${verdict.reason}`);
       return { behavior: 'deny', message: refused(verdict.reason) };
     }
-    if (hooks.granted(tool)) return { behavior: 'allow', updatedInput: input };
+    if (hooks.granted(tool)) return allow(tool, input);
     const ok = await hooks.ask(tool, input, verdict.reason);
     hooks.record(ok ? 'approved' : 'refused', `${tool} ${ok ? '승인' : '거절'}: ${verdict.reason}`);
     // The permissions may have changed while the user was deciding; the approval answered the question as it was asked
@@ -213,7 +235,7 @@ export function makeCanUseTool(policy: () => Policy, hooks: GuardHooks): CanUseT
     if (ok && now.kind !== 'allow' && !(now.kind === 'ask' && now.reason === verdict.reason)) {
       return { behavior: 'deny', message: refused('permissions changed while waiting for approval') };
     }
-    return ok ? { behavior: 'allow', updatedInput: input } : { behavior: 'deny', message: refused('the user did not allow it') };
+    return ok ? allow(tool, input) : { behavior: 'deny', message: refused('the user did not allow it') };
   };
 }
 
@@ -228,10 +250,11 @@ type GuardDeps = {
   sessionId: number;
   taskId: number | null;
   member: Member;
+  reserve?: GuardHooks['reserve'];
 };
 
 // One member's guard inside one task: denials go to the log, approvals are asked in 비서's chat and kept for the task
-export function guardMember({ store, questions, policy, sessionId, taskId, member }: GuardDeps): CanUseTool {
+export function guardMember({ store, questions, policy, sessionId, taskId, member, reserve }: GuardDeps): CanUseTool {
   const record = (kind: string, text: string) =>
     store.addEvent({ sessionId, taskId, memberId: member.id, kind, text, detail: null });
   return makeCanUseTool(policy, {
@@ -249,5 +272,6 @@ export function guardMember({ store, questions, policy, sessionId, taskId, membe
       return answer === ALLOW;
     },
     record,
+    reserve,
   });
 }

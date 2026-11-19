@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
+import type { Workflow } from './workflow';
 
 // Each entry runs once, in order; PRAGMA user_version remembers how many have run
 const MIGRATIONS = [
@@ -38,6 +39,24 @@ const MIGRATIONS = [
    CREATE TABLE permission_changes (
      id INTEGER PRIMARY KEY, member_id INTEGER NOT NULL REFERENCES members (id) ON DELETE CASCADE,
      change TEXT NOT NULL, at TEXT NOT NULL);`,
+  `CREATE TABLE tasks (
+     id INTEGER PRIMARY KEY, session_id INTEGER NOT NULL REFERENCES sessions (id) ON DELETE CASCADE,
+     kind TEXT NOT NULL, title TEXT NOT NULL, request TEXT NOT NULL, workflow TEXT NOT NULL,
+     status TEXT NOT NULL, stage TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+   CREATE TABLE step_runs (
+     id INTEGER PRIMARY KEY, task_id INTEGER NOT NULL REFERENCES tasks (id) ON DELETE CASCADE, step_id TEXT NOT NULL,
+     member_id INTEGER NOT NULL REFERENCES members (id), status TEXT NOT NULL CHECK (status IN ('running', 'done', 'failed', 'stopped')),
+     verdict TEXT CHECK (verdict IN ('pass', 'rework')), handback TEXT, error TEXT, started_at TEXT NOT NULL, ended_at TEXT);
+   ALTER TABLE runs ADD COLUMN task_id INTEGER REFERENCES tasks (id) ON DELETE SET NULL;`,
+  `CREATE TABLE requests (
+     id INTEGER PRIMARY KEY, task_id INTEGER NOT NULL REFERENCES tasks (id) ON DELETE CASCADE, step_id TEXT NOT NULL,
+     from_member INTEGER NOT NULL REFERENCES members (id), to_role TEXT NOT NULL, expected TEXT NOT NULL,
+     thread TEXT NOT NULL DEFAULT '[]', created_at TEXT NOT NULL);`,
+  `ALTER TABLE tasks ADD COLUMN baseline TEXT NOT NULL DEFAULT '{}';
+   CREATE TABLE versions (
+     id INTEGER PRIMARY KEY, task_id INTEGER NOT NULL REFERENCES tasks (id) ON DELETE CASCADE,
+     files TEXT NOT NULL, snapshot TEXT NOT NULL, created_at TEXT NOT NULL);
+   ALTER TABLE step_runs ADD COLUMN version_id INTEGER REFERENCES versions (id);`,
 ];
 
 export type Project = { id: number; path: string; name: string };
@@ -84,9 +103,53 @@ export type Event = {
   at: string;
 };
 type QuestionRow = Omit<Question, 'options' | 'payload'> & { options: string; payload: string };
+export type TaskStatus = 'queued' | 'running' | 'reviewing' | 'fixing' | 'waiting' | 'done' | 'failed' | 'stopping' | 'stopped';
+export type Task = {
+  id: number;
+  sessionId: number;
+  kind: string;
+  title: string;
+  request: string;
+  workflow: Workflow;
+  status: TaskStatus;
+  stage: string;
+  createdAt: string;
+  updatedAt: string;
+};
+type TaskRow = Omit<Task, 'workflow'> & { workflow: string };
+const TASK =
+  'SELECT id, session_id AS sessionId, kind, title, request, workflow, status, stage, created_at AS createdAt, updated_at AS updatedAt FROM tasks';
+const toTask = (r: TaskRow): Task => ({ ...r, workflow: JSON.parse(r.workflow) });
+// A peer request and its back-and-forth, oldest line first
+export type PeerLine = { from: string; text: string };
+export type PeerRequest = { id: number; taskId: number; stepId: string; fromMember: number; toRole: string; expected: string; thread: PeerLine[] };
+export type Handback = {
+  summary: string;
+  body: string;
+  verdict?: 'pass' | 'rework';
+  points: string[];
+  files: string[];
+  checks: string[];
+  // Set on a rework the user asked for: the step it sends back to
+  target?: string;
+};
+export type Version = { id: number; taskId: number; files: string[] };
+export type StepRun = {
+  id: number;
+  taskId: number;
+  stepId: string;
+  memberId: number;
+  status: 'running' | 'done' | 'failed' | 'stopped';
+  verdict: 'pass' | 'rework' | null;
+  handback: Handback | null;
+  error: string | null;
+  versionId: number | null;
+};
+type StepRunRow = Omit<StepRun, 'handback'> & { handback: string | null };
 export type Run = {
   id: number;
   agentSessionId: number;
+  taskId: number | null;
   model: string;
   status: string;
   turns: number;
@@ -122,6 +185,8 @@ export class Store {
   }
 
   transact<T>(fn: () => T): T {
+    // Inside another transaction this one is simply part of it
+    if (this.db.isTransaction) return fn();
     this.db.exec('BEGIN');
     try {
       const out = fn();
@@ -266,6 +331,20 @@ export class Store {
     return { ...row, options: JSON.parse(row.options), payload: JSON.parse(row.payload) };
   }
 
+  openQuestionIds(taskId: number): number[] {
+    return (this.db.prepare('SELECT id FROM questions WHERE task_id = ? AND answer IS NULL').all(taskId) as { id: number }[]).map((r) => r.id);
+  }
+
+  // Work cut off by a restart: its runs were lost with the process, so the task waits stopped for the user to resume it
+  recoverInterrupted(): number[] {
+    return this.transact(() => {
+      const cut = this.db.prepare("SELECT id FROM tasks WHERE status IN ('running', 'reviewing', 'fixing', 'waiting', 'stopping')").all() as { id: number }[];
+      this.db.prepare("UPDATE step_runs SET status = 'stopped', error = 'app restarted' WHERE status = 'running'").run();
+      for (const { id } of cut) this.writeTaskStatus(id, 'stopped', '', '앱이 다시 시작되어 업무가 멈췄습니다');
+      return cut.map((r) => r.id);
+    });
+  }
+
   answerQuestion(id: number, answer: string) {
     this.db.prepare('UPDATE questions SET answer = ?, answered_at = ? WHERE id = ? AND answer IS NULL').run(answer, now(), id);
   }
@@ -296,10 +375,10 @@ export class Store {
       .all(sessionId) as Event[];
   }
 
-  startRun(agentSessionId: number, model: string): number {
+  startRun(agentSessionId: number, model: string, taskId: number | null = null): number {
     const { lastInsertRowid } = this.db
-      .prepare("INSERT INTO runs (agent_session_id, model, started_at, status) VALUES (?, ?, ?, 'running')")
-      .run(agentSessionId, model, now());
+      .prepare("INSERT INTO runs (agent_session_id, model, started_at, status, task_id) VALUES (?, ?, ?, 'running', ?)")
+      .run(agentSessionId, model, now(), taskId);
     return Number(lastInsertRowid);
   }
 
@@ -315,11 +394,123 @@ export class Store {
   listRuns(sessionId: number): Run[] {
     return this.db
       .prepare(
-        `SELECT r.id, r.agent_session_id AS agentSessionId, r.model, r.status, r.turns, r.input_tokens AS inputTokens,
+        `SELECT r.id, r.agent_session_id AS agentSessionId, r.task_id AS taskId, r.model, r.status, r.turns, r.input_tokens AS inputTokens,
                 r.output_tokens AS outputTokens, r.cost_usd AS costUsd, r.error
          FROM runs r JOIN agent_sessions a ON a.id = r.agent_session_id WHERE a.session_id = ? ORDER BY r.id`,
       )
       .all(sessionId) as Run[];
+  }
+
+  createTask(t: { sessionId: number; kind: string; title: string; request: string; workflow: Workflow }): Task {
+    const { lastInsertRowid } = this.db
+      .prepare(
+        "INSERT INTO tasks (session_id, kind, title, request, workflow, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'queued', ?, ?)",
+      )
+      .run(t.sessionId, t.kind, t.title, t.request, JSON.stringify(t.workflow), now(), now());
+    return this.readTask(Number(lastInsertRowid));
+  }
+
+  readTask(id: number): Task {
+    const row = this.db.prepare(`${TASK} WHERE id = ?`).get(id) as TaskRow | undefined;
+    if (!row) throw new Error(`no task ${id}`);
+    return toTask(row);
+  }
+
+  listTasks(sessionId: number): Task[] {
+    return (this.db.prepare(`${TASK} WHERE session_id = ? ORDER BY id`).all(sessionId) as TaskRow[]).map(toTask);
+  }
+
+  // A status change and its log line are written together, so the log never disagrees with the card
+  writeTaskStatus(id: number, status: TaskStatus, stage: string, log: string) {
+    this.transact(() => {
+      this.db.prepare('UPDATE tasks SET status = ?, stage = ?, updated_at = ? WHERE id = ?').run(status, stage, now(), id);
+      const task = this.readTask(id);
+      this.addEvent({ sessionId: task.sessionId, taskId: id, memberId: null, kind: 'status', text: log, detail: status });
+    });
+  }
+
+  startStepRun(taskId: number, stepId: string, memberId: number, versionId: number | null = null): number {
+    const { lastInsertRowid } = this.db
+      .prepare("INSERT INTO step_runs (task_id, step_id, member_id, status, started_at, version_id) VALUES (?, ?, ?, 'running', ?, ?)")
+      .run(taskId, stepId, memberId, now(), versionId);
+    return Number(lastInsertRowid);
+  }
+
+  finishStepRun(id: number, status: StepRun['status'], handback: Handback | null, error: string | null = null) {
+    this.db
+      .prepare('UPDATE step_runs SET status = ?, verdict = ?, handback = ?, error = ?, ended_at = ? WHERE id = ?')
+      .run(status, handback?.verdict ?? null, handback ? JSON.stringify(handback) : null, error, now(), id);
+  }
+
+  listStepRuns(taskId: number): StepRun[] {
+    const rows = this.db
+      .prepare(
+        'SELECT id, task_id AS taskId, step_id AS stepId, member_id AS memberId, status, verdict, handback, error, version_id AS versionId FROM step_runs WHERE task_id = ? ORDER BY id',
+      )
+      .all(taskId) as StepRunRow[];
+    return rows.map((r) => ({ ...r, handback: r.handback ? JSON.parse(r.handback) : null }));
+  }
+
+  writeBaseline(taskId: number, snap: Record<string, string>) {
+    this.db.prepare('UPDATE tasks SET baseline = ? WHERE id = ?').run(JSON.stringify(snap), taskId);
+  }
+
+  readBaseline(taskId: number): Record<string, string> {
+    return JSON.parse((this.db.prepare('SELECT baseline FROM tasks WHERE id = ?').get(taskId) as { baseline: string }).baseline);
+  }
+
+  addVersion(taskId: number, files: string[], snap: Record<string, string>): number {
+    const { lastInsertRowid } = this.db
+      .prepare('INSERT INTO versions (task_id, files, snapshot, created_at) VALUES (?, ?, ?, ?)')
+      .run(taskId, JSON.stringify(files), JSON.stringify(snap), now());
+    return Number(lastInsertRowid);
+  }
+
+  latestVersion(taskId: number): Version | null {
+    const row = this.db.prepare('SELECT id, task_id AS taskId, files FROM versions WHERE task_id = ? ORDER BY id DESC LIMIT 1').get(taskId) as
+      | { id: number; taskId: number; files: string }
+      | undefined;
+    return row ? { ...row, files: JSON.parse(row.files) } : null;
+  }
+
+  // A rework the user asked for after the report: recorded like a reviewer's, so the engine reruns from there
+  addUserRework(taskId: number, memberId: number, target: string, text: string) {
+    const id = this.startStepRun(taskId, '_user', memberId);
+    this.finishStepRun(id, 'done', { summary: text, body: text, verdict: 'rework', points: [text], files: [], checks: [], target });
+  }
+
+  appendRequest(taskId: number, text: string) {
+    this.db.prepare("UPDATE tasks SET request = request || char(10) || char(10) || ? WHERE id = ?").run(`추가 요청: ${text}`, taskId);
+  }
+
+  listAgentSessions(sessionId: number): (AgentSession & { key: string })[] {
+    return this.db
+      .prepare(
+        `SELECT a.id, a.session_id AS sessionId, a.member_id AS memberId, a.claude_id AS claudeId, m.key
+         FROM agent_sessions a JOIN members m ON m.id = a.member_id WHERE a.session_id = ? ORDER BY a.id`,
+      )
+      .all(sessionId) as (AgentSession & { key: string })[];
+  }
+
+  createRequest(r: Omit<PeerRequest, 'id' | 'thread'>): number {
+    const { lastInsertRowid } = this.db
+      .prepare('INSERT INTO requests (task_id, step_id, from_member, to_role, expected, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(r.taskId, r.stepId, r.fromMember, r.toRole, r.expected, now());
+    return Number(lastInsertRowid);
+  }
+
+  readRequest(id: number): PeerRequest {
+    const row = this.db
+      .prepare(
+        'SELECT id, task_id AS taskId, step_id AS stepId, from_member AS fromMember, to_role AS toRole, expected, thread FROM requests WHERE id = ?',
+      )
+      .get(id) as (Omit<PeerRequest, 'thread'> & { thread: string }) | undefined;
+    if (!row) throw new Error(`no request ${id}`);
+    return { ...row, thread: JSON.parse(row.thread) };
+  }
+
+  writeThread(id: number, thread: PeerLine[]) {
+    this.db.prepare('UPDATE requests SET thread = ? WHERE id = ?').run(JSON.stringify(thread), id);
   }
 
   readSetting(key: string): string | null {

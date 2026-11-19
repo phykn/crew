@@ -1,0 +1,13 @@
+{
+  "kind": "research",
+  "label": "조사",
+  "use": "Find facts from the outside world in official sources and report them with links and dates.",
+  "steps": [
+    {
+      "id": "research",
+      "role": "researcher",
+      "label": "조사",
+      "does": "Research the request in official sources and report with links and dates."
+    }
+  ]
+}

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { Options, SDKMessage, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
-import type { QueryFn } from '../src/main/agent';
+import type { QueryFn, Sdk } from '../src/main/agent';
 import { Crew } from '../src/main/crew';
 import { Store } from '../src/main/db';
 
@@ -22,7 +22,8 @@ export function openScratch(files?: Record<string, string>) {
   return { ...scratch, store: new Store(scratch.db) };
 }
 
-export type Turn = (prompt: string, options: Options) => SDKMessage[];
+// A turn may hold its answer back, as a long real step does
+export type Turn = (prompt: string, options: Options) => SDKMessage[] | Promise<SDKMessage[]>;
 
 // Stands in for the SDK: each prompt the agent receives is answered by the next scripted turn
 export function fakeQuery(turns: Turn[]) {
@@ -33,16 +34,26 @@ export function fakeQuery(turns: Turn[]) {
       for await (const msg of prompt as AsyncIterable<SDKUserMessage>) {
         const turn = turns.shift();
         if (!turn) throw new Error('fake query ran out of turns');
-        yield* turn(String(msg.message.content), options);
+        yield* await turn(String(msg.message.content), options);
       }
     }
     const gen = run();
     return Object.assign(gen, { interrupt: async () => undefined }) as unknown as ReturnType<QueryFn>;
   };
-  return { fn, calls };
+  // The app's own tools are kept by name so a scripted turn can call them as the model would
+  const tools = new Map<string, (args: Record<string, unknown>) => Promise<unknown>>();
+  const sdk = {
+    query: fn,
+    tool: (name: string, _d: string, _s: unknown, handler: (a: Record<string, unknown>) => Promise<unknown>) => {
+      tools.set(name, handler);
+      return { name };
+    },
+    createSdkMcpServer: (o: { name: string }) => ({ type: 'sdk', name: o.name }),
+  } as unknown as Sdk;
+  return { fn, calls, sdk, tools };
 }
 
-export function reply(text: string, sessionId = 'claude-1'): Turn {
+export function reply(text: string, sessionId = 'claude-1', structured?: unknown): Turn {
   return (_prompt, options) =>
     [
       { type: 'system', subtype: 'init', session_id: sessionId, model: options.model },
@@ -55,6 +66,7 @@ export function reply(text: string, sessionId = 'claude-1'): Turn {
         type: 'result',
         subtype: 'success',
         result: text,
+        structured_output: structured,
         num_turns: 1,
         total_cost_usd: 0.01,
         modelUsage: {
@@ -62,4 +74,28 @@ export function reply(text: string, sessionId = 'claude-1'): Turn {
         },
       },
     ] as unknown as SDKMessage[];
+}
+
+// Stands in for the SDK with one script per role, picked by the role named in the system prompt
+export function fakeCrew(scripts: Record<string, Turn[]>) {
+  const fake = fakeQuery([]);
+  const calls: { role: string; prompt: string; options: Options }[] = [];
+  fake.sdk.query = ({ prompt, options }) => {
+    const role = String(options.systemPrompt).match(/You are the crew's \*\*(.+?)\*\*/)?.[1] ?? '?';
+    async function* run() {
+      for await (const msg of prompt as AsyncIterable<SDKUserMessage>) {
+        const text = String(msg.message.content);
+        calls.push({ role, prompt: text, options });
+        const turn = scripts[role]?.shift();
+        if (!turn) throw new Error(`no scripted turn left for ${role}`);
+        yield* await turn(text, options);
+      }
+    }
+    return Object.assign(run(), { interrupt: async () => undefined }) as unknown as ReturnType<QueryFn>;
+  };
+  return { ...fake, calls };
+}
+
+export function handback(sessionId: string, hb: Record<string, unknown>): Turn {
+  return reply(String(hb.summary), sessionId, { body: '', points: [], files: [], checks: [], ...hb });
 }

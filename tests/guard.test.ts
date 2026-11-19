@@ -6,7 +6,7 @@ import { CREW, fakeQuery, openScratch } from './support';
 
 function setup() {
   const scratch = openScratch();
-  const chat = new Chat(scratch.store, async () => fakeQuery([]).fn, CREW, () => {}, scratch.paths);
+  const chat = new Chat(scratch.store, async () => fakeQuery([]).sdk, CREW, () => {}, scratch.paths);
   const project = scratch.store.addProject(scratch.project);
   chat.seed(project.id);
   const session = scratch.store.createSession(project.id);

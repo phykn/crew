@@ -1,6 +1,12 @@
 import type { CanUseTool, ModelUsage, Options, Query, SDKMessage, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
 
 export type QueryFn = (params: { prompt: AsyncIterable<SDKUserMessage>; options: Options }) => Query;
+// The parts of the SDK the app uses; tests hand in stand-ins with the same shape
+export type Sdk = {
+  query: QueryFn;
+  tool: typeof import('@anthropic-ai/claude-agent-sdk').tool;
+  createSdkMcpServer: typeof import('@anthropic-ai/claude-agent-sdk').createSdkMcpServer;
+};
 
 export type Usage = { turns: number; inputTokens: number; outputTokens: number; costUsd: number };
 
@@ -11,6 +17,8 @@ export type RunInput = {
   resume?: string | null;
   canUseTool: CanUseTool;
   mcpServers?: Options['mcpServers'];
+  // A JSON schema the run's final answer must match; the match comes back as structured
+  schema?: Record<string, unknown>;
   onText?: (delta: string) => void;
   // Called once per answered turn, so a message said mid-run gets its own reply
   onReply?: (text: string) => void;
@@ -21,6 +29,7 @@ export type RunOutput = {
   text: string;
   status: 'done' | 'failed' | 'stopped' | 'limit';
   usage: Usage;
+  structured?: unknown;
   error?: string;
 };
 
@@ -82,6 +91,7 @@ export class AgentRun {
         // The project's own CLAUDE.md and settings apply; the user's personal ones do not leak into the crew
         settingSources: ['project'],
         includePartialMessages: true,
+        outputFormat: input.schema ? { type: 'json_schema', schema: input.schema } : undefined,
       },
     });
     let out: RunOutput = { claudeId: input.resume ?? null, text: '', status: 'failed', usage: emptyUsage() };
@@ -119,7 +129,7 @@ export class AgentRun {
       costUsd: msg.total_cost_usd,
     };
     if (out.status === 'limit') return { ...out, usage };
-    if (msg.subtype === 'success') return { ...out, text: msg.result, status: 'done', usage };
+    if (msg.subtype === 'success') return { ...out, text: msg.result, status: 'done', usage, structured: msg.structured_output };
     return { ...out, status: 'failed', usage, error: msg.errors.join('\n') || msg.subtype };
   }
 
@@ -147,7 +157,7 @@ function sumUsage(models: Record<string, ModelUsage>, key: 'inputTokens' | 'outp
 }
 
 // The SDK is an ES module kept out of the bundle so it can find its bundled Claude Code binary
-export async function loadQuery(): Promise<QueryFn> {
+export async function loadSdk(): Promise<Sdk> {
   const sdk = await import('@anthropic-ai/claude-agent-sdk');
-  return sdk.query as QueryFn;
+  return { query: sdk.query as QueryFn, tool: sdk.tool, createSdkMcpServer: sdk.createSdkMcpServer };
 }

@@ -1,0 +1,13 @@
+{
+  "kind": "improve",
+  "label": "개선 제안",
+  "use": "Look across the whole project for what to improve and propose fixes without changing code.",
+  "steps": [
+    {
+      "id": "advise",
+      "role": "advisor",
+      "label": "개선 제안",
+      "does": "With no change in hand, find what to improve across the project and propose fixes."
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "kind": "code",
+  "label": "코드 변경",
+  "use": "Change code or files in the project: plan, plan review, development, then code review and tests in parallel.",
+  "steps": [
+    {
+      "id": "plan",
+      "role": "advisor",
+      "label": "계획",
+      "does": "Write the change plan for this request."
+    },
+    {
+      "id": "plan_review",
+      "role": "reviewer",
+      "label": "계획 검토",
+      "after": [
+        "plan"
+      ],
+      "verdict": true,
+      "rework": "plan",
+      "does": "Review the plan before anyone edits code."
+    },
+    {
+      "id": "develop",
+      "role": "coder",
+      "label": "개발",
+      "after": [
+        "plan_review"
+      ],
+      "does": "Make the change the approved plan describes.",
+      "requires": [
+        "files"
+      ]
+    },
+    {
+      "id": "review",
+      "role": "reviewer",
+      "label": "코드 리뷰",
+      "after": [
+        "develop"
+      ],
+      "verdict": true,
+      "rework": "develop",
+      "does": "Review the code change for correctness."
+    },
+    {
+      "id": "test",
+      "role": "tester",
+      "label": "시험",
+      "after": [
+        "develop"
+      ],
+      "verdict": true,
+      "rework": "develop",
+      "does": "Run the project's full test suite and build on the change.",
+      "requires": [
+        "checks"
+      ]
+    }
+  ]
+}

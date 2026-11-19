@@ -6,7 +6,7 @@ test('비서 answers, resumes its own Claude session, and runs on the model chos
   const { store, project, paths } = openScratch();
   const fake = fakeQuery([reply('파일은 README.md 하나입니다.'), reply('README.md라고 했습니다.')]);
   const streamed: string[] = [];
-  const chat = new Chat(store, async () => fake.fn, CREW, (channel, p) => {
+  const chat = new Chat(store, async () => fake.sdk, CREW, (channel, p) => {
     if (channel === 'stream' && (p as { delta?: string }).delta) streamed.push((p as { delta: string }).delta);
   }, paths);
   const p = store.addProject(project);

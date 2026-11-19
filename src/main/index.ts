@@ -3,7 +3,7 @@ import path from 'node:path';
 import { Store } from './db';
 import { Chat } from './chat';
 import { Crew } from './crew';
-import { loadQuery } from './agent';
+import { loadSdk } from './agent';
 import { createHandlers, registerHandlers } from './ipc';
 
 let win: BrowserWindow | null = null;
@@ -33,9 +33,10 @@ app.whenReady().then(() => {
   const crewDir = app.isPackaged ? path.join(process.resourcesPath, 'crew') : path.join(app.getAppPath(), 'crew');
   const crew = new Crew(crewDir);
   const paths = { output: path.join(path.dirname(dbFile), 'output'), protected: [dbFile, `${dbFile}-wal`, `${dbFile}-shm`, crewDir] };
-  const chat = new Chat(store, loadQuery, crew, (channel, payload) => win?.webContents.send(channel, payload), paths);
+  const chat = new Chat(store, loadSdk, crew, (channel, payload) => win?.webContents.send(channel, payload), paths);
   // A definition added since the last start joins every project it is missing from
   for (const p of store.listProjects()) chat.seed(p.id);
+  store.recoverInterrupted();
   registerHandlers(createHandlers(store, crew, chat, () => win));
   createWindow();
 });
