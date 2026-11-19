@@ -440,8 +440,8 @@ export function kitTools(sdk: Sdk, chat: Chat, sessionId: number) {
           const old = chat.kit(projectId).skills[a.name];
           // A skill goes into every run of the members who hold it, so the user sees exactly what it will say
           const shown = old
-            ? `스킬 ${old.label}(${a.name})을 이렇게 바꿀까요?\n${a.reason}\n\n${changedLines(`${old.use}\n\n${chat.kit(projectId).texts[a.name]}`, `${a.use}\n\n${a.body}`)}`
-            : `스킬 ${a.label}(${a.name})을 새로 만들까요?\n${a.reason}\n\n${a.use}\n\n${a.body}`;
+            ? `스킬 변경: ${old.label}(${a.name})\n${a.reason}\n\n${changedLines(`${old.use}\n\n${chat.kit(projectId).texts[a.name]}`, `${a.use}\n\n${a.body}`)}`
+            : `새 스킬: ${a.label}(${a.name})\n${a.reason}\n\n${a.use}\n\n${a.body}`;
           if (!(await approve(shown))) return cancelled;
           chat.writeSkill(projectId, a);
           return text(`Saved the skill ${a.name}.`);
@@ -457,9 +457,7 @@ export function kitTools(sdk: Sdk, chat: Chat, sessionId: number) {
           const holders = store.listMembers(projectId).filter((m) => chat.settings(m).skills.includes(a.name));
           const who = holders.map((m) => crew.defOf(m).role).join(', ') || '없음';
           if (
-            !(await approve(
-              `스킬 ${skill.label}(${a.name})을 지울까요? 가진 멤버(${who})에게서도 빠집니다.\n${a.reason}`,
-            ))
+            !(await approve(`스킬 삭제: ${skill.label}(${a.name}). 가진 멤버(${who})에게서도 빠집니다.\n${a.reason}`))
           )
             return cancelled;
           chat.deleteSkill(projectId, a.name);
@@ -477,12 +475,12 @@ export function kitTools(sdk: Sdk, chat: Chat, sessionId: number) {
           const rows = store.listSkills(projectId).filter((r) => !a.name || r.name === a.name);
           if (a.name && !rows.length && !crew.kit.skills[a.name])
             return text(`${a.name} is not a skill in this project's kit.`);
-          const what = a.name ? `스킬 ${a.name}을` : `스킬 전체와 멤버별 스킬 배정을`;
+          const what = a.name ? `스킬 ${a.name}` : '스킬 전체와 멤버별 스킬 배정';
           const changed = rows.map(
             (r) => `- ${r.name}: ${crew.kit.skills[r.name] ? (r.deleted ? '다시 생김' : '기본 내용으로') : '사라짐'}`,
           );
           const list = changed.length ? `\n\n${changed.join('\n')}` : '';
-          if (!(await approve(`${what} 기본값으로 되돌릴까요?\n${a.reason}${list}`))) return cancelled;
+          if (!(await approve(`기본값으로 되돌리기: ${what}\n${a.reason}${list}`))) return cancelled;
           chat.resetSkills(projectId, a.name);
           return text(
             a.name ? `Reset the skill ${a.name} to the shipped one.` : 'Reset the whole kit to the shipped one.',

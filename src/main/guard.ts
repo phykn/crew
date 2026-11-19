@@ -301,7 +301,7 @@ export function guardMember({ store, questions, policy, sessionId, taskId, membe
         sessionId,
         taskId,
         kind: 'approval',
-        prompt: `${policy().role}(${member.nickname})이 권한을 요청합니다. ${reason}.${what ? `\n${what}` : ''}`,
+        prompt: `권한 요청: ${policy().role}(${member.nickname}). ${reason}.${what ? `\n${what}` : ''}`,
         options: [ALLOW, REFUSE],
         payload: { memberId: member.id, tool },
       });
