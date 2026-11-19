@@ -48,12 +48,12 @@
     "style": {
       "icon": "palette",
       "label": "표준 점검",
-      "use": "Judge whether one change fits the standard in the conventions skill."
+      "use": "Judge a code change, or the project's structure, against the standard in the conventions skill."
     },
     "research": {
       "icon": "book",
       "label": "출처 조사",
-      "use": "Find facts in official sources and cite each with its URL and the date read."
+      "use": "Find facts in official sources, checked against the source itself and against what the project uses."
     },
     "image": {
       "icon": "image",
