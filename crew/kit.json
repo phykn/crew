@@ -63,7 +63,7 @@
     "report": {
       "icon": "scroll",
       "label": "보고서 양식",
-      "use": "Write a report to keep: lead with the conclusion, then evidence, then what could not be checked."
+      "use": "Shape a result that is not code into its sections, and keep what later work needs in the wiki."
     }
   },
   "mcp": {

@@ -28,6 +28,7 @@ test('a run starts with its own memory and this project wiki only; a rule docume
   await chat.runMember(tester, store.createSession(a.id).id, null, 'hi');
   const system = String(fake.calls[0].options.systemPrompt);
   expect(system).toContain('- 테스트 방법');
+  expect(system).toContain('- coder (개발):');
   expect(system).toContain('node --test를 쓴다');
   expect(system).not.toContain('다른 프로젝트 문서');
   expect(system).not.toContain('개발의 기억');

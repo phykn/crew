@@ -81,6 +81,15 @@ export class Chat {
     return [...this.active].find((a) => a.secretary && a.sessionId === sessionId)?.run;
   }
 
+  // Who a member can name or ask right now, by key
+  roster(projectId: number) {
+    const hired = this.store.listMembers(projectId).filter((m) => m.status === 'hired');
+    return [
+      '# Crew now',
+      ...hired.map((m) => `- ${m.key} (${this.crew.defOf(m).role}): ${this.crew.defOf(m).description}`),
+    ].join('\n');
+  }
+
   // A member as the crew names it: by key, as the rules say, or by its Korean role
   findMember(projectId: number, name: string) {
     return this.store.listMembers(projectId).find((m) => m.key === name || this.crew.defOf(m).role === name) ?? null;
@@ -219,7 +228,9 @@ export class Chat {
     const run = new AgentRun(sdk.query, {
       cwd: project.path,
       model: member.model,
-      system: `${this.crew.system(def, settings)}\n\n${this.wiki.context(project.id, member.id)}`,
+      system: [this.crew.system(def, settings), this.roster(project.id), this.wiki.context(project.id, member.id)].join(
+        '\n\n',
+      ),
       mcpServers: {
         ...this.crew.mcpServers(settings),
         ...(settings.mcp.some((m) => m.server === 'app') ? { app: appServer(sdk, this, sessionId) } : {}),
