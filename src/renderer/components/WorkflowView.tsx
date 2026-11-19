@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -19,10 +19,12 @@ import type { CrewMember } from '../../main/crew';
 import type { Project } from '../../main/db';
 import type { Step } from '../../main/workflow';
 import { call } from '../api';
+import { Choice } from './Choice';
 
 type Read = Awaited<ReturnType<typeof call<'workflows.read'>>>;
 type StepNode = Node<{ step: Step; member?: CrewMember }, 'step'>;
 type Layout = Record<string, { x: number; y: number }>;
+const NONE = 'none';
 
 // The workflow tab: this project's rules for one task kind, drawn as nodes and saved as a new version
 export function WorkflowView({ project, members, kind, onKind, active }: { project: Project; members: CrewMember[]; kind: string; onKind: (k: string) => void; active: boolean }) {
@@ -34,9 +36,6 @@ export function WorkflowView({ project, members, kind, onKind, active }: { proje
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   // Unsaved edits are marked, so leaving them behind is a known choice
   const [dirty, setDirty] = useState(false);
-  // The tab stays mounted while hidden, where fitting has no size to fit to; it fits when first shown after a load
-  const flow = useRef<{ fitView: () => unknown } | null>(null);
-  const fitted = useRef(false);
 
   useEffect(() => {
     call('workflows.kinds').then(setKinds);
@@ -48,18 +47,11 @@ export function WorkflowView({ project, members, kind, onKind, active }: { proje
     setNodes(toNodes(read.rules.steps, (read.layout ?? {}) as Layout, members));
     setPicked(null);
     setDirty(false);
-    fitted.current = false;
   }
   useEffect(() => {
     load();
     setNote(null);
   }, [project.id, kind]);
-
-  useEffect(() => {
-    if (!active || fitted.current || !flow.current || !nodes.length) return;
-    fitted.current = true;
-    requestAnimationFrame(() => flow.current?.fitView());
-  }, [active, nodes]);
 
   // Nodes carry the step, so edits in the side panel show on the canvas at once
   const shown = useMemo(() => nodes.map((n) => ({ ...n, data: { step: steps.find((s) => s.id === n.id)!, member: members.find((m) => m.key === steps.find((s) => s.id === n.id)?.role) } })).filter((n) => n.data.step), [nodes, steps, members]);
@@ -98,34 +90,37 @@ export function WorkflowView({ project, members, kind, onKind, active }: { proje
     const rules = { ...w!.rules, steps };
     const r = await call('workflows.save', { projectId: project.id, kind, base: w!.version, rules, layout });
     if (r.ok) {
-      setNote({ ok: true, text: `버전 ${r.version}로 저장했습니다. 다음 새 업무부터 적용됩니다.` });
+      setNote({ ok: true, text: `버전 ${r.version} 저장, 새 업무부터 적용` });
       setDirty(false);
       const read = await call('workflows.read', { projectId: project.id, kind });
       setW(read);
-    } else setNote({ ok: false, text: `저장하지 않았습니다: ${r.problems.join(' / ')}` });
+    } else setNote({ ok: false, text: r.problems.join(' / ') });
   }
 
   const step = steps.find((s) => s.id === picked);
   return (
     <section className="workflow-view" aria-label="워크플로우 편집">
-      <header className="workflow-head">
-        <h2>
-          {project.name} 워크플로우 <span className="muted">버전 {w?.version ?? 0}</span>
-          {dirty && <span className="workflow-dirty">저장 안 한 변경 있음</span>}
-        </h2>
-        <div className="workflow-kinds" role="group" aria-label="업무 종류">
+      <header className="toolbar">
+        <div className="seg" role="group" aria-label="업무 종류">
           {kinds.map((k) => (
             <button key={k.kind} aria-pressed={k.kind === kind} onClick={() => (!dirty || confirm('저장 안 한 변경이 사라집니다. 다른 업무 종류로 바꿀까요?')) && onKind(k.kind)}>
               {k.label}
             </button>
           ))}
         </div>
-        <button className="button" onClick={addStep}>단계 추가</button>
-        <button className="button primary" onClick={save}>저장</button>
+        <span className="badge">버전 {w?.version ?? 0}</span>
+        <span className="toolbar-end">
+          <button className="button" onClick={addStep}>단계 추가</button>
+          <button className="button primary" data-dirty={dirty || undefined} title={dirty ? '저장 안 한 변경이 있습니다' : undefined} onClick={save}>
+            저장
+          </button>
+        </span>
       </header>
       {note && <p className={`workflow-note${note.ok ? '' : ' bad'}`} role="status">{note.text}</p>}
       <div className="workflow-body">
         <div className="workflow-canvas">
+          {/* A hidden canvas has no size to fit nodes to, so it is drawn only while the tab shows; the steps stay in state */}
+          {active && (
           <ReactFlow
             nodes={shown}
             edges={edges}
@@ -133,16 +128,18 @@ export function WorkflowView({ project, members, kind, onKind, active }: { proje
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
-            onInit={(f) => (flow.current = { fitView: () => f.fitView() })}
             onNodeClick={(_, n) => setPicked(n.id)}
             onPaneClick={() => setPicked(null)}
             colorMode="light"
             fitView
+            // Fits the whole flow but never enlarges past real size
+            fitViewOptions={{ maxZoom: 1, padding: 0.15 }}
             deleteKeyCode={['Backspace', 'Delete']}
           >
             <Background />
             <Controls showInteractive={false} />
           </ReactFlow>
+          )}
         </div>
         {step && (
           <aside className="workflow-side" aria-label="단계 설정">
@@ -152,11 +149,7 @@ export function WorkflowView({ project, members, kind, onKind, active }: { proje
             </label>
             <label>
               담당
-              <select aria-label="담당 역할" value={step.role} onChange={(e) => edit(step.id, { role: e.target.value })}>
-                {members.filter((m) => m.status === 'hired').map((m) => (
-                  <option key={m.key} value={m.key}>{m.role} {m.nickname}</option>
-                ))}
-              </select>
+              <Choice label="담당 역할" value={step.role} options={members.filter((m) => m.status === 'hired').map((m) => ({ value: m.key, label: `${m.role} ${m.nickname}` }))} onChange={(role) => edit(step.id, { role })} />
             </label>
             <label>
               할 일
@@ -173,19 +166,16 @@ export function WorkflowView({ project, members, kind, onKind, active }: { proje
             </fieldset>
             <label className="check">
               <input type="checkbox" checked={step.verdict} onChange={(e) => edit(step.id, { verdict: e.target.checked })} />
-              판정 단계 (통과 / 수정 요청)
+              판정 단계
             </label>
             {step.verdict && (
               <label>
-                수정 요청 시 되돌릴 단계
-                <select aria-label="되돌릴 단계" value={step.rework ?? ''} onChange={(e) => edit(step.id, { rework: e.target.value || undefined })}>
-                  <option value="">고르세요</option>
-                  {steps.filter((s) => s.id !== step.id).map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                </select>
+                되돌릴 단계
+                <Choice label="되돌릴 단계" value={step.rework ?? NONE} options={[{ value: NONE, label: '—' }, ...steps.filter((s) => s.id !== step.id).map((s) => ({ value: s.id, label: s.label }))]} onChange={(v) => edit(step.id, { rework: v === NONE ? undefined : v })} />
               </label>
             )}
             <fieldset>
-              <legend>인계에 꼭 있어야 할 것</legend>
+              <legend>필수 인계</legend>
               {(['files', 'checks'] as const).map((k) => (
                 <label key={k} className="check">
                   <input type="checkbox" checked={step.requires.includes(k)} onChange={(e) => edit(step.id, { requires: e.target.checked ? [...step.requires, k] : step.requires.filter((r) => r !== k) })} />
@@ -203,18 +193,19 @@ export function WorkflowView({ project, members, kind, onKind, active }: { proje
 function StepBox({ data }: NodeProps<StepNode>) {
   const { step, member } = data;
   return (
-    <div className="workflow-node" style={{ borderColor: member?.color }} aria-label={`단계 ${step.label}`}>
-      <Handle type="target" position={Position.Left} />
-      <div className="workflow-role">{member?.role ?? step.role}</div>
+    <div className="workflow-node" aria-label={`단계 ${step.label}`}>
+      <Handle type="target" position={Position.Top} />
+      {/* The role shows only when the step's name does not already say it */}
+      {!step.label.startsWith(member?.role ?? step.role) && <div className="workflow-role">{member?.role ?? step.role}</div>}
       <div>{step.label}</div>
       {step.verdict && <div className="muted">판정</div>}
-      <Handle type="source" position={Position.Right} />
+      <Handle type="source" position={Position.Bottom} />
     </div>
   );
 }
 const NODE_TYPES = { step: StepBox };
 
-// Saved positions where there are some; otherwise columns by how many steps come before
+// Saved positions where there are some; otherwise rows by how many steps come before, since the panel is tall and narrow
 function toNodes(steps: Step[], layout: Layout, members: CrewMember[]): StepNode[] {
   const depth = (id: string, seen: string[] = []): number => {
     const s = steps.find((x) => x.id === id);
@@ -225,7 +216,7 @@ function toNodes(steps: Step[], layout: Layout, members: CrewMember[]): StepNode
   return steps.map((s) => {
     const d = depth(s.id);
     const row = (rows[d] = (rows[d] ?? -1) + 1);
-    return { id: s.id, type: 'step', position: layout[s.id] ?? { x: d * 190, y: row * 110 }, data: { step: s, member: members.find((m) => m.key === s.role) } };
+    return { id: s.id, type: 'step', position: layout[s.id] ?? { x: row * 170, y: d * 100 }, data: { step: s, member: members.find((m) => m.key === s.role) } };
   });
 }
 

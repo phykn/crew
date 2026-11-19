@@ -27,7 +27,7 @@ test('the wiki keeps one document with two changes by two members, and they surv
     await expect(timeline.getByRole('button').nth(1)).toContainText('시험');
     await timeline.getByRole('button').first().click();
     await expect(timeline).toContainText('+ npm run test:e2e');
-    await expect(timeline).toContainText('출처: 업무 #2');
+    await expect(timeline).toContainText('업무 #2');
     await page.getByLabel('위키 목차').getByRole('button', { name: '테스트 방법' }).click();
     await expect(page.getByLabel('위키 본문')).toContainText('npm run test:e2e');
   };

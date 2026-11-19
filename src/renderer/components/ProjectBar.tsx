@@ -69,6 +69,7 @@ export function ProjectBar(props: Props) {
                   <Select.ItemText>{sessionLabel(s)}</Select.ItemText>
                 </Select.Item>
               ))}
+              <Select.Separator className="menu-separator" />
               <Select.Item value={NEW} className="menu-item action">
                 <Select.ItemText>새 세션</Select.ItemText>
               </Select.Item>

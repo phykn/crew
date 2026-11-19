@@ -28,9 +28,9 @@ test('a message opens a pinned task card, the answer card lets it go on, and the
   await expect(card).toHaveCount(0);
 
   await page.getByRole('tab', { name: '로그' }).click();
-  await page.getByRole('button', { name: /개발: 개발 완료/ }).click();
+  await page.getByRole('button', { name: /개발 완료/ }).click();
   await expect(page.getByLabel('업무 로그')).toContainText('search.js');
-  await page.getByRole('button', { name: /시험: 시험 완료/ }).click();
+  await page.getByRole('button', { name: /시험 완료/ }).click();
   await expect(page.getByLabel('업무 로그')).toContainText('npm test → 3 passed');
 
   await page.getByRole('tab', { name: '대화' }).click();

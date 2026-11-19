@@ -25,7 +25,7 @@ test('a nickname change shows over the head at once, and clicking a member opens
   await expect(async () => {
     const at = (await where('researcher'))!;
     await page.mouse.click(at.x, at.y);
-    await expect(page.getByLabel('업무 선택')).toHaveValue('1', { timeout: 500 });
+    await expect(page.getByLabel('업무 선택')).toContainText('#1', { timeout: 500 });
   }).toPass({ timeout: 15_000 });
   await expect(page.getByLabel('업무 로그')).toContainText('조사');
   await app.close();

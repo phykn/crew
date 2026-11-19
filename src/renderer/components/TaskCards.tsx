@@ -36,12 +36,6 @@ export function TaskCards({ tasks, messages, onLog }: { tasks: Task[]; messages:
   if (!open.length) return null;
   return (
     <section className="task-cards" aria-label="진행 중 업무">
-      <h3 className="task-cards-head">
-        <svg viewBox="0 0 24 24" className="pin" aria-hidden="true">
-          <path d="M14.5 2.5l7 7-2.2.6-4.3 4.3.4 4.6-2.1 2.1-4.1-4.1-5.6 5.6-1.1-1.1 5.6-5.6-4.1-4.1 2.1-2.1 4.6.4 4.3-4.3z" fill="currentColor" />
-        </svg>
-        진행 중
-      </h3>
       {open.map((t) => {
         const asking = messages.some((m) => m.question?.taskId === t.id && m.question.answer === null);
         const p = pill(t, asking);
@@ -54,7 +48,7 @@ export function TaskCards({ tasks, messages, onLog }: { tasks: Task[]; messages:
               {p.text}
             </span>
             {stoppable && stopping !== t.id && (
-              <button className="task-link quiet" onClick={() => setStopping(t.id)}>
+              <button className="task-link" onClick={() => setStopping(t.id)}>
                 중단
               </button>
             )}
@@ -64,13 +58,13 @@ export function TaskCards({ tasks, messages, onLog }: { tasks: Task[]; messages:
                 <button className="task-link danger" onClick={() => { setStopping(null); call('tasks.stop', { id: t.id }); }}>
                   중단
                 </button>
-                <button className="task-link quiet" onClick={() => setStopping(null)}>
+                <button className="task-link" onClick={() => setStopping(null)}>
                   취소
                 </button>
               </span>
             )}
             {['stopped', 'failed'].includes(t.status) && (
-              <button className="task-link quiet" onClick={() => call('tasks.resume', { id: t.id })}>
+              <button className="task-link" onClick={() => call('tasks.resume', { id: t.id })}>
                 재개
               </button>
             )}

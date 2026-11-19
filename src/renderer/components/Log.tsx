@@ -1,7 +1,10 @@
-import { type CSSProperties, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Event, Handback, Session, Task } from '../../main/db';
 import type { CrewMember } from '../../main/crew';
 import { call, onChanged } from '../api';
+import { Choice } from './Choice';
+
+const ALL = 'all';
 
 // The session's record in time order: when, who, what, and the handback behind it when opened
 export function Log({ session, members, taskId, onTask }: { session: Session; members: CrewMember[]; taskId: number | null; onTask: (id: number | null) => void }) {
@@ -9,6 +12,7 @@ export function Log({ session, members, taskId, onTask }: { session: Session; me
   const [tasks, setTasks] = useState<Task[]>([]);
   const [open, setOpen] = useState<number | null>(null);
   const [usage, setUsage] = useState<Awaited<ReturnType<typeof call<'usage.list'>>>>([]);
+  const [showUsage, setShowUsage] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -22,27 +26,32 @@ export function Log({ session, members, taskId, onTask }: { session: Session; me
 
   const shown = events.filter((e) => taskId === null || e.taskId === taskId);
   const who = (id: number | null) => members.find((m) => m.id === id);
+  const runs = usage.reduce((n, u) => n + u.runs, 0);
+  const cost = usage.reduce((n, u) => n + u.costUsd, 0);
   return (
     <div className="log">
-      <select className="log-filter" aria-label="업무 선택" value={taskId ?? ''} onChange={(e) => onTask(e.target.value ? Number(e.target.value) : null)}>
-        <option value="">모든 업무</option>
-        {tasks.map((t) => (
-          <option key={t.id} value={t.id}>
-            #{t.id} {t.title}
-          </option>
-        ))}
-      </select>
-      {usage.length > 0 && (
-        <details className="usage-fold">
-          <summary>사용량 (실행 {usage.reduce((n, u) => n + u.runs, 0)}회, ${usage.reduce((n, u) => n + u.costUsd, 0).toFixed(3)})</summary>
-          <table className="usage" aria-label="사용량">
+      <div className="toolbar">
+        <Choice
+          label="업무 선택"
+          value={taskId ? String(taskId) : ALL}
+          options={[{ value: ALL, label: '모든 업무' }, ...tasks.map((t) => ({ value: String(t.id), label: `#${t.id} ${t.title}` }))]}
+          onChange={(v) => onTask(v === ALL ? null : Number(v))}
+        />
+        {runs > 0 && (
+          <button className="toolbar-end usage-toggle" aria-expanded={showUsage} onClick={() => setShowUsage(!showUsage)}>
+            {runs}회 · ${cost.toFixed(3)}
+          </button>
+        )}
+      </div>
+      {showUsage && (
+        <table className="usage" aria-label="사용량">
           <thead>
             <tr>
               <th>역할</th>
               <th>모델</th>
               <th>횟수</th>
               <th>시간</th>
-              <th>토큰 (입력/출력)</th>
+              <th>토큰</th>
               <th>비용</th>
             </tr>
           </thead>
@@ -60,29 +69,35 @@ export function Log({ session, members, taskId, onTask }: { session: Session; me
               </tr>
             ))}
           </tbody>
-          </table>
-        </details>
+        </table>
       )}
       <ol className="log-list" aria-label="업무 로그">
-        {shown.map((e) => {
+        {shown.map((e, i) => {
           const m = who(e.memberId);
           const hb = e.kind === 'step' ? readHandback(e.detail) : null;
           const errors = e.kind === 'step' && !hb ? readErrors(e.detail) : null;
           const opens = !!(hb || errors);
+          // A minute already shown on the line above is not repeated
+          const minute = e.at.slice(11, 16);
+          const same = i > 0 && shown[i - 1].at.slice(0, 16) === e.at.slice(0, 16);
           return (
-            <li key={e.id} className="log-row" data-kind={e.kind} style={m ? ({ "--dot": m.color } as CSSProperties) : undefined}>
+            <li key={e.id} className="log-row" data-kind={e.kind} data-bad={/실패|거부|denied/.test(e.text) || undefined}>
               <button className="log-line" disabled={!opens} aria-expanded={opens ? open === e.id : undefined} onClick={() => setOpen(open === e.id ? null : e.id)}>
-                <time>{e.at.slice(11, 19)}</time>
-                <span className="log-who">
-                  {m ? m.role : '앱'}
-                </span>
-                <span className="log-text">{e.text}</span>
+                <time>{same ? '' : minute}</time>
+                <span className="log-who">{m ? m.role : '앱'}</span>
+                <span className="log-text">{m ? e.text.replace(new RegExp(`^${m.role}: `), '') : e.text}</span>
               </button>
               {hb && open === e.id && <HandbackView hb={hb} />}
               {errors && open === e.id && (
                 <div className="log-detail">
-                  <h4>시도별 오류</h4>
-                  <ol>{errors.map((x, i) => <li key={i}><pre>{x}</pre></li>)}</ol>
+                  <ul>
+                    {group(errors).map(([text, n]) => (
+                      <li key={text}>
+                        <code>{text}</code>
+                        {n > 1 && <span className="muted"> ×{n}</span>}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </li>
@@ -97,10 +112,7 @@ function HandbackView({ hb }: { hb: Handback }) {
   return (
     <div className="log-detail">
       {hb.files.length > 0 && (
-        <section>
-          <h4>변경 파일</h4>
-          <ul>{hb.files.map((f) => <li key={f}><code>{f}</code></li>)}</ul>
-        </section>
+        <ul className="files">{hb.files.map((f) => <li key={f}><code>{f}</code></li>)}</ul>
       )}
       {hb.points.length > 0 && (
         <section>
@@ -110,13 +122,20 @@ function HandbackView({ hb }: { hb: Handback }) {
       )}
       {hb.checks.length > 0 && (
         <section>
-          <h4>테스트 명령과 출력</h4>
+          <h4>검사</h4>
           <pre>{hb.checks.join('\n')}</pre>
         </section>
       )}
       {hb.body && <p className="log-body">{hb.body}</p>}
     </div>
   );
+}
+
+// The same error repeated across retries shows once with its count
+function group(errors: string[]): [string, number][] {
+  const counts = new Map<string, number>();
+  for (const e of errors) counts.set(e, (counts.get(e) ?? 0) + 1);
+  return [...counts];
 }
 
 // Step events carry the handback; other kinds keep their own detail

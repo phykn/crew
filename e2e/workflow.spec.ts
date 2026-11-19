@@ -25,7 +25,7 @@ test('the editor saves review and test in parallel after 개발 as a new version
   await side.getByLabel('개발').uncheck();
   await side.getByLabel('코드 리뷰').check();
   await editor.getByRole('button', { name: '저장' }).click();
-  await expect(editor).toContainText('버전 1로 저장했습니다');
+  await expect(editor).toContainText('버전 1 저장');
   // Back to both after 개발, side by side, and the node moved down: version 2
   await editor.getByLabel('단계 시험').click();
   await side.getByLabel('코드 리뷰').uncheck();
@@ -36,7 +36,7 @@ test('the editor saves review and test in parallel after 개발 as a new version
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + 90, { steps: 8 });
   await page.mouse.up();
   await editor.getByRole('button', { name: '저장' }).click();
-  await expect(editor).toContainText('버전 2로 저장했습니다');
+  await expect(editor).toContainText('버전 2 저장');
   // Flow coordinates, which do not depend on how the view is zoomed
   const where = () => editor.locator('.react-flow__node[data-id="test"]').evaluate((n) => (n as HTMLElement).style.transform);
   const moved = await where();

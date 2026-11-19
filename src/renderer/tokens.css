@@ -1,0 +1,135 @@
+/* Every size and color the window uses lives here; styles.css only refers to these, so the UI stays consistent */
+@font-face { font-family: Galmuri11; font-weight: 400; src: url('../../node_modules/galmuri/dist/Galmuri11.woff2') format('woff2'); }
+@font-face { font-family: Galmuri11; font-weight: 700; src: url('../../node_modules/galmuri/dist/Galmuri11-Bold.woff2') format('woff2'); }
+
+:root {
+  color-scheme: light;
+
+  /* Parchment and wood */
+  --bg: #f3d9a4;
+  --panel: #fbe7bd;
+  --card: #fff5dc;
+  --card-hi: #fdebc6;
+  --paper: #fff9e8;
+  --line: #e2bb85;
+  --line-hi: #b8763b;
+  --wood: #8a4f22;
+  --wood-dark: #5c3213;
+  --wood-light: #c98a4b;
+  --on-wood: #fff1d6;
+  --camp-bg: #2b3a2a;
+
+  /* Text */
+  --text: #4a2a12;
+  --muted: #94683f;
+  --link: #3f78a8;
+  --on-accent: #ffffff;
+
+  /* States: green is go, butter is waiting or highlight, red is only failure and delete */
+  --accent: #79b86a;
+  --accent-hover: #86c477;
+  --accent-dark: #4f8a44;
+  --accent-soft: #c9ebbb;
+  --ok-text: #2f5a28;
+  --ok: #3e7a33;
+  --butter: #fbe39a;
+  --wait-bg: #fff0b8;
+  --wait-line: #b8861f;
+  --wait-text: #6b4a0a;
+  --rose: #f4b9a8;
+  --danger: #b8432f;
+  --danger-dark: #8f3424;
+  --bad-text: #7a2416;
+  --sky: #bfe1f2;
+  --sky-line: #7fa9c4;
+  --off: #d8c49c;
+  --disabled-bg: #d9ccae;
+  --disabled-line: #b3a283;
+
+  /* Shadows and veils */
+  --veil: rgba(60, 34, 14, 0.45);
+  --frame-shadow: rgba(40, 22, 8, 0.45);
+
+  /* Type */
+  --font-ui: Galmuri11, 'Malgun Gothic', sans-serif;
+  --font-text: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  --font-code: 'Cascadia Code', Consolas, monospace;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 18px;
+  --fs-title: 20px;
+  --fw-bold: 700;
+  --lh-text: 1.6;
+  --lh-doc: 1.7;
+
+  /* Spacing: four steps, and two larger for empty states */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-8: 32px;
+
+  /* Borders and corners: 3px only on outer frames, 2px on controls */
+  --bw-thin: 1px;
+  --bw: 2px;
+  --bw-frame: 3px;
+  --bw-wood: 6px;
+  --r-xs: 3px;
+  --r-sm: 4px;
+  --r: 6px;
+  --r-lg: 8px;
+
+  /* Heights */
+  --h-xs: 26px;
+  --h-chip: 30px;
+  --h-control: 32px;
+  --h-touch: 36px;
+  --h-picker: 40px;
+  --h-title: 46px;
+
+  /* Icons and marks */
+  --icon-sm: 14px;
+  --icon: 16px;
+  --icon-md: 18px;
+  --icon-lg: 20px;
+  --icon-logo: 24px;
+  --mark: 8px;
+  --mark-sm: 6px;
+  --switch-h: 22px;
+  --switch-thumb: var(--icon-sm);
+
+  /* Widths and fixed areas */
+  --camp-share: 64%;
+  --camp-share-stacked: 38vh;
+  --w-panel-min: 360px;
+  --w-legend-role: 3.6em;
+  --w-legend-nick: 3.4em;
+  --w-field: 120px;
+  --w-field-sm: 76px;
+  /* Narrow label and data columns, and the switch */
+  --w-col: 40px;
+  --w-answer: 280px;
+  --w-wiki-time: 88px;
+  --w-toc: 140px;
+  --w-side: 220px;
+  --w-side-stacked: 180px;
+  --w-dialog: 720px;
+  --w-tree: 520px;
+  --w-bubble-max: 84%;
+  --h-compose-max: 160px;
+  --h-wiki-min: 200px;
+  --h-textarea: 120px;
+  --h-side-textarea: 70px;
+  --h-def-max: 240px;
+  --timeline-share: 35%;
+  --scrollbar: 10px;
+
+  /* Layers and motion */
+  --z-legend: 2;
+  --z-overlay: 20;
+  --z-dialog: 21;
+  --z-menu: 30;
+  --t-fast: 0.12s;
+}
