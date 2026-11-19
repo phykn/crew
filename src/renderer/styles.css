@@ -1226,9 +1226,11 @@ code {
   color: var(--ok);
   font-size: var(--fs-sm);
 }
+/* The step's settings sit under the flow, since the panel is too narrow to share across */
 .workflow-body {
   flex: 1;
   display: flex;
+  flex-direction: column;
   min-height: 0;
   overflow: hidden;
   border: var(--bw) solid var(--line);
@@ -1289,15 +1291,20 @@ code {
   font-size: var(--fs-xs);
 }
 .workflow-side {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-content: start;
   gap: var(--sp-3);
-  width: var(--w-side);
+  max-height: var(--h-workflow-side);
   overflow-y: auto;
   padding: var(--sp-3);
   background: var(--panel);
-  border-left: var(--bw) solid var(--line);
+  border-top: var(--bw) solid var(--line);
   font-size: var(--fs-sm);
+}
+/* Name and owner share the first row; what follows takes the full width */
+.workflow-side > :nth-child(n + 3) {
+  grid-column: 1 / -1;
 }
 .workflow-side label {
   display: flex;
@@ -1312,6 +1319,11 @@ code {
 .workflow-side textarea {
   min-height: var(--h-side-textarea);
   resize: vertical;
+}
+/* Fields in one row stand as tall as the owner picker beside them */
+.workflow-side input:not([type]),
+.workflow-side input[type='number'] {
+  height: var(--h-control);
 }
 .workflow-side .choice {
   width: 100%;
@@ -1370,8 +1382,5 @@ code {
   .legend {
     top: var(--sp-2);
     left: var(--sp-2);
-  }
-  .workflow-side {
-    width: var(--w-side-stacked);
   }
 }

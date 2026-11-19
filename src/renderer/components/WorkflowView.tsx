@@ -170,6 +170,14 @@ export function WorkflowView({
   }
 
   const step = steps.find((s) => s.id === picked);
+  // The side panel takes room from the canvas when it opens or closes, so the flow is fitted again
+  useEffect(() => {
+    requestAnimationFrame(() => flow?.fitView(FIT));
+  }, [!!step]);
+  // The side panel takes room from the canvas when it opens or closes, so the flow is fitted again
+  useEffect(() => {
+    requestAnimationFrame(() => flow?.fitView(FIT));
+  }, [!!step]);
   return (
     <section className="workflow-view" aria-label="워크플로우 편집">
       <header className="toolbar">

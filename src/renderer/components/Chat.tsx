@@ -214,11 +214,11 @@ function AnswerCard({ question }: { question: Question }) {
   );
 }
 
-// Agents write file names in backticks; showing them as code is the only formatting chat needs
+// Agents write file names in backticks and lead points in bold; those two are the only formatting chat needs
 function renderInline(text: string) {
-  return text
-    .split(/(`[^`\n]+`)/)
-    .map((part, i) =>
-      part.startsWith('`') && part.endsWith('`') && part.length > 2 ? <code key={i}>{part.slice(1, -1)}</code> : part,
-    );
+  return text.split(/(`[^`\n]+`|\*\*[^*\n]+\*\*)/).map((part, i) => {
+    if (part.length > 2 && part.startsWith('`') && part.endsWith('`')) return <code key={i}>{part.slice(1, -1)}</code>;
+    if (part.length > 4 && part.startsWith('**') && part.endsWith('**')) return <b key={i}>{part.slice(2, -2)}</b>;
+    return part;
+  });
 }

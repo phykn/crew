@@ -302,7 +302,8 @@ export function guardMember({ store, questions, policy, sessionId, taskId, membe
         taskId,
         kind: 'approval',
         prompt: `권한 요청: ${policy().role}(${member.nickname}). ${reason}.${what ? `\n${what}` : ''}`,
-        options: [ALLOW, REFUSE],
+        // The last option is the card's main button, so allowing is the one that stands out
+        options: [REFUSE, ALLOW],
         payload: { memberId: member.id, tool },
       });
       return answer === ALLOW;

@@ -56,7 +56,7 @@ test('a tool outside the role becomes an answer card, and the approval holds onl
   await new Promise((r) => setTimeout(r, 0));
   const card = store.listMessages(session.id).at(-1)!;
   expect(card.question?.kind).toBe('approval');
-  expect(card.question?.options).toEqual(['허용', '거절']);
+  expect(card.question?.options).toEqual(['거절', '허용']);
   chat.questions.answer(card.question!.id, '허용');
   expect((await pending)!.behavior).toBe('allow');
 
