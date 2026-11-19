@@ -23,13 +23,20 @@ export function App() {
   const [tree, setTree] = useState(false);
   // The member whose memory the memory tab shows; null shows everyone's
   const [memoryOf, setMemoryOf] = useState<number | null>(null);
-  // The workflow kind being edited; null when the editor is closed
-  const [editing, setEditing] = useState<string | null>(null);
+  // The workflow kind the workflow tab shows
+  const [kind, setKind] = useState('code');
 
-  // Hires and departures made through 비서 reach the legend and the camp too
+  // Hires made through 비서 reach the legend and the camp; a session named by its first message shows its name
   useEffect(() => {
     if (!project) return;
-    return onChanged(async (t) => t === 'members' && setMembers(await call('members.list', { projectId: project.id })));
+    return onChanged(async (t) => {
+      if (t === 'members') setMembers(await call('members.list', { projectId: project.id }));
+      if (t === 'sessions') {
+        const list = await call('sessions.list', { projectId: project.id });
+        setSessions(list);
+        setSession((s) => list.find((x) => x.id === s?.id) ?? s);
+      }
+    });
   }, [project?.id]);
 
   // 도우미 moves the window the way the user would by clicking
@@ -41,7 +48,10 @@ export function App() {
           setLogTask(ev.taskId ?? null);
           setTab('log');
         } else if (ev.view === 'wiki') setTab('memory');
-        else setEditing(ev.kind ?? 'code');
+        else {
+          setKind(ev.kind ?? 'code');
+          setTab('workflow');
+        }
       }),
     [session?.id],
   );
@@ -59,7 +69,7 @@ export function App() {
 
   async function selectProject(p: Project, sessionId?: number) {
     let list = await call('sessions.list', { projectId: p.id });
-    // A project always has a session to talk in, so the first open starts 세션 01
+    // A project always has a session to talk in
     if (list.length === 0) list = [await call('sessions.create', { projectId: p.id })];
     setProject(p);
     setSessions(list);
@@ -107,11 +117,9 @@ export function App() {
 
   return (
     <div className="app">
-      <TitleBar />
-      {project && editing && (
-        <WorkflowView project={project} members={members} kind={editing} onKind={setEditing} onClose={() => setEditing(null)} />
-      )}
-      <main className="body" hidden={!!(project && editing)}>
+      <TitleBar onExplorer={() => setTree(true)} />
+      <ProjectTree open={tree} onClose={() => setTree(false)} onDeleted={afterDelete} />
+      <main className="body">
         <section className="camp" aria-label="캠프">
           <Camp
             members={members}
@@ -142,15 +150,13 @@ export function App() {
             onOpenFolder={openFolder}
             onSession={(s) => selectSession(s)}
             onNewSession={newSession}
-            onTree={() => setTree(true)}
-            onWorkflow={() => setEditing('code')}
           />
-          <ProjectTree open={tree} onClose={() => setTree(false)} onDeleted={afterDelete} />
           <Tabs.Root className="tabs" value={tab} onValueChange={setTab}>
             <Tabs.List className="tab-list">
               <Tabs.Trigger value="chat">대화</Tabs.Trigger>
               <Tabs.Trigger value="log">로그</Tabs.Trigger>
               <Tabs.Trigger value="memory">메모리</Tabs.Trigger>
+              <Tabs.Trigger value="workflow">워크플로우</Tabs.Trigger>
             </Tabs.List>
             <Tabs.Content value="chat" className="tab-body">
               {session ? (
@@ -171,6 +177,9 @@ export function App() {
             </Tabs.Content>
             <Tabs.Content value="memory" className="tab-body">
               {project && <Memory projectId={project.id} members={members} memberId={memoryOf} onMember={setMemoryOf} />}
+            </Tabs.Content>
+            <Tabs.Content value="workflow" className="tab-body">
+              {project && <WorkflowView project={project} members={members} kind={kind} onKind={setKind} />}
             </Tabs.Content>
           </Tabs.Root>
         </aside>

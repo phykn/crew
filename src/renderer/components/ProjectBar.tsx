@@ -3,8 +3,6 @@ import type { Project, Session } from '../../main/db';
 
 const OPEN = 'open';
 const NEW = 'new';
-const TREE = 'tree';
-const FLOW = 'workflow';
 
 type Props = {
   projects: Project[];
@@ -15,12 +13,13 @@ type Props = {
   onOpenFolder: () => void;
   onSession: (s: Session) => void;
   onNewSession: () => void;
-  onTree: () => void;
-  onWorkflow: () => void;
 };
 
+// Named after the first thing asked in it; until then, by when it was opened
 export function sessionLabel(s: Session) {
-  return `세션 ${String(s.number).padStart(2, '0')}`;
+  if (s.title) return s.title;
+  const d = new Date(s.createdAt);
+  return `새 대화 ${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 export function ProjectBar(props: Props) {
@@ -29,7 +28,7 @@ export function ProjectBar(props: Props) {
     <div className="project-bar">
       <Select.Root
         value={project ? String(project.id) : ''}
-        onValueChange={(v) => (v === OPEN ? props.onOpenFolder() : v === TREE ? props.onTree() : v === FLOW ? props.onWorkflow() : props.onProject(projects.find((p) => String(p.id) === v)!))}
+        onValueChange={(v) => (v === OPEN ? props.onOpenFolder() : props.onProject(projects.find((p) => String(p.id) === v)!))}
       >
         <Select.Trigger className="picker project-picker" aria-label="프로젝트">
           <FolderIcon />
@@ -48,14 +47,6 @@ export function ProjectBar(props: Props) {
               ))}
               <Select.Item value={OPEN} className="menu-item action">
                 <Select.ItemText>폴더 열기…</Select.ItemText>
-              </Select.Item>
-              {project && (
-                <Select.Item value={FLOW} className="menu-item action">
-                  <Select.ItemText>워크플로우 편집…</Select.ItemText>
-                </Select.Item>
-              )}
-              <Select.Item value={TREE} className="menu-item action">
-                <Select.ItemText>프로젝트 트리…</Select.ItemText>
               </Select.Item>
             </Select.Viewport>
           </Select.Content>

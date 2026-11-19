@@ -1,4 +1,4 @@
-import { BrowserWindow, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import { z } from 'zod';
 import { campState } from './camp-feed';
 import type { Store } from './db';
@@ -24,6 +24,11 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
         return project;
       },
     },
+    'sessions.rename': {
+      args: z.object({ sessionId: id, title: z.string().trim().min(1).max(30) }),
+      run: (a: { sessionId: number; title: string }) => store.nameSession(a.sessionId, a.title, false),
+    },
+    'app.quit': { args: z.undefined(), run: () => app.quit() },
     'sessions.clear': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => chat.clear(a.sessionId) },
     'sessions.impact': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => store.impact(a) },
     'sessions.delete': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => chat.deleteSession(a.sessionId) },

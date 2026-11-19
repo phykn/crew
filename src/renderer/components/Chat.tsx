@@ -87,32 +87,14 @@ export function Chat({ session, onLog, onClear }: { session: Session; onLog: (ta
 type BubbleProps = { author: Message['author']; text: string; pending?: boolean; question?: Question | null };
 
 function Bubble({ author, text, pending, question }: BubbleProps) {
-  const mine = author === 'user';
+  // Only two people talk here, so the side a bubble sits on says who said it: me left, 비서 right
   return (
-    <div className={`message ${author}`} data-pending={pending || undefined}>
-      <div className="avatar" aria-hidden="true">
-        {mine ? (
-          <svg viewBox="0 0 20 20">
-            <circle cx="10" cy="7" r="3.5" fill="currentColor" />
-            <path d="M3.5 17a6.5 6.5 0 0 1 13 0z" fill="currentColor" />
-          </svg>
-        ) : (
-          <svg viewBox="0 0 20 20">
-            <rect x="4" y="6" width="12" height="10" rx="3" fill="currentColor" />
-            <rect x="9.2" y="2.5" width="1.6" height="3.5" fill="currentColor" />
-            <circle cx="7.8" cy="11" r="1.3" fill="#2a1d4a" />
-            <circle cx="12.2" cy="11" r="1.3" fill="#2a1d4a" />
-          </svg>
-        )}
-      </div>
-      <div className="message-body">
-        <div className="author">{mine ? '나' : '비서'}</div>
-        {question ? (
-          <AnswerCard question={question} />
-        ) : (
-          <div className="bubble">{text ? renderInline(text) : pending ? <span className="typing">···</span> : ''}</div>
-        )}
-      </div>
+    <div className={`message ${author}`} data-pending={pending || undefined} aria-label={author === 'user' ? '나' : '비서'}>
+      {question ? (
+        <AnswerCard question={question} />
+      ) : (
+        <div className="bubble">{text ? renderInline(text) : pending ? <span className="typing">···</span> : ''}</div>
+      )}
     </div>
   );
 }

@@ -149,7 +149,7 @@ function Notes({ projectId, members, memberId, onMember }: { projectId: number; 
       <ul className="log-list" aria-label="에이전트 기억">
         {notes.map((n) => (
           <li key={n.id} className="note">
-            <span className="log-who" style={{ color: who(n.memberId)?.color }}>{who(n.memberId)?.role ?? '?'}</span> {n.text}
+            <span className="log-who">{who(n.memberId)?.role ?? '?'}</span> {n.text}
             <span className="muted"> · {n.at.slice(5, 16).replace('T', ' ')}{n.taskId ? ` · 업무 #${n.taskId}` : ''}</span>
           </li>
         ))}

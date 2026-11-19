@@ -103,21 +103,6 @@ button { font: inherit; color: inherit; }
 .tab-body[data-state='active']:has(.chat) { display: flex; overflow: hidden; }
 .chat { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; padding: 8px 2px 16px; }
-.message { display: flex; gap: 14px; align-items: flex-start; }
-.avatar {
-  flex: none;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: #3a3846;
-  color: #d9d5e6;
-}
-.avatar svg { width: 24px; height: 24px; }
-.message.secretary .avatar { background: #8b5cf6; color: #f3edff; }
-.message-body { min-width: 0; max-width: 86%; display: flex; flex-direction: column; gap: 8px; }
-.author { font-size: 17px; }
 .bubble {
   background: var(--card);
   border: 1px solid var(--line);
@@ -406,7 +391,6 @@ button { font: inherit; color: inherit; }
 .workflow-column { display: flex; flex-direction: column; gap: 18px; }
 .workflow-node { background: var(--card); border: 2px solid var(--line); border-radius: var(--radius); padding: 10px 14px; min-width: 150px; font-size: 13px; }
 .workflow-role { font-weight: 700; margin-bottom: 2px; }
-.body[hidden] { display: none; }
 
 /* The Phaser camp fills its section; the legend floats over it */
 .camp-canvas { position: absolute; inset: 0; }

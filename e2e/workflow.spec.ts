@@ -13,8 +13,7 @@ test('the editor saves review and test in parallel after 개발 as a new version
   await expect(page.getByLabel('업무 자료 조사')).toBeVisible();
 
   const open = async () => {
-    await page.getByLabel('프로젝트').click();
-    await page.getByRole('option', { name: '워크플로우 편집…' }).click();
+    await page.getByRole('tab', { name: '워크플로우' }).click();
   };
   await open();
   const editor = page.getByLabel('워크플로우 편집');
@@ -41,7 +40,7 @@ test('the editor saves review and test in parallel after 개발 as a new version
   // Flow coordinates, which do not depend on how the view is zoomed
   const where = () => editor.locator('.react-flow__node[data-id="test"]').evaluate((n) => (n as HTMLElement).style.transform);
   const moved = await where();
-  await editor.getByRole('button', { name: '닫기' }).click();
+  await page.getByRole('tab', { name: '대화' }).click();
   await expect(page.getByLabel('업무 자료 조사')).toBeVisible();
 
   await open();
@@ -51,7 +50,6 @@ test('the editor saves review and test in parallel after 개발 as a new version
   await expect(side.getByLabel('개발')).toBeChecked();
   await expect(side.getByLabel('코드 리뷰')).not.toBeChecked();
   expect(await where()).toBe(moved);
-  await editor.getByRole('button', { name: '닫기' }).click();
-  await expect(page.getByLabel('세션')).toHaveText('세션 01');
+  await expect(page.getByLabel('세션')).toHaveText('자료 조사해줘');
   await app.close();
 });

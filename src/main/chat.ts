@@ -320,6 +320,9 @@ export class Chat {
 
   async send(sessionId: number, text: string) {
     this.store.addMessage(sessionId, 'user', text);
+    const name = text.replace(/\s+/g, ' ').trim();
+    this.store.nameSession(sessionId, name.length > 18 ? `${name.slice(0, 18)}…` : name);
+    this.emit('changed', 'sessions');
     this.emit('changed', 'messages');
     await this.tell(sessionId, text);
   }

@@ -37,7 +37,7 @@ export function ProjectTree({ open, onClose, onDeleted }: { open: boolean; onClo
       <Dialog.Portal>
         <Dialog.Overlay className="overlay" />
         <Dialog.Content className="dialog tree-dialog" aria-describedby={undefined}>
-          <Dialog.Title className="dialog-title">프로젝트 트리</Dialog.Title>
+          <Dialog.Title className="dialog-title">탐색기</Dialog.Title>
           <ul className="tree" aria-label="프로젝트 목록">
             {tree.map(({ project, sessions }) => (
               <li key={project.id}>

@@ -47,7 +47,7 @@ export function Log({ session, members, taskId, onTask }: { session: Session; me
           <tbody>
             {usage.map((u) => (
               <tr key={`${u.memberId}-${u.model}`}>
-                <td style={{ color: who(u.memberId)?.color }}>{who(u.memberId)?.role ?? '?'}</td>
+                <td>{who(u.memberId)?.role ?? '?'}</td>
                 <td>{u.model}</td>
                 <td>{u.runs}</td>
                 <td>{Math.round(u.seconds)}초</td>
@@ -68,7 +68,7 @@ export function Log({ session, members, taskId, onTask }: { session: Session; me
             <li key={e.id} className="log-row" data-kind={e.kind} style={m ? ({ "--dot": m.color } as CSSProperties) : undefined}>
               <button className="log-line" disabled={!hb} aria-expanded={hb ? open === e.id : undefined} onClick={() => setOpen(open === e.id ? null : e.id)}>
                 <time>{e.at.slice(11, 19)}</time>
-                <span className="log-who" style={m ? { color: m.color } : undefined}>
+                <span className="log-who">
                   {m ? m.role : '앱'}
                 </span>
                 <span className="log-text">{e.text}</span>

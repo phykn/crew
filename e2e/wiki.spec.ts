@@ -38,7 +38,7 @@ test('the wiki keeps one document with two changes by two members, and they surv
   page = await app.firstWindow();
   await page.getByLabel('세션').click();
   await page.getByRole('option', { name: '새 세션' }).click();
-  await expect(page.getByLabel('세션')).toHaveText('세션 02');
+  await expect(page.getByLabel('세션')).toHaveText(/^새 대화/);
   await check();
   await app.close();
 });

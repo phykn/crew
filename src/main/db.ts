@@ -81,10 +81,12 @@ const MIGRATIONS = [
      id INTEGER PRIMARY KEY, project_id INTEGER NOT NULL REFERENCES projects (id) ON DELETE CASCADE,
      member_id INTEGER NOT NULL REFERENCES members (id) ON DELETE CASCADE, text TEXT NOT NULL,
      task_id INTEGER REFERENCES tasks (id) ON DELETE SET NULL, session_id INTEGER REFERENCES sessions (id) ON DELETE SET NULL, at TEXT NOT NULL);`,
+  `ALTER TABLE sessions ADD COLUMN title TEXT;`,
 ];
 
 export type Project = { id: number; path: string; name: string };
-export type Session = { id: number; projectId: number; number: number; createdAt: string };
+// A session is named after what the user first asked in it, so sessions can be told apart
+export type Session = { id: number; projectId: number; number: number; createdAt: string; title: string | null };
 export type Member = {
   id: number;
   projectId: number;
@@ -258,7 +260,7 @@ export class Store {
 
   readSession(id: number): Session {
     const row = this.db
-      .prepare('SELECT id, project_id AS projectId, number, created_at AS createdAt FROM sessions WHERE id = ?')
+      .prepare('SELECT id, project_id AS projectId, number, created_at AS createdAt, title FROM sessions WHERE id = ?')
       .get(id) as Session | undefined;
     if (!row) throw new Error(`no session ${id}`);
     return row;
@@ -300,10 +302,15 @@ export class Store {
       .all(sessionId) as { id: number; memberId: number; runs: number }[];
   }
 
+  // Only an unnamed session takes a name, so a name the user gave is kept
+  nameSession(id: number, title: string, keep = true) {
+    this.db.prepare(`UPDATE sessions SET title = ? WHERE id = ?${keep ? ' AND title IS NULL' : ''}`).run(title, id);
+  }
+
   listSessions(projectId: number): Session[] {
     return this.db
       .prepare(
-        'SELECT id, project_id AS projectId, number, created_at AS createdAt FROM sessions WHERE project_id = ? ORDER BY number DESC',
+        'SELECT id, project_id AS projectId, number, created_at AS createdAt, title FROM sessions WHERE project_id = ? ORDER BY number DESC',
       )
       .all(projectId) as Session[];
   }

@@ -12,16 +12,16 @@ test('/clear opens a new session and deleting a session shows what goes with it'
   await expect(page.getByText('안녕하세요')).toBeVisible();
   await page.getByLabel('메시지').fill('/clear');
   await page.getByLabel('메시지').press('Enter');
-  await expect(page.getByLabel('세션')).toHaveText('세션 02');
+  await expect(page.getByLabel('세션')).toHaveText(/^새 대화/);
   await expect(page.getByText('안녕하세요')).toHaveCount(0);
 
-  await page.getByLabel('프로젝트').click();
-  await page.getByRole('option', { name: '프로젝트 트리…' }).click();
+  await page.getByLabel('앱 메뉴').click();
+  await page.getByRole('menuitem', { name: '탐색기' }).click();
   await expect(page.getByLabel('프로젝트 목록')).toContainText('비서');
-  await page.getByRole('button', { name: '세션 01 삭제' }).click();
-  // 세션 01 holds two messages and the /clear log line, and no task
+  await page.getByRole('button', { name: '안녕 삭제' }).click();
+  // The session named 안녕 holds two messages and the /clear log line, and no task
   await expect(page.getByLabel('삭제 확인')).toContainText('업무 0건, 로그 1건, 메시지 2건');
   await page.getByLabel('삭제 확인').getByRole('button', { name: '삭제' }).click();
-  await expect(page.getByLabel('프로젝트 목록')).not.toContainText('세션 01');
+  await expect(page.getByLabel('프로젝트 목록')).not.toContainText('안녕');
   await app.close();
 });

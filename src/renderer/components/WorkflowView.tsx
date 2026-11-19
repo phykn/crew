@@ -24,8 +24,8 @@ type Read = Awaited<ReturnType<typeof call<'workflows.read'>>>;
 type StepNode = Node<{ step: Step; member?: CrewMember }, 'step'>;
 type Layout = Record<string, { x: number; y: number }>;
 
-// The workflow edit screen for one project, in the same window; closing it returns to where the user was
-export function WorkflowView({ project, members, kind, onKind, onClose }: { project: Project; members: CrewMember[]; kind: string; onKind: (k: string) => void; onClose: () => void }) {
+// The workflow tab: this project's rules for one task kind, drawn as nodes and saved as a new version
+export function WorkflowView({ project, members, kind, onKind }: { project: Project; members: CrewMember[]; kind: string; onKind: (k: string) => void }) {
   const [kinds, setKinds] = useState<{ kind: string; label: string }[]>([]);
   const [w, setW] = useState<Read | null>(null);
   const [steps, setSteps] = useState<Step[]>([]);
@@ -91,7 +91,7 @@ export function WorkflowView({ project, members, kind, onKind, onClose }: { proj
     <section className="workflow-view" aria-label="워크플로우 편집">
       <header className="workflow-head">
         <h2>
-          {project.name} · 워크플로우 <span className="muted">버전 {w?.version ?? 0}</span>
+          {project.name} 워크플로우 <span className="muted">버전 {w?.version ?? 0}</span>
         </h2>
         <div className="workflow-kinds" role="group" aria-label="업무 종류">
           {kinds.map((k) => (
@@ -102,7 +102,6 @@ export function WorkflowView({ project, members, kind, onKind, onClose }: { proj
         </div>
         <button className="button" onClick={addStep}>단계 추가</button>
         <button className="button primary" onClick={save}>저장</button>
-        <button className="button" onClick={onClose}>닫기</button>
       </header>
       {note && <p className={`workflow-note${note.ok ? '' : ' bad'}`} role="status">{note.text}</p>}
       <div className="workflow-body">
@@ -116,7 +115,7 @@ export function WorkflowView({ project, members, kind, onKind, onClose }: { proj
             onConnect={onConnect}
             onNodeClick={(_, n) => setPicked(n.id)}
             onPaneClick={() => setPicked(null)}
-            colorMode="dark"
+            colorMode="light"
             fitView
             deleteKeyCode={['Backspace', 'Delete']}
           >
@@ -185,7 +184,7 @@ function StepBox({ data }: NodeProps<StepNode>) {
   return (
     <div className="workflow-node" style={{ borderColor: member?.color }} aria-label={`단계 ${step.label}`}>
       <Handle type="target" position={Position.Left} />
-      <div className="workflow-role" style={{ color: member?.color }}>{member?.role ?? step.role}</div>
+      <div className="workflow-role">{member?.role ?? step.role}</div>
       <div>{step.label}</div>
       {step.verdict && <div className="muted">판정</div>}
       <Handle type="source" position={Position.Right} />
@@ -205,7 +204,7 @@ function toNodes(steps: Step[], layout: Layout, members: CrewMember[]): StepNode
   return steps.map((s) => {
     const d = depth(s.id);
     const row = (rows[d] = (rows[d] ?? -1) + 1);
-    return { id: s.id, type: 'step', position: layout[s.id] ?? { x: d * 230, y: row * 120 }, data: { step: s, member: members.find((m) => m.key === s.role) } };
+    return { id: s.id, type: 'step', position: layout[s.id] ?? { x: d * 190, y: row * 110 }, data: { step: s, member: members.find((m) => m.key === s.role) } };
   });
 }
 

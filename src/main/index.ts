@@ -13,7 +13,8 @@ function createWindow() {
   win = new BrowserWindow({
     width: 1600,
     height: 900,
-    minWidth: 1100,
+    // Narrow enough for the stacked layout, where the chat goes under the camp
+    minWidth: 420,
     minHeight: 640,
     backgroundColor: '#14131a',
     title: 'AI Crew',
