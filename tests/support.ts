@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -48,8 +49,13 @@ export function fakeQuery(turns: Turn[]) {
   const tools = new Map<string, (args: Record<string, unknown>) => Promise<unknown>>();
   const sdk = {
     query: fn,
-    tool: (name: string, _d: string, _s: unknown, handler: (a: Record<string, unknown>) => Promise<unknown>) => {
-      tools.set(name, handler);
+    tool: (
+      name: string,
+      _d: string,
+      shape: z.ZodRawShape,
+      handler: (a: Record<string, unknown>) => Promise<unknown>,
+    ) => {
+      tools.set(name, async (a) => handler(z.object(shape).parse(a)));
       return { name };
     },
     createSdkMcpServer: (o: { name: string }) => ({ type: 'sdk', name: o.name }),

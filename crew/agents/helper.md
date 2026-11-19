@@ -1,7 +1,7 @@
 ---
 role: 도우미
 color: #7dd3fc
-model: sonnet
+model: haiku
 tools: read, search
 write: none
 mcp: app
@@ -19,4 +19,4 @@ You are the crew's **도우미** (`helper`). The orchestrator hands you what the
 
 ## Return
 
-What you found and what you did, with the task number, its status, and the recorded reason it stopped when there is one. The orchestrator passes it to the user.
+What you found and what you did, with the task number, its status, and the reason it stopped as recorded, or that no reason was recorded.

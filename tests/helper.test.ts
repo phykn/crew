@@ -69,6 +69,7 @@ test('도우미 finds the stopped test task the user picks, opens its log, and r
   appServer(fake.sdk, chat, other.id);
   expect(await tool('open_log', { task_id: stopped[0].id })).toContain('없습니다');
   expect(navigated).toHaveLength(1);
+  await expect(tool('open_workflow_editor', { kind: 'nope' })).rejects.toThrow();
 
   // With read access only, resuming is not the helper's to do
   const helper = store.readMember(p.id, 'helper');

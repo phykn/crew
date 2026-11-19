@@ -73,7 +73,7 @@ export function appServer(sdk: Sdk, chat: Chat, sessionId: number) {
       sdk.tool(
         'open_workflow_editor',
         "Open this project's workflow editor in the window.",
-        { kind: z.string().default('code') },
+        { kind: z.enum(chat.workflows.map((w) => w.kind) as [string, ...string[]]).default('code') },
         async (a) => {
           go({ view: 'workflow', kind: a.kind });
           return text(`${a.kind} 워크플로우 편집 화면을 열었습니다.`);
