@@ -273,22 +273,21 @@ code {
   height: 100%;
 }
 
-/* Title strip: a plain wooden plank; no bottom line, since the system's window buttons cover its right end */
+/* Title strip: plain parchment, so the campfire's dark logs show; no bottom line, since the system's window buttons cover its right end */
 .titlebar {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
   height: var(--h-title);
   padding: 0 var(--sp-4);
-  background: var(--wood);
-  color: var(--on-wood);
+  background: var(--panel);
+  color: var(--wood-dark);
   -webkit-app-region: drag;
 }
 .titlebar .logo {
   width: var(--icon-logo);
   height: var(--icon-logo);
 }
-/* Light logs, so they show on the wooden plank */
 .titlebar .logo .flame {
   fill: var(--flame);
 }
@@ -296,7 +295,7 @@ code {
   fill: var(--flame-core);
 }
 .titlebar .logo .logs {
-  stroke: var(--wood-light);
+  stroke: var(--wood);
 }
 /* The version sits on the title's baseline, not centered beside it */
 .titlebar .name {
@@ -307,10 +306,9 @@ code {
 .titlebar .title {
   font-size: var(--fs-title);
   font-weight: var(--fw-bold);
-  text-shadow: var(--bw) var(--bw) 0 var(--wood-dark);
 }
 .titlebar .version {
-  color: var(--bg);
+  color: var(--wood);
   font-size: var(--fs-xs);
 }
 

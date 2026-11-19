@@ -20,7 +20,8 @@ function createWindow() {
     title: 'crew',
     // The title bar is drawn by the window itself, like the concept image; the OS keeps only its buttons
     titleBarStyle: 'hidden',
-    titleBarOverlay: { color: '#8a4f22', symbolColor: '#fff1d6', height: 46 },
+    // --panel and --wood-dark from tokens.css; the main process cannot read CSS
+    titleBarOverlay: { color: '#fbe7bd', symbolColor: '#5c3213', height: 46 },
     webPreferences: { preload: path.join(__dirname, 'preload.cjs') },
   });
   win.on('closed', () => (win = null));
