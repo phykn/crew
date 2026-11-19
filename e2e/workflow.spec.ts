@@ -37,7 +37,7 @@ test('the editor saves review and test in parallel after 개발 as a new version
 
   // 시험 after 코드 리뷰 (one after the other), saved as version 1; its rework still goes to 개발
   await relink('review', 'test', '개발 → 시험');
-  await expect(editor.getByLabel('코드 리뷰 → 시험')).toBeVisible();
+  await expect(editor.getByLabel('코드 리뷰 → 시험')).toHaveCount(1);
   await expect(editor.getByLabel('단계 시험')).toContainText('안 되면 개발로');
   await editor.getByRole('button', { name: '저장' }).click();
   await expect(editor).toContainText('버전 1 저장');
@@ -60,7 +60,7 @@ test('the editor saves review and test in parallel after 개발 as a new version
   await open();
   await expect(editor).toContainText('버전 2');
   await expect(editor.locator('.react-flow__edge')).toHaveCount(5);
-  await expect(editor.getByLabel('개발 → 시험')).toBeVisible();
+  await expect(editor.getByLabel('개발 → 시험')).toHaveCount(1);
   await expect(editor.getByLabel('코드 리뷰 → 시험')).toHaveCount(0);
   expect(await where()).toBe(moved);
   await expect(page.getByLabel('세션')).toHaveText('자료 조사해줘');
