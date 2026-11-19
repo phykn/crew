@@ -10,8 +10,13 @@ test('a slash lists the commands, Tab completes one, /clear opens a new session,
   await page.getByLabel('메시지').fill('안녕');
   await page.getByLabel('메시지').press('Enter');
   await expect(page.getByText('안녕하세요')).toBeVisible();
+  // Picked with the arrows, Enter runs it at once
   await page.getByLabel('메시지').fill('/');
   await expect(page.getByRole('listbox', { name: '명령' })).toContainText('/workflow');
+  await page.getByLabel('메시지').press('ArrowDown');
+  await page.getByLabel('메시지').press('Enter');
+  await expect(page.getByRole('tab', { name: '로그' })).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('tab', { name: '대화' }).click();
   await page.getByLabel('메시지').fill('/cl');
   await page.getByLabel('메시지').press('Tab');
   await expect(page.getByLabel('메시지')).toHaveValue('/clear');
