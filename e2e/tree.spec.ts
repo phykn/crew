@@ -3,14 +3,18 @@ import { launchApp, makeScratch, openProject } from './launch';
 
 const SCRIPT = { 비서: [{ text: '안녕하세요' }, { text: '새 세션입니다' }] };
 
-test('/clear opens a new session and deleting a session shows what goes with it', async () => {
+test('a slash lists the commands, Tab completes one, /clear opens a new session, and deleting a session shows what goes with it', async () => {
   const scratch = makeScratch();
   const app = await launchApp(scratch.db, SCRIPT);
   const page = await openProject(app, scratch.project);
   await page.getByLabel('메시지').fill('안녕');
   await page.getByLabel('메시지').press('Enter');
   await expect(page.getByText('안녕하세요')).toBeVisible();
-  await page.getByLabel('메시지').fill('/clear');
+  await page.getByLabel('메시지').fill('/');
+  await expect(page.getByRole('listbox', { name: '명령' })).toContainText('/workflow');
+  await page.getByLabel('메시지').fill('/cl');
+  await page.getByLabel('메시지').press('Tab');
+  await expect(page.getByLabel('메시지')).toHaveValue('/clear');
   await page.getByLabel('메시지').press('Enter');
   await expect(page.getByLabel('세션')).toHaveText(/^새 대화/);
   await expect(page.getByText('안녕하세요')).toHaveCount(0);

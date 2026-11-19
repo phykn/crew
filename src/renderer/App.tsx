@@ -169,7 +169,12 @@ export function App() {
                     setProject({ ...project!, mode });
                     setProjects(await call('projects.list'));
                   }}
-                  onClear={clearSession}
+                  commands={[
+                    { name: 'clear', label: '새 세션', run: clearSession },
+                    { name: 'log', label: '로그 열기', run: () => setTab('log') },
+                    { name: 'memory', label: '메모리 열기', run: () => setTab('memory') },
+                    { name: 'workflow', label: '워크플로우 열기', run: () => setTab('workflow') },
+                  ]}
                   onLog={(id) => {
                     setLogTask(id);
                     setTab('log');

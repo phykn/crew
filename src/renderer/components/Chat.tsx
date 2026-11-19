@@ -4,6 +4,9 @@ import { call, onChanged, onStream } from '../api';
 import { Choice } from './Choice';
 import { TaskCards } from './TaskCards';
 
+// The window's own commands: typed after a slash, they act here and never reach 비서
+export type Command = { name: string; label: string; run: () => void };
+
 const MODE_LABELS: Record<Mode, string> = { manual: '묻기', auto: '자동', bypass: '전부' };
 
 export function Chat({
@@ -11,19 +14,23 @@ export function Chat({
   mode,
   onMode,
   onLog,
-  onClear,
+  commands,
 }: {
   session: Session;
   mode: Mode;
   onMode: (m: Mode) => void;
   onLog: (taskId: number) => void;
-  onClear: () => void;
+  commands: Command[];
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [streaming, setStreaming] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const end = useRef<HTMLDivElement>(null);
+  const [pick, setPick] = useState(0);
+  // A lone word after a slash lists the commands it could start
+  const matches = /^\/\S*$/.test(draft) ? commands.filter((c) => `/${c.name}`.startsWith(draft)) : [];
+  const picked = matches[Math.min(pick, matches.length - 1)];
 
   useEffect(() => {
     const load = () => call('messages.list', { sessionId: session.id }).then(setMessages);
@@ -51,8 +58,8 @@ export function Chat({
     const text = draft.trim();
     if (!text) return;
     setDraft('');
-    // /clear is the window's own command: a new session, not a message to 비서
-    if (text === '/clear') return onClear();
+    const command = commands.find((c) => `/${c.name}` === text);
+    if (command) return command.run();
     // Shows the thinking state at once; the first streamed words replace it
     setStreaming((s) => s ?? '');
     call('messages.send', { sessionId: session.id, text });
@@ -75,13 +82,51 @@ export function Chat({
           send();
         }}
       >
+        {picked && (
+          <ul className="menu slash-menu" role="listbox" aria-label="명령">
+            {matches.map((m) => (
+              <li
+                key={m.name}
+                role="option"
+                aria-selected={m === picked}
+                className="menu-item"
+                data-highlighted={m === picked || undefined}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setDraft('');
+                  m.run();
+                }}
+              >
+                <b>/{m.name}</b> <span className="muted">{m.label}</span>
+              </li>
+            ))}
+          </ul>
+        )}
         <textarea
           value={draft}
           placeholder="메시지 보내기"
           aria-label="메시지"
           rows={1}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            setPick(0);
+          }}
           onKeyDown={(e) => {
+            if (picked) {
+              const move = { ArrowDown: 1, ArrowUp: -1 }[e.key];
+              if (move) {
+                e.preventDefault();
+                return setPick((pick + move + matches.length) % matches.length);
+              }
+              // Tab completes the picked command; Enter runs it at once
+              if (e.key === 'Tab' || (e.key === 'Enter' && !e.nativeEvent.isComposing)) {
+                e.preventDefault();
+                if (e.key === 'Tab') return setDraft(`/${picked.name}`);
+                setDraft('');
+                return picked.run();
+              }
+              if (e.key === 'Escape') return setDraft('');
+            }
             // Enter sends and Shift+Enter breaks the line; composing Korean must not send half a syllable
             if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();

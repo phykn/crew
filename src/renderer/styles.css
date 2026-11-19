@@ -610,6 +610,7 @@ code {
 }
 /* The send button stays at the bottom while the box grows upward */
 .composer {
+  position: relative;
   display: flex;
   align-items: flex-end;
   gap: var(--sp-2);
@@ -629,6 +630,15 @@ code {
   resize: none;
   color: var(--text);
   font-size: var(--fs-md);
+}
+/* The command list opens upward from the box, over the conversation */
+.slash-menu {
+  position: absolute;
+  bottom: calc(100% + var(--sp-1));
+  left: 0;
+  right: 0;
+  margin: 0;
+  list-style: none;
 }
 .composer .choice {
   height: var(--h-touch);

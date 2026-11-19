@@ -142,9 +142,12 @@ export class Tasks {
         : this.chat.workflowFor(projectId, writer ? 'code' : kind).rules;
     const workflow = small || writer ? withoutPlan(rules) : rules;
     // Set by the app rather than left to the brief's wording, so every step reads the same scope
-    const scoped = workflow.kind === 'code' ? `${request}
+    const scoped =
+      workflow.kind === 'code'
+        ? `${request}
 
-${CODE_SCOPE}` : request;
+${CODE_SCOPE}`
+        : request;
     const task = store.createTask({
       sessionId,
       kind: one && !writer ? kind : workflow.kind,
