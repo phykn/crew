@@ -1202,6 +1202,9 @@ code {
   background: var(--wood-light);
   border: var(--bw) solid var(--wood-dark);
 }
+.workflow-canvas .react-flow__edgelabel-renderer {
+  z-index: var(--z-unlink);
+}
 .workflow-unlink {
   position: absolute;
   display: grid;

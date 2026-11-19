@@ -138,6 +138,8 @@
 
   /* Layers and motion */
   --z-legend: 2;
+  /* Above the workflow's nodes, which React Flow lifts to 1000 while picked */
+  --z-unlink: 1001;
   --z-overlay: 20;
   --z-dialog: 21;
   --z-menu: 30;
