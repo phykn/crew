@@ -87,6 +87,7 @@ function WikiView({
 }) {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [changes, setChanges] = useState<Change[]>([]);
+  const [linked, setLinked] = useState<{ from: string; to: string }[]>([]);
   const [picked, setPicked] = useState<number | null>(null);
   const [draft, setDraft] = useState<{ title: string; body: string } | null>(null);
   const [asking, setAsking] = useState(false);
@@ -97,6 +98,7 @@ function WikiView({
     const load = async () => {
       setDocs(await call('wiki.list', { projectId }));
       setChanges(await call('wiki.timeline', { projectId }));
+      setLinked((await call('wiki.graph', { projectId })).edges);
     };
     load();
     return onChanged((t) => t === 'wiki' && load());
@@ -199,6 +201,19 @@ function WikiView({
                   );
                 })}
               </pre>
+              {/* The graph's lines into this document, followed from the list */}
+              {linked.some((e) => e.to === doc.title) && (
+                <p className="wiki-backlinks" aria-label="이 문서를 가리키는 문서">
+                  <span className="muted">가리키는 문서</span>
+                  {linked
+                    .filter((e) => e.to === doc.title)
+                    .map((e) => (
+                      <button key={e.from} className="wiki-link" onClick={() => openTitle(e.from)}>
+                        {e.from}
+                      </button>
+                    ))}
+                </p>
+              )}
               <div className="wiki-actions">
                 <button className="button" onClick={() => setDraft({ title: doc.title, body: doc.body })}>
                   편집
