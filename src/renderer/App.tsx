@@ -11,6 +11,10 @@ import { Log } from './components/Log';
 import { ProjectTree } from './components/ProjectTree';
 import { Memory } from './components/Memory';
 import { WorkflowView } from './components/WorkflowView';
+import { Camp } from './components/Camp';
+
+// Who is at work and on what; the camp reads it from the task record in T21
+const NO_WORK: Record<string, string> = {};
 
 export function App() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -106,6 +110,7 @@ export function App() {
       )}
       <main className="body" hidden={!!(project && editing)}>
         <section className="camp" aria-label="캠프">
+          <Camp members={members} working={NO_WORK} />
           {project && (
             <Legend
               members={members}

@@ -6,7 +6,7 @@ model: opus
 tools: read, search, shell
 write: output
 skills: plan, report
-look: short-hair, robe, boots
+look: hair, armor, wraps
 description: Plans a change before anyone edits code, and with no change in hand finds what to improve across the project. Never edits the project.
 ---
 

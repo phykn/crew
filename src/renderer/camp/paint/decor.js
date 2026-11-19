@@ -1,0 +1,234 @@
+import { iso } from '../projection.js';
+import { COLOR as C } from '../tokens.js';
+import { TAU, oval, poly, prism, shadow } from './shapes.js';
+
+// Height of a bench's plank, where a sitting person's hips rest
+export const SEAT_Z = 8;
+// A piece is painted by the middle of its footprint, so long benches and logs sort against people by their centre
+export const depthOf = d => d.x + (d.w || 0) / 2 + d.y + (d.h || 0) / 2;
+
+const pixels = (ctx, list, fill) => { ctx.fillStyle = fill; for (const [x, y, w = 2, h = 1] of list) ctx.fillRect(x, y, w, h); };
+const line = (ctx, a, b, color, width = 1) => {
+  ctx.strokeStyle = color; ctx.lineWidth = width;
+  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+};
+const outline = (ctx, x, y, rx, ry, color, width) => {
+  ctx.strokeStyle = color; ctx.lineWidth = width;
+  ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, TAU); ctx.stroke();
+};
+
+// Fronds fan up from one root with paired leaflets; round clumps read as blobs
+function fern(ctx, d) {
+  const b = iso(d.x, d.y);
+  shadow(ctx, d.x + 0.15, d.y + 0.15, 14, 4);
+  [-160, -130, -105, -75, -50, -20].forEach((deg, i) => {
+    const a = deg * Math.PI / 180, len = 13 - Math.abs(i - 2.5) * 1.6;
+    for (let k = 1; k <= len; k++) {
+      const x = Math.round(b.x + Math.cos(a) * k), y = Math.round(b.y - 2 + Math.sin(a) * k * 0.8 + k * k * 0.03);
+      pixels(ctx, [[x, y, 1, 1]], C.leafDark);
+      if (k % 2 === 0 && k < len - 1) pixels(ctx, [[x - 1, y - 1, 1, 1], [x + 1, y - 1, 1, 1]], k > len / 2 ? C.mossDark : C.leaf);
+    }
+  });
+}
+
+// A thick stroke with a lit top, and a cut end ringed with growth lines, reads as a round trunk
+function log(ctx, d) {
+  shadow(ctx, d.x + d.w / 2 + 0.2, d.y + d.h / 2 + 0.3, 30, 7);
+  const yc = d.y + d.h / 2, a = iso(d.x, yc, 5), b = iso(d.x + d.w, yc, 5);
+  line(ctx, a, b, C.barkDark, 10);
+  line(ctx, { x: a.x, y: a.y - 1 }, { x: b.x, y: b.y - 1 }, C.bark, 7);
+  line(ctx, { x: a.x, y: a.y - 3 }, { x: b.x, y: b.y - 3 }, C.woodDark, 1);
+  const m = iso(d.x + d.w * 0.35, yc, 9);
+  pixels(ctx, [[m.x, m.y, 6, 2], [m.x + 9, m.y + 4, 4, 1]], C.mossDark);
+  oval(ctx, b.x, b.y, 3.5, 5, C.woodDark);
+  outline(ctx, b.x, b.y, 2, 3, C.woodDeep, 1);
+  pixels(ctx, [[b.x, b.y, 1, 1]], C.wood);
+}
+
+function drum(ctx, d) {
+  const b = iso(d.x, d.y);
+  shadow(ctx, d.x + 0.15, d.y + 0.15, 10, 4);
+  pixels(ctx, [[b.x - 7, b.y - 20, 14, 20]], C.wood);
+  pixels(ctx, [[b.x + 2, b.y - 20, 5, 20]], C.woodDark);
+  pixels(ctx, [[b.x - 7, b.y - 17, 14, 2], [b.x - 7, b.y - 6, 14, 2]], C.iron);
+  oval(ctx, b.x, b.y - 20, 7, 3, C.woodDeep);
+}
+
+function well(ctx, d) {
+  const b = iso(d.x, d.y), rx = 24, ry = 12, wall = 12;
+  shadow(ctx, d.x + 0.3, d.y + 0.3, 30, 13);
+  oval(ctx, b.x, b.y, rx, ry, C.rockDark, Math.PI);
+  ctx.fillRect(b.x - rx, b.y - wall, rx * 2, wall);
+  // Stones follow the curve of the near wall, alternating light and dark
+  for (let k = 0; k < 7; k++) {
+    const t = (k + 0.5) / 7, x = b.x - rx + t * rx * 2, sag = Math.sqrt(1 - (2 * t - 1) ** 2) * ry;
+    pixels(ctx, [[x - 4, b.y - wall + sag - 1, 7, 2], [x, b.y - wall / 2 + sag - 1, 1, wall / 2]], k % 2 ? C.rock : C.barkDark);
+  }
+  oval(ctx, b.x, b.y - wall, rx, ry, C.rock);
+  oval(ctx, b.x, b.y - wall, rx - 6, ry - 3, C.water);
+  pixels(ctx, [[b.x - rx + 2, b.y - wall - 34, 4, 34], [b.x + rx - 6, b.y - wall - 34, 4, 34]], C.pole);
+  pixels(ctx, [[b.x - rx, b.y - wall - 36, rx * 2, 4]], C.woodDark);
+  pixels(ctx, [[b.x, b.y - wall - 32, 1, 16]], C.muted);
+  pixels(ctx, [[b.x - 4, b.y - wall - 16, 9, 7]], C.woodDeep);
+  pixels(ctx, [[b.x - 4, b.y - wall - 14, 9, 1]], C.iron);
+}
+
+function bench(ctx, d) {
+  const { x, y, w, h } = d, leg = 0.18, long = w > h;
+  shadow(ctx, x + w / 2 + 0.2, y + h / 2 + 0.2, (w + h) * 13, 7);
+  if (d.wood) {
+    for (const [lx, ly] of [[x, y], [x + w - leg, y], [x, y + h - leg], [x + w - leg, y + h - leg]]) {
+      prism(ctx, { x: lx, y: ly, w: leg, h: leg, z: SEAT_Z - 2 }, C.woodDeep, C.barkDark, C.barkDark);
+    }
+    prism(ctx, { x, y, w, h, z: SEAT_Z, z0: SEAT_Z - 2 }, C.wood, C.woodDark, C.woodDeep);
+    // One groove down the plank shows the grain
+    line(ctx, iso(x + (long ? 0.1 : w / 2), y + (long ? h / 2 : 0.1), SEAT_Z), iso(x + (long ? w - 0.1 : w / 2), y + (long ? h / 2 : h - 0.1), SEAT_Z), C.woodDark);
+    return;
+  }
+  const block = long ? { w: 0.4, h } : { w, h: 0.4 };
+  for (const at of [{ x, y }, long ? { x: x + w - 0.4, y } : { x, y: y + h - 0.4 }]) {
+    prism(ctx, { ...at, ...block, z: SEAT_Z - 2 }, C.rock, C.rockDark, C.barkDark);
+  }
+  prism(ctx, { x, y, w, h, z: SEAT_Z + 1, z0: SEAT_Z - 2 }, C.rockLight, C.rock, C.rockDark);
+  const m = iso(x + w * 0.3, y + h * 0.5, SEAT_Z + 1);
+  pixels(ctx, [[m.x, m.y, 4, 1], [m.x + 6, m.y + 2, 2, 1]], C.mossDark);
+}
+
+// One boulder with a lit face and a shaded flank; stacked slabs read as a heap
+function rock(ctx, d) {
+  const b = iso(d.x, d.y), s = d.size ?? 1;
+  const at = pts => pts.map(([x, y]) => ({ x: b.x + x * s, y: b.y + y * s }));
+  shadow(ctx, d.x + 0.2, d.y + 0.2, 15 * s, 5 * s);
+  poly(ctx, at([[-13, 1], [-12, -5], [-7, -11], [1, -13], [8, -10], [13, -4], [12, 2], [4, 4], [-7, 4]]), C.rockDark);
+  poly(ctx, at([[-12, -5], [-7, -11], [1, -13], [5, -8], [-1, -3], [-9, -1]]), C.rock);
+  poly(ctx, at([[-7, -11], [1, -13], [-1, -9], [-6, -8]]), C.rockLight);
+  pixels(ctx, at([[3, -2], [-10, 0]]).map(p => [p.x, p.y, 3 * s, 1]), C.mossDark);
+}
+
+function pine(ctx, d) {
+  const b = iso(d.x, d.y), s = d.size ?? 1;
+  shadow(ctx, d.x + 0.3, d.y + 0.3, 14 * s, 5 * s);
+  pixels(ctx, [[b.x - 2, b.y - 10 * s, 4, 10 * s]], C.barkDark);
+  // Tiers stepped in 2px rows read as pixel art rather than a smooth cone
+  for (let tier = 0; tier < 3; tier++) {
+    const h = Math.round(20 * s), top = Math.round(b.y - (8 + tier * 14) * s) - h, wide = (16 - tier * 4) * s;
+    for (let r = 2; r <= h; r += 2) {
+      const half = Math.max(1, Math.round(wide * r / h));
+      pixels(ctx, [[b.x - half, top + r - 2, half * 2, 2]], C.leafDark);
+      pixels(ctx, [[b.x - half, top + r - 2, Math.ceil(half * 0.6), 2]], C.leaf);
+    }
+  }
+}
+
+// Blades fan out from one root, so a tuft reads as grass rather than sticks
+function tuft(ctx, d) {
+  const b = iso(d.x, d.y);
+  for (let i = -3; i <= 3; i++) {
+    const h = 7 - Math.abs(i) * 1.5;
+    for (let k = 0; k < h; k++) pixels(ctx, [[b.x + i * 1.5 + i * k / 3, b.y - k, 1, 1]], i % 2 ? C.grassDry : C.mossDark);
+  }
+}
+
+// u runs along the long axis to the end the camera sees, v across it
+const along = (d, L) => (u, v, z = 0) => iso(d.x + v, d.y - L / 2 + u, z);
+
+function tent(ctx, d) {
+  const L = 1.9, W = 1.6, H = 26, at = along(d, L);
+  // A point on the near slope at height z, so the hem follows the cloth
+  const slope = (u, z) => at(u, W / 2 * (1 - z / H), z);
+  shadow(ctx, d.x + 0.3, d.y + 0.3, 30, 12);
+  for (const side of [-1, 1]) {
+    const stake = at(L + 0.5, side * (W / 2 + 0.3));
+    line(ctx, at(L, 0, H), stake, C.muted);
+    pixels(ctx, [[stake.x - 1, stake.y - 3, 2, 3]], C.woodDark);
+  }
+  poly(ctx, [at(0, -W / 2), at(L, -W / 2), at(L, 0, H), at(0, 0, H)], C.canvasDeep);
+  poly(ctx, [at(0, W / 2), at(L, W / 2), at(L, 0, H), at(0, 0, H)], C.canvas);
+  poly(ctx, [at(0, W / 2), at(L, W / 2), slope(L, 4), slope(0, 4)], C.canvasDark);
+  for (const k of [0.33, 0.66]) line(ctx, at(L * k, 0, H), at(L * k, W / 2), C.canvasDark);
+  poly(ctx, [at(L, -W / 2), at(L, W / 2), at(L, 0, H)], C.canvasDark);
+  // The doorway glows from the lantern inside, and its flaps are tied back on both sides
+  poly(ctx, [at(L, -W / 4), at(L, W / 4), at(L, 0, H * 0.75)], C.leather);
+  ctx.globalAlpha = 0.45;
+  poly(ctx, [at(L, -W / 6), at(L, W / 6), at(L, 0, H * 0.4)], C.flameDeep);
+  ctx.globalAlpha = 1;
+  for (const side of [-1, 1]) poly(ctx, [at(L, side * W / 4), at(L, side * W / 2.6), at(L, side * W / 8, H * 0.6)], C.canvas);
+  for (const u of [0, L]) { const p = at(u, 0, H); pixels(ctx, [[p.x - 1, p.y - 4, 2, 4]], C.pole); }
+}
+
+function wagon(ctx, d) {
+  const L = 2.4, W = 1.1, at = along(d, L);
+  shadow(ctx, d.x + 0.3, d.y + 0.3, 34, 12);
+  const wheel = p => {
+    outline(ctx, p.x, p.y, 5, 7, C.woodDeep, 2);
+    pixels(ctx, [[p.x - 1, p.y - 6, 1, 12], [p.x - 4, p.y, 8, 1]], C.woodDark);
+    pixels(ctx, [[p.x - 1, p.y - 1, 2, 2]], C.iron);
+  };
+  // The far wheels go first, as the bed hides their lower half
+  wheel(at(0.4, -W / 2, 7)); wheel(at(L - 0.4, -W / 2, 7));
+  line(ctx, at(L, 0, 8), at(L + 0.9, 0, 3), C.woodDark, 2);
+  poly(ctx, [at(0, W / 2, 6), at(L, W / 2, 6), at(L, W / 2, 15), at(0, W / 2, 15)], C.wood);
+  poly(ctx, [at(L, -W / 2, 6), at(L, W / 2, 6), at(L, W / 2, 15), at(L, -W / 2, 15)], C.woodDark);
+  // The bonnet is a canvas arch: its side, its curved top, and the open hoop at the end
+  poly(ctx, [at(0.15, W / 2, 15), at(L - 0.15, W / 2, 15), at(L - 0.15, W / 2, 26), at(0.15, W / 2, 26)], C.canvas);
+  poly(ctx, [at(0.15, W / 2, 26), at(L - 0.15, W / 2, 26), at(L - 0.15, 0, 32), at(0.15, 0, 32)], C.canvas);
+  for (const k of [0.25, 0.5, 0.75]) line(ctx, at(L * k, W / 2, 15), at(L * k, W / 2, 26), C.canvasDark);
+  poly(ctx, [at(L - 0.15, -W / 2, 15), at(L - 0.15, W / 2, 15), at(L - 0.15, W / 2, 26), at(L - 0.15, 0, 32), at(L - 0.15, -W / 2, 26)], C.canvasDark);
+  poly(ctx, [at(L - 0.15, -W / 3, 15), at(L - 0.15, W / 3, 15), at(L - 0.15, W / 3, 24), at(L - 0.15, 0, 28), at(L - 0.15, -W / 3, 24)], C.leather);
+  wheel(at(0.4, W / 2 + 0.05, 7)); wheel(at(L - 0.4, W / 2 + 0.05, 7));
+}
+
+function crates(ctx, d) {
+  shadow(ctx, d.x + 0.3, d.y + 0.3, 20, 7);
+  const box = (x, y, z0) => {
+    const z = z0 + 10;
+    prism(ctx, { x, y, w: 0.6, h: 0.6, z, z0 }, C.wood, C.woodDark, C.woodDeep);
+    // Frame edges and a brace make a box read as a crate
+    ctx.strokeStyle = C.woodDeep; ctx.lineWidth = 1;
+    for (const face of [[iso(x, y + 0.6, z0), iso(x + 0.6, y + 0.6, z0), iso(x + 0.6, y + 0.6, z), iso(x, y + 0.6, z)],
+      [iso(x + 0.6, y, z0), iso(x + 0.6, y + 0.6, z0), iso(x + 0.6, y + 0.6, z), iso(x + 0.6, y, z)]]) {
+      ctx.beginPath(); face.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.closePath(); ctx.stroke();
+    }
+    line(ctx, iso(x + 0.05, y + 0.6, z0 + 1), iso(x + 0.55, y + 0.6, z - 1), C.woodDeep);
+  };
+  box(d.x - 0.65, d.y - 0.3, 0);
+  box(d.x, d.y - 0.3, 0);
+  box(d.x - 0.35, d.y - 0.3, 10);
+}
+
+function hay(ctx, d) {
+  const x = d.x - 0.5, y = d.y - 0.3;
+  shadow(ctx, d.x + 0.25, d.y + 0.25, 18, 6);
+  prism(ctx, { x, y, w: 1, h: 0.6, z: 10 }, C.hay, C.hayDark, C.hayDeep);
+  // Straw runs along the bale, and two twine bands hold it
+  for (const z of [3, 6.5]) line(ctx, iso(x + 0.05, y + 0.6, z), iso(x + 0.95, y + 0.6, z), C.hayDeep);
+  for (const k of [0.3, 0.7]) {
+    line(ctx, iso(x + k, y + 0.6, 0), iso(x + k, y + 0.6, 10), C.woodDeep);
+    line(ctx, iso(x + k, y + 0.6, 10), iso(x + k, y, 10), C.hayDeep);
+  }
+  const t = iso(x + 0.3, y + 0.3, 10);
+  pixels(ctx, [[t.x, t.y, 3, 1], [t.x + 6, t.y + 2, 2, 1], [t.x - 5, t.y + 1, 2, 1]], C.hayDark);
+}
+
+function woodpile(ctx, d) {
+  shadow(ctx, d.x + 0.25, d.y + 0.25, 18, 6);
+  prism(ctx, { x: d.x - 0.25, y: d.y - 0.6, w: 0.5, h: 1.2, z: 12 }, C.bark, C.bark, C.barkDark);
+  // Log ends face the camera in a stack of three under two
+  for (const [t, z] of [[0.2, 3], [0.6, 3], [1, 3], [0.4, 9], [0.8, 9]]) {
+    const p = iso(d.x + 0.25, d.y - 0.6 + t, z);
+    ctx.fillStyle = C.woodDark;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, TAU); ctx.fill();
+    pixels(ctx, [[p.x - 1, p.y - 1, 2, 2]], C.wood);
+  }
+}
+
+function lantern(ctx, d) {
+  const b = iso(d.x, d.y);
+  pixels(ctx, [[b.x - 1, b.y - 18, 2, 18], [b.x - 1, b.y - 18, 6, 1]], C.pole);
+  pixels(ctx, [[b.x + 2, b.y - 16, 3, 1]], C.iron);
+  pixels(ctx, [[b.x + 2, b.y - 15, 3, 4]], C.flame);
+  pixels(ctx, [[b.x + 3, b.y - 14, 1, 2]], C.flameCore);
+}
+
+const PAINT = { fern, rock, log, drum, well, bench, pine, tuft, tent, wagon, crates, hay, woodpile, lantern };
+export const drawDecor = (ctx, d) => PAINT[d.kind](ctx, d);

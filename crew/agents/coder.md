@@ -6,7 +6,7 @@ model: sonnet
 tools: read, search, write, edit, shell
 write: project
 skills: code, tools
-look: beard, goggles, apron
+look: hood, tunic, boots
 description: Makes the planned change in the project folder, runs quick checks on it, and hands back the changed files with the check results.
 ---
 

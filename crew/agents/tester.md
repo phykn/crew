@@ -6,7 +6,7 @@ model: sonnet
 tools: read, search, shell
 write: output
 skills: verify, debug, report
-look: braids, cloak, book
+look: helm, vest, boots
 description: Runs the project's full test suite and build after a code change, and reports PASS or each failure with its output. Never edits the code.
 ---
 

@@ -6,7 +6,7 @@ model: opus
 tools: read, search
 write: none
 skills: brief, plan
-look: long-hair, cape, skirt
+look: hat, robe, gown
 description: Talks with the user, answers what needs no one else, and coordinates the crew for real work.
 ---
 

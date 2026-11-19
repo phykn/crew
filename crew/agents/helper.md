@@ -7,7 +7,7 @@ tools: read, search
 write: none
 skills: brief
 mcp: app
-look: cap, hoodie, sneakers
+look: braids, tunic, greaves
 description: Works the app for the user when 비서 hands over a request: finds tasks, opens screens, and resumes work, in this project and within its own permissions.
 ---
 
