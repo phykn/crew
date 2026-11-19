@@ -123,6 +123,7 @@ code {
 .wiki-doc input,
 .wiki-doc textarea,
 .workflow-side input:not([type]),
+.workflow-side input[type='number'],
 .workflow-side textarea {
   padding: var(--sp-1) var(--sp-2);
   background: var(--card);

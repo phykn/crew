@@ -11,6 +11,8 @@ const Step = z.object({
   // A verdict step returns pass or rework; rework sends the work back to the named earlier step
   verdict: z.boolean().default(false),
   rework: z.string().optional(),
+  // How many times this check may send the work back before the task stops
+  loops: z.number().int().min(1).max(9).default(3),
   // What the handback must carry before the next step may take it, such as files for a code change
   requires: z.array(z.enum(['files', 'checks'])).default([]),
 });

@@ -132,7 +132,10 @@ export function WorkflowView({
     const id = nextId(steps);
     setDirty(true);
     const role = members.find((m) => m.status === 'hired' && !m.kept)?.key ?? members[0].key;
-    setSteps((all) => [...all, { id, role, label: '새 단계', does: '', after: [], verdict: false, requires: [] }]);
+    setSteps((all) => [
+      ...all,
+      { id, role, label: '새 단계', does: '', after: [], verdict: false, loops: 3, requires: [] },
+    ]);
     setNodes((ns) => [
       ...ns,
       { id, type: 'step', position: { x: 40, y: 40 + ns.length * 20 }, data: { step: null as never } },
@@ -254,8 +257,21 @@ export function WorkflowView({
                 checked={step.verdict}
                 onChange={(e) => edit(step.id, { verdict: e.target.checked })}
               />
-              검토 단계
+              루프 가능
             </label>
+            {step.verdict && (
+              <label>
+                최대 횟수
+                <input
+                  type="number"
+                  aria-label="최대 횟수"
+                  min={1}
+                  max={9}
+                  value={step.loops}
+                  onChange={(e) => edit(step.id, { loops: Math.min(9, Math.max(1, Number(e.target.value) || 1)) })}
+                />
+              </label>
+            )}
           </aside>
         )}
       </div>
@@ -273,7 +289,9 @@ function StepBox({ data }: NodeProps<StepNode>) {
         <div className="workflow-role">{member?.role ?? step.role}</div>
       )}
       <div>{step.label}</div>
-      {step.verdict && <div className="muted">{back ? `안 되면 ${back}로` : '앞 단계에 이어 주세요'}</div>}
+      {step.verdict && (
+        <div className="muted">{back ? `안 되면 ${back}로 · 최대 ${step.loops}번` : '앞 단계에 이어 주세요'}</div>
+      )}
       <Handle type="source" position={Position.Bottom} />
     </div>
   );

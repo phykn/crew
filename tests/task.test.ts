@@ -104,3 +104,42 @@ test('the status machine refuses moves a task cannot make', () => {
   expect(nextStatus('done', 'WORK')).toBeNull();
   expect(nextStatus('stopped', 'DONE')).toBeNull();
 });
+
+test('a check with one loop stops the task when its second look still sends the work back', async () => {
+  const { store, project, paths } = openScratch();
+  let fake: ReturnType<typeof fakeCrew>;
+  const opens: Turn = (prompt, options) => {
+    void fake.tools.get('start_task')!({ kind: 'code', title: '검색 개선', request: prompt });
+    return reply('업무를 시작했습니다.', 'claude-secretary')(prompt, options);
+  };
+  const again = handback('claude-review', { summary: '범위 누락', verdict: 'rework', points: ['빈 검색어'] });
+  fake = fakeCrew({
+    비서: [opens, reply('멈췄습니다.', 'claude-secretary')],
+    기획: [handback('claude-plan', { summary: '계획 v1' }), handback('claude-plan', { summary: '계획 v2' })],
+    리뷰: [again, again],
+  });
+  const chat = new Chat(
+    store,
+    async () => fake.sdk,
+    CREW,
+    () => {},
+    paths,
+  );
+  const p = store.addProject(project);
+  chat.seed(p.id);
+  const s = store.createSession(p.id);
+  const base = chat.workflowFor(p.id, 'code');
+  const steps = base.rules.steps.map((st) => (st.id === 'plan_review' ? { ...st, loops: 1 } : st));
+  chat.saveWorkflow({
+    projectId: p.id,
+    kind: 'code',
+    base: base.version,
+    rules: { ...base.rules, steps },
+    author: 't',
+    scope: 'future',
+  });
+
+  await chat.send(s.id, '검색 고쳐줘');
+  await vi.waitFor(() => expect(store.listTasks(s.id)[0].status).toBe('failed'), { timeout: 3000 });
+  expect(fake.calls.filter((c) => c.role === '비서')[1].prompt).toContain('계획을 1번 고쳤지만');
+});

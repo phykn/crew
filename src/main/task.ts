@@ -88,12 +88,11 @@ const HandbackShape = z.object({
 // Claude Code validates --json-schema as draft-7 and refuses the 2020-12 tag zod writes by default
 const HANDBACK_SCHEMA = z.toJSONSchema(HandbackShape, { target: 'draft-7', io: 'input' }) as Record<string, unknown>;
 
-// Transient failures of one step are retried this many times; verification sends work back at most this many times
+// Transient failures of one step are retried this many times
 const RETRIES = 3;
 // What runStep returns when the model's usage limit stopped it
 const LIMIT = 'usage limit';
 const STOPPED = '중단되었습니다';
-const FIXES = 3;
 
 function lastDone(runs: StepRun[], id: string) {
   return runs.filter((r) => r.stepId === id && r.status === 'done').at(-1);
@@ -236,11 +235,14 @@ export class Tasks {
       const runs = store.listStepRuns(taskId);
       const holds = (id: string) => satisfied(w, runs, id);
       if (w.steps.every((s) => holds(s.id))) return this.finish(task);
+      // A step sent back to stops at the smallest loop count among the checks that send work to it
+      const limit = (s: Step) => Math.min(...w.steps.filter((v) => v.rework === s.id).map((v) => v.loops));
       const overworked = w.steps.find((s) => {
         const reruns = runs.filter((r) => r.stepId === s.id && r.status === 'done').length - 1;
-        return reruns >= FIXES && sentBack(w, runs, s.id, lastDone(runs, s.id)!.id);
+        return reruns >= limit(s) && sentBack(w, runs, s.id, lastDone(runs, s.id)!.id);
       });
-      if (overworked) return this.fail(task, `${overworked.label}을 ${FIXES}번 고쳤지만 검증을 통과하지 못했습니다`);
+      if (overworked)
+        return this.fail(task, `${overworked.label}을 ${limit(overworked)}번 고쳤지만 검증을 통과하지 못했습니다`);
 
       const ready = w.steps.filter((s) => !holds(s.id) && s.after.every(holds));
       const latest = (s: Step) => lastDone(runs, s.id);
@@ -445,6 +447,7 @@ function solo(role: string, key: string): Workflow {
     does: 'Do the request.',
     after: [],
     verdict: false,
+    loops: 3,
     requires: [],
   };
   return { kind: 'solo', label: role, use: '', steps: [work] };
