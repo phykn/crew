@@ -40,6 +40,7 @@ export const LOOKS = {
   lower: ['boots', 'gown', 'greaves', 'wraps'],
 } as const;
 
+// A definition 인사 writes may say none for an empty list, as models often do
 const list = z
   .string()
   .default('')
@@ -47,7 +48,7 @@ const list = z
     s
       .split(',')
       .map((x) => x.trim())
-      .filter(Boolean),
+      .filter((x) => x && !/^(none|-)$/i.test(x)),
   );
 
 const Front = z.object({

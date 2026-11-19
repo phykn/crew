@@ -16,7 +16,7 @@ description: Design a new crew member: key, nickname, role, tools, model, and a 
    - only the tools the role uses from read, search, write, edit, shell, web, and where it may write: project, output, or none. A temp may only read, search, and write into its output folder;
    - from the kit you are given, only the skills and MCP servers the role's own work uses; a temp gets no MCP server. A skill the role needs that the kit lacks goes in your answer by name; bringing it in is the tools member's and the user's step.
 3. Write the definition in English, in this shape and nothing more:
-   - front matter, one `field: value` per line between `---` lines: role, color, model, tools, write, skills, mcp, look, description (one sentence on what it does);
+   - front matter, one `field: value` per line between `---` lines: role, color, model, tools, write, skills, mcp, look, description (one sentence on what it does); lists are comma-separated, and a list with nothing in it is left empty, as `mcp:`;
    - the line `You are the crew's **<role>** (`<key>`).` followed by what it does, and what a neighbouring member does instead only where their work borders;
    - which skill it works with;
    - `## Return`: what it hands back.

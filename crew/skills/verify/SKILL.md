@@ -11,3 +11,4 @@ description: Run the project's full test suite and build exactly as the project 
 4. A new test that takes more than a few seconds, or only repeats another, is a suggestion.
 5. The facts that send the work back: a failing build, a failing test tied to the change, and a test the coder reported that did not run.
 6. Never change code, tests, or config to make anything pass, and never stash, reset, or check out files.
+7. Keep the wiki's document on how this project is tested current: the commands you ran, how long they take, and what each covers.

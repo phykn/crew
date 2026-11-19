@@ -3,6 +3,7 @@ import { Chat } from '../src/main/chat';
 import { secretaryTools } from '../src/main/crew-tools';
 import { CREW, fakeCrew, handback, openScratch, reply, type Turn } from './support';
 
+// mcp: none is how models often write an empty list
 const md = (role: string) => `---
 role: ${role}
 color: #44aa88
@@ -10,6 +11,7 @@ model: sonnet
 tools: read, search, write, shell
 write: project
 skills: research
+mcp: none
 look: hood, robe, boots
 description: Translates the project's text.
 ---

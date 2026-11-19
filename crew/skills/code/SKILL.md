@@ -11,3 +11,4 @@ description: Make a code change the way the project works: cause first, only wha
 4. Behavior that changes loses its old form, along with the tests that covered only that form; leave no compatibility code.
 5. A rename or a config key change updates every caller, test, document, and config that names it. A change in behavior updates the README and `CLAUDE.md` in the same step.
 6. Before you hand back, cut what this change wrote that your conventions rule out, and delete temporary files. Read each file you changed and confirm the change is saved; never report a change you have not seen in the file.
+7. Last, fold into the wiki what the next change to this code needs and the files do not say, such as what a module is for, why a choice was made, or a trap you found, as the crew rules say. Skip it only when there is nothing of the kind.

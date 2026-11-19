@@ -10,3 +10,4 @@ description: Find facts in official sources, checked against the source itself a
 3. Read pages with WebFetch; when a page comes back empty or as scripts only, open it with the browser tools, and use the browser only to read.
 4. Check numbers, versions, and dates against the source itself, including ranges and end dates such as end of support.
 5. Stop once each key fact is confirmed.
+6. Fold the confirmed facts, each with its source and the date read, into the wiki as the crew rules say, so the next question starts from them.
