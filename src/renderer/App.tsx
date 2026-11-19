@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
 import type { Project, Session } from '../main/db';
 import type { CrewMember } from '../main/crew';
-import { call, onNavigate } from './api';
+import { call, onChanged, onNavigate } from './api';
 import { TitleBar } from './components/TitleBar';
 import { ProjectBar } from './components/ProjectBar';
 import { Chat } from './components/Chat';
@@ -12,9 +12,6 @@ import { ProjectTree } from './components/ProjectTree';
 import { Memory } from './components/Memory';
 import { WorkflowView } from './components/WorkflowView';
 import { Camp } from './components/Camp';
-
-// Who is at work and on what; the camp reads it from the task record in T21
-const NO_WORK: Record<string, string> = {};
 
 export function App() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -28,6 +25,12 @@ export function App() {
   const [memoryOf, setMemoryOf] = useState<number | null>(null);
   // The workflow kind being edited; null when the editor is closed
   const [editing, setEditing] = useState<string | null>(null);
+
+  // Hires and departures made through 비서 reach the legend and the camp too
+  useEffect(() => {
+    if (!project) return;
+    return onChanged(async (t) => t === 'members' && setMembers(await call('members.list', { projectId: project.id })));
+  }, [project?.id]);
 
   // 도우미 moves the window the way the user would by clicking
   useEffect(
@@ -110,7 +113,14 @@ export function App() {
       )}
       <main className="body" hidden={!!(project && editing)}>
         <section className="camp" aria-label="캠프">
-          <Camp members={members} working={NO_WORK} />
+          <Camp
+            members={members}
+            session={session}
+            onPick={(taskId) => {
+              setLogTask(taskId);
+              setTab('log');
+            }}
+          />
           {project && (
             <Legend
               members={members}

@@ -1,5 +1,6 @@
 import { BrowserWindow, dialog, ipcMain } from 'electron';
 import { z } from 'zod';
+import { campState } from './camp-feed';
 import type { Store } from './db';
 import type { Chat } from './chat';
 import { Config, type Crew, KEPT, MODELS } from './crew';
@@ -94,6 +95,7 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
       run: (a: { projectId: number; kind: string; base: number; rules: unknown; layout: Record<string, { x: number; y: number }> }) =>
         chat.saveWorkflow({ ...a, author: '사용자', scope: 'future' }),
     },
+    'camp.state': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => campState(chat, a.sessionId) },
     'events.list': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => store.listEvents(a.sessionId) },
     'questions.answer': {
       args: z.object({ id, choice: z.string().min(1) }),

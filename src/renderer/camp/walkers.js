@@ -2,7 +2,7 @@
 const LEAD = 'orchestrator';
 import { FIRE, GROUND, SEATS, blocked } from './layout.js';
 import { findPath } from './route.js';
-import { CAMP } from './projection.js';
+import { CAMP, iso } from './projection.js';
 import { headTop } from './paint/people.js';
 
 const CHAT = ['모닥불 따뜻하네요', '오늘도 수고 많아요', '점심은 뭐 먹을까요?', '잠깐 쉬었다 할게요'];
@@ -148,7 +148,7 @@ export function createWalkers(still) {
 
     // The first call only records what the page found, so history does not replay as news
     applyStaff(staff) {
-      const now = performance.now(), leading = staff.find(s => s.team === LEAD)?.state === 'working';
+      const now = performance.now(), leading = staff.some(s => s.team === LEAD);
       // A temp whose mission ended, or someone let go, walks out instead of vanishing
       for (const [team, p] of people) if (!p.leaving && !staff.some(s => s.team === team)) leave(team, p);
       for (const s of staff) {
@@ -175,9 +175,22 @@ export function createWalkers(still) {
     },
 
     // Only a new rework line acts in the camp, sending the checker over to whoever must redo the work
+    // Only lines newer than the first call act in the camp, so opening it late replays nothing:
+    // a request walks a note over, a failure or a finished report is said where the person stands
     applyLog(log) {
-      if (shown !== null) for (const line of log.slice(shown)) if (line.to) handOff(line.who, line.to, '재작업 요청', 'rework');
-      shown = log.length;
+      if (shown !== null) for (const line of log.filter(l => l.id > shown)) {
+        if (line.to) handOff(line.who, line.to, line.text, line.kind);
+        else speak(people.get(line.who), line.text, line.kind);
+      }
+      shown = log.length ? Math.max(shown ?? 0, ...log.map(l => l.id)) : (shown ?? 0);
+    },
+
+    // The person drawn at a point on the camp, for clicks
+    at(x, y) {
+      return [...people.entries()].find(([, p]) => {
+        const f = iso(p.x, p.y);
+        return Math.abs(x - f.x) < 14 && y < f.y + 4 && y > headTop(p);
+      })?.[0] ?? null;
     },
   };
 }

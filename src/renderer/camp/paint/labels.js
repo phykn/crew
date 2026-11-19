@@ -20,7 +20,9 @@ export function drawOverheads(ctx, people, now, still, edge) {
 // A passing remark wins for its three seconds; otherwise a worker shows the step they are on
 function speechOf(p, now) {
   if (p.bubble?.until > now) return p.bubble;
-  return p.state === 'working' ? { text: p.doing || '작업 중…', kind: 'work' } : null;
+  if (p.state === 'working') return { text: p.doing || '작업 중…', kind: 'work' };
+  // 비서 waiting on the user's answer keeps a ? over the head until it comes
+  return p.doing ? { text: p.doing, kind: 'chat' } : null;
 }
 
 function drawOverhead(ctx, p, now, still, taken, edge) {
