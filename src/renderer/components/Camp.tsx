@@ -6,7 +6,8 @@ import { paintGround } from '../camp/paint/ground.js';
 import { DARK_SCALE } from '../camp/paint/lighting.js';
 import { createPainter } from '../camp/paint/frame.js';
 
-const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Motion is always on: reducing it was left out of the app
+const still = false;
 // 30 frames a second is plenty for walking and torch flicker, and halves the drawing work
 const FRAME_MS = 33;
 
