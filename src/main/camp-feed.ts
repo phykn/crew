@@ -30,7 +30,7 @@ export function campState(chat: Chat, sessionId: number) {
       if (peer) log.push({ id: e.id, who, to: peer, text: from === crew.defOf(members.find((m) => m.key === who)!).role ? '요청 메모' : '답변', kind: 'chat' });
     } else if (e.kind === 'step' && who && /실패/.test(e.text)) log.push({ id: e.id, who, text: '실패', kind: 'rework' });
     else if (e.kind === 'step' && who && /수정 요청/.test(e.text)) log.push({ id: e.id, who, text: '수정 요청', kind: 'rework' });
-    else if (e.kind === 'status' && / 완료$/.test(e.text)) log.push({ id: e.id, who: 'orchestrator', text: '완료 보고', kind: 'work' });
+    else if (e.kind === 'status' && e.text.endsWith(' 완료')) log.push({ id: e.id, who: 'orchestrator', text: '완료 보고', kind: 'work' });
     else if (e.kind === 'status' && / 실패:/.test(e.text)) log.push({ id: e.id, who: 'orchestrator', text: '업무 실패', kind: 'rework' });
   }
   return { working, tasks, log };
