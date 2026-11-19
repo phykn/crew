@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
-import { Chat } from '../src/main/chat';
-import { CREW, fakeCrew, openScratch, type Turn } from './support';
+import { Chat } from '../../src/main/chat';
+import { CREW, fakeCrew, openScratch, type Turn } from '../support';
 
 test('rule versions: broken or stale saves are refused, and each scope reaches only its tasks', () => {
   const { store, project, paths } = openScratch();
@@ -13,16 +13,16 @@ test('rule versions: broken or stale saves are refused, and each scope reaches o
     paths,
   );
   const p = store.addProject(project);
-  chat.seed(p.id);
+  chat.members.seed(p.id);
   const s = store.createSession(p.id);
-  const base = chat.workflowFor(p.id, 'code');
+  const base = chat.workflows.current(p.id, 'code');
   const save = (rules: unknown, o: { base?: number; scope?: 'future' | 'current' | 'once'; taskId?: number } = {}) =>
-    chat.saveWorkflow({
+    chat.workflows.save({
       projectId: p.id,
       kind: 'code',
-      base: o.base ?? chat.workflowFor(p.id, 'code').version,
+      base: o.base ?? chat.workflows.current(p.id, 'code').version,
       rules,
-      author: 'test',
+      by: { memberId: null, name: 'test' },
       scope: o.scope ?? 'future',
       taskId: o.taskId,
     });
@@ -53,7 +53,7 @@ test('rule versions: broken or stale saves are refused, and each scope reaches o
     steps: [...base.rules.steps, { id: 'x', role: 'tester', label: 'x', does: 'x', after: ['nope'] }],
   };
   expect(save(dangling).ok).toBe(false);
-  expect(chat.workflowFor(p.id, 'code').version).toBe(0);
+  expect(chat.workflows.current(p.id, 'code').version).toBe(0);
 
   const running = chat.tasks.start(s.id, 'code', '진행 중', 'r');
   expect(save(withDocs)).toEqual({ ok: true, version: 1 });
@@ -73,7 +73,7 @@ test('rule versions: broken or stale saves are refused, and each scope reaches o
   };
   expect(save(lean, { scope: 'once', taskId: running.id }).ok).toBe(true);
   expect(ids(running.id)).not.toContain('plan_review');
-  expect(chat.workflowFor(p.id, 'code').version).toBe(1);
+  expect(chat.workflows.current(p.id, 'code').version).toBe(1);
   expect(save(base.rules, { scope: 'current', taskId: running.id })).toEqual({ ok: true, version: 2 });
   expect(ids(running.id)).toContain('plan_review');
 });

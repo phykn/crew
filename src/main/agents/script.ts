@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { SDKMessage, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
-import type { QueryFn, Sdk } from './agent';
+import type { QueryFn, Sdk } from './run';
 
 // One scripted answer: optionally a guarded tool call, a file write, or an app tool call first
 type Turn = {

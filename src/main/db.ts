@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
-import type { Workflow } from './workflow';
+import type { Workflow } from './tasks/workflow';
 
 // Each entry runs once, in order; PRAGMA user_version remembers how many have run
 const MIGRATIONS = [
@@ -131,7 +131,7 @@ const toMember = (r: MemberRow): Member => ({
   temp: r.temp === 1,
   leaving: r.leaving === 1,
 });
-export type AgentSession = {
+type AgentSession = {
   id: number;
   sessionId: number;
   memberId: number;
@@ -195,7 +195,7 @@ const TASK =
 const toTask = (r: TaskRow): Task => ({ ...r, workflow: JSON.parse(r.workflow) });
 // A peer request and its back-and-forth, oldest line first
 export type PeerLine = { from: string; text: string };
-export type PeerRequest = {
+type PeerRequest = {
   id: number;
   taskId: number;
   stepId: string;
@@ -214,7 +214,7 @@ export type Handback = {
   // Set on a rework the user asked for: the step it sends back to
   target?: string;
 };
-export type Version = { id: number; taskId: number; files: string[] };
+type Version = { id: number; taskId: number; files: string[] };
 export type StepRun = {
   id: number;
   taskId: number;
@@ -227,18 +227,6 @@ export type StepRun = {
   versionId: number | null;
 };
 type StepRunRow = Omit<StepRun, 'handback'> & { handback: string | null };
-export type Run = {
-  id: number;
-  agentSessionId: number;
-  taskId: number | null;
-  model: string;
-  status: string;
-  turns: number;
-  inputTokens: number;
-  outputTokens: number;
-  costUsd: number;
-  error: string | null;
-};
 type RunResult = {
   status: string;
   usage: { turns: number; inputTokens: number; outputTokens: number; costUsd: number };
@@ -636,16 +624,6 @@ export class Store {
     }[];
   }
 
-  listRuns(sessionId: number): Run[] {
-    return this.db
-      .prepare(
-        `SELECT r.id, r.agent_session_id AS agentSessionId, r.task_id AS taskId, r.model, r.status, r.turns, r.input_tokens AS inputTokens,
-                r.output_tokens AS outputTokens, r.cost_usd AS costUsd, r.error
-         FROM runs r JOIN agent_sessions a ON a.id = r.agent_session_id WHERE a.session_id = ? ORDER BY r.id`,
-      )
-      .all(sessionId) as Run[];
-  }
-
   createTask(t: { sessionId: number; kind: string; title: string; request: string; workflow: Workflow }): Task {
     const { lastInsertRowid } = this.db
       .prepare(
@@ -804,15 +782,6 @@ export class Store {
 
   writeTaskWorkflow(taskId: number, w: Workflow) {
     this.db.prepare('UPDATE tasks SET workflow = ? WHERE id = ?').run(JSON.stringify(w), taskId);
-  }
-
-  listAgentSessions(sessionId: number): (AgentSession & { key: string })[] {
-    return this.db
-      .prepare(
-        `SELECT a.id, a.session_id AS sessionId, a.member_id AS memberId, a.claude_id AS claudeId, m.key
-         FROM agent_sessions a JOIN members m ON m.id = a.member_id WHERE a.session_id = ? ORDER BY a.id`,
-      )
-      .all(sessionId) as (AgentSession & { key: string })[];
   }
 
   createRequest(r: Omit<PeerRequest, 'id' | 'thread'>): number {

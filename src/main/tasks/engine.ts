@@ -2,13 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getNextSnapshot, setup } from 'xstate';
 import { z } from 'zod';
-import type { Chat } from './chat';
-import { NOT_HIRED } from './agent';
-import type { Handback, Member, StepRun, Task, TaskStatus } from './db';
+import type { Chat } from '../chat';
+import { NOT_HIRED } from '../agents/run';
+import type { Handback, Member, StepRun, Task, TaskStatus } from '../db';
 import { ancestors, type Step, type Workflow } from './workflow';
-import { memberTools } from './crew-tools';
+import { memberTools } from '../tools/member';
 import { changedFiles, snapshot } from './changes';
-import { REFUSE } from './questions';
+import { REFUSE } from '../questions';
 
 type TaskEvent = {
   type:
@@ -27,7 +27,7 @@ type TaskEvent = {
 };
 
 // Which status a task may move to from which; the engine decides when, this decides whether
-export const taskMachine = setup({ types: { events: {} as TaskEvent } }).createMachine({
+const taskMachine = setup({ types: { events: {} as TaskEvent } }).createMachine({
   id: 'task',
   initial: 'queued',
   states: {
@@ -116,14 +116,43 @@ export function satisfied(w: Workflow, runs: StepRun[], id: string): boolean {
   return !sentBack(w, runs, id, latest.id);
 }
 
-function sentBack(w: Workflow, runs: StepRun[], id: string, since: number) {
-  return runs.some(
+// The reworks that send a step back after the run since: a check's, or the user's after the report
+function sendsBack(w: Workflow, runs: StepRun[], id: string, since = 0) {
+  return runs.filter(
     (r) =>
       r.id > since &&
       r.status === 'done' &&
       r.verdict === 'rework' &&
       (w.steps.find((s) => s.id === r.stepId)?.rework ?? r.handback?.target) === id,
   );
+}
+
+function sentBack(w: Workflow, runs: StepRun[], id: string, since: number) {
+  return sendsBack(w, runs, id, since).length > 0;
+}
+
+// Why going on would only repeat itself, or null: a step sent back past its loop limit, or a redo that changed nothing
+function stuck(w: Workflow, runs: StepRun[], version: number | null) {
+  // A step sent back to stops at the smallest loop count among the checks that send work to it
+  const limit = (s: Step) => Math.min(...w.steps.filter((v) => v.rework === s.id).map((v) => v.loops));
+  for (const s of w.steps) {
+    const done = runs.filter((r) => r.stepId === s.id && r.status === 'done');
+    if (!done.length || !sentBack(w, runs, s.id, done.at(-1)!.id)) continue;
+    if (done.length - 1 >= limit(s)) return `${s.label}을 ${limit(s)}번 고쳤지만 검증을 통과하지 못했습니다`;
+  }
+  // A redo that left the files as they were and is sent back again would only repeat itself: the user decides
+  for (const s of w.steps) {
+    const done = runs.filter((r) => r.stepId === s.id && r.status === 'done');
+    if (
+      version !== null &&
+      !s.verdict &&
+      done.length > 1 &&
+      done.at(-1)!.versionId === version &&
+      sentBack(w, runs, s.id, done.at(-1)!.id)
+    )
+      return `${s.label}이 다시 했지만 바뀐 것이 없는데 또 되돌려졌습니다. 지적과 지시가 맞지 않아 사용자 결정이 필요합니다`;
+  }
+  return null;
 }
 
 export class Tasks {
@@ -137,24 +166,18 @@ export class Tasks {
     const { store } = this.chat;
     const projectId = store.projectOf(sessionId).id;
     // A member who writes the project makes a small code change, so its change gets every check; anyone else works alone
-    const writer = one && this.chat.settings(one).write === 'project' ? one : undefined;
+    const writer = one && this.chat.members.settings(one).write === 'project' ? one : undefined;
     const rules =
       one && !writer
         ? solo(this.chat.crew.defOf(one).role, one.key)
-        : this.chat.workflowFor(projectId, writer ? 'code' : kind).rules;
+        : this.chat.workflows.current(projectId, writer ? 'code' : kind).rules;
     const workflow = small || writer ? withoutPlan(rules) : rules;
     // Set by the app rather than left to the brief's wording, so every step reads the same scope
-    const scoped =
-      workflow.kind === 'code'
-        ? `${request}
-
-${CODE_SCOPE}`
-        : request;
     const task = store.createTask({
       sessionId,
       kind: one && !writer ? kind : workflow.kind,
       title,
-      request: scoped,
+      request: workflow.kind === 'code' ? `${request}\n\n${CODE_SCOPE}` : request,
       workflow,
     });
     if (writer) for (const s of makers(workflow)) store.assign(task.id, s.id, writer.id);
@@ -207,10 +230,10 @@ ${CODE_SCOPE}`
     const { store } = this.chat;
     const task = store.readTask(taskId);
     if (!this.move(taskId, 'STOP', '', `업무 "${task.title}" 중단 요청`)) return false;
-    for (const run of this.chat.runsOf(taskId)) void run.stop();
+    for (const run of this.chat.runs.ofTask(taskId)) void run.stop();
     for (const id of store.openQuestionIds(taskId)) this.chat.questions.answer(id, REFUSE);
     // A task with nothing running reaches stopped at once; otherwise drive does when its runs end
-    if (!this.chat.runsOf(taskId).length) this.move(taskId, 'STOPPED', '', `업무 "${task.title}" 중단됨`);
+    if (!this.chat.runs.ofTask(taskId).length) this.move(taskId, 'STOPPED', '', `업무 "${task.title}" 중단됨`);
     return true;
   }
 
@@ -252,35 +275,10 @@ ${CODE_SCOPE}`
       const runs = store.listStepRuns(taskId);
       const holds = (id: string) => satisfied(w, runs, id);
       if (w.steps.every((s) => holds(s.id))) return this.finish(task);
-      // A step sent back to stops at the smallest loop count among the checks that send work to it
-      const limit = (s: Step) => Math.min(...w.steps.filter((v) => v.rework === s.id).map((v) => v.loops));
-      const overworked = w.steps.find((s) => {
-        const reruns = runs.filter((r) => r.stepId === s.id && r.status === 'done').length - 1;
-        return reruns >= limit(s) && sentBack(w, runs, s.id, lastDone(runs, s.id)!.id);
-      });
-      if (overworked)
-        return this.fail(task, `${overworked.label}을 ${limit(overworked)}번 고쳤지만 검증을 통과하지 못했습니다`);
-      // A redo that left the files as they were and is sent back again would only repeat itself: the user decides
-      const version = store.latestVersion(taskId)?.id ?? null;
-      const idle = w.steps.find((s) => {
-        const done = runs.filter((r) => r.stepId === s.id && r.status === 'done');
-        return (
-          version !== null &&
-          !s.verdict &&
-          done.length > 1 &&
-          done.at(-1)!.versionId === version &&
-          sentBack(w, runs, s.id, done.at(-1)!.id)
-        );
-      });
-      if (idle)
-        return this.fail(
-          task,
-          `${idle.label}이 다시 했지만 바뀐 것이 없는데 또 되돌려졌습니다. 지적과 지시가 맞지 않아 사용자 결정이 필요합니다`,
-        );
-
+      const stuckWhy = stuck(w, runs, store.latestVersion(taskId)?.id ?? null);
+      if (stuckWhy) return this.fail(task, stuckWhy);
       const ready = w.steps.filter((s) => !holds(s.id) && s.after.every(holds));
-      const latest = (s: Step) => lastDone(runs, s.id);
-      const fixing = ready.some((s) => latest(s) && sentBack(w, runs, s.id, latest(s)!.id));
+      const fixing = ready.some((s) => lastDone(runs, s.id) && sentBack(w, runs, s.id, lastDone(runs, s.id)!.id));
       const stage = ready.map((s) => s.label).join('·');
       this.move(taskId, fixing ? 'REWORK' : ready.every((s) => s.verdict) ? 'REVIEW' : 'WORK', stage, `${stage} 진행`);
       const results = await Promise.all(ready.map((s) => this.runStep(task, s, current)));
@@ -316,14 +314,14 @@ ${CODE_SCOPE}`
       const runId = store.startStepRun(task.id, step.id, member.id, store.latestVersion(task.id)?.id ?? null);
       if (attempt === 0) log(`${role}: ${step.label} 시작`);
       this.chat.emit('changed', 'tasks');
-      const out = await this.chat
-        .runMember(member, task.sessionId, task.id, prompt, {
+      const out = await this.chat.runs
+        .run(member, task.sessionId, task.id, prompt, {
           schema: HANDBACK_SCHEMA,
           mcpServers: { crew: memberTools(await this.chat.sdk(), this.chat, task, step, member) },
           alive: () => current() && !this.halted(task.id),
         })
         // The run has really ended here, so nothing it started can still be writing
-        .finally(() => this.chat.locksOf(project).release(task.id));
+        .finally(() => this.chat.runs.locksOf(project).release(task.id));
       // A drive no longer current, such as one for a deleted session, leaves the record alone
       if (!current()) return STOPPED;
       if (out.error === NOT_HIRED) {
@@ -384,28 +382,20 @@ ${CODE_SCOPE}`
         (s) =>
           s.id !== step.id &&
           lastDone(runs, s.id) &&
-          (step.after.includes(s.id) || (s.after.length === 0 && isAncestor(w, s.id, step.id))),
+          (step.after.includes(s.id) || (s.after.length === 0 && ancestors(w, step.id).includes(s.id))),
       )
       .map((s) => section(`${s.label} (${this.roleOf(task, s)})`, lastDone(runs, s.id)!.handback!));
-    const sentBackBy = runs
-      .filter(
-        (r) =>
-          r.status === 'done' &&
-          r.verdict === 'rework' &&
-          (!own || r.id > own.id) &&
-          (w.steps.find((s) => s.id === r.stepId)?.rework ?? r.handback?.target) === step.id,
-      )
-      .map((r) =>
-        section(
-          `Sent back by ${w.steps.find((s) => s.id === r.stepId)?.label ?? 'the user after the report'}`,
-          r.handback!,
-        ),
-      );
+    const sentBackBy = sendsBack(w, runs, step.id, own?.id).map((r) =>
+      section(
+        `Sent back by ${w.steps.find((s) => s.id === r.stepId)?.label ?? 'the user after the report'}`,
+        r.handback!,
+      ),
+    );
     return [
       `[Task #${task.id}] ${task.title}`,
       `The user's request, through 비서:\n${task.request}`,
       `Your step: ${step.label}. ${step.does}`,
-      `Project folder: ${project.path}\nYour output folder for files you produce: ${this.chat.outputDir(project, `task-${task.id}`)}`,
+      `Project folder: ${project.path}\nYour output folder for files you produce: ${this.chat.runs.outputDir(project, `task-${task.id}`)}`,
       ...(earlier.length ? ['# Earlier steps', ...earlier] : []),
       // A step handed over from a member who left continues from what they saved
       ...(own && own.memberId !== this.memberFor(task, step).id
@@ -436,7 +426,7 @@ ${CODE_SCOPE}`
   bringTempFiles(task: Task) {
     if (!makers(task.workflow).some((s) => this.memberFor(task, s).temp)) return '';
     const project = this.projectOf(task);
-    const dir = this.chat.outputDir(project, `task-${task.id}`);
+    const dir = this.chat.runs.outputDir(project, `task-${task.id}`);
     const files = (fs.readdirSync(dir, { recursive: true, withFileTypes: true }) as fs.Dirent[])
       .filter((f) => f.isFile())
       .map((f) => path.relative(dir, path.join(f.parentPath, f.name)));
@@ -444,7 +434,9 @@ ${CODE_SCOPE}`
     const taken = files.filter((f) => fs.existsSync(path.join(project.path, f)));
     for (const f of files) {
       fs.mkdirSync(path.dirname(path.join(project.path, f)), { recursive: true });
-      fs.renameSync(path.join(dir, f), path.join(project.path, f));
+      // Copied, then removed: a rename fails when the output folder and the project are on different drives
+      fs.copyFileSync(path.join(dir, f), path.join(project.path, f));
+      fs.rmSync(path.join(dir, f));
     }
     return [
       `[Files] The temp's files were moved into the project folder: ${files.join(', ')}`,
@@ -472,7 +464,7 @@ ${CODE_SCOPE}`
     for (const s of task.workflow.steps) {
       const m = this.memberFor(task, s);
       if (m.temp && !open.some((t) => t.workflow.steps.some((x) => this.memberFor(t, x).id === m.id)))
-        this.chat.fire(m.id);
+        this.chat.members.fire(m.id);
     }
   }
 
@@ -526,11 +518,6 @@ function withoutPlan(w: Workflow): Workflow {
       .filter((s) => !dropped.has(s.id))
       .map((s) => ({ ...s, after: s.after.filter((a) => !dropped.has(a)) })),
   };
-}
-
-function isAncestor(w: Workflow, maybe: string, of: string): boolean {
-  const step = w.steps.find((s) => s.id === of);
-  return !!step && step.after.some((a) => a === maybe || isAncestor(w, maybe, a));
 }
 
 function section(title: string, hb: Handback) {

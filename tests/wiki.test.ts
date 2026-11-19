@@ -17,7 +17,7 @@ test('a run starts with its own memory and this project wiki only; a rule docume
   const other = path.join(path.dirname(project), 'other');
   fs.mkdirSync(other);
   const [a, b] = [store.addProject(project), store.addProject(other)];
-  for (const p of [a, b]) chat.seed(p.id);
+  for (const p of [a, b]) chat.members.seed(p.id);
   const tester = store.readMember(a.id, 'tester');
   const user = { memberId: null, name: '사용자' };
   chat.wiki.write(a.id, '테스트 방법', 'npm test', user);
@@ -25,7 +25,7 @@ test('a run starts with its own memory and this project wiki only; a rule docume
   chat.wiki.remember(a.id, tester.id, 'node --test를 쓴다', { taskId: null, sessionId: null });
   chat.wiki.remember(a.id, store.readMember(a.id, 'coder').id, '개발의 기억', { taskId: null, sessionId: null });
 
-  await chat.runMember(tester, store.createSession(a.id).id, null, 'hi');
+  await chat.runs.run(tester, store.createSession(a.id).id, null, 'hi');
   const system = String(fake.calls[0].options.systemPrompt);
   expect(system).toContain('- 테스트 방법: npm test');
   expect(system).toContain('- coder (개발):');
@@ -33,16 +33,23 @@ test('a run starts with its own memory and this project wiki only; a rule docume
   expect(system).not.toContain('다른 프로젝트 문서');
   expect(system).not.toContain('개발의 기억');
 
-  const code = chat.workflowFor(a.id, 'code').rules;
+  const code = chat.workflows.current(a.id, 'code').rules;
   const lean = { ...code, steps: code.steps.filter((s) => s.id !== 'test') };
   const link = (version: number) =>
     chat.wiki.write(a.id, `워크플로우 ${version}`, '이유', user, { kind: 'code', version });
-  chat.saveWorkflow({ projectId: a.id, kind: 'code', base: 0, rules: lean, author: '비서', scope: 'future' });
-  chat.removeDoc(link(1).id, false, user);
-  expect(chat.workflowFor(a.id, 'code')).toMatchObject({ version: 1, rules: { steps: lean.steps } });
-  chat.removeDoc(link(1).id, true, user);
-  expect(chat.workflowFor(a.id, 'code').version).toBe(2);
-  expect(chat.workflowFor(a.id, 'code').rules.steps.map((s) => s.id)).toContain('test');
+  chat.workflows.save({
+    projectId: a.id,
+    kind: 'code',
+    base: 0,
+    rules: lean,
+    by: { memberId: null, name: '비서' },
+    scope: 'future',
+  });
+  chat.workflows.removeDoc(link(1).id, false, user);
+  expect(chat.workflows.current(a.id, 'code')).toMatchObject({ version: 1, rules: { steps: lean.steps } });
+  chat.workflows.removeDoc(link(1).id, true, user);
+  expect(chat.workflows.current(a.id, 'code').version).toBe(2);
+  expect(chat.workflows.current(a.id, 'code').rules.steps.map((s) => s.id)).toContain('test');
 });
 
 test('the wiki graph draws each [[link]] once and shows a linked title with no document as one to write', () => {

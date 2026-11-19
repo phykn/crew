@@ -21,9 +21,9 @@ export const NOT_HIRED = 'not hired';
 // What an in-process tool answers
 export const text = (t: string) => ({ content: [{ type: 'text' as const, text: t }] });
 
-export type Usage = { turns: number; inputTokens: number; outputTokens: number; costUsd: number };
+type Usage = { turns: number; inputTokens: number; outputTokens: number; costUsd: number };
 
-export type RunInput = {
+type RunInput = {
   cwd: string;
   model: string;
   system: string;

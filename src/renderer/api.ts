@@ -1,4 +1,5 @@
-import type { Handlers } from '../main/ipc';
+import type { z } from 'zod';
+import type { Handlers } from '../main/window/ipc';
 
 declare global {
   interface Window {
@@ -9,24 +10,26 @@ declare global {
   }
 }
 
-type Run<K extends keyof Handlers> = Handlers[K]['run'];
+// What a call takes, as its schema reads it before parsing
+export type Args<K extends keyof Handlers> = z.input<Handlers[K]['args']>;
+type Result<K extends keyof Handlers> = Awaited<ReturnType<Handlers[K]['run']>>;
 
 // Typed from the main process's own handlers, so a renamed call fails to compile here
 export function call<K extends keyof Handlers>(
   name: K,
-  ...args: Parameters<Run<K>>
-): Promise<Awaited<ReturnType<Run<K>>>> {
-  return window.crew.call(name, args[0]) as Promise<Awaited<ReturnType<Run<K>>>>;
+  ...args: Args<K> extends undefined ? [] : [Args<K>]
+): Promise<Result<K>> {
+  return window.crew.call(name, args[0]) as Promise<Result<K>>;
 }
 
-export type StreamEvent = { sessionId: number; delta?: string; done?: boolean };
+type StreamEvent = { sessionId: number; delta?: string; done?: boolean };
 
 export function onChanged(fn: (topic: string) => void) {
   return window.crew.on('changed', (p) => fn(p as string));
 }
 
 // 도우미 opening a screen, the way a click would
-export type Navigate = { sessionId: number; view: 'log' | 'wiki' | 'workflow'; taskId?: number; kind?: string };
+type Navigate = { sessionId: number; view: 'log' | 'wiki' | 'workflow'; taskId?: number; kind?: string };
 
 export function onNavigate(fn: (ev: Navigate) => void) {
   return window.crew.on('navigate', (p) => fn(p as Navigate));

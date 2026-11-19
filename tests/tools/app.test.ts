@@ -1,8 +1,8 @@
 import { expect, test, vi } from 'vitest';
-import { Chat } from '../src/main/chat';
-import { appServer } from '../src/main/app-mcp';
-import { checkCall } from '../src/main/guard';
-import { CREW, fakeCrew, openScratch, reply, type Turn } from './support';
+import { Chat } from '../../src/main/chat';
+import { appServer } from '../../src/main/tools/app';
+import { checkCall } from '../../src/main/agents/guard';
+import { CREW, fakeCrew, openScratch, reply, type Turn } from '../support';
 
 type Result = { content: { text: string }[] };
 
@@ -38,9 +38,9 @@ test('도우미 finds the stopped test task the user picks, opens its log, and r
     paths,
   );
   const p = store.addProject(project);
-  chat.seed(p.id);
+  chat.members.seed(p.id);
   const s = store.createSession(p.id);
-  const research = chat.workflows.find((w) => w.kind === 'research')!;
+  const research = chat.workflows.shipped.find((w) => w.kind === 'research')!;
   const stopped = ['시험 A', '시험 B'].map((title, i) => {
     const t = store.createTask({
       sessionId: s.id,
@@ -61,7 +61,7 @@ test('도우미 finds the stopped test task the user picks, opens its log, and r
   expect(navigated).toEqual([{ sessionId: s.id, view: 'log', taskId: stopped[1].id }]);
   expect(stopped.map((t) => store.readTask(t.id).status)).toEqual(['stopped', 'stopped']);
 
-  await chat.runMember(store.readMember(p.id, 'helper'), s.id, null, `업무 #${stopped[1].id} 이어서 실행해줘`);
+  await chat.runs.run(store.readMember(p.id, 'helper'), s.id, null, `업무 #${stopped[1].id} 이어서 실행해줘`);
   expect(stopped.map((t) => store.readTask(t.id).status)).toEqual(['stopped', 'running']);
 
   // Another project's task is not there for this helper, and nothing opens
@@ -73,8 +73,8 @@ test('도우미 finds the stopped test task the user picks, opens its log, and r
 
   // With read access only, resuming is not the helper's to do
   const helper = store.readMember(p.id, 'helper');
-  chat.setPermissions(helper.id, { mcp: [{ server: 'app', access: 'read' }] });
-  const policy = chat.policy(store.readMemberById(helper.id), p, `session-${s.id}`);
+  chat.members.setPermissions(helper.id, { mcp: [{ server: 'app', access: 'read' }] });
+  const policy = chat.runs.policy(store.readMemberById(helper.id), p, `session-${s.id}`);
   expect(checkCall(policy, 'mcp__app__resume_task', { task_id: 1 }).kind).not.toBe('allow');
   expect(checkCall(policy, 'mcp__app__find_tasks', {}).kind).toBe('allow');
 });

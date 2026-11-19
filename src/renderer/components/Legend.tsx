@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import * as Switch from '@radix-ui/react-switch';
 import * as Dialog from '@radix-ui/react-dialog';
-import type { CrewMember } from '../../main/crew';
-import { call } from '../api';
+import type { CrewMember } from '../../main/crew/shipped';
+import { type Args, call } from '../api';
 import { Choice } from './Choice';
 import { Permissions } from './Permissions';
 
@@ -29,7 +29,7 @@ export function Legend({
   const [shown, setShown] = useState<Definition | null>(null);
   const current = members.find((m) => m.id === shown?.id);
 
-  async function update(m: CrewMember, change: { nickname?: string; model?: string; status?: 'hired' | 'unhired' }) {
+  async function update(m: CrewMember, change: Omit<Args<'members.update'>, 'id'>) {
     await call('members.update', { id: m.id, ...change });
     onChange();
   }
@@ -74,7 +74,7 @@ export function Legend({
                   label={`${current.role} 모델`}
                   value={current.model}
                   options={MODELS}
-                  onChange={(model) => update(current, { model })}
+                  onChange={(model) => update(current, { model: model as Args<'members.update'>['model'] })}
                 />
                 {!current.kept && (
                   <label className="hire">

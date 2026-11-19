@@ -20,6 +20,11 @@ export class Questions {
     return answered;
   }
 
+  // A pick-one card that belongs to no task, such as which task the user meant
+  choose(sessionId: number, prompt: string, options: string[]) {
+    return this.ask({ sessionId, taskId: null, kind: 'choice', prompt, options, payload: {} });
+  }
+
   answer(id: number, choice: string) {
     const q = this.store.readQuestion(id);
     if (q.answer !== null) throw new Error('this question was already answered');

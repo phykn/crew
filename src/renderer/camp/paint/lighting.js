@@ -13,21 +13,21 @@ function glow(ctx, p, radius, rgb, alpha) {
   ctx.fillRect(p.x - radius, p.y - radius, radius * 2, radius * 2);
 }
 
-export function drawGlow(ctx, people, now, still, lit) {
+export function drawGlow(ctx, people, now) {
   // A slow, small sway only; random per-frame changes made the whole screen flash
-  const sway = still ? 1 : 1 + 0.04 * Math.sin(now / 500) + 0.02 * Math.sin(now / 210);
+  const sway = 1 + 0.04 * Math.sin(now / 500) + 0.02 * Math.sin(now / 210);
   ctx.globalCompositeOperation = 'lighter';
   for (const t of TORCHES) glow(ctx, iso(t.x, t.y, 30), 80, '255, 150, 60', 0.16 * sway);
   for (const l of LANTERNS) glow(ctx, iso(l.x, l.y, 13), 50, '255, 170, 80', 0.14 * sway);
-  if (lit) glow(ctx, iso(FIRE.x, FIRE.y, 6), 130, '255, 140, 50', 0.26 * sway);
+  glow(ctx, iso(FIRE.x, FIRE.y, 6), 130, '255, 140, 50', 0.26 * sway);
   // The rune ring under a caster lights the ground in cold blue, breathing with the spell
-  const rune = (still ? 0.2 : 0.16 + 0.06 * Math.sin(now / 180)) * sway;
+  const rune = (0.16 + 0.06 * Math.sin(now / 180)) * sway;
   for (const p of people.values()) if (isCasting(p)) glow(ctx, iso(p.x, p.y, 4), 60, '130, 165, 255', rune);
   ctx.globalCompositeOperation = 'source-over';
 }
 
 // True black everywhere except around what gives light: the fire, torches, lanterns, spells and the people themselves
-export function drawDarkness(ctx, dark, view, people, lit) {
+export function drawDarkness(ctx, dark, view, people) {
   const d = dark.getContext('2d'),
     m = ctx.getTransform(),
     k = DARK_SCALE;
@@ -45,8 +45,7 @@ export function drawDarkness(ctx, dark, view, people, lit) {
     d.fillStyle = g;
     d.fillRect(p.x - radius, p.y - radius, radius * 2, radius * 2);
   };
-  // An unlit fire leaves the middle of the camp almost dark; only the torches and embers still show it
-  open(iso(FIRE.x, FIRE.y), lit ? 230 : 110, lit ? 1 : 0.55);
+  open(iso(FIRE.x, FIRE.y), 230, 1);
   for (const t of TORCHES) open(iso(t.x, t.y, 20), 130, 0.9);
   for (const l of LANTERNS) open(iso(l.x, l.y, 13), 80, 0.8);
   for (const p of people.values()) {

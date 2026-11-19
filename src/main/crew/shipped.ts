@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
-import type { Member, SkillRow } from './db';
+import type { Member, SkillRow } from '../db';
 
 export const MODELS = ['haiku', 'sonnet', 'opus'] as const;
 
@@ -32,9 +32,14 @@ const TOOL_KINDS = {
   shell: ['Bash', 'PowerShell'],
   web: ['WebFetch', 'WebSearch'],
 } as const;
+type ToolKind = keyof typeof TOOL_KINDS;
+const ToolKinds = z.enum(Object.keys(TOOL_KINDS) as [ToolKind]);
+// Where a member's writes may land: the project folder, its own output folder, or nowhere
+const Write = z.enum(['project', 'output', 'none']);
+const Access = z.enum(['all', 'read']);
 
 // The sprite parts src/renderer/camp/paint/sprites.js draws, as head, upper, lower
-export const LOOKS = {
+const LOOKS = {
   head: ['hood', 'hair', 'helm', 'hat', 'braids'],
   upper: ['tunic', 'robe', 'armor', 'vest'],
   lower: ['boots', 'gown', 'greaves', 'wraps'],
@@ -55,9 +60,8 @@ const Front = z.object({
   role: z.string().min(1),
   color: z.string().regex(/^#[0-9a-f]{6}$/i),
   model: z.enum(MODELS),
-  tools: list.pipe(z.array(z.enum(Object.keys(TOOL_KINDS) as [keyof typeof TOOL_KINDS]))),
-  // Where its writes may land: the project folder, its own output folder, or nowhere
-  write: z.enum(['project', 'output', 'none']),
+  tools: list.pipe(z.array(ToolKinds)),
+  write: Write,
   skills: list,
   mcp: list,
   look: list.pipe(z.tuple([z.enum(LOOKS.head), z.enum(LOOKS.upper), z.enum(LOOKS.lower)])),
@@ -73,29 +77,21 @@ const KitItem = z.object({
 });
 const Kit = z.object({ skills: z.record(z.string(), KitItem), mcp: z.record(z.string(), KitItem) });
 // A project's kit, with the text each skill adds to a run
-export type ProjectKit = z.infer<typeof Kit> & { texts: Record<string, string> };
+type ProjectKit = z.infer<typeof Kit> & { texts: Record<string, string> };
 const McpFile = z.object({ mcpServers: z.record(z.string(), z.record(z.string(), z.unknown())) });
 
-type ToolKind = keyof typeof TOOL_KINDS;
-export const TOOL_KIND_NAMES = Object.keys(TOOL_KINDS) as ToolKind[];
-export type Access = 'all' | 'read';
 // What the user changed for one member in one project; anything left out follows the definition
 export const Config = z.object({
-  tools: z.array(z.enum(TOOL_KIND_NAMES as [ToolKind])).optional(),
-  write: z.enum(['project', 'output', 'none']).optional(),
+  tools: z.array(ToolKinds).optional(),
+  write: Write.optional(),
   skills: z.array(z.string()).optional(),
-  mcp: z.array(z.object({ server: z.string(), access: z.enum(['all', 'read']) })).optional(),
+  mcp: z.array(z.object({ server: z.string(), access: Access })).optional(),
 });
 export type Config = z.infer<typeof Config>;
-export type Settings = {
-  tools: ToolKind[];
-  write: 'project' | 'output' | 'none';
-  skills: string[];
-  mcp: { server: string; access: Access }[];
-};
+export type Settings = Required<Config>;
 
 export type Definition = z.infer<typeof Front> & { key: string; instructions: string };
-export type Skill = { name: string; icon: string; label: string; use: string };
+type Skill = { name: string; icon: string; label: string; use: string };
 export type CrewMember = Member & {
   role: string;
   color: string;
@@ -182,7 +178,7 @@ export class Crew {
       tools: config.tools ?? def.tools,
       write: config.write ?? def.write,
       skills: config.skills ?? def.skills,
-      mcp: config.mcp ?? def.mcp.map((server) => ({ server, access: 'all' as Access })),
+      mcp: config.mcp ?? def.mcp.map((server) => ({ server, access: 'all' as const })),
     };
   }
 
@@ -200,6 +196,16 @@ export class Crew {
       }
     }
     return { skills, mcp: this.kit.mcp, texts };
+  }
+
+  // The app's help, read fresh so an edit to crew/help shows without a restart
+  help() {
+    const dir = path.join(this.dir, 'help');
+    return fs
+      .readdirSync(dir)
+      .filter((f) => f.endsWith('.md'))
+      .map((f) => fs.readFileSync(path.join(dir, f), 'utf-8'))
+      .join('\n\n');
   }
 
   system(def: Definition, settings: Settings, kit: ProjectKit) {

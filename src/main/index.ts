@@ -2,10 +2,10 @@ import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import { Store } from './db';
 import { Chat } from './chat';
-import { Crew } from './crew';
-import { loadSdk } from './agent';
-import { scriptSdk } from './script-sdk';
-import { createHandlers, registerHandlers } from './ipc';
+import { Crew } from './crew/shipped';
+import { loadSdk } from './agents/run';
+import { scriptSdk } from './agents/script';
+import { createHandlers, registerHandlers } from './window/ipc';
 
 let win: BrowserWindow | null = null;
 
@@ -45,7 +45,7 @@ app.whenReady().then(() => {
   const sdk = scripted ? async () => scripted : loadSdk;
   const chat = new Chat(store, sdk, crew, (channel, payload) => win?.webContents.send(channel, payload), paths);
   // A definition added since the last start joins every project it is missing from
-  for (const p of store.listProjects()) chat.seed(p.id);
+  for (const p of store.listProjects()) chat.members.seed(p.id);
   store.recoverInterrupted();
   registerHandlers(createHandlers(store, crew, chat, () => win));
   createWindow();

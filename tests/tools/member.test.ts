@@ -1,7 +1,7 @@
 import { expect, test, vi } from 'vitest';
-import { Chat } from '../src/main/chat';
-import { askPeer } from '../src/main/crew-tools';
-import { CREW, fakeCrew, handback, openScratch, reply } from './support';
+import { Chat } from '../../src/main/chat';
+import { askPeer } from '../../src/main/tools/member';
+import { CREW, fakeCrew, handback, openScratch, reply } from '../support';
 
 test('a peer request asked back stays one thread, a resent line runs once, and a test handback without checks is sent back', async () => {
   const { store, project, paths } = openScratch();
@@ -23,14 +23,14 @@ test('a peer request asked back stays one thread, a resent line runs once, and a
     paths,
   );
   const p = store.addProject(project);
-  chat.seed(p.id);
+  chat.members.seed(p.id);
   const s = store.createSession(p.id);
   const task = store.createTask({
     sessionId: s.id,
     kind: 'code',
     title: 't',
     request: 'r',
-    workflow: chat.workflows.find((w) => w.kind === 'code')!,
+    workflow: chat.workflows.shipped.find((w) => w.kind === 'code')!,
   });
   const coder = store.readMember(p.id, 'coder');
   const step = task.workflow.steps.find((x) => x.id === 'develop')!;

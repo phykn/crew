@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
 import type { Project, Session } from '../main/db';
-import type { CrewMember } from '../main/crew';
+import type { CrewMember } from '../main/crew/shipped';
 import { call, onChanged, onNavigate } from './api';
 import { TitleBar } from './components/TitleBar';
 import { ProjectBar } from './components/ProjectBar';
@@ -25,6 +25,13 @@ export function App() {
   const [memoryOf, setMemoryOf] = useState<number | null>(null);
   // The workflow kind the workflow tab shows
   const [kind, setKind] = useState('code');
+  // The task the log shows; null shows every task in the session
+  const [logTask, setLogTask] = useState<number | null>(null);
+
+  function openLog(taskId: number | null) {
+    setLogTask(taskId);
+    setTab('log');
+  }
 
   // Hires made through 비서 reach the legend and the camp; a session named by its first message shows its name
   useEffect(() => {
@@ -44,10 +51,8 @@ export function App() {
     () =>
       onNavigate((ev) => {
         if (ev.sessionId !== session?.id) return;
-        if (ev.view === 'log') {
-          setLogTask(ev.taskId ?? null);
-          setTab('log');
-        } else if (ev.view === 'wiki') setTab('memory');
+        if (ev.view === 'log') openLog(ev.taskId ?? null);
+        else if (ev.view === 'wiki') setTab('memory');
         else {
           setKind(ev.kind ?? 'code');
           setTab('workflow');
@@ -55,9 +60,6 @@ export function App() {
       }),
     [session?.id],
   );
-  // The task the log shows; null shows every task in the session
-  const [logTask, setLogTask] = useState<number | null>(null);
-
   useEffect(() => {
     (async () => {
       const [list, last] = await Promise.all([call('projects.list'), call('last.read')]);
@@ -121,14 +123,7 @@ export function App() {
       <ProjectTree open={tree} onClose={() => setTree(false)} onDeleted={afterDelete} />
       <main className="body">
         <section className="camp" aria-label="캠프">
-          <Camp
-            members={members}
-            session={session}
-            onPick={(taskId) => {
-              setLogTask(taskId);
-              setTab('log');
-            }}
-          />
+          <Camp members={members} session={session} onPick={openLog} />
           {project && (
             <Legend
               members={members}
@@ -175,10 +170,7 @@ export function App() {
                     { name: 'memory', label: '메모리 열기', run: () => setTab('memory') },
                     { name: 'workflow', label: '워크플로우 열기', run: () => setTab('workflow') },
                   ]}
-                  onLog={(id) => {
-                    setLogTask(id);
-                    setTab('log');
-                  }}
+                  onLog={openLog}
                 />
               ) : (
                 <p className="empty">폴더를 열어 프로젝트를 시작하세요.</p>

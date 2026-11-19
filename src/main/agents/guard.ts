@@ -1,14 +1,16 @@
 import path from 'node:path';
 import type { CanUseTool } from '@anthropic-ai/claude-agent-sdk';
-import type { Member, Mode, Store } from './db';
-import { ALLOW, type Questions, REFUSE } from './questions';
+import type { Member, Mode, Store } from '../db';
+import type { Settings } from '../crew/shipped';
+import { ALLOW, type Questions, REFUSE } from '../questions';
+import { inside } from './locks';
 
 // What one member may do right now; read fresh on every call so a revoked permission applies at once
 export type Policy = {
   key: string;
   role: string;
   tools: string[];
-  write: 'project' | 'output' | 'none';
+  write: Settings['write'];
   // Each MCP server the member holds; read access opens only the server's looking tools
   mcp: { server: string; readTools: string[] | null }[];
   project: string;
@@ -55,6 +57,19 @@ const CHECKER_FORBIDDEN: [RegExp, string][] = [
 const VENV_PIP =
   /(?:[\w.-]*[\\/])?\.?venv[\\/](?:Scripts|bin)[\\/](?:python[\d.]*(?:\.exe)?\s+-m\s+pip|pip[\d.]*(?:\.exe)?)\s+install\b/gi;
 const SILENT = ['/dev/null', 'nul', '$null'];
+const EDITS = ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'];
+// A path the shell builds, such as ~/x or $HOME/x, which cannot be resolved here
+const BUILT = /^[~$%`]/;
+
+// The files a shell command or an edit tool says it writes, before they are resolved
+function namedWrites(tool: string, input: Record<string, unknown>) {
+  if (SHELLS.includes(tool)) return shellWrites(String(input.command ?? ''));
+  return EDITS.includes(tool) ? [String(input.file_path ?? input.notebook_path ?? '')] : [];
+}
+
+function shellWrites(cmd: string) {
+  return writeTargets(cmd).filter((t) => !SILENT.includes(t.toLowerCase()));
+}
 
 export function checkCall(policy: Policy, tool: string, input: Record<string, unknown>, cwd = policy.project): Verdict {
   if (tool.startsWith('mcp__')) return checkMcp(policy, tool, input, cwd);
@@ -62,8 +77,8 @@ export function checkCall(policy: Policy, tool: string, input: Record<string, un
   // Where a call would write is settled first: no approval can open a place the role may never write
   const scope = SHELLS.includes(tool)
     ? checkShell(policy, String(input.command ?? ''), cwd)
-    : ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'].includes(tool)
-      ? checkWrite(policy, path.resolve(cwd, String(input.file_path ?? input.notebook_path ?? '')))
+    : EDITS.includes(tool)
+      ? checkWrite(policy, path.resolve(cwd, namedWrites(tool, input)[0]))
       : ({ kind: 'allow' } as Verdict);
   if (scope.kind === 'deny') return scope;
   if (!policy.tools.includes(tool)) return { kind: 'ask', reason: `${policy.role}에게 ${tool} 도구가 없습니다` };
@@ -99,9 +114,9 @@ function checkShell(policy: Policy, cmd: string, cwd: string): Verdict {
   for (const [pattern, reason] of [...FORBIDDEN, ...(checker ? CHECKER_FORBIDDEN : [])]) {
     if (pattern.test(cmd)) return { kind: 'deny', reason };
   }
-  for (const target of writeTargets(cmd).filter((t) => !SILENT.includes(t.toLowerCase()))) {
+  for (const target of shellWrites(cmd)) {
     // A path the shell builds cannot be resolved here, so only a member who may write the project can use one
-    if (/^[~$%`]/.test(target)) {
+    if (BUILT.test(target)) {
       if (checker) return { kind: 'deny', reason: `write the path out instead of ${target}` };
       continue;
     }
@@ -123,11 +138,6 @@ function checkWrite(policy: Policy, file: string): Verdict {
     };
   }
   return { kind: 'allow' };
-}
-
-function inside(file: string, dir: string) {
-  const rel = path.relative(path.resolve(dir), path.resolve(file));
-  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
 }
 
 function resolveTarget(target: string, cwd: string) {
@@ -224,16 +234,12 @@ export function projectWrites(
   cwd = policy.project,
 ): string[] {
   if (policy.write !== 'project' || READ_ONLY.includes(tool) || tool.startsWith('mcp__')) return [];
-  const files = SHELLS.includes(tool)
-    ? writeTargets(String(input.command ?? '')).filter((t) => !SILENT.includes(t.toLowerCase()))
-    : ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'].includes(tool)
-      ? [String(input.file_path ?? input.notebook_path ?? '')]
-      : [];
-  if (SHELLS.includes(tool) && (!files.length || files.some((t) => /^[~$%`]/.test(t)))) return [policy.project];
+  const files = namedWrites(tool, input);
+  if (SHELLS.includes(tool) && (!files.length || files.some((t) => BUILT.test(t)))) return [policy.project];
   return files.map((t) => resolveTarget(t, cwd)).filter((f) => inside(f, policy.project));
 }
 
-export type GuardHooks = {
+type GuardHooks = {
   // An approval already given for this tool in this task
   granted: (tool: string) => boolean;
   // Asks the user through 비서's chat; resolves true when they allow it
@@ -243,7 +249,7 @@ export type GuardHooks = {
   reserve?: (tool: string, input: Record<string, unknown>) => Promise<string | null>;
 };
 
-export function makeCanUseTool(policy: () => Policy, hooks: GuardHooks): CanUseTool {
+function makeCanUseTool(policy: () => Policy, hooks: GuardHooks): CanUseTool {
   const allow = async (tool: string, input: Record<string, unknown>) => {
     const late = await hooks.reserve?.(tool, input);
     return late

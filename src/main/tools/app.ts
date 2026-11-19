@@ -1,9 +1,7 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { z } from 'zod';
-import { type Sdk, text } from './agent';
-import type { Chat } from './chat';
-import type { Task } from './db';
+import { type Sdk, text } from '../agents/run';
+import type { Chat } from '../chat';
+import type { Task } from '../db';
 
 // The app's own MCP server, in process: each tool does what the matching click in the window does
 export function appServer(sdk: Sdk, chat: Chat, sessionId: number) {
@@ -32,7 +30,7 @@ export function appServer(sdk: Sdk, chat: Chat, sessionId: number) {
     name: 'app',
     tools: [
       sdk.tool('read_help', "Read the app's help: where things are and how they work.", {}, async () =>
-        text(readHelp(chat.crew.dir)),
+        text(chat.crew.help()),
       ),
       sdk.tool(
         'find_tasks',
@@ -48,14 +46,7 @@ export function appServer(sdk: Sdk, chat: Chat, sessionId: number) {
             .sort((x, y) => y.id - x.id);
           if (all.length <= 1) return text(JSON.stringify(all.map(describe)));
           const label = (t: Task) => `#${t.id} ${t.title} (${t.status})`;
-          const choice = await chat.questions.ask({
-            sessionId,
-            taskId: null,
-            kind: 'choice',
-            prompt: '어느 업무를 말씀하시나요?',
-            options: all.map(label),
-            payload: {},
-          });
+          const choice = await chat.questions.choose(sessionId, '어느 업무를 말씀하시나요?', all.map(label));
           const picked = all.find((t) => label(t) === choice)!;
           return text(JSON.stringify([describe(picked)]));
         },
@@ -73,7 +64,7 @@ export function appServer(sdk: Sdk, chat: Chat, sessionId: number) {
       sdk.tool(
         'open_workflow_editor',
         "Open this project's workflow editor in the window.",
-        { kind: z.enum(chat.workflows.map((w) => w.kind) as [string, ...string[]]).default('code') },
+        { kind: z.enum(chat.workflows.shipped.map((w) => w.kind) as [string, ...string[]]).default('code') },
         async (a) => {
           go({ view: 'workflow', kind: a.kind });
           return text(`${a.kind} 워크플로우 편집 화면을 열었습니다.`);
@@ -95,13 +86,4 @@ export function appServer(sdk: Sdk, chat: Chat, sessionId: number) {
       ),
     ],
   });
-}
-
-export function readHelp(crewDir: string) {
-  const dir = path.join(crewDir, 'help');
-  return fs
-    .readdirSync(dir)
-    .filter((f) => f.endsWith('.md'))
-    .map((f) => fs.readFileSync(path.join(dir, f), 'utf-8'))
-    .join('\n\n');
 }

@@ -1,5 +1,6 @@
 import * as Select from '@radix-ui/react-select';
 import type { Project, Session } from '../../main/db';
+import { Chevron } from './Icons';
 
 const OPEN = 'open';
 const NEW = 'new';
@@ -101,14 +102,6 @@ function FolderIcon() {
         stroke="currentColor"
         strokeWidth="1.5"
       />
-    </svg>
-  );
-}
-
-function Chevron() {
-  return (
-    <svg viewBox="0 0 20 20" className="icon chevron" aria-hidden="true">
-      <path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.8" />
     </svg>
   );
 }

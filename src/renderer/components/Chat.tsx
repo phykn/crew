@@ -5,7 +5,7 @@ import { Choice } from './Choice';
 import { TaskCards } from './TaskCards';
 
 // The window's own commands: typed after a slash, they act here and never reach 비서
-export type Command = { name: string; label: string; run: () => void };
+type Command = { name: string; label: string; run: () => void };
 
 const MODE_LABELS: Record<Mode, string> = { manual: '묻기', auto: '자동', bypass: '전부' };
 

@@ -14,7 +14,7 @@ const AHEAD = 1.2;
 const SPEED = { stroll: 1.1, brisk: 3.4 };
 
 // Everyone in the camp, kept by team: where they stand, where they walk, and what shows over their head
-export function createWalkers(still) {
+export function createWalkers() {
   const people = new Map();
   let before = null,
     shown = null,
@@ -134,14 +134,14 @@ export function createWalkers(still) {
   }
 
   function step(p, now, dt) {
-    if (p.state !== 'working' && !p.path.length && !(p.waitUntil > now) && !still && now > p.nextIdle) idle(p, now);
+    if (p.state !== 'working' && !p.path.length && !(p.waitUntil > now) && now > p.nextIdle) idle(p, now);
     const q = p.path[0];
     p.moving = false;
     if (!q || p.waitUntil > now) return;
     const dx = q.x - p.x,
       dy = q.y - p.y,
       d = Math.hypot(dx, dy),
-      move = (still ? 1e9 : p.fast ? SPEED.brisk : SPEED.stroll) * dt;
+      move = (p.fast ? SPEED.brisk : SPEED.stroll) * dt;
     // dx - dy is left-right on the isometric screen
     if (Math.abs(dx - dy) > 0.05) p.facing = Math.sign(dx - dy);
     if (d > move) {

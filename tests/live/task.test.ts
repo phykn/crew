@@ -1,10 +1,10 @@
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { expect, test, vi } from 'vitest';
-import { loadSdk } from '../../src/main/agent';
+import { loadSdk } from '../../src/main/agents/run';
 import { Chat } from '../../src/main/chat';
 import { Store } from '../../src/main/db';
-import { CREW, makeScratch } from '../support';
+import { CREW, makeScratch, recordedRuns } from '../support';
 
 const SEARCH = `export function search(items, query) {
   if (!query) return [];
@@ -45,7 +45,7 @@ test('real Claude: 비서 opens a code task and the crew changes and verifies it
     scratch.paths,
   );
   const p = store.addProject(scratch.project);
-  chat.seed(p.id);
+  chat.members.seed(p.id);
   const s = store.createSession(p.id);
   // Sonnet everywhere keeps the live run affordable while still doing real work
   for (const m of store.listMembers(p.id)) store.updateMember(m.id, { model: 'sonnet' });
@@ -65,7 +65,7 @@ test('real Claude: 비서 opens a code task and the crew changes and verifies it
   const steps = store.listStepRuns(task.id).map((r) => `${r.stepId}:${r.status}:${r.verdict ?? ''}`);
   console.log({
     errors: store.listStepRuns(task.id).map((r) => r.error),
-    runs: store.listRuns(s.id).map((r) => r.error),
+    runs: recordedRuns(store, s.id).map((r) => r.error),
     steps,
     asked,
     report: store.listMessages(s.id).at(-1)!.text,

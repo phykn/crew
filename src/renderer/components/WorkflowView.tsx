@@ -19,9 +19,9 @@ import {
   type ReactFlowInstance,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import type { CrewMember } from '../../main/crew';
+import type { CrewMember } from '../../main/crew/shipped';
 import type { Project } from '../../main/db';
-import type { Step } from '../../main/workflow';
+import type { Step } from '../../main/tasks/workflow';
 import { call } from '../api';
 import { Choice } from './Choice';
 
@@ -61,7 +61,7 @@ export function WorkflowView({
     const read = await call('workflows.read', { projectId: project.id, kind });
     setW(read);
     setSteps(read.rules.steps);
-    setNodes(toNodes(read.rules.steps, (read.layout ?? {}) as Layout, members));
+    setNodes(toNodes(read.rules.steps, (read.layout ?? {}) as Layout));
     setPicked(null);
     setDirty(false);
   }
@@ -73,16 +73,13 @@ export function WorkflowView({
   // Nodes carry the step, so edits in the side panel show on the canvas at once
   const shown = useMemo(
     () =>
-      nodes
-        .map((n) => ({
-          ...n,
-          data: {
-            step: steps.find((s) => s.id === n.id)!,
-            member: members.find((m) => m.key === steps.find((s) => s.id === n.id)?.role),
-            back: steps.find((s) => s.id === reworkOf(n.id, steps))?.label,
-          },
-        }))
-        .filter((n) => n.data.step),
+      nodes.flatMap((n) => {
+        const step = steps.find((s) => s.id === n.id);
+        if (!step) return [];
+        const member = members.find((m) => m.key === step.role);
+        const back = steps.find((s) => s.id === reworkOf(n.id, steps))?.label;
+        return [{ ...n, data: { step, member, back } }];
+      }),
     [nodes, steps, members],
   );
   const [link, setLink] = useState<string | null>(null);
@@ -170,10 +167,6 @@ export function WorkflowView({
   }
 
   const step = steps.find((s) => s.id === picked);
-  // The side panel takes room from the canvas when it opens or closes, so the flow is fitted again
-  useEffect(() => {
-    requestAnimationFrame(() => flow?.fitView(FIT));
-  }, [!!step]);
   // The side panel takes room from the canvas when it opens or closes, so the flow is fitted again
   useEffect(() => {
     requestAnimationFrame(() => flow?.fitView(FIT));
@@ -366,17 +359,13 @@ function reworkOf(id: string, steps: Step[]): string | undefined {
   }
 }
 
-// Saved positions where there are some; otherwise rows by how many steps come before, each row centered, since the panel is tall and narrow
-function toNodes(steps: Step[], layout: Layout, members: CrewMember[]): StepNode[] {
+// Saved positions where there are some; the canvas fills in each node's step from the steps in state
+function toNodes(steps: Step[], layout: Layout): StepNode[] {
   const auto = arrange(steps);
-  return steps.map((s) => ({
-    id: s.id,
-    type: 'step',
-    position: layout[s.id] ?? auto[s.id],
-    data: { step: s, member: members.find((m) => m.key === s.role) },
-  }));
+  return steps.map((s) => ({ id: s.id, type: 'step', position: layout[s.id] ?? auto[s.id], data: { step: s } }));
 }
 
+// Rows by how many steps come before, each row centered, since the panel is tall and narrow
 function arrange(steps: Step[]): Layout {
   const token = (name: string) => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
   const [width, gap, rowHeight] = [token('--w-node'), token('--sp-4'), token('--h-node-row')];

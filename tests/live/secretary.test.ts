@@ -1,15 +1,15 @@
 import { expect, test } from 'vitest';
-import { loadSdk } from '../../src/main/agent';
+import { loadSdk } from '../../src/main/agents/run';
 import { Chat } from '../../src/main/chat';
 import { Store } from '../../src/main/db';
-import { CREW, makeScratch } from '../support';
+import { CREW, makeScratch, recordedRuns } from '../support';
 
 test('real Claude: 비서 lists files itself, remembers after a restart, and switches model', async () => {
   const scratch = makeScratch({ 'notes.txt': 'hello', 'todo.md': '- buy milk' });
   let store = new Store(scratch.db);
   let chat = new Chat(store, loadSdk, CREW, () => {}, scratch.paths);
   const p = store.addProject(scratch.project);
-  chat.seed(p.id);
+  chat.members.seed(p.id);
   const s = store.createSession(p.id);
   // Haiku keeps the live run cheap; the model switch below proves the choice reaches the run
   store.updateMember(store.readMember(p.id, 'orchestrator').id, { model: 'haiku' });
@@ -29,7 +29,7 @@ test('real Claude: 비서 lists files itself, remembers after a restart, and swi
   const second = store.listMessages(s.id).at(-1)!;
   expect(second.text).toMatch(/notes\.txt/);
 
-  expect(store.listRuns(s.id).map((r) => [r.model, r.status])).toEqual([
+  expect(recordedRuns(store, s.id).map((r) => [r.model, r.status])).toEqual([
     ['haiku', 'done'],
     ['sonnet', 'done'],
   ]);

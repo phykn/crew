@@ -1,6 +1,6 @@
-import type { Chat } from './chat';
+import type { Chat } from '../chat';
 
-export type CampLine = { id: number; who: string; to?: string; text: string; kind: 'work' | 'rework' | 'chat' };
+type CampLine = { id: number; who: string; to?: string; text: string; kind: 'work' | 'rework' | 'chat' };
 
 // What the camp shows for one session: who is at work on what, and the record lines that play as scenes
 export function campState(chat: Chat, sessionId: number) {

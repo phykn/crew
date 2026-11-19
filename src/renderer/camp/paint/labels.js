@@ -1,4 +1,3 @@
-import { FIRE } from '../layout.js';
 import { CAMP, iso } from '../projection.js';
 import { COLOR as C } from '../tokens.js';
 import { font, label } from './shapes.js';
@@ -12,9 +11,9 @@ const EASE = 0.25;
 const BAR = { work: C.goldDim, rework: C.blood, chat: C.iron };
 
 // Labels of people standing close would print over each other, so whoever is further back lifts theirs until it clears
-export function drawOverheads(ctx, people, now, still, edge) {
+export function drawOverheads(ctx, people, now, edge) {
   const taken = [];
-  for (const p of [...people].sort((a, b) => b.x + b.y - (a.x + a.y))) drawOverhead(ctx, p, now, still, taken, edge);
+  for (const p of [...people].sort((a, b) => b.x + b.y - (a.x + a.y))) drawOverhead(ctx, p, now, taken, edge);
 }
 
 // A passing remark wins for its three seconds; otherwise a worker shows the step they are on
@@ -25,7 +24,7 @@ function speechOf(p, now) {
   return p.doing ? { text: p.doing, kind: 'chat' } : null;
 }
 
-function drawOverhead(ctx, p, now, still, taken, edge) {
+function drawOverhead(ctx, p, now, taken, edge) {
   const f = iso(p.x, p.y),
     checked = p.checkUntil > now,
     b = speechOf(p, now);
@@ -53,7 +52,7 @@ function drawOverhead(ctx, p, now, still, taken, edge) {
   box.b += down;
   taken.push(box);
   const lift = head - box.b;
-  p.lift = still || p.lift === undefined ? lift : p.lift + (lift - p.lift) * EASE;
+  p.lift = p.lift === undefined ? lift : p.lift + (lift - p.lift) * EASE;
   const y = head - p.lift;
 
   if (said) {
@@ -71,12 +70,4 @@ function drawOverhead(ctx, p, now, still, taken, edge) {
   ctx.font = font(9);
   ctx.fillStyle = b.kind === 'rework' ? C.bloodBright : C.parchment;
   ctx.fillText(said, x + nameW + checkW, y - 5);
-}
-
-export function drawOffline(ctx, text) {
-  const f = iso(FIRE.x, FIRE.y);
-  ctx.font = font(10);
-  ctx.textAlign = 'center';
-  // Above the fire, which nobody walks through
-  label(ctx, text, f.x, f.y - 30, C.bloodBright);
 }

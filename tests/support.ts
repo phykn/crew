@@ -3,8 +3,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { Options, SDKMessage, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
-import type { QueryFn, Sdk } from '../src/main/agent';
-import { Crew } from '../src/main/crew';
+import type { QueryFn, Sdk } from '../src/main/agents/run';
+import { Crew } from '../src/main/crew/shipped';
 import { Store } from '../src/main/db';
 
 export const CREW = new Crew(path.resolve(__dirname, '../crew'));
@@ -25,6 +25,25 @@ export function makeScratch(files: Record<string, string> = {}) {
 export function openScratch(files?: Record<string, string>) {
   const scratch = makeScratch(files);
   return { ...scratch, store: new Store(scratch.db) };
+}
+
+// A session's runs and agent sessions as the record holds them; the app itself reads them only as totals
+export function recordedRuns(store: Store, sessionId: number) {
+  return store.db
+    .prepare(
+      `SELECT r.model, r.status, r.cost_usd AS costUsd, r.error FROM runs r
+       JOIN agent_sessions a ON a.id = r.agent_session_id WHERE a.session_id = ? ORDER BY r.id`,
+    )
+    .all(sessionId) as { model: string; status: string; costUsd: number; error: string | null }[];
+}
+
+export function recordedAgents(store: Store, sessionId: number) {
+  return store.db
+    .prepare(
+      `SELECT m.key, a.claude_id AS claudeId FROM agent_sessions a
+       JOIN members m ON m.id = a.member_id WHERE a.session_id = ? ORDER BY a.id`,
+    )
+    .all(sessionId) as { key: string; claudeId: string | null }[];
 }
 
 // A turn may hold its answer back, as a long real step does

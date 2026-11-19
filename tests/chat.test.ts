@@ -1,7 +1,7 @@
 import { expect, test, vi } from 'vitest';
-import { Inbox } from '../src/main/agent';
+import { Inbox } from '../src/main/agents/run';
 import { Chat } from '../src/main/chat';
-import { CREW, fakeCrew, fakeQuery, openScratch, reply } from './support';
+import { CREW, fakeCrew, fakeQuery, openScratch, recordedRuns, reply, handback, type Turn } from './support';
 
 test('비서 answers in its own Claude session and runs on the model chosen last', async () => {
   const { store, project, paths } = openScratch();
@@ -17,7 +17,7 @@ test('비서 answers in its own Claude session and runs on the model chosen last
     paths,
   );
   const p = store.addProject(project);
-  chat.seed(p.id);
+  chat.members.seed(p.id);
   const s = store.createSession(p.id);
 
   await chat.send(s.id, '이 폴더에 무슨 파일 있어?');
@@ -36,7 +36,7 @@ test('비서 answers in its own Claude session and runs on the model chosen last
     [undefined, 'sonnet', store.readProject(p.id).path],
     [undefined, 'haiku', store.readProject(p.id).path],
   ]);
-  expect(store.listRuns(s.id).map((r) => [r.model, r.status, r.costUsd])).toEqual([
+  expect(recordedRuns(store, s.id).map((r) => [r.model, r.status, r.costUsd])).toEqual([
     ['sonnet', 'done', 0.01],
     ['haiku', 'done', 0.01],
   ]);
@@ -59,12 +59,52 @@ test('stopping 비서 mid-answer ends that run and says so in the chat', async (
     paths,
   );
   const p = store.addProject(project);
-  chat.seed(p.id);
+  chat.members.seed(p.id);
   const s = store.createSession(p.id);
 
   const answering = chat.send(s.id, '길게 설명해줘');
-  await vi.waitFor(() => expect(chat.liveOf(s.id)).toBeDefined());
-  await chat.liveOf(s.id)!.stop();
+  await vi.waitFor(() => expect(chat.runs.live(s.id)).toBeDefined());
+  await chat.runs.live(s.id)!.stop();
   await answering;
   expect(store.listMessages(s.id).at(-1)!.text).toBe('답변을 멈췄습니다.');
+});
+
+test('/clear starts an empty 비서 on the same crew while the old session works on; deleting counts what goes', async () => {
+  const { store, project, paths } = openScratch({ 'a.md': 'x' });
+  let release = () => {};
+  const held: Turn = (p, o) =>
+    new Promise((r) => (release = () => r(handback('r', { summary: '조사 끝' })(p, o) as never)));
+  const fake = fakeCrew({ 조사: [held], 비서: [reply('새 세션입니다', 'claude-new'), reply('보고', 'claude-old')] });
+  const chat = new Chat(
+    store,
+    async () => fake.sdk,
+    CREW,
+    () => {},
+    paths,
+  );
+  const p = store.addProject(project);
+  chat.members.seed(p.id);
+  const old = store.createSession(p.id);
+  store.updateMember(store.readMember(p.id, 'researcher').id, { model: 'haiku' });
+  const task = chat.tasks.start(old.id, 'research', '조사', 'r');
+  await vi.waitFor(() => expect(fake.calls).toHaveLength(1));
+
+  const next = chat.clear(old.id);
+  await chat.send(next.id, '안녕');
+  expect(fake.calls[1].options.resume).toBeUndefined();
+  expect(store.readMember(p.id, 'researcher').model).toBe('haiku');
+  release();
+  await vi.waitFor(() => expect(store.readTask(task.id).status).toBe('done'));
+
+  const impact = store.impact({ sessionId: old.id });
+  expect(impact).toEqual({
+    sessions: 1,
+    tasks: 1,
+    events: store.listEvents(old.id).length,
+    messages: store.listMessages(old.id).length,
+  });
+  chat.deleteSession(old.id);
+  expect(store.listSessions(p.id).map((s) => s.id)).toEqual([next.id]);
+  chat.removeProject(p.id);
+  expect(store.listProjects()).toEqual([]);
 });

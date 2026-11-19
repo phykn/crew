@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { CrewMember } from '../../main/crew';
+import type { CrewMember } from '../../main/crew/shipped';
 import type { Change, Doc, Memory as Note } from '../../main/wiki';
 import { call, onChanged } from '../api';
 import { Choice } from './Choice';

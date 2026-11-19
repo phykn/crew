@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { CrewMember } from '../../main/crew';
+import type { CrewMember } from '../../main/crew/shipped';
 import type { Session } from '../../main/db';
 import { call, onChanged } from '../api';
 import { CAMP, iso } from '../camp/projection.js';
@@ -8,8 +8,6 @@ import { paintGround } from '../camp/paint/ground.js';
 import { DARK_SCALE } from '../camp/paint/lighting.js';
 import { createPainter } from '../camp/paint/frame.js';
 
-// Motion is always on: reducing it was left out of the app
-const still = false;
 // 30 frames a second is plenty for walking and torch flicker, and halves the drawing work
 const FRAME_MS = 33;
 const NONE: Record<string, string> = {};
@@ -43,7 +41,7 @@ export function Camp({
   useEffect(() => {
     if (state) walkers.current!.applyLog(state.log);
   }, [state]);
-  walkers.current ??= createWalkers(still);
+  walkers.current ??= createWalkers();
 
   // People are kept by key, so a renamed member keeps walking where they were and only the name tag changes
   useEffect(() => {
@@ -106,7 +104,7 @@ export function Camp({
       walkers.current!.tick(t, Math.min(0.1, (t - last) / 1000));
       last = t;
       ctx.setTransform(scale * dpr, 0, 0, scale * dpr, ox * dpr, oy * dpr);
-      drawFrame(ctx, walkers.current!.people, t, still, false);
+      drawFrame(ctx, walkers.current!.people, t);
     };
     raf = requestAnimationFrame(frame);
     // The canvas has no DOM to query, so window tests read who stands where, and with what name, from here

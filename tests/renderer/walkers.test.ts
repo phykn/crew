@@ -1,10 +1,10 @@
 import { expect, test, vi } from 'vitest';
-import { SEATS, blocked } from '../src/renderer/camp/layout.js';
-import { createWalkers } from '../src/renderer/camp/walkers.js';
+import { SEATS, blocked } from '../../src/renderer/camp/layout.js';
+import { createWalkers } from '../../src/renderer/camp/walkers.js';
 
 test('idle members stroll only on open ground and chat among themselves without touching the record', () => {
   vi.useFakeTimers();
-  const w = createWalkers(false);
+  const w = createWalkers();
   w.applyStaff(
     ['a', 'b', 'c', 'd', 'e', 'f'].map((k) => ({
       team: k,

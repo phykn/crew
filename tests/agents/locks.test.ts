@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test } from 'vitest';
-import { Chat } from '../src/main/chat';
-import { snapshot } from '../src/main/changes';
-import { CREW, fakeCrew, openScratch } from './support';
+import { Chat } from '../../src/main/chat';
+import { snapshot } from '../../src/main/tasks/changes';
+import { CREW, fakeCrew, openScratch } from '../support';
 
 test('overlapping writes go in turn and re-read what changed; others run at once', async () => {
   const { store, project, paths } = openScratch({ 'a.js': 'a', 'b.js': 'b', 'old.js': 'o' });
@@ -16,7 +16,7 @@ test('overlapping writes go in turn and re-read what changed; others run at once
     paths,
   );
   const p = store.addProject(project);
-  chat.seed(p.id);
+  chat.members.seed(p.id);
   const s = store.createSession(p.id);
   const coder = store.readMember(p.id, 'coder');
   const open = () => {
@@ -25,11 +25,11 @@ test('overlapping writes go in turn and re-read what changed; others run at once
       kind: 'code',
       title: 't',
       request: 'r',
-      workflow: chat.workflows[0],
+      workflow: chat.workflows.shipped[0],
     });
     store.writeBaseline(t.id, snapshot(project));
-    const policy = chat.policy(coder, p, `task-${t.id}`);
-    return (tool: string, input: Record<string, unknown>) => chat.reserve(p, t.id, policy, tool, input);
+    const policy = chat.runs.policy(coder, p, `task-${t.id}`);
+    return (tool: string, input: Record<string, unknown>) => chat.runs.reserve(p, t.id, policy, tool, input);
   };
   const [a, b, c] = [open(), open(), open()];
   const settled = (x: Promise<unknown>) =>
@@ -41,20 +41,20 @@ test('overlapping writes go in turn and re-read what changed; others run at once
   await expect(c('Write', { file_path: path.join(project, 'b.js') })).resolves.toBeNull();
   expect(await settled(waiting)).toBe(false);
   fs.writeFileSync(path.join(project, 'a.js'), 'a2');
-  chat.locksOf(p).release(1);
+  chat.runs.locksOf(p).release(1);
   await expect(waiting).resolves.toContain('a.js changed');
   await expect(b('Edit', { file_path: path.join(project, 'a.js') })).resolves.toBeNull();
   // Its own edit is not someone else's change when a shell call then reserves the whole folder
-  chat.locksOf(p).release(3);
+  chat.runs.locksOf(p).release(3);
   fs.writeFileSync(path.join(project, 'a.js'), 'a3');
   await expect(b('Bash', { command: 'python -m unittest' })).resolves.toBeNull();
 
   // A folder and a file under it, and both ends of a move, overlap
-  chat.locksOf(p).release(2);
+  chat.runs.locksOf(p).release(2);
   await expect(a('Bash', { command: 'mkdir src/lib' })).resolves.toBeNull();
   const under = b('Write', { file_path: path.join(project, 'src', 'lib', 'x.js') });
   const moved = c('Bash', { command: 'mv src/lib/old.js old.js' });
   expect([await settled(under), await settled(moved)]).toEqual([false, false]);
-  chat.locksOf(p).release(1);
+  chat.runs.locksOf(p).release(1);
   await expect(under).resolves.toBeNull();
 });

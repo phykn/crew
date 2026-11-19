@@ -28,15 +28,16 @@ export function snapshot(root: string): Snapshot {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) walk(full);
       else if (entry.isFile() && fs.statSync(full).size <= MAX_BYTES) {
-        out[path.relative(root, full).split(path.sep).join('/')] = crypto
-          .createHash('sha1')
-          .update(fs.readFileSync(full))
-          .digest('hex');
+        out[path.relative(root, full).split(path.sep).join('/')] = hashFile(full);
       }
     }
   };
   walk(root);
   return out;
+}
+
+export function hashFile(file: string) {
+  return crypto.createHash('sha1').update(fs.readFileSync(file)).digest('hex');
 }
 
 // What the task changed since its baseline: added, changed, and removed files

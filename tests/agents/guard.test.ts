@@ -1,9 +1,9 @@
 import path from 'node:path';
 import { expect, test } from 'vitest';
-import { Chat } from '../src/main/chat';
-import { checkCall, writeTargets } from '../src/main/guard';
-import { realPath } from '../src/main/locks';
-import { CREW, fakeQuery, openScratch } from './support';
+import { Chat } from '../../src/main/chat';
+import { checkCall, writeTargets } from '../../src/main/agents/guard';
+import { realPath } from '../../src/main/agents/locks';
+import { CREW, fakeQuery, openScratch } from '../support';
 
 function setup() {
   const scratch = openScratch();
@@ -15,19 +15,19 @@ function setup() {
     scratch.paths,
   );
   const project = scratch.store.addProject(scratch.project);
-  chat.seed(project.id);
+  chat.members.seed(project.id);
   const session = scratch.store.createSession(project.id);
   return { ...scratch, chat, project, session };
 }
 
-type Options = Parameters<ReturnType<Chat['guard']>>[2];
+type Options = Parameters<ReturnType<Chat['runs']['guard']>>[2];
 const call = (tool: string, input: Record<string, unknown>) =>
   [tool, input, { signal: new AbortController().signal, toolUseID: 't', requestId: 'r' } as Options] as const;
 
 test('리뷰 cannot write the project or push, and each refusal is logged', async () => {
   const { store, chat, project, session } = setup();
   const reviewer = store.readMember(project.id, 'reviewer');
-  const guard = chat.guard(reviewer, project, session.id, 7);
+  const guard = chat.runs.guard(reviewer, project, session.id, 7);
 
   const write = await guard(...call('Write', { file_path: path.join(project.path, 'app.js'), content: 'x' }));
   const push = await guard(...call('Bash', { command: 'git -C . push origin main' }));
@@ -50,7 +50,7 @@ test('리뷰 cannot write the project or push, and each refusal is logged', asyn
 test('a tool outside the role becomes an answer card, and the approval holds only in that task', async () => {
   const { store, chat, project, session } = setup();
   const researcher = store.readMember(project.id, 'researcher');
-  const inTask = chat.guard(researcher, project, session.id, 1);
+  const inTask = chat.runs.guard(researcher, project, session.id, 1);
 
   const pending = inTask(...call('Bash', { command: 'ls' }));
   await new Promise((r) => setTimeout(r, 0));
@@ -62,7 +62,7 @@ test('a tool outside the role becomes an answer card, and the approval holds onl
 
   // The same task asks no more; another task asks again
   expect((await inTask(...call('Bash', { command: 'ls -a' })))!.behavior).toBe('allow');
-  const other = chat.guard(researcher, project, session.id, 2)(...call('Bash', { command: 'ls' }));
+  const other = chat.runs.guard(researcher, project, session.id, 2)(...call('Bash', { command: 'ls' }));
   await new Promise((r) => setTimeout(r, 0));
   const second = store.listMessages(session.id).at(-1)!;
   expect(second.question!.id).not.toBe(card.question!.id);
@@ -80,17 +80,17 @@ test('write targets are read from redirects, tee, cp, sed -i, and PowerShell, no
 
 test('비서 may edit the project itself, but not a file a task is writing', async () => {
   const { store, chat, project, session } = setup();
-  const guard = chat.guard(store.readMember(project.id, 'orchestrator'), project, session.id, null);
+  const guard = chat.runs.guard(store.readMember(project.id, 'orchestrator'), project, session.id, null);
   const file = path.join(project.path, 'README.md');
   expect((await guard(...call('Edit', { file_path: file, old_string: 'a', new_string: 'b' })))!.behavior).toBe('allow');
-  chat.locksOf(project).held.set(3, new Set([realPath(file)]));
+  chat.runs.locksOf(project).held.set(3, new Set([realPath(file)]));
   const busy = await guard(...call('Edit', { file_path: file, old_string: 'a', new_string: 'b' }));
   expect(busy).toMatchObject({ behavior: 'deny', message: expect.stringContaining('task #3') });
 });
 
 test('the app record and crew files are protected even from 개발', () => {
   const { store, chat, project, paths } = setup();
-  const policy = chat.policy(store.readMember(project.id, 'coder'), project, 'task-1');
+  const policy = chat.runs.policy(store.readMember(project.id, 'coder'), project, 'task-1');
   expect(checkCall(policy, 'Write', { file_path: paths.protected[0] }).kind).toBe('deny');
   expect(checkCall(policy, 'Write', { file_path: path.join(project.path, 'src', 'a.ts') }).kind).toBe('allow');
   expect(checkCall(policy, 'Bash', { command: 'npm install -g left-pad' }).kind).toBe('deny');
@@ -109,12 +109,13 @@ test('auto mode allows a tool outside the role without a card but still denies; 
   const { store, chat, project, session } = setup();
   const reviewer = store.readMember(project.id, 'reviewer');
   const researcher = store.readMember(project.id, 'researcher');
-  const push = () => chat.guard(reviewer, project, session.id, 7)(...call('Bash', { command: 'git push origin main' }));
+  const push = () =>
+    chat.runs.guard(reviewer, project, session.id, 7)(...call('Bash', { command: 'git push origin main' }));
 
   store.setMode(project.id, 'auto');
-  expect((await chat.guard(researcher, project, session.id, 7)(...call('Bash', { command: 'ls' })))!.behavior).toBe(
-    'allow',
-  );
+  expect(
+    (await chat.runs.guard(researcher, project, session.id, 7)(...call('Bash', { command: 'ls' })))!.behavior,
+  ).toBe('allow');
   expect(store.listMessages(session.id)).toEqual([]);
   expect((await push())!.behavior).toBe('deny');
   store.setMode(project.id, 'bypass');

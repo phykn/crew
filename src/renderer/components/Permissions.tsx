@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Config } from '../../main/crew';
+import type { Config } from '../../main/crew/shipped';
 import { call } from '../api';
 import { Choice } from './Choice';
 import { KitIcon } from './Icons';

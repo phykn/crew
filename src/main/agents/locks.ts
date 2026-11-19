@@ -1,7 +1,6 @@
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { snapshot, type Snapshot } from './changes';
+import { hashFile, snapshot, type Snapshot } from '../tasks/changes';
 
 type Waiter = { taskId: number; paths: string[]; resolve: () => void };
 
@@ -34,10 +33,14 @@ export class Locks {
       onWait(blockers);
       await new Promise<void>((resolve) => this.waiting.push({ taskId, paths, resolve }));
     }
+    this.take(taskId, paths);
+    return 'ok';
+  }
+
+  take(taskId: number, paths: string[]) {
     const set = this.held.get(taskId) ?? new Set();
     for (const p of paths) set.add(p);
     this.held.set(taskId, set);
-    return 'ok';
   }
 
   // Files under these paths that changed since the task last saw them; files under what it already holds are its own changes
@@ -63,9 +66,7 @@ export class Locks {
     for (const w of still) {
       if (this.blockers(w.taskId, w.paths).length) this.waiting.push(w);
       else {
-        const set = this.held.get(w.taskId) ?? new Set();
-        for (const p of w.paths) set.add(p);
-        this.held.set(w.taskId, set);
+        this.take(w.taskId, w.paths);
         w.resolve();
       }
     }
@@ -78,18 +79,19 @@ export class Locks {
       if (!fs.existsSync(p)) continue;
       if (fs.statSync(p).isDirectory()) {
         for (const [k, v] of Object.entries(snapshot(p))) out[rel ? `${rel}/${k}` : k] = v;
-      } else out[rel] = crypto.createHash('sha1').update(fs.readFileSync(p)).digest('hex');
+      } else out[rel] = hashFile(p);
     }
     return out;
   }
 }
 
 function overlaps(a: string, b: string) {
-  const inside = (x: string, y: string) => {
-    const rel = path.relative(y, x);
-    return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
-  };
   return inside(a, b) || inside(b, a);
+}
+
+export function inside(file: string, dir: string) {
+  const rel = path.relative(path.resolve(dir), path.resolve(file));
+  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
 }
 
 // The path as the disk resolves it, so a link or a different spelling still meets the same reservation

@@ -1,8 +1,8 @@
 import { expect, test, vi } from 'vitest';
-import { Chat } from '../src/main/chat';
-import { campState } from '../src/main/camp-feed';
-import { createWalkers } from '../src/renderer/camp/walkers.js';
-import { CREW, fakeCrew, handback, openScratch, reply, type Turn } from './support';
+import { Chat } from '../../src/main/chat';
+import { campState } from '../../src/main/window/camp';
+import { createWalkers } from '../../src/renderer/camp/walkers.js';
+import { CREW, fakeCrew, handback, openScratch, reply, type Turn } from '../support';
 
 const staff = (keys: string[], working: Record<string, string>) =>
   keys.map((k) => ({
@@ -32,11 +32,11 @@ test('the record plays in the camp: assignment, work, request, waiting, failure,
     paths,
   );
   const p = store.addProject(project);
-  chat.seed(p.id);
+  chat.members.seed(p.id);
   const s = store.createSession(p.id);
   const keys = ['orchestrator', 'advisor', 'reviewer', 'stylist'];
-  const w = createWalkers(true);
-  const late = createWalkers(true);
+  const w = createWalkers();
+  const late = createWalkers();
   const feed = (x: ReturnType<typeof createWalkers>, team = keys) => {
     const st = campState(chat, s.id);
     x.applyStaff(staff(team, st.working));
@@ -53,14 +53,7 @@ test('the record plays in the camp: assignment, work, request, waiting, failure,
   // 비서 walks over to hand the work out
   expect(w.people.get('orchestrator')!.path.at(-1)?.say?.text).toContain('업무 배정');
 
-  const q = chat.questions.ask({
-    sessionId: s.id,
-    taskId: null,
-    kind: 'choice',
-    prompt: '?',
-    options: ['a', 'b'],
-    payload: {},
-  });
+  const q = chat.questions.choose(s.id, '?', ['a', 'b']);
   expect(feed(w).working.orchestrator).toBe('?');
   chat.questions.answer(store.listMessages(s.id).at(-1)!.question!.id, 'a');
   await q;
