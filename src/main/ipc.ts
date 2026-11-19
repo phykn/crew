@@ -146,7 +146,7 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
     },
     'members.list': {
       args: z.object({ projectId: id }),
-      run: (a: { projectId: number }) => crew.describe(store.listMembers(a.projectId)),
+      run: (a: { projectId: number }) => crew.describe(store.listMembers(a.projectId), chat.kit(a.projectId)),
     },
     'members.update': {
       args: z.object({
@@ -169,7 +169,7 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
       args: z.object({ id }),
       run: (a: { id: number }) => ({
         settings: chat.settings(store.readMemberById(a.id)),
-        kit: crew.kit,
+        kit: (({ skills, mcp }) => ({ skills, mcp }))(chat.kit(store.readMemberById(a.id).projectId)),
         changes: store.listPermissionChanges(a.id),
       }),
     },

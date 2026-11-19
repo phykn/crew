@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test } from 'vitest';
 import { Chat } from '../src/main/chat';
+import { kitTools } from '../src/main/crew-tools';
 import { Crew } from '../src/main/crew';
 import { Store } from '../src/main/db';
 import { CREW, fakeQuery, openScratch } from './support';
@@ -113,9 +114,56 @@ test('skills set before a skill was renamed or split keep it under its new names
   const coder = store.readMember(p.id, 'coder');
   store.writeConfig(coder.id, { skills: ['code', 'tools', 'review', 'report'], tools: ['read'] }, 'test');
   const version = (store.db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
-  store.db.exec(`PRAGMA user_version = ${version - 2}`);
+  // The renames rerun after them, so the table made since goes first
+  store.db.exec(`DROP TABLE skills; PRAGMA user_version = ${version - 3}`);
   expect(new Store(db).readMemberById(coder.id).config).toEqual({
     skills: ['code', 'check', 'plan-review', 'code-review', 'report'],
     tools: ['read'],
   });
+});
+
+test('도구 makes a skill and deletes a shipped one for this project only, each on an approved card', async () => {
+  const { store, project, paths } = openScratch();
+  const fake = fakeQuery([]);
+  const chat = new Chat(
+    store,
+    async () => fake.sdk,
+    CREW,
+    () => {},
+    paths,
+  );
+  const p = store.addProject(project);
+  const other = store.addProject(fs.mkdtempSync(path.join(path.dirname(project), 'other-')));
+  chat.seed(p.id);
+  chat.seed(other.id);
+  const s = store.createSession(p.id);
+  kitTools(fake.sdk, chat, s.id);
+  const run = (name: string, a: Record<string, unknown>) => {
+    const out = fake.tools.get(name)!(a) as Promise<{ content: { text: string }[] }>;
+    const card = store.listMessages(s.id).at(-1)!.question!;
+    chat.questions.answer(card.id, '적용');
+    return out;
+  };
+
+  await run('write_skill', {
+    name: 'changelog',
+    label: '변경 기록',
+    use: 'Keep CHANGELOG.md.',
+    body: 'Add one line per change.',
+    reason: '변경 기록이 필요합니다',
+  });
+  expect(chat.kit(p.id).texts.changelog).toBe('Add one line per change.');
+  await run('write_skill', {
+    name: 'changelog',
+    label: '변경 기록',
+    use: 'Keep CHANGELOG.md.',
+    body: 'Add one line per release.',
+    reason: '릴리스 단위로',
+  });
+  expect(store.listMessages(s.id).at(-1)!.text).toContain('− Add one line per change.\n+ Add one line per release.');
+  await run('delete_skill', { name: 'code', reason: '쓰지 않습니다' });
+  expect(chat.kit(p.id).skills.code).toBeUndefined();
+  expect(chat.settings(store.readMember(p.id, 'coder')).skills).not.toContain('code');
+  expect(chat.kit(other.id).skills.code).toBeDefined();
+  expect(chat.kit(other.id).skills.changelog).toBeUndefined();
 });

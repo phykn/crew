@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
-import type { Member } from './db';
+import type { Member, SkillRow } from './db';
 
 export const MODELS = ['haiku', 'sonnet', 'opus'] as const;
 
@@ -70,6 +70,8 @@ const KitItem = z.object({
   readTools: z.array(z.string()).optional(),
 });
 const Kit = z.object({ skills: z.record(z.string(), KitItem), mcp: z.record(z.string(), KitItem) });
+// A project's kit, with the text each skill adds to a run
+export type ProjectKit = z.infer<typeof Kit> & { texts: Record<string, string> };
 const McpFile = z.object({ mcpServers: z.record(z.string(), z.record(z.string(), z.unknown())) });
 
 type ToolKind = keyof typeof TOOL_KINDS;
@@ -182,8 +184,24 @@ export class Crew {
     };
   }
 
-  system(def: Definition, settings: Settings) {
-    const skills = settings.skills.map((name) => `## Skill: ${name}\n\n${this.skillTexts[name]}`);
+  // A project's kit: the shipped skills, with the ones its tools member wrote over, made, or deleted
+  kitFor(rows: SkillRow[]): ProjectKit {
+    const skills = { ...this.kit.skills };
+    const texts = { ...this.skillTexts };
+    for (const r of rows) {
+      if (r.deleted) {
+        delete skills[r.name];
+        delete texts[r.name];
+      } else {
+        skills[r.name] = { icon: skills[r.name]?.icon ?? 'puzzle', label: r.label, use: r.use };
+        texts[r.name] = r.body;
+      }
+    }
+    return { skills, mcp: this.kit.mcp, texts };
+  }
+
+  system(def: Definition, settings: Settings, kit: ProjectKit) {
+    const skills = settings.skills.map((name) => `## Skill: ${name}\n\n${kit.texts[name]}`);
     return [this.rules, def.instructions, ...skills].join('\n\n');
   }
 
@@ -195,15 +213,15 @@ export class Crew {
     ) as Record<string, never>;
   }
 
-  checkConfig(config: Config) {
+  checkConfig(config: Config, kit: ProjectKit) {
     const unknown = [
-      ...(config.skills ?? []).filter((s) => !this.kit.skills[s]),
-      ...(config.mcp ?? []).filter((m) => !this.kit.mcp[m.server]).map((m) => m.server),
+      ...(config.skills ?? []).filter((s) => !kit.skills[s]),
+      ...(config.mcp ?? []).filter((m) => !kit.mcp[m.server]).map((m) => m.server),
     ];
     if (unknown.length) throw new Error(`not in the kit: ${unknown.join(', ')}`);
   }
 
-  describe(members: Member[]): CrewMember[] {
+  describe(members: Member[], kit: ProjectKit): CrewMember[] {
     const rank = (key: string) => (ORDER.includes(key) ? ORDER.indexOf(key) : ORDER.length);
     return (
       members
@@ -218,8 +236,8 @@ export class Crew {
             color: def.color,
             kept: KEPT.includes(m.key),
             skills: [
-              ...settings.skills.map((name) => ({ name, ...this.kit.skills[name] })),
-              ...settings.mcp.map(({ server }) => ({ name: server, ...this.kit.mcp[server] })),
+              ...settings.skills.map((name) => ({ name, ...kit.skills[name] })),
+              ...settings.mcp.map(({ server }) => ({ name: server, ...kit.mcp[server] })),
             ],
             look: def.look,
             description: def.description,

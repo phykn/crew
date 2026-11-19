@@ -1,3 +1,4 @@
+import { diffLines } from 'diff';
 import { z } from 'zod';
 import { type Sdk, text } from './agent';
 import type { Chat } from './chat';
@@ -63,7 +64,7 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
       ),
       sdk.tool(
         'ask_tools',
-        'Hand the tools member a request about skills or MCP servers: who should get or lose one, or what tool the crew lacks. Each change it makes waits for the user on a card. Its answer comes back as the result.',
+        "Hand the tools member a request about the crew's skills: make, change, or delete one, or decide who holds which skill or MCP server. Each change it makes waits for the user on a card. Its answer comes back as the result.",
         { request: z.string().min(1).describe("The user's request in their words") },
         async (a) => {
           const member = chat.store.readMember(projectId(), 'tools');
@@ -370,28 +371,91 @@ function reply(id: number, line: PeerLine) {
   return `Request ${id}: ${line.from} answers: ${line.text}`;
 }
 
-// The tools member's view of the kit and its one way to change it: a proposal the user approves on a card
-function kitTools(sdk: Sdk, chat: Chat, sessionId: number) {
+// The tools member's view of this project's kit, and its changes to it: each one a proposal the user approves on a card
+export function kitTools(sdk: Sdk, chat: Chat, sessionId: number) {
   const { store, crew } = chat;
   const projectId = store.projectOf(sessionId).id;
   const hired = () => store.listMembers(projectId).filter((m) => m.status === 'hired');
+  const approve = async (prompt: string) =>
+    (await chat.questions.ask({
+      sessionId,
+      taskId: null,
+      kind: 'choice',
+      prompt,
+      options: ['취소', '적용'],
+      payload: {},
+    })) === '적용';
+  const cancelled = text('The user cancelled this change; do not propose it again.');
   return sdk.createSdkMcpServer({
     name: 'crew',
     tools: [
       sdk.tool(
         'read_kit',
-        'Read every skill and MCP server in the kit, and which hired member holds which.',
+        "Read every skill and MCP server in this project's kit, and which hired member holds which.",
         {},
         async () => {
-          const kit = [
-            ...Object.entries(crew.kit.skills).map(([name, k]) => `- skill ${name}: ${k.use}`),
-            ...Object.entries(crew.kit.mcp).map(([name, k]) => `- mcp ${name}: ${k.use}`),
+          const kit = chat.kit(projectId);
+          const lines = [
+            ...Object.entries(kit.skills).map(([name, k]) => `- skill ${name} (${k.label}): ${k.use}`),
+            ...Object.entries(kit.mcp).map(([name, k]) => `- mcp ${name}: ${k.use}`),
           ];
           const holders = hired().map((m) => {
             const s = chat.settings(m);
             return `- ${m.key} (${crew.defOf(m).role}${m.temp ? ', temp' : ''}): skills ${s.skills.join(', ') || 'none'}; mcp ${s.mcp.map((x) => `${x.server}(${x.access})`).join(', ') || 'none'}`;
           });
-          return text(['# Kit', ...kit, '# Members', ...holders].join('\n'));
+          return text(['# Kit', ...lines, '# Members', ...holders].join('\n'));
+        },
+      ),
+      sdk.tool(
+        'read_skill',
+        "Read one skill's whole text, as it is added to a run.",
+        { name: z.string() },
+        async (a) => {
+          const body = chat.kit(projectId).texts[a.name];
+          return text(body ?? `${a.name} is not a skill in this project's kit.`);
+        },
+      ),
+      sdk.tool(
+        'write_skill',
+        "Make a new skill, or replace one's label, use line, and text, in this project's kit. The user approves or cancels it on a card.",
+        {
+          name: z
+            .string()
+            .regex(/^[a-z][a-z0-9-]*$/)
+            .describe('The skill name in lowercase English, such as changelog'),
+          label: z.string().min(1).max(12).describe('A short Korean label for the legend'),
+          use: z.string().min(1).describe('One English line on what it is for'),
+          body: z.string().min(1).describe('The whole procedure in English, as it will be added to a run'),
+          reason: z.string().min(1).describe('Why, in Korean, for the card'),
+        },
+        async (a) => {
+          const old = chat.kit(projectId).skills[a.name];
+          // A skill goes into every run of the members who hold it, so the user sees exactly what it will say
+          const shown = old
+            ? `스킬 ${old.label}(${a.name})을 이렇게 바꿀까요?\n${a.reason}\n\n${changedLines(`${old.use}\n\n${chat.kit(projectId).texts[a.name]}`, `${a.use}\n\n${a.body}`)}`
+            : `스킬 ${a.label}(${a.name})을 새로 만들까요?\n${a.reason}\n\n${a.use}\n\n${a.body}`;
+          if (!(await approve(shown))) return cancelled;
+          chat.writeSkill(projectId, a);
+          return text(`Saved the skill ${a.name}.`);
+        },
+      ),
+      sdk.tool(
+        'delete_skill',
+        "Delete a skill from this project's kit; every member who holds it loses it. The user approves or cancels it on a card.",
+        { name: z.string(), reason: z.string().min(1).describe('Why, in Korean, for the card') },
+        async (a) => {
+          const skill = chat.kit(projectId).skills[a.name];
+          if (!skill) return text(`${a.name} is not a skill in this project's kit.`);
+          const holders = store.listMembers(projectId).filter((m) => chat.settings(m).skills.includes(a.name));
+          const who = holders.map((m) => crew.defOf(m).role).join(', ') || '없음';
+          if (
+            !(await approve(
+              `스킬 ${skill.label}(${a.name})을 지울까요? 가진 멤버(${who})에게서도 빠집니다.\n${a.reason}`,
+            ))
+          )
+            return cancelled;
+          chat.deleteSkill(projectId, a.name);
+          return text(`Deleted the skill ${a.name}.`);
         },
       ),
       sdk.tool(
@@ -411,28 +475,26 @@ function kitTools(sdk: Sdk, chat: Chat, sessionId: number) {
           if (m?.status !== 'hired') return text(`${a.member} is not a hired member.`);
           if (m.temp && a.mcp?.length) return text('A temp gets no MCP server.');
           const config = { ...(a.skills ? { skills: a.skills } : {}), ...(a.mcp ? { mcp: a.mcp } : {}) };
+          const kit = chat.kit(projectId);
           try {
-            crew.checkConfig(config);
+            crew.checkConfig(config, kit);
           } catch (err) {
             return text(String(err));
           }
           const shown = [
-            ...(a.skills ? [`스킬: ${a.skills.map((s) => crew.kit.skills[s].label).join(', ') || '없음'}`] : []),
+            ...(a.skills ? [`스킬: ${a.skills.map((s) => kit.skills[s].label).join(', ') || '없음'}`] : []),
             ...(a.mcp
               ? [
-                  `MCP: ${a.mcp.map((x) => `${crew.kit.mcp[x.server].label}(${x.access === 'all' ? '전체' : '읽기'})`).join(', ') || '없음'}`,
+                  `MCP: ${a.mcp.map((x) => `${kit.mcp[x.server].label}(${x.access === 'all' ? '전체' : '읽기'})`).join(', ') || '없음'}`,
                 ]
               : []),
           ];
-          const choice = await chat.questions.ask({
-            sessionId,
-            taskId: null,
-            kind: 'choice',
-            prompt: `도구가 ${crew.defOf(m).role}(${m.nickname})의 권한을 바꾸려 합니다.\n${shown.join('\n')}\n${a.reason}`,
-            options: ['취소', '적용'],
-            payload: {},
-          });
-          if (choice !== '적용') return text('The user cancelled this change; do not propose it again.');
+          if (
+            !(await approve(
+              `도구가 ${crew.defOf(m).role}(${m.nickname})의 권한을 바꾸려 합니다.\n${shown.join('\n')}\n${a.reason}`,
+            ))
+          )
+            return cancelled;
           chat.setPermissions(m.id, config);
           chat.emit('changed', 'members');
           return text(`Applied to ${m.key}.`);
@@ -440,4 +502,17 @@ function kitTools(sdk: Sdk, chat: Chat, sessionId: number) {
       ),
     ],
   });
+}
+
+// The lines a skill change removes and adds, for the card
+function changedLines(before: string, after: string) {
+  return diffLines(before, after)
+    .filter((p) => p.added || p.removed)
+    .flatMap((p) =>
+      p.value
+        .split('\n')
+        .filter(Boolean)
+        .map((l) => `${p.added ? '+' : '−'} ${l}`),
+    )
+    .join('\n');
 }

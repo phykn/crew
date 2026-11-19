@@ -44,7 +44,7 @@ test('인사 drafts a temp, 비서 brings it in and it leaves once; its work is 
   secretaryTools(fake.sdk, chat, s.id);
   const tool = (name: string, a: Record<string, unknown>) =>
     fake.tools.get(name)!(a) as Promise<{ content: { text: string }[] }>;
-  const roles = () => CREW.describe(store.listMembers(p.id)).map((m) => m.role);
+  const roles = () => CREW.describe(store.listMembers(p.id), chat.kit(p.id)).map((m) => m.role);
 
   expect((await tool('hire', { need: '문서 번역', temp: true })).content[0].text).toContain('번역(라온)을 알바로');
   const temp = store.readMember(p.id, 'translator');

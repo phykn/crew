@@ -100,6 +100,27 @@ export class Chat {
     return this.store.listMembers(projectId).find((m) => m.key === name || this.crew.defOf(m).role === name) ?? null;
   }
 
+  kit(projectId: number) {
+    return this.crew.kitFor(this.store.listSkills(projectId));
+  }
+
+  writeSkill(projectId: number, skill: { name: string; label: string; use: string; body: string }) {
+    this.store.writeSkill(projectId, skill);
+    this.emit('changed', 'members');
+  }
+
+  // A deleted skill leaves every member who held it, so no run asks for a skill that is gone
+  deleteSkill(projectId: number, name: string) {
+    this.store.transact(() => {
+      this.store.removeSkill(projectId, name);
+      for (const m of this.store.listMembers(projectId)) {
+        const skills = this.settings(m).skills;
+        if (skills.includes(name)) this.setPermissions(m.id, { skills: skills.filter((s) => s !== name) });
+      }
+    });
+    this.emit('changed', 'members');
+  }
+
   settings(member: Member) {
     return this.crew.settings(this.crew.defOf(member), Config.parse(member.config));
   }
@@ -131,8 +152,8 @@ export class Chat {
   }
 
   setPermissions(memberId: number, config: Config) {
-    this.crew.checkConfig(config);
     const member = this.store.readMemberById(memberId);
+    this.crew.checkConfig(config, this.kit(member.projectId));
     const merged = { ...member.config, ...config };
     // Only names of what changed are recorded: server settings may hold credentials
     this.store.writeConfig(
@@ -233,9 +254,11 @@ export class Chat {
     const run = new AgentRun(sdk.query, {
       cwd: project.path,
       model: member.model,
-      system: [this.crew.system(def, settings), this.roster(project.id), this.wiki.context(project.id, member.id)].join(
-        '\n\n',
-      ),
+      system: [
+        this.crew.system(def, settings, this.kit(project.id)),
+        this.roster(project.id),
+        this.wiki.context(project.id, member.id),
+      ].join('\n\n'),
       mcpServers: {
         ...this.crew.mcpServers(settings),
         ...(settings.mcp.some((m) => m.server === 'app') ? { app: appServer(sdk, this, sessionId) } : {}),
@@ -405,13 +428,14 @@ export class Chat {
       .map((m) => `- ${this.crew.defOf(m).role} (${m.key}): ${this.crew.defOf(m).description}`)
       .join('\n');
     const nicknames = members.map((m) => m.nickname).join(', ');
-    const kit = `Skills: ${Object.keys(this.crew.kit.skills).join(', ')}. MCP servers: ${Object.keys(this.crew.kit.mcp).join(', ')}.`;
+    const kit = this.kit(project.id);
+    const offered = `Skills: ${Object.keys(kit.skills).join(', ')}. MCP servers: ${Object.keys(kit.mcp).join(', ')}.`;
     const prompt = [
       `[Hire] The crew needs: ${need}`,
       `As a ${temp ? 'temp (알바)' : 'regular'}.`,
       `# Existing members\n${existing}`,
       `# Nicknames in use\n${nicknames}`,
-      `# Kit\n${kit}`,
+      `# Kit\n${offered}`,
     ].join('\n\n');
     const out = await this.runMember(store.readMember(project.id, 'hr'), sessionId, null, prompt, {
       schema: HIRE_SCHEMA,
@@ -427,7 +451,10 @@ export class Chat {
     let def;
     try {
       def = parseDefinition(key, definition);
-      this.crew.checkConfig({ skills: def.skills, mcp: def.mcp.map((server) => ({ server, access: 'all' as const })) });
+      this.crew.checkConfig(
+        { skills: def.skills, mcp: def.mcp.map((server) => ({ server, access: 'all' as const })) },
+        kit,
+      );
     } catch (err) {
       return `인사의 정의가 맞지 않습니다: ${String(err)}`;
     }

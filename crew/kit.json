@@ -68,7 +68,7 @@
     "kit": {
       "icon": "puzzle",
       "label": "도구 관리",
-      "use": "Bring in a skill or MCP server and give it only to the members whose work needs it."
+      "use": "Keep this project's skills to what the crew's work uses, and give each member only what its own work uses."
     },
     "report": {
       "icon": "scroll",

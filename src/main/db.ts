@@ -91,7 +91,14 @@ const MIGRATIONS = [
      UNION ALL SELECT 'code-review', key, 1 FROM json_each(members.config, '$.skills') WHERE value = 'review'
      ORDER BY k, o))))
    WHERE json_type(config, '$.skills') = 'array';`,
+  `CREATE TABLE skills (
+     project_id INTEGER NOT NULL REFERENCES projects (id) ON DELETE CASCADE, name TEXT NOT NULL,
+     label TEXT NOT NULL, purpose TEXT NOT NULL, body TEXT NOT NULL, deleted INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL,
+     PRIMARY KEY (project_id, name));`,
 ];
+
+// A project's change to the kit: a skill written over the shipped one or new, or one deleted
+export type SkillRow = { name: string; label: string; use: string; body: string; deleted: boolean };
 
 export type Project = { id: number; path: string; name: string };
 // A session is named after what the user first asked in it, so sessions can be told apart
@@ -432,6 +439,31 @@ export class Store {
       this.db.prepare('UPDATE members SET config = ? WHERE id = ?').run(JSON.stringify(config), id);
       this.db.prepare('INSERT INTO permission_changes (member_id, change, at) VALUES (?, ?, ?)').run(id, change, now());
     });
+  }
+
+  listSkills(projectId: number): SkillRow[] {
+    const rows = this.db
+      .prepare('SELECT name, label, purpose AS "use", body, deleted FROM skills WHERE project_id = ? ORDER BY name')
+      .all(projectId) as (Omit<SkillRow, 'deleted'> & { deleted: number })[];
+    return rows.map((r) => ({ ...r, deleted: !!r.deleted }));
+  }
+
+  writeSkill(projectId: number, s: Omit<SkillRow, 'deleted'>) {
+    this.db
+      .prepare(
+        `INSERT INTO skills (project_id, name, label, purpose, body, deleted, updated_at) VALUES (?, ?, ?, ?, ?, 0, ?)
+         ON CONFLICT (project_id, name) DO UPDATE SET label = excluded.label, purpose = excluded.purpose, body = excluded.body, deleted = 0, updated_at = excluded.updated_at`,
+      )
+      .run(projectId, s.name, s.label, s.use, s.body, now());
+  }
+
+  removeSkill(projectId: number, name: string) {
+    this.db
+      .prepare(
+        `INSERT INTO skills (project_id, name, label, purpose, body, deleted, updated_at) VALUES (?, ?, '', '', '', 1, ?)
+         ON CONFLICT (project_id, name) DO UPDATE SET deleted = 1, updated_at = excluded.updated_at`,
+      )
+      .run(projectId, name, now());
   }
 
   listPermissionChanges(memberId: number): { change: string; at: string }[] {
