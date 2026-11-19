@@ -40,8 +40,8 @@ export class Locks {
     return 'ok';
   }
 
-  // Files under these paths that changed since the task last saw them
-  stale(taskId: number, base: Snapshot, paths: string[]) {
+  // Files under these paths that changed since the task last saw them; files under what it already holds are its own changes
+  stale(taskId: number, base: Snapshot, paths: string[], own: string[] = []) {
     const seen = { ...base, ...this.seen.get(taskId) };
     const now = this.hashes(paths);
     const keys = new Set([
@@ -49,7 +49,7 @@ export class Locks {
       ...Object.keys(seen).filter((k) => paths.some((p) => overlaps(path.join(this.root, k), p))),
     ]);
     this.seen.set(taskId, { ...this.seen.get(taskId), ...now });
-    return [...keys].filter((k) => seen[k] !== now[k]);
+    return [...keys].filter((k) => seen[k] !== now[k] && !own.some((o) => overlaps(path.join(this.root, k), o)));
   }
 
   // Called once the run that wrote has really ended; what it left becomes what the task has seen

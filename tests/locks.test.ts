@@ -44,10 +44,13 @@ test('overlapping writes go in turn and re-read what changed; others run at once
   chat.locksOf(p).release(1);
   await expect(waiting).resolves.toContain('a.js changed');
   await expect(b('Edit', { file_path: path.join(project, 'a.js') })).resolves.toBeNull();
+  // Its own edit is not someone else's change when a shell call then reserves the whole folder
+  chat.locksOf(p).release(3);
+  fs.writeFileSync(path.join(project, 'a.js'), 'a3');
+  await expect(b('Bash', { command: 'python -m unittest' })).resolves.toBeNull();
 
   // A folder and a file under it, and both ends of a move, overlap
   chat.locksOf(p).release(2);
-  chat.locksOf(p).release(3);
   await expect(a('Bash', { command: 'mkdir src/lib' })).resolves.toBeNull();
   const under = b('Write', { file_path: path.join(project, 'src', 'lib', 'x.js') });
   const moved = c('Bash', { command: 'mv src/lib/old.js old.js' });

@@ -186,7 +186,8 @@ export class Chat {
     const locks = this.locksOf(project);
     const task = this.store.readTask(taskId);
     // Only paths newly taken are checked: while the task holds a path, the changes on it are its own
-    const fresh = paths.filter((p) => !locks.held.get(taskId)?.has(p));
+    const own = [...(locks.held.get(taskId) ?? [])];
+    const fresh = paths.filter((p) => !own.includes(p));
     const got = await locks.reserve(taskId, paths, (holders) => {
       this.store.addEvent({
         sessionId: task.sessionId,
@@ -200,7 +201,7 @@ export class Chat {
     });
     if (got === 'deadlock')
       return `Blocked by the crew guard: another task is waiting on files you hold. Finish your step without ${paths.join(', ')} and say so in your handback.`;
-    const stale = locks.stale(taskId, this.store.readBaseline(taskId), fresh);
+    const stale = locks.stale(taskId, this.store.readBaseline(taskId), fresh, own);
     if (!stale.length) return null;
     this.store.addEvent({
       sessionId: task.sessionId,
