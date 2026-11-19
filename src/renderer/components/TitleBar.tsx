@@ -1,3 +1,5 @@
+declare const __APP_VERSION__: string;
+
 export function TitleBar() {
   return (
     <header className="titlebar">
@@ -7,6 +9,7 @@ export function TitleBar() {
         <path d="M3 14l10-2M3 12l10 2" stroke="#8b5a2b" strokeWidth="1.4" />
       </svg>
       <span className="title">AI Crew</span>
+      <span className="version">v{__APP_VERSION__}</span>
     </header>
   );
 }

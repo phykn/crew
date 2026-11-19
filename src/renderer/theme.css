@@ -37,6 +37,7 @@ body { font-family: Galmuri11, 'Malgun Gothic', sans-serif; font-size: 14px; }
 .titlebar { height: 46px; background: var(--wood); border-bottom: 4px solid var(--wood-dark); color: #fff1d6; gap: 8px; }
 .titlebar .logo { width: 24px; height: 24px; }
 .titlebar .title { font-size: 20px; font-weight: 700; text-shadow: 2px 2px 0 var(--wood-dark); }
+.titlebar .version { font-size: 12px; color: #f3d9a4; }
 .title-menu {
   -webkit-app-region: no-drag;
   display: grid;
