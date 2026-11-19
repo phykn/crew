@@ -41,11 +41,17 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
             .describe(
               'Give the whole request to this one member instead, such as a temp you just hired: its key or Korean role',
             ),
+          size: z
+            .enum(['small', 'large'])
+            .default('large')
+            .describe(
+              'For a code change: small when it stays within one or two files and needs no design choice, which skips the plan and its review',
+            ),
         },
         async (a) => {
           const one = a.role ? memberOf(a.role) : null;
           if (a.role && !one) return text(`${a.role}은 지금 고용되어 있지 않습니다.`);
-          const task = chat.tasks.start(sessionId, a.kind, a.title, a.request, one ?? undefined);
+          const task = chat.tasks.start(sessionId, a.kind, a.title, a.request, one ?? undefined, a.size === 'small');
           return text(`업무 #${task.id} "${task.title}"을 시작했습니다.`);
         },
       ),

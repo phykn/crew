@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { Chat } from './chat';
 import { NOT_HIRED } from './agent';
 import type { Handback, Member, StepRun, Task, TaskStatus } from './db';
-import type { Step, Workflow } from './workflow';
+import { ancestors, type Step, type Workflow } from './workflow';
 import { memberTools } from './crew-tools';
 import { changedFiles, snapshot } from './changes';
 import { REFUSE } from './questions';
@@ -130,44 +130,22 @@ export class Tasks {
 
   constructor(public chat: Chat) {}
 
-  start(sessionId: number, kind: string, title: string, request: string, one?: Member): Task {
+  start(sessionId: number, kind: string, title: string, request: string, one?: Member, small = false): Task {
     const { store } = this.chat;
-    // A request given to one member is a one-step task of its own
     const projectId = store.projectOf(sessionId).id;
-    const workflow = one ? this.solo(one) : this.chat.workflowFor(projectId, kind).rules;
-    const task = store.createTask({ sessionId, kind: one ? kind : workflow.kind, title, request, workflow });
+    // A member who writes the project makes a small code change, so its change gets every check; anyone else works alone
+    const writer = one && this.chat.settings(one).write === 'project' ? one : undefined;
+    const rules =
+      one && !writer
+        ? solo(this.chat.crew.defOf(one).role, one.key)
+        : this.chat.workflowFor(projectId, writer ? 'code' : kind).rules;
+    const workflow = small || writer ? withoutPlan(rules) : rules;
+    const task = store.createTask({ sessionId, kind: one && !writer ? kind : workflow.kind, title, request, workflow });
+    if (writer) for (const s of makers(workflow)) store.assign(task.id, s.id, writer.id);
     store.writeBaseline(task.id, snapshot(this.projectOf(task).path));
     this.chat.emit('changed', 'tasks');
     void this.drive(task.id);
     return task;
-  }
-
-  // One member's task; a member who writes the project has its change checked by 표준, as in a code task
-  solo(one: Member): Workflow {
-    const { store, crew } = this.chat;
-    const role = crew.defOf(one).role;
-    const work: Step = {
-      id: 'work',
-      role: one.key,
-      label: `${role} 작업`,
-      does: 'Do the request.',
-      after: [],
-      verdict: false,
-      requires: [],
-    };
-    const stylist = store.readMember(one.projectId, 'stylist');
-    const checked = this.chat.settings(one).write === 'project' && one.id !== stylist.id && stylist.status === 'hired';
-    const style: Step = {
-      id: 'style',
-      role: 'stylist',
-      label: '스타일 검토',
-      does: 'Check the change with your style skill.',
-      after: ['work'],
-      verdict: true,
-      rework: 'work',
-      requires: [],
-    };
-    return { kind: 'solo', label: role, use: '', steps: checked ? [work, style] : [work] };
   }
 
   // Who does a step: the member it was handed to, or the one holding its role
@@ -196,14 +174,14 @@ export class Tasks {
     return ['stopping', 'stopped'].includes(this.chat.store.readTask(taskId).status);
   }
 
-  // The user asks for more on a finished task: same task, earlier report kept, the work goes back to its last making step
+  // The user asks for more on a finished task: same task, earlier report kept, the work goes back to every step that made it
   reopen(taskId: number, text: string) {
     const { store } = this.chat;
     const task = store.readTask(taskId);
-    const target = [...task.workflow.steps].reverse().find((s) => !s.verdict)!;
     if (!this.move(taskId, 'REOPEN', '', `업무 "${task.title}" 다시 진행: ${text}`)) return false;
     store.appendRequest(taskId, text);
-    store.addUserRework(taskId, this.memberFor(task, target).id, target.id, text);
+    for (const target of makers(task.workflow))
+      store.addUserRework(taskId, this.memberFor(task, target).id, target.id, text);
     void this.drive(taskId, true);
     return true;
   }
@@ -365,7 +343,10 @@ export class Tasks {
     const saved = cut && !step.verdict ? changedFiles(store.readBaseline(task.id), snapshot(project.path)) : [];
     const earlier = w.steps
       .filter(
-        (s) => s.id !== step.id && lastDone(runs, s.id) && (step.after.includes(s.id) || isAncestor(w, s.id, step.id)),
+        (s) =>
+          s.id !== step.id &&
+          lastDone(runs, s.id) &&
+          (step.after.includes(s.id) || (s.after.length === 0 && isAncestor(w, s.id, step.id))),
       )
       .map((s) => section(`${s.label} (${this.roleOf(task, s)})`, lastDone(runs, s.id)!.handback!));
     const sentBackBy = runs
@@ -454,6 +435,36 @@ export class Tasks {
       ...(outcome !== 'done' && left.length ? [`## Left to do\n${left.map((l) => `- ${l}`).join('\n')}`] : []),
     ].join('\n\n');
   }
+}
+
+function solo(role: string, key: string): Workflow {
+  const work = {
+    id: 'work',
+    role: key,
+    label: `${role} 작업`,
+    does: 'Do the request.',
+    after: [],
+    verdict: false,
+    requires: [],
+  };
+  return { kind: 'solo', label: role, use: '', steps: [work] };
+}
+
+// The steps that make a task's result: not verdicts, and followed by no other making step
+function makers(w: Workflow) {
+  const making = w.steps.filter((s) => !s.verdict);
+  return making.filter((s) => !making.some((o) => ancestors(w, o.id).includes(s.id)));
+}
+
+// A small change skips what comes before its making steps, such as the plan and its review
+function withoutPlan(w: Workflow): Workflow {
+  const dropped = new Set(makers(w).flatMap((s) => ancestors(w, s.id)));
+  return {
+    ...w,
+    steps: w.steps
+      .filter((s) => !dropped.has(s.id))
+      .map((s) => ({ ...s, after: s.after.filter((a) => !dropped.has(a)) })),
+  };
 }
 
 function isAncestor(w: Workflow, maybe: string, of: string): boolean {

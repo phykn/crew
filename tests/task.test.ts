@@ -74,7 +74,7 @@ test('기획 → 리뷰 (sent back once) → 기획 → 리뷰 → 개발 → �
   expect(report).toContain('npm test: 3 passed');
 });
 
-test('a task given to a member who writes the project gets a style check; one who does not, none', () => {
+test('a small change and one given to a member who writes the project skip the plan and keep every check; others work alone', () => {
   const { store, project, paths } = openScratch();
   const never: Turn = () => new Promise(() => {});
   const chat = new Chat(
@@ -87,10 +87,15 @@ test('a task given to a member who writes the project gets a style check; one wh
   const p = store.addProject(project);
   chat.seed(p.id);
   const s = store.createSession(p.id);
-  const ids = (key: string) =>
-    chat.tasks.start(s.id, 'code', key, 'r', store.readMember(p.id, key)).workflow.steps.map((x) => x.id);
-  expect(ids('coder')).toEqual(['work', 'style']);
-  expect(ids('researcher')).toEqual(['work']);
+  const ids = (t: { workflow: { steps: { id: string }[] } }) => t.workflow.steps.map((x) => x.id);
+  const checked = ['develop', 'review', 'test', 'style'];
+  expect(ids(chat.tasks.start(s.id, 'code', 'small', 'r', undefined, true))).toEqual(checked);
+  const given = chat.tasks.start(s.id, 'research', 'coder', 'r', store.readMember(p.id, 'coder'));
+  expect([given.kind, ...ids(given)]).toEqual(['code', ...checked]);
+  expect(store.assignee(given.id, 'develop')).toBe(store.readMember(p.id, 'coder').id);
+  expect(ids(chat.tasks.start(s.id, 'research', 'researcher', 'r', store.readMember(p.id, 'researcher')))).toEqual([
+    'work',
+  ]);
 });
 
 test('the status machine refuses moves a task cannot make', () => {

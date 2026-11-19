@@ -169,7 +169,7 @@ export class Chat {
     const policy = () => this.policy(this.store.readMemberById(member.id), project, scope);
     const reserve = taskId
       ? (tool: string, input: Record<string, unknown>) => this.reserve(project, taskId, policy(), tool, input)
-      : undefined;
+      : (tool: string, input: Record<string, unknown>) => this.checkFree(project, policy(), tool, input);
     return guardMember({ store: this.store, questions: this.questions, policy, sessionId, taskId, member, reserve });
   }
 
@@ -211,6 +211,15 @@ export class Chat {
       detail: null,
     });
     return `Not written: ${stale.join(', ')} changed since this task last read it (another task or the user changed it while you waited). Read it again and redo your change on top of the current content.`;
+  }
+
+  // A write outside any task, such as 비서's own small edit, waits for no one but never lands on a file a task is writing
+  async checkFree(project: Project, policy: Policy, tool: string, input: Record<string, unknown>) {
+    const paths = projectWrites(policy, tool, input).map(realPath);
+    const holders = paths.length ? this.locksOf(project).blockers(0, paths) : [];
+    return holders.length
+      ? `Not written: task #${holders.join(', #')} is changing ${paths.join(', ')}. Hand the change to that task with reopen_task or wait until it ends.`
+      : null;
   }
 
   seed(projectId: number) {

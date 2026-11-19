@@ -9,7 +9,7 @@ description: Judge one code change for behavior, screens, tests, breakage, secur
 2. Check:
    - Behavior: it does what was asked, including empty, missing, and wrong input.
    - Screens: when the change touches a web page, open it with the browser tools at the address the README gives and check it on the real screen. If nothing serves the page, say so instead of starting servers yourself.
-   - Tests: each new behavior and fixed bug has a test, unless the project has none, and a regression test would fail on the unfixed code.
+   - Tests: each new behavior and fixed bug has a test in the files, unless the project has none, and a regression test would fail on the unfixed code.
    - Breakage: callers, configs, and documents that name what changed still agree with it.
    - Security: input from outside is validated, and no secret, command injection, or unsafe path handling was added.
    - Done: the plan's done-when holds.

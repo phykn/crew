@@ -3,16 +3,16 @@ import { Chat } from '../src/main/chat';
 import { askPeer } from '../src/main/crew-tools';
 import { CREW, fakeCrew, handback, openScratch, reply } from './support';
 
-test('a peer request asked back stays one thread, a resent line runs once, and a handoff without files is sent back', async () => {
+test('a peer request asked back stays one thread, a resent line runs once, and a test handback without checks is sent back', async () => {
   const { store, project, paths } = openScratch();
   const fake = fakeCrew({
     표준: [
       reply('', 'claude-style', { answer: '', ask_back: '어느 파일인가요?' }),
       reply('', 'claude-style', { answer: 'searchItems가 맞습니다' }),
     ],
-    개발: [
-      handback('claude-code', { summary: '수정했습니다' }),
-      handback('claude-code', { summary: '수정했습니다', files: ['search.js'] }),
+    시험: [
+      handback('claude-test', { summary: '통과', verdict: 'pass' }),
+      handback('claude-test', { summary: '통과', verdict: 'pass', checks: ['npm test: 3 passed'] }),
     ],
   });
   const chat = new Chat(
@@ -46,10 +46,11 @@ test('a peer request asked back stays one thread, a resent line runs once, and a
   expect(again).toBe(second);
   expect(store.readRequest(id).thread.map((l) => l.from)).toEqual(['개발', '표준', '개발', '표준']);
 
-  await expect(chat.tasks.runStep(task, step)).resolves.toBe('done');
+  const test = task.workflow.steps.find((x) => x.id === 'test')!;
+  await expect(chat.tasks.runStep(task, test)).resolves.toBe('done');
   expect(store.listStepRuns(task.id).map((r) => [r.status, r.error])).toEqual([
-    ['failed', 'missing files'],
+    ['failed', 'missing checks'],
     ['done', null],
   ]);
-  await vi.waitFor(() => expect(fake.calls.filter((c) => c.role === '개발')[1].prompt).toContain('missing files'));
+  await vi.waitFor(() => expect(fake.calls.filter((c) => c.role === '시험')[1].prompt).toContain('missing checks'));
 });

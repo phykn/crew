@@ -2,6 +2,7 @@ import path from 'node:path';
 import { expect, test } from 'vitest';
 import { Chat } from '../src/main/chat';
 import { checkCall, writeTargets } from '../src/main/guard';
+import { realPath } from '../src/main/locks';
 import { CREW, fakeQuery, openScratch } from './support';
 
 function setup() {
@@ -48,8 +49,8 @@ test('리뷰 cannot write the project or push, and each refusal is logged', asyn
 
 test('a tool outside the role becomes an answer card, and the approval holds only in that task', async () => {
   const { store, chat, project, session } = setup();
-  const secretary = store.readMember(project.id, 'orchestrator');
-  const inTask = chat.guard(secretary, project, session.id, 1);
+  const researcher = store.readMember(project.id, 'researcher');
+  const inTask = chat.guard(researcher, project, session.id, 1);
 
   const pending = inTask(...call('Bash', { command: 'ls' }));
   await new Promise((r) => setTimeout(r, 0));
@@ -61,7 +62,7 @@ test('a tool outside the role becomes an answer card, and the approval holds onl
 
   // The same task asks no more; another task asks again
   expect((await inTask(...call('Bash', { command: 'ls -a' })))!.behavior).toBe('allow');
-  const other = chat.guard(secretary, project, session.id, 2)(...call('Bash', { command: 'ls' }));
+  const other = chat.guard(researcher, project, session.id, 2)(...call('Bash', { command: 'ls' }));
   await new Promise((r) => setTimeout(r, 0));
   const second = store.listMessages(session.id).at(-1)!;
   expect(second.question!.id).not.toBe(card.question!.id);
@@ -74,6 +75,16 @@ test('write targets are read from redirects, tee, cp, sed -i, and PowerShell, no
   expect(writeTargets('cat x | tee log.txt; cp a.txt dist/a.txt')).toEqual(['log.txt', 'dist/a.txt']);
   expect(writeTargets("sed -i 's/a/b/' file.js")).toEqual(['file.js']);
   expect(writeTargets('Set-Content -Path notes.md -Value hi')).toEqual(['notes.md']);
+});
+
+test('비서 may edit the project itself, but not a file a task is writing', async () => {
+  const { store, chat, project, session } = setup();
+  const guard = chat.guard(store.readMember(project.id, 'orchestrator'), project, session.id, null);
+  const file = path.join(project.path, 'README.md');
+  expect((await guard(...call('Edit', { file_path: file, old_string: 'a', new_string: 'b' })))!.behavior).toBe('allow');
+  chat.locksOf(project).held.set(3, new Set([realPath(file)]));
+  const busy = await guard(...call('Edit', { file_path: file, old_string: 'a', new_string: 'b' }));
+  expect(busy).toMatchObject({ behavior: 'deny', message: expect.stringContaining('task #3') });
 });
 
 test('the app record and crew files are protected even from 개발', () => {

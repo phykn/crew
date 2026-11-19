@@ -1,7 +1,7 @@
 {
   "kind": "code",
   "label": "코드 변경",
-  "use": "Change code or files in the project: plan, plan review, development, then code review, style check, and tests in parallel.",
+  "use": "Change code in the project: plan, plan review, development, then code review, style check, and tests in parallel. A small change skips the plan and its review.",
   "steps": [
     {
       "id": "plan",
@@ -23,8 +23,7 @@
       "role": "coder",
       "label": "개발",
       "after": ["plan_review"],
-      "does": "Make the change the approved plan describes.",
-      "requires": ["files"]
+      "does": "Make the change the approved plan describes."
     },
     {
       "id": "review",

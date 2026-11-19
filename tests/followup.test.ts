@@ -110,3 +110,22 @@ test('비서 names members by key; a member let go while queued does not run, an
   chat.rehire(researcher.id);
   expect(store.readMemberById(researcher.id)).toMatchObject({ status: 'hired', leaving: false });
 });
+
+test('reopening a task sends the change back to every step that made it', () => {
+  const { store, chat, s } = setup({ 기획: [never], 표준: [never] });
+  const task = store.createTask({
+    sessionId: s.id,
+    kind: 'improve',
+    title: '개선',
+    request: 'r',
+    workflow: chat.workflows.find((w) => w.kind === 'improve')!,
+  });
+  store.writeTaskStatus(task.id, 'done', '', '완료');
+  expect(chat.tasks.reopen(task.id, '다시 봐줘')).toBe(true);
+  expect(
+    store
+      .listStepRuns(task.id)
+      .filter((r) => r.stepId === '_user')
+      .map((r) => r.handback?.target),
+  ).toEqual(['advise', 'structure']);
+});
