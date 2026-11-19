@@ -35,14 +35,6 @@ git config core.hooksPath scripts/hooks
 npm start
 ```
 
-## 배포용 묶음
-
-```bat
-npm run make
-```
-
-`out/make/zip/`에 압축 파일이 생깁니다.
-
 ## 테스트
 
 가짜 SDK로 도는 단위 테스트, 실제 Claude를 부르는 통합 테스트(비용 발생), 패키징한 앱의 화면 테스트입니다.

@@ -9,7 +9,6 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "allowJs": true,
-    "checkJs": false,
     "noEmit": true,
     "types": ["node", "@electron-forge/plugin-vite/forge-vite-env"]
   },
