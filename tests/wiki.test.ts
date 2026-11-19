@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test } from 'vitest';
-import { Chat } from '../src/main/chat';
+import { Chat } from '../src/backend/chat';
 import { CREW, fakeCrew, openScratch, reply } from './support';
 
 test('a run starts with its own memory and this project wiki only; a rule document deletes alone or with its rule', async () => {

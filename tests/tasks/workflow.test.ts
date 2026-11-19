@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { Chat } from '../../src/main/chat';
+import { Chat } from '../../src/backend/chat';
 import { CREW, fakeCrew, openScratch, type Turn } from '../support';
 
 test('rule versions: broken or stale saves are refused, and each scope reaches only its tasks', () => {

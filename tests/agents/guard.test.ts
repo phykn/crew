@@ -1,8 +1,8 @@
 import path from 'node:path';
 import { expect, test } from 'vitest';
-import { Chat } from '../../src/main/chat';
-import { checkCall, writeTargets } from '../../src/main/agents/guard';
-import { realPath } from '../../src/main/agents/locks';
+import { Chat } from '../../src/backend/chat';
+import { checkCall, writeTargets } from '../../src/backend/agents/guard';
+import { realPath } from '../../src/backend/agents/locks';
 import { CREW, fakeQuery, openScratch } from '../support';
 
 function setup() {

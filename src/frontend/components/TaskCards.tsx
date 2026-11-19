@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Message, Task } from '../../main/db';
+import type { Message, Task } from '../../backend/db';
 import { call } from '../api';
 
 // The pill says where the task is, in the words of its current stage while it works

@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'vitest';
-import { Inbox } from '../src/main/agents/run';
-import { Chat } from '../src/main/chat';
+import { Inbox } from '../src/backend/agents/run';
+import { Chat } from '../src/backend/chat';
 import { CREW, fakeCrew, fakeQuery, openScratch, recordedRuns, reply, handback, type Turn } from './support';
 
 test('비서 answers in its own Claude session and runs on the model chosen last', async () => {

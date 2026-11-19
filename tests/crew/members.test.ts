@@ -1,12 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test, vi } from 'vitest';
-import { Chat } from '../../src/main/chat';
-import { secretaryTools } from '../../src/main/tools/secretary';
+import { Chat } from '../../src/backend/chat';
+import { secretaryTools } from '../../src/backend/tools/secretary';
 import { CREW, fakeCrew, handback, openScratch, reply, fakeQuery, type Turn } from '../support';
-import { kitTools } from '../../src/main/tools/kit';
-import { Crew } from '../../src/main/crew/shipped';
-import { Store } from '../../src/main/db';
+import { kitTools } from '../../src/backend/tools/kit';
+import { Crew } from '../../src/backend/crew/shipped';
+import { Store } from '../../src/backend/db';
 
 // mcp: none is how models often write an empty list
 const md = (role: string) => `---

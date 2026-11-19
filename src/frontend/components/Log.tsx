@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { Event, Handback, Session, Task } from '../../main/db';
-import type { CrewMember } from '../../main/crew/shipped';
+import type { Event, Handback, Session, Task } from '../../backend/db';
+import type { CrewMember } from '../../backend/crew/shipped';
 import { call, onChanged } from '../api';
 import { Choice } from './Choice';
 

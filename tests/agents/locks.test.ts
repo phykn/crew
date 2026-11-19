@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test } from 'vitest';
-import { Chat } from '../../src/main/chat';
-import { snapshot } from '../../src/main/tasks/changes';
+import { Chat } from '../../src/backend/chat';
+import { snapshot } from '../../src/backend/tasks/changes';
 import { CREW, fakeCrew, openScratch } from '../support';
 
 test('overlapping writes go in turn and re-read what changed; others run at once', async () => {

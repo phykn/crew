@@ -18,7 +18,7 @@ const config: ForgeConfig = {
   plugins: [
     new VitePlugin({
       build: [
-        { entry: 'src/main/index.ts', config: 'vite.main.config.mts', target: 'main' },
+        { entry: 'src/backend/index.ts', config: 'vite.main.config.mts', target: 'main' },
         { entry: 'src/preload.ts', config: 'vite.preload.config.mts', target: 'preload' },
       ],
       renderer: [{ name: 'main_window', config: 'vite.renderer.config.mts' }],

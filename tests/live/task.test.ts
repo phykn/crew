@@ -1,9 +1,9 @@
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { expect, test, vi } from 'vitest';
-import { loadSdk } from '../../src/main/agents/run';
-import { Chat } from '../../src/main/chat';
-import { Store } from '../../src/main/db';
+import { loadSdk } from '../../src/backend/agents/run';
+import { Chat } from '../../src/backend/chat';
+import { Store } from '../../src/backend/db';
 import { CREW, makeScratch, recordedRuns } from '../support';
 
 const SEARCH = `export function search(items, query) {

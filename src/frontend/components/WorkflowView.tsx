@@ -19,9 +19,9 @@ import {
   type ReactFlowInstance,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import type { CrewMember } from '../../main/crew/shipped';
-import type { Project } from '../../main/db';
-import type { Step } from '../../main/tasks/workflow';
+import type { CrewMember } from '../../backend/crew/shipped';
+import type { Project } from '../../backend/db';
+import type { Step } from '../../backend/tasks/workflow';
 import { call } from '../api';
 import { Choice } from './Choice';
 

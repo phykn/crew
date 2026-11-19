@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'vitest';
-import { Chat } from '../../src/main/chat';
-import { askPeer } from '../../src/main/tools/member';
+import { Chat } from '../../src/backend/chat';
+import { askPeer } from '../../src/backend/tools/member';
 import { CREW, fakeCrew, handback, openScratch, reply } from '../support';
 
 test('a peer request asked back stays one thread, a resent line runs once, and a test handback without checks is sent back', async () => {

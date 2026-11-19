@@ -1,14 +1,14 @@
 import { expect, test, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { Chat } from '../../src/main/chat';
-import { nextStatus, satisfied } from '../../src/main/tasks/engine';
+import { Chat } from '../../src/backend/chat';
+import { nextStatus, satisfied } from '../../src/backend/tasks/engine';
 import { CREW, fakeCrew, handback, openScratch, recordedAgents, reply, type Turn } from '../support';
-import { Store } from '../../src/main/db';
-import { readWorkflows } from '../../src/main/tasks/workflow';
-import { NOT_HIRED } from '../../src/main/agents/run';
-import { snapshot } from '../../src/main/tasks/changes';
-import { secretaryTools } from '../../src/main/tools/secretary';
+import { Store } from '../../src/backend/db';
+import { readWorkflows } from '../../src/backend/tasks/workflow';
+import { NOT_HIRED } from '../../src/backend/agents/run';
+import { snapshot } from '../../src/backend/tasks/changes';
+import { secretaryTools } from '../../src/backend/tools/secretary';
 
 test('기획 → 리뷰 (sent back once) → 기획 → 리뷰 → 개발 → 리뷰·시험, each role in its own Claude session', async () => {
   const { store, project, paths } = openScratch({ 'search.js': 'export const search = () => []' });

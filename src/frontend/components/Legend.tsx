@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import * as Switch from '@radix-ui/react-switch';
 import * as Dialog from '@radix-ui/react-dialog';
-import type { CrewMember } from '../../main/crew/shipped';
+import type { CrewMember } from '../../backend/crew/shipped';
 import { type Args, call } from '../api';
 import { Choice } from './Choice';
 import { Permissions } from './Permissions';

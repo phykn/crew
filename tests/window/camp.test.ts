@@ -1,7 +1,7 @@
 import { expect, test, vi } from 'vitest';
-import { Chat } from '../../src/main/chat';
-import { campState } from '../../src/main/window/camp';
-import { createWalkers } from '../../src/renderer/camp/walkers.js';
+import { Chat } from '../../src/backend/chat';
+import { campState } from '../../src/backend/window/camp';
+import { createWalkers } from '../../src/frontend/camp/walkers.js';
 import { CREW, fakeCrew, handback, openScratch, reply, type Turn } from '../support';
 
 const staff = (keys: string[], working: Record<string, string>) =>

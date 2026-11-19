@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import type { Handlers } from '../main/window/ipc';
+import type { Handlers } from '../backend/window/ipc';
 
 declare global {
   interface Window {

@@ -38,7 +38,7 @@ const ToolKinds = z.enum(Object.keys(TOOL_KINDS) as [ToolKind]);
 const Write = z.enum(['project', 'output', 'none']);
 const Access = z.enum(['all', 'read']);
 
-// The sprite parts src/renderer/camp/paint/sprites.js draws, as head, upper, lower
+// The sprite parts src/frontend/camp/paint/sprites.js draws, as head, upper, lower
 const LOOKS = {
   head: ['hood', 'hair', 'helm', 'hat', 'braids'],
   upper: ['tunic', 'robe', 'armor', 'vest'],

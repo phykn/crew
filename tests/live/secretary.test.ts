@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
-import { loadSdk } from '../../src/main/agents/run';
-import { Chat } from '../../src/main/chat';
-import { Store } from '../../src/main/db';
+import { loadSdk } from '../../src/backend/agents/run';
+import { Chat } from '../../src/backend/chat';
+import { Store } from '../../src/backend/db';
 import { CREW, makeScratch, recordedRuns } from '../support';
 
 test('real Claude: 비서 lists files itself, remembers after a restart, and switches model', async () => {

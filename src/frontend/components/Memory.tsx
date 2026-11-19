@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { CrewMember } from '../../main/crew/shipped';
-import type { Change, Doc, Memory as Note } from '../../main/wiki';
+import type { CrewMember } from '../../backend/crew/shipped';
+import type { Change, Doc, Memory as Note } from '../../backend/wiki';
 import { call, onChanged } from '../api';
 import { Choice } from './Choice';
 import { WikiGraph } from './WikiGraph';

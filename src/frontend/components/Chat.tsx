@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Message, Mode, Question, Session, Task } from '../../main/db';
+import type { Message, Mode, Question, Session, Task } from '../../backend/db';
 import { call, onChanged, onStream } from '../api';
 import { Choice } from './Choice';
 import { TaskCards } from './TaskCards';

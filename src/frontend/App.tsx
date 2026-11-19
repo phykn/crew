@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
-import type { Project, Session } from '../main/db';
-import type { CrewMember } from '../main/crew/shipped';
+import type { Project, Session } from '../backend/db';
+import type { CrewMember } from '../backend/crew/shipped';
 import { call, onChanged, onNavigate } from './api';
 import { TitleBar } from './components/TitleBar';
 import { ProjectBar } from './components/ProjectBar';

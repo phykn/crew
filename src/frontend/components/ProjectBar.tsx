@@ -1,5 +1,5 @@
 import * as Select from '@radix-ui/react-select';
-import type { Project, Session } from '../../main/db';
+import type { Project, Session } from '../../backend/db';
 import { Chevron } from './Icons';
 
 const OPEN = 'open';

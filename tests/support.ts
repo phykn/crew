@@ -3,9 +3,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { Options, SDKMessage, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
-import type { QueryFn, Sdk } from '../src/main/agents/run';
-import { Crew } from '../src/main/crew/shipped';
-import { Store } from '../src/main/db';
+import type { QueryFn, Sdk } from '../src/backend/agents/run';
+import { Crew } from '../src/backend/crew/shipped';
+import { Store } from '../src/backend/db';
 
 export const CREW = new Crew(path.resolve(__dirname, '../crew'));
 

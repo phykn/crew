@@ -1,7 +1,7 @@
 import { expect, test, vi } from 'vitest';
-import { Chat } from '../../src/main/chat';
-import { appServer } from '../../src/main/tools/app';
-import { checkCall } from '../../src/main/agents/guard';
+import { Chat } from '../../src/backend/chat';
+import { appServer } from '../../src/backend/tools/app';
+import { checkCall } from '../../src/backend/agents/guard';
 import { CREW, fakeCrew, openScratch, reply, type Turn } from '../support';
 
 type Result = { content: { text: string }[] };
