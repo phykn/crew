@@ -10,9 +10,6 @@ import { memberTools } from './crew-tools';
 import { changedFiles, snapshot } from './changes';
 import { REFUSE } from './questions';
 
-const KEEP = '출력 폴더에 두기';
-const MOVE = '프로젝트로 옮기기';
-
 type TaskEvent = {
   type:
     | 'START'
@@ -427,46 +424,32 @@ ${CODE_SCOPE}`
     ].join('\n\n');
   }
 
-  async finish(task: Task) {
+  finish(task: Task) {
     this.move(task.id, 'DONE', '', `업무 "${task.title}" 완료`);
-    // Asked before the temps leave, while their settings still say where they wrote
-    const files = this.madeOutside(task);
+    // Before the temps leave, while the record still says who they are
+    const note = this.bringTempFiles(task);
     this.dismissTemps(task);
-    const note = files.length ? await this.offerFiles(task, files) : '';
     void this.chat.tell(task.sessionId, [this.report(task, 'done'), note].filter(Boolean).join('\n\n'));
   }
 
-  // What a making step's member left in the task's output folder, when that folder is the only place it may write
-  madeOutside(task: Task) {
-    const outputOnly = makers(task.workflow).some(
-      (s) => this.chat.settings(this.memberFor(task, s)).write === 'output',
-    );
-    if (!outputOnly) return [];
-    const dir = this.chat.outputDir(this.projectOf(task), `task-${task.id}`);
-    return (fs.readdirSync(dir, { recursive: true, withFileTypes: true }) as fs.Dirent[])
-      .filter((f) => f.isFile())
-      .map((f) => path.relative(dir, path.join(f.parentPath, f.name)));
-  }
-
-  // The user wanted these files, not a folder they never see; one card brings them into the project
-  async offerFiles(task: Task, files: string[]) {
+  // A temp may write only to its output folder, but what it made is meant for the project, so it moves there
+  bringTempFiles(task: Task) {
+    if (!makers(task.workflow).some((s) => this.memberFor(task, s).temp)) return '';
     const project = this.projectOf(task);
     const dir = this.chat.outputDir(project, `task-${task.id}`);
+    const files = (fs.readdirSync(dir, { recursive: true, withFileTypes: true }) as fs.Dirent[])
+      .filter((f) => f.isFile())
+      .map((f) => path.relative(dir, path.join(f.parentPath, f.name)));
+    if (!files.length) return '';
     const taken = files.filter((f) => fs.existsSync(path.join(project.path, f)));
-    const choice = await this.chat.questions.ask({
-      sessionId: task.sessionId,
-      taskId: task.id,
-      kind: 'choice',
-      prompt: `업무 #${task.id}의 결과 파일을 프로젝트 폴더로 옮길까요? ${files.map((f) => `\`${f}\``).join(', ')}${taken.length ? ` (${taken.join(', ')}은 덮어씁니다)` : ''}`,
-      options: [KEEP, MOVE],
-      payload: {},
-    });
-    if (choice !== MOVE) return `[Files] The user kept the result files in the output folder: ${dir}`;
     for (const f of files) {
       fs.mkdirSync(path.dirname(path.join(project.path, f)), { recursive: true });
       fs.renameSync(path.join(dir, f), path.join(project.path, f));
     }
-    return `[Files] Moved into the project folder at the user's word: ${files.join(', ')}`;
+    return [
+      `[Files] The temp's files were moved into the project folder: ${files.join(', ')}`,
+      ...(taken.length ? [`They replaced files already there: ${taken.join(', ')}`] : []),
+    ].join('\n');
   }
 
   pause(task: Task) {

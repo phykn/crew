@@ -31,7 +31,7 @@ test('인사 drafts a temp, 비서 brings it in and it leaves once; its work is 
       reply('', 'hr', { key: 'translator', nickname: '라온', definition: md('번역') }),
       reply('', 'hr', { key: 'translator2', nickname: '가람', definition: md('통역') }),
     ],
-    // The temp may write only to its output folder, so its file waits there for the user's word
+    // The temp may write only to its output folder, and its file moves into the project once the task is done
     번역: [
       (p, o) => {
         fs.writeFileSync(
@@ -66,8 +66,6 @@ test('인사 drafts a temp, 비서 brings it in and it leaves once; its work is 
   expect(roles()).toContain('번역');
   await tool('start_task', { kind: 'code', title: '번역', request: 'a.md 번역', role: '번역' });
   const [task] = store.listTasks(s.id);
-  await vi.waitFor(() => expect(store.openQuestionIds(task.id)).toHaveLength(1));
-  chat.questions.answer(store.openQuestionIds(task.id)[0], '프로젝트로 옮기기');
   await vi.waitFor(() => expect(fs.readFileSync(path.join(p.path, 'a.ja.md'), 'utf8')).toBe('こんにちは'));
   expect(store.readTask(task.id).status).toBe('done');
   expect(roles()).not.toContain('번역');
