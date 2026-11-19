@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -25,13 +25,18 @@ type StepNode = Node<{ step: Step; member?: CrewMember }, 'step'>;
 type Layout = Record<string, { x: number; y: number }>;
 
 // The workflow tab: this project's rules for one task kind, drawn as nodes and saved as a new version
-export function WorkflowView({ project, members, kind, onKind }: { project: Project; members: CrewMember[]; kind: string; onKind: (k: string) => void }) {
+export function WorkflowView({ project, members, kind, onKind, active }: { project: Project; members: CrewMember[]; kind: string; onKind: (k: string) => void; active: boolean }) {
   const [kinds, setKinds] = useState<{ kind: string; label: string }[]>([]);
   const [w, setW] = useState<Read | null>(null);
   const [steps, setSteps] = useState<Step[]>([]);
   const [nodes, setNodes] = useState<StepNode[]>([]);
   const [picked, setPicked] = useState<string | null>(null);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  // Unsaved edits are marked, so leaving them behind is a known choice
+  const [dirty, setDirty] = useState(false);
+  // The tab stays mounted while hidden, where fitting has no size to fit to; it fits when first shown after a load
+  const flow = useRef<{ fitView: () => unknown } | null>(null);
+  const fitted = useRef(false);
 
   useEffect(() => {
     call('workflows.kinds').then(setKinds);
@@ -42,16 +47,27 @@ export function WorkflowView({ project, members, kind, onKind }: { project: Proj
     setSteps(read.rules.steps);
     setNodes(toNodes(read.rules.steps, (read.layout ?? {}) as Layout, members));
     setPicked(null);
+    setDirty(false);
+    fitted.current = false;
   }
   useEffect(() => {
     load();
     setNote(null);
   }, [project.id, kind]);
 
+  useEffect(() => {
+    if (!active || fitted.current || !flow.current || !nodes.length) return;
+    fitted.current = true;
+    requestAnimationFrame(() => flow.current?.fitView());
+  }, [active, nodes]);
+
   // Nodes carry the step, so edits in the side panel show on the canvas at once
   const shown = useMemo(() => nodes.map((n) => ({ ...n, data: { step: steps.find((s) => s.id === n.id)!, member: members.find((m) => m.key === steps.find((s) => s.id === n.id)?.role) } })).filter((n) => n.data.step), [nodes, steps, members]);
   const edges: Edge[] = steps.flatMap((s) => s.after.map((a) => ({ id: `${a}->${s.id}`, source: a, target: s.id })));
-  const edit = (id: string, change: Partial<Step>) => setSteps((all) => all.map((s) => (s.id === id ? { ...s, ...change } : s)));
+  const edit = (id: string, change: Partial<Step>) => {
+    setDirty(true);
+    setSteps((all) => all.map((s) => (s.id === id ? { ...s, ...change } : s)));
+  };
 
   function onConnect(c: Connection) {
     if (c.source && c.target && c.source !== c.target) edit(c.target, { after: [...new Set([...steps.find((s) => s.id === c.target)!.after, c.source])] });
@@ -64,12 +80,14 @@ export function WorkflowView({ project, members, kind, onKind }: { project: Proj
     applyEdgeChanges(changes, edges);
   }
   function onNodesChange(changes: NodeChange<StepNode>[]) {
+    if (changes.some((ch) => ch.type === 'remove' || (ch.type === 'position' && ch.dragging))) setDirty(true);
     const gone = changes.flatMap((ch) => (ch.type === 'remove' ? [ch.id] : []));
     if (gone.length) setSteps((all) => all.filter((s) => !gone.includes(s.id)).map((s) => ({ ...s, after: s.after.filter((a) => !gone.includes(a)), rework: gone.includes(s.rework ?? '') ? undefined : s.rework })));
     setNodes((ns) => applyNodeChanges(changes, ns));
   }
   function addStep() {
     const id = nextId(steps);
+    setDirty(true);
     const role = members.find((m) => m.status === 'hired' && !m.kept)?.key ?? members[0].key;
     setSteps((all) => [...all, { id, role, label: '새 단계', does: '', after: [], verdict: false, requires: [] }]);
     setNodes((ns) => [...ns, { id, type: 'step', position: { x: 40, y: 40 + ns.length * 20 }, data: { step: null as never } }]);
@@ -81,6 +99,7 @@ export function WorkflowView({ project, members, kind, onKind }: { project: Proj
     const r = await call('workflows.save', { projectId: project.id, kind, base: w!.version, rules, layout });
     if (r.ok) {
       setNote({ ok: true, text: `버전 ${r.version}로 저장했습니다. 다음 새 업무부터 적용됩니다.` });
+      setDirty(false);
       const read = await call('workflows.read', { projectId: project.id, kind });
       setW(read);
     } else setNote({ ok: false, text: `저장하지 않았습니다: ${r.problems.join(' / ')}` });
@@ -92,10 +111,11 @@ export function WorkflowView({ project, members, kind, onKind }: { project: Proj
       <header className="workflow-head">
         <h2>
           {project.name} 워크플로우 <span className="muted">버전 {w?.version ?? 0}</span>
+          {dirty && <span className="workflow-dirty">저장 안 한 변경 있음</span>}
         </h2>
         <div className="workflow-kinds" role="group" aria-label="업무 종류">
           {kinds.map((k) => (
-            <button key={k.kind} aria-pressed={k.kind === kind} onClick={() => onKind(k.kind)}>
+            <button key={k.kind} aria-pressed={k.kind === kind} onClick={() => (!dirty || confirm('저장 안 한 변경이 사라집니다. 다른 업무 종류로 바꿀까요?')) && onKind(k.kind)}>
               {k.label}
             </button>
           ))}
@@ -113,6 +133,7 @@ export function WorkflowView({ project, members, kind, onKind }: { project: Proj
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onInit={(f) => (flow.current = { fitView: () => f.fitView() })}
             onNodeClick={(_, n) => setPicked(n.id)}
             onPaneClick={() => setPicked(null)}
             colorMode="light"

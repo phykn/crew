@@ -117,7 +117,7 @@ export function App() {
 
   return (
     <div className="app">
-      <TitleBar onExplorer={() => setTree(true)} />
+      <TitleBar />
       <ProjectTree open={tree} onClose={() => setTree(false)} onDeleted={afterDelete} />
       <main className="body">
         <section className="camp" aria-label="캠프">
@@ -150,6 +150,7 @@ export function App() {
             onOpenFolder={openFolder}
             onSession={(s) => selectSession(s)}
             onNewSession={newSession}
+            onExplorer={() => setTree(true)}
           />
           <Tabs.Root className="tabs" value={tab} onValueChange={setTab}>
             <Tabs.List className="tab-list">
@@ -178,8 +179,9 @@ export function App() {
             <Tabs.Content value="memory" className="tab-body">
               {project && <Memory projectId={project.id} members={members} memberId={memoryOf} onMember={setMemoryOf} />}
             </Tabs.Content>
-            <Tabs.Content value="workflow" className="tab-body">
-              {project && <WorkflowView project={project} members={members} kind={kind} onKind={setKind} />}
+            {/* Kept mounted so unsaved edits survive a look at another tab */}
+            <Tabs.Content value="workflow" className="tab-body" forceMount>
+              {project && <WorkflowView project={project} members={members} kind={kind} onKind={setKind} active={tab === 'workflow'} />}
             </Tabs.Content>
           </Tabs.Root>
         </aside>

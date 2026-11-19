@@ -43,7 +43,7 @@ export function ProjectTree({ open, onClose, onDeleted }: { open: boolean; onClo
               <li key={project.id}>
                 <div className="tree-row">
                   <span className="tree-name" title={project.path}>{project.name}</span>
-                  <button className="tree-delete" onClick={() => ask({ kind: 'project', id: project.id, name: project.name })}>제거</button>
+                  <button className="tree-delete" onClick={() => ask({ kind: 'project', id: project.id, name: project.name })}>목록에서 빼기</button>
                 </div>
                 <ul>
                   {sessions.map(({ session, agents }) => (
@@ -51,7 +51,7 @@ export function ProjectTree({ open, onClose, onDeleted }: { open: boolean; onClo
                       <div className="tree-row">
                         <span className="tree-name">{sessionLabel(session)}</span>
                         <button className="tree-delete" onClick={() => ask({ kind: 'session', id: session.id, name: sessionLabel(session) })} aria-label={`${sessionLabel(session)} 삭제`}>
-                          삭제
+                          세션 삭제
                         </button>
                       </div>
                       <ul>
@@ -71,14 +71,14 @@ export function ProjectTree({ open, onClose, onDeleted }: { open: boolean; onClo
             <div className="confirm" role="alertdialog" aria-label="삭제 확인">
               <p>
                 {target.name}
-                {target.kind === 'project' ? `을(를) 목록에서 제거합니다. 세션 ${impact.sessions}개, ` : '을(를) 삭제합니다. '}
+                {target.kind === 'project' ? `을(를) 목록에서 뺍니다. 세션 ${impact.sessions}개, ` : '을(를) 삭제합니다. '}
                 업무 {impact.tasks}건, 로그 {impact.events}건, 메시지 {impact.messages}건이 지워집니다.
                 {target.kind === 'project' && ' 폴더의 파일은 그대로 둡니다.'}
               </p>
               <div className="confirm-actions">
                 <button onClick={() => setTarget(null)}>취소</button>
                 <button className="danger" onClick={confirm}>
-                  {target.kind === 'project' ? '제거' : '삭제'}
+                  {target.kind === 'project' ? '목록에서 빼기' : '세션 삭제'}
                 </button>
               </div>
             </div>

@@ -3,6 +3,7 @@ import type { Project, Session } from '../../main/db';
 
 const OPEN = 'open';
 const NEW = 'new';
+const EXPLORER = 'explorer';
 
 type Props = {
   projects: Project[];
@@ -13,6 +14,7 @@ type Props = {
   onOpenFolder: () => void;
   onSession: (s: Session) => void;
   onNewSession: () => void;
+  onExplorer: () => void;
 };
 
 // Named after the first thing asked in it; until then, by when it was opened
@@ -32,8 +34,6 @@ export function ProjectBar(props: Props) {
       >
         <Select.Trigger className="picker project-picker" aria-label="프로젝트">
           <FolderIcon />
-          <span className="muted">프로젝트</span>
-          <span className="muted">/</span>
           <span className="picker-value">{project?.name ?? '폴더 열기'}</span>
           <Chevron />
         </Select.Trigger>
@@ -55,7 +55,7 @@ export function ProjectBar(props: Props) {
       <Select.Root
         value={session ? String(session.id) : ''}
         disabled={!project}
-        onValueChange={(v) => (v === NEW ? props.onNewSession() : props.onSession(sessions.find((s) => String(s.id) === v)!))}
+        onValueChange={(v) => (v === NEW ? props.onNewSession() : v === EXPLORER ? props.onExplorer() : props.onSession(sessions.find((s) => String(s.id) === v)!))}
       >
         <Select.Trigger className="picker session-picker" aria-label="세션">
           <span className="picker-value">{session ? sessionLabel(session) : '세션'}</span>
@@ -71,6 +71,9 @@ export function ProjectBar(props: Props) {
               ))}
               <Select.Item value={NEW} className="menu-item action">
                 <Select.ItemText>새 세션</Select.ItemText>
+              </Select.Item>
+              <Select.Item value={EXPLORER} className="menu-item action">
+                <Select.ItemText>탐색기…</Select.ItemText>
               </Select.Item>
             </Select.Viewport>
           </Select.Content>

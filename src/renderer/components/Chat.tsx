@@ -87,7 +87,7 @@ export function Chat({ session, onLog, onClear }: { session: Session; onLog: (ta
 type BubbleProps = { author: Message['author']; text: string; pending?: boolean; question?: Question | null };
 
 function Bubble({ author, text, pending, question }: BubbleProps) {
-  // Only two people talk here, so the side a bubble sits on says who said it: me left, 비서 right
+  // Only two people talk here, so the side a bubble sits on says who said it: me right, 비서 left
   return (
     <div className={`message ${author}`} data-pending={pending || undefined} aria-label={author === 'user' ? '나' : '비서'}>
       {question ? (

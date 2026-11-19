@@ -35,6 +35,8 @@ function drawOverhead(ctx, p, now, still, taken, edge) {
   const w = nameW + checkW + saidW, x = Math.min(Math.max(f.x - w / 2, CAMP.x + 6), CAMP.x + CAMP.w - 6 - w);
   const head = headTop(p) - 4;
   const box = { l: x - 4, r: x + w + 4, t: head - LINE, b: head };
+  // Someone saying nothing gives way: their name is in the legend, and a crowd of names would stack into a tower
+  if (!said && !checked && taken.some(o => o.l < box.r && box.l < o.r && o.t < box.b + LINE * 2 && box.t < o.b)) return;
   for (let hit; (hit = taken.find(o => o.l < box.r && box.l < o.r && o.t < box.b && box.t < o.b));) {
     const up = box.b - hit.t + 1;
     box.t -= up; box.b -= up;

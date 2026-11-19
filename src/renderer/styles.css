@@ -230,17 +230,6 @@ button { font: inherit; color: inherit; }
   padding: 0 8px 0 10px;
   cursor: pointer;
 }
-.md {
-  height: 28px;
-  padding: 0 7px;
-  background: #24232d;
-  border: 1px solid #3a3746;
-  border-radius: 5px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.kit { white-space: nowrap; }
 .kit-icon {
   display: inline-grid;
   place-items: center;
@@ -252,15 +241,6 @@ button { font: inherit; color: inherit; }
   vertical-align: middle;
 }
 .kit-icon svg { width: 18px; height: 18px; }
-.unhired-label { padding: 0 6px; }
-.rehire {
-  height: 30px;
-  padding: 0 14px;
-  background: #34323f;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
 .overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); z-index: 20; }
 .dialog {
   position: fixed;

@@ -81,7 +81,7 @@ export class Tasks {
     // A request given to one member is a one-step task of its own
     const projectId = store.readSession(sessionId).projectId;
     const workflow = one ? solo(this.chat.crew.defOf(one).role, one.key) : this.chat.workflowFor(projectId, kind).rules;
-    const task = store.createTask({ sessionId, kind: workflow.kind, title, request, workflow });
+    const task = store.createTask({ sessionId, kind: one ? kind : workflow.kind, title, request, workflow });
     store.writeBaseline(task.id, snapshot(this.projectOf(task).path));
     this.chat.emit('changed', 'tasks');
     void this.drive(task.id);
@@ -192,9 +192,11 @@ export class Tasks {
     let prompt = this.brief(task, step);
     const log = (text: string, detail: unknown = null) =>
       store.addEvent({ sessionId: task.sessionId, taskId: task.id, memberId: member.id, kind: 'step', text, detail: detail ? JSON.stringify(detail) : null });
+    // Retries stay out of the log until the last one fails; that one line carries every error
+    const errors: string[] = [];
     for (let attempt = 0; attempt <= RETRIES; attempt++) {
       const runId = store.startStepRun(task.id, step.id, member.id, store.latestVersion(task.id)?.id ?? null);
-      log(`${role}: ${step.label} 시작${attempt ? ` (재시도 ${attempt})` : ''}`);
+      if (attempt === 0) log(`${role}: ${step.label} 시작`);
       this.chat.emit('changed', 'tasks');
       const out = await this.chat
         .runMember(member, task.sessionId, task.id, prompt, {
@@ -233,8 +235,9 @@ export class Tasks {
       }
       const why = out.error ?? 'the result did not match the handback format';
       store.finishStepRun(runId, 'failed', null, why);
-      log(`${role}: ${step.label} 실패 — ${why.slice(0, 200)}`);
+      errors.push(why.slice(0, 400));
     }
+    log(`${role}: ${step.label} 실패 (${RETRIES}번 다시 시도)`, { errors });
     return `${step.label}이 ${RETRIES}번 다시 시도해도 실패했습니다`;
   }
 

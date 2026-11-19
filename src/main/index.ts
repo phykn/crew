@@ -20,7 +20,7 @@ function createWindow() {
     title: 'AI Crew',
     // The title bar is drawn by the window itself, like the concept image; the OS keeps only its buttons
     titleBarStyle: 'hidden',
-    titleBarOverlay: { color: '#14131a', symbolColor: '#d8d4e6', height: 44 },
+    titleBarOverlay: { color: '#8a4f22', symbolColor: '#fff1d6', height: 46 },
     webPreferences: { preload: path.join(__dirname, 'preload.cjs') },
   });
   win.on('closed', () => (win = null));

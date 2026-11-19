@@ -98,11 +98,11 @@ function WikiView({ projectId }: { projectId: number }) {
               )}
             </>
           ) : (
-            <p className="muted">문서를 고르세요.</p>
+            <p className="muted">{docs.length ? '왼쪽 목차에서 문서를 고르세요.' : '아직 위키 문서가 없습니다. 크루가 업무 중에 남기거나, + 새 문서로 직접 쓸 수 있습니다.'}</p>
           )}
         </div>
       </div>
-      <h4 className="wiki-head">변경 타임라인</h4>
+      {changes.length > 0 && <h4 className="wiki-head">변경 타임라인</h4>}
       <ol className="wiki-timeline" aria-label="변경 타임라인">
         {changes.map((c) => (
           <li key={c.id}>

@@ -33,7 +33,9 @@ export function Log({ session, members, taskId, onTask }: { session: Session; me
         ))}
       </select>
       {usage.length > 0 && (
-        <table className="usage" aria-label="사용량">
+        <details className="usage-fold">
+          <summary>사용량 (실행 {usage.reduce((n, u) => n + u.runs, 0)}회, ${usage.reduce((n, u) => n + u.costUsd, 0).toFixed(3)})</summary>
+          <table className="usage" aria-label="사용량">
           <thead>
             <tr>
               <th>역할</th>
@@ -58,15 +60,18 @@ export function Log({ session, members, taskId, onTask }: { session: Session; me
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </details>
       )}
       <ol className="log-list" aria-label="업무 로그">
         {shown.map((e) => {
           const m = who(e.memberId);
           const hb = e.kind === 'step' ? readHandback(e.detail) : null;
+          const errors = e.kind === 'step' && !hb ? readErrors(e.detail) : null;
+          const opens = !!(hb || errors);
           return (
             <li key={e.id} className="log-row" data-kind={e.kind} style={m ? ({ "--dot": m.color } as CSSProperties) : undefined}>
-              <button className="log-line" disabled={!hb} aria-expanded={hb ? open === e.id : undefined} onClick={() => setOpen(open === e.id ? null : e.id)}>
+              <button className="log-line" disabled={!opens} aria-expanded={opens ? open === e.id : undefined} onClick={() => setOpen(open === e.id ? null : e.id)}>
                 <time>{e.at.slice(11, 19)}</time>
                 <span className="log-who">
                   {m ? m.role : '앱'}
@@ -74,6 +79,12 @@ export function Log({ session, members, taskId, onTask }: { session: Session; me
                 <span className="log-text">{e.text}</span>
               </button>
               {hb && open === e.id && <HandbackView hb={hb} />}
+              {errors && open === e.id && (
+                <div className="log-detail">
+                  <h4>시도별 오류</h4>
+                  <ol>{errors.map((x, i) => <li key={i}><pre>{x}</pre></li>)}</ol>
+                </div>
+              )}
             </li>
           );
         })}
@@ -113,4 +124,10 @@ function readHandback(detail: string | null): Handback | null {
   if (!detail) return null;
   const d = JSON.parse(detail);
   return d && Array.isArray(d.files) && Array.isArray(d.checks) ? d : null;
+}
+
+// A failed step keeps each attempt's error, shown when its line is opened
+function readErrors(detail: string | null): string[] | null {
+  const d = detail ? JSON.parse(detail) : null;
+  return d && Array.isArray(d.errors) ? d.errors : null;
 }

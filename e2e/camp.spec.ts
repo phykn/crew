@@ -11,8 +11,10 @@ test('a nickname change shows over the head at once, and clicking a member opens
   const page = await openProject(app, scratch.project);
   const where = (key: string) => page.evaluate((k) => (window as unknown as { camp: (k: string) => Where }).camp(k), key);
   await expect.poll(async () => (await where('researcher'))?.name).toBe('누리');
+  await page.getByLabel('조사 설정').click();
   await page.getByLabel('조사 별명').fill('나래');
   await page.getByLabel('조사 별명').press('Enter');
+  await page.getByRole('dialog').getByRole('button', { name: '닫기' }).click();
   await expect.poll(async () => (await where('researcher'))?.name).toBe('나래');
 
   await page.getByLabel('메시지').fill('자료 조사해줘');

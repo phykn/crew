@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Message, Task } from '../../main/db';
 import { call } from '../api';
 
@@ -30,6 +31,8 @@ function KindIcon({ kind }: { kind: string }) {
 // One pinned row per task still open; a finished task's row goes and its report stays in the chat
 export function TaskCards({ tasks, messages, onLog }: { tasks: Task[]; messages: Message[]; onLog: (taskId: number) => void }) {
   const open = tasks.filter((t) => t.status !== 'done');
+  // Stop asks once inline, since a click cuts off the work in progress
+  const [stopping, setStopping] = useState<number | null>(null);
   if (!open.length) return null;
   return (
     <section className="task-cards" aria-label="진행 중 업무">
@@ -50,10 +53,21 @@ export function TaskCards({ tasks, messages, onLog }: { tasks: Task[]; messages:
             <span className="task-pill" data-tone={p.tone}>
               {p.text}
             </span>
-            {stoppable && (
-              <button className="task-link quiet" onClick={() => call('tasks.stop', { id: t.id })}>
+            {stoppable && stopping !== t.id && (
+              <button className="task-link quiet" onClick={() => setStopping(t.id)}>
                 중단
               </button>
+            )}
+            {stoppable && stopping === t.id && (
+              <span className="task-confirm" role="group" aria-label="중단 확인">
+                중단할까요?
+                <button className="task-link danger" onClick={() => { setStopping(null); call('tasks.stop', { id: t.id }); }}>
+                  중단
+                </button>
+                <button className="task-link quiet" onClick={() => setStopping(null)}>
+                  취소
+                </button>
+              </span>
             )}
             {['stopped', 'failed'].includes(t.status) && (
               <button className="task-link quiet" onClick={() => call('tasks.resume', { id: t.id })}>
