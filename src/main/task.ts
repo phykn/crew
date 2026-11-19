@@ -77,8 +77,8 @@ export class Tasks {
   start(sessionId: number, kind: string, title: string, request: string, one?: Member): Task {
     const { store } = this.chat;
     // A request given to one member is a one-step task of its own
-    const workflow = one ? solo(this.chat.crew.defOf(one).role, one.key) : this.chat.workflows.find((w) => w.kind === kind);
-    if (!workflow) throw new Error(`no workflow ${kind}`);
+    const projectId = store.readSession(sessionId).projectId;
+    const workflow = one ? solo(this.chat.crew.defOf(one).role, one.key) : this.chat.workflowFor(projectId, kind).rules;
     const task = store.createTask({ sessionId, kind: workflow.kind, title, request, workflow });
     store.writeBaseline(task.id, snapshot(this.projectOf(task).path));
     this.chat.emit('changed', 'tasks');

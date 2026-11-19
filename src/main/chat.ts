@@ -10,7 +10,10 @@ import { Locks, realPath } from './locks';
 import { Questions } from './questions';
 import { secretaryTools } from './crew-tools';
 import { Tasks } from './task';
-import { readWorkflows, type Workflow } from './workflow';
+import { readWorkflows, validateWorkflow, Workflow as WorkflowShape, type Workflow } from './workflow';
+
+// 앞으로: new tasks from now on; 이번 업무에도: also this task's remaining steps; 이번에만: this task only
+export type Scope = 'future' | 'current' | 'once';
 
 export type Emit = (channel: 'changed' | 'stream', payload: unknown) => void;
 // Where members' own files go, and the files no member may touch
@@ -172,6 +175,34 @@ export class Chat {
     if (out.claudeId) store.writeClaudeId(agentSession.id, out.claudeId, member.model);
     store.finishRun(runId, out);
     return out;
+  }
+
+  // The rules a project runs for a kind: its latest saved version, or the shipped one as version 0
+  workflowFor(projectId: number, kind: string) {
+    const saved = this.store.latestWorkflow(projectId, kind);
+    if (saved) return saved;
+    const shipped = this.workflows.find((w) => w.kind === kind);
+    if (!shipped) throw new Error(`no workflow ${kind}`);
+    return { version: 0, rules: shipped, layout: null };
+  }
+
+  // One place for the editor's and 비서's changes, so both make the same kind of version
+  saveWorkflow(o: { projectId: number; kind: string; base: number; rules: unknown; layout?: unknown; author: string; scope: Scope; taskId?: number }) {
+    const parsed = WorkflowShape.safeParse(o.rules);
+    if (!parsed.success) return { ok: false as const, problems: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`) };
+    const rules = { ...parsed.data, kind: o.kind };
+    const keys = this.store.listMembers(o.projectId).filter((m) => m.status === 'hired').map((m) => m.key);
+    const problems = validateWorkflow(rules, keys);
+    // A broken edit is refused whole, so the last valid version stays in force
+    if (problems.length) return { ok: false as const, problems };
+    if (o.scope !== 'future' && !o.taskId) return { ok: false as const, problems: ['적용할 업무가 없습니다'] };
+    if (o.scope !== 'once') {
+      const version = this.store.addWorkflowVersion(o.projectId, o.kind, o.base, rules, o.layout, o.author);
+      if (version === null) return { ok: false as const, problems: [`버전 ${o.base} 이후에 다른 변경이 저장되었습니다. 최신 규칙을 다시 읽고 고치세요`] };
+    }
+    if (o.taskId && o.scope !== 'future') this.store.writeTaskWorkflow(o.taskId, rules);
+    this.emit('changed', 'workflows');
+    return { ok: true as const, version: this.workflowFor(o.projectId, o.kind).version };
   }
 
   // /clear: a fresh session on the same project and crew; 비서 starts without context and the old session's tasks go on

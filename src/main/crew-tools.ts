@@ -19,6 +19,7 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
     return chat.store.listMembers(project.id).find((m) => m.status === 'hired' && chat.crew.defOf(m).role === role) ?? null;
   };
   const text = (t: string) => ({ content: [{ type: 'text' as const, text: t }] });
+  const projectId = () => chat.store.readSession(sessionId).projectId;
   return sdk.createSdkMcpServer({
     name: 'crew',
     tools: [
@@ -38,6 +39,30 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
           if (a.role && !one) return text(`${a.role}은 지금 고용되어 있지 않습니다.`);
           const task = chat.tasks.start(sessionId, a.kind, a.title, a.request, one ?? undefined);
           return text(`업무 #${task.id} "${task.title}"을 시작했습니다.`);
+        },
+      ),
+      sdk.tool(
+        'read_workflow',
+        "Read a task kind's current rules for this project, with the version to base a change on.",
+        { kind: z.enum(kinds) },
+        async (a) => {
+          const w = chat.workflowFor(projectId(), a.kind);
+          return text(JSON.stringify({ version: w.version, rules: w.rules }));
+        },
+      ),
+      sdk.tool(
+        'change_workflow',
+        'Save changed rules for a task kind, based on the version you read. scope: future (앞으로, new tasks), current (이번 업무에도: also the remaining steps of task_id), once (이번에만: task_id only, not saved for later).',
+        {
+          kind: z.enum(kinds),
+          base_version: z.number().int(),
+          rules: z.record(z.string(), z.unknown()),
+          scope: z.enum(['future', 'current', 'once']),
+          task_id: z.number().int().optional(),
+        },
+        async (a) => {
+          const r = chat.saveWorkflow({ projectId: projectId(), kind: a.kind, base: a.base_version, rules: a.rules, author: '비서', scope: a.scope, taskId: a.task_id });
+          return text(r.ok ? `저장했습니다 (버전 ${r.version}).` : `저장하지 않았습니다: ${r.problems.join('; ')}`);
         },
       ),
       sdk.tool(

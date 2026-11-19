@@ -64,6 +64,10 @@ const MIGRATIONS = [
    CREATE TABLE assignees (
      task_id INTEGER NOT NULL REFERENCES tasks (id) ON DELETE CASCADE, step_id TEXT NOT NULL,
      member_id INTEGER NOT NULL REFERENCES members (id), PRIMARY KEY (task_id, step_id));`,
+  `CREATE TABLE workflow_versions (
+     id INTEGER PRIMARY KEY, project_id INTEGER NOT NULL REFERENCES projects (id) ON DELETE CASCADE, kind TEXT NOT NULL,
+     version INTEGER NOT NULL, rules TEXT NOT NULL, layout TEXT, author TEXT NOT NULL, created_at TEXT NOT NULL,
+     UNIQUE (project_id, kind, version));`,
 ];
 
 export type Project = { id: number; path: string; name: string };
@@ -550,6 +554,28 @@ export class Store {
 
   appendRequest(taskId: number, text: string) {
     this.db.prepare("UPDATE tasks SET request = request || char(10) || char(10) || ? WHERE id = ?").run(`추가 요청: ${text}`, taskId);
+  }
+
+  latestWorkflow(projectId: number, kind: string): { version: number; rules: Workflow; layout: unknown } | null {
+    const row = this.db
+      .prepare('SELECT version, rules, layout FROM workflow_versions WHERE project_id = ? AND kind = ? ORDER BY version DESC LIMIT 1')
+      .get(projectId, kind) as { version: number; rules: string; layout: string | null } | undefined;
+    return row ? { version: row.version, rules: JSON.parse(row.rules), layout: row.layout ? JSON.parse(row.layout) : null } : null;
+  }
+
+  // The base check and the insert are one transaction, so two saves from the same base cannot both land
+  addWorkflowVersion(projectId: number, kind: string, base: number, rules: Workflow, layout: unknown, author: string): number | null {
+    return this.transact(() => {
+      if ((this.latestWorkflow(projectId, kind)?.version ?? 0) !== base) return null;
+      this.db
+        .prepare('INSERT INTO workflow_versions (project_id, kind, version, rules, layout, author, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+        .run(projectId, kind, base + 1, JSON.stringify(rules), layout === undefined ? null : JSON.stringify(layout), author, now());
+      return base + 1;
+    });
+  }
+
+  writeTaskWorkflow(taskId: number, w: Workflow) {
+    this.db.prepare('UPDATE tasks SET workflow = ? WHERE id = ?').run(JSON.stringify(w), taskId);
   }
 
   listAgentSessions(sessionId: number): (AgentSession & { key: string })[] {
