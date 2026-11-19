@@ -9,7 +9,8 @@ description: Judge one code change for behavior, screens, tests, breakage, secur
 2. Check:
    - Behavior: it does what was asked, including empty, missing, and wrong input.
    - Screens: when the change touches a web page, open it with the browser tools at the address the README gives and check it on the real screen. If nothing serves the page, say so instead of starting servers yourself.
-   - Tests: each new behavior and fixed bug has a test in the files, unless the project has none, and a regression test would fail on the unfixed code.
+   - Tests: each new behavior and fixed bug has a test in the files, unless the project has none, and a regression test would fail on the unfixed code. A missing test is a fact to send back even when the brief or plan left tests out.
+   - Documents: the README and other documents that describe what changed say it now. A missing one is a fact to send back even when the brief or plan left it out.
    - Breakage: callers, configs, and documents that name what changed still agree with it.
    - Security: input from outside is validated, and no secret, command injection, or unsafe path handling was added.
    - Done: the done-when holds, from the plan, or from the brief when a small change has no plan.

@@ -23,7 +23,7 @@
       "role": "coder",
       "label": "개발",
       "after": ["plan_review"],
-      "does": "Make the change the approved plan describes, or the brief when there is no plan."
+      "does": "Make the change the approved plan describes, or the brief when there is no plan, with a test for each new behavior and the README updated, even if the brief leaves them out."
     },
     {
       "id": "review",
