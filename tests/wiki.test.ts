@@ -7,7 +7,13 @@ import { CREW, fakeCrew, openScratch, reply } from './support';
 test('a run starts with its own memory and this project wiki only; a rule document deletes alone or with its rule', async () => {
   const { store, project, paths } = openScratch();
   const fake = fakeCrew({ 시험: [reply('ok')] });
-  const chat = new Chat(store, async () => fake.sdk, CREW, () => {}, paths);
+  const chat = new Chat(
+    store,
+    async () => fake.sdk,
+    CREW,
+    () => {},
+    paths,
+  );
   const other = path.join(path.dirname(project), 'other');
   fs.mkdirSync(other);
   const [a, b] = [store.addProject(project), store.addProject(other)];
@@ -28,7 +34,8 @@ test('a run starts with its own memory and this project wiki only; a rule docume
 
   const code = chat.workflowFor(a.id, 'code').rules;
   const lean = { ...code, steps: code.steps.filter((s) => s.id !== 'test') };
-  const link = (version: number) => chat.wiki.write(a.id, `워크플로우 ${version}`, '이유', user, { kind: 'code', version });
+  const link = (version: number) =>
+    chat.wiki.write(a.id, `워크플로우 ${version}`, '이유', user, { kind: 'code', version });
   chat.saveWorkflow({ projectId: a.id, kind: 'code', base: 0, rules: lean, author: '비서', scope: 'future' });
   chat.removeDoc(link(1).id, false, user);
   expect(chat.workflowFor(a.id, 'code')).toMatchObject({ version: 1, rules: { steps: lean.steps } });

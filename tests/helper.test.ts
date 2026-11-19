@@ -10,24 +10,45 @@ test('도우미 finds the stopped test task the user picks, opens its log, and r
   const { store, project, paths } = openScratch();
   const navigated: unknown[] = [];
   let fake: ReturnType<typeof fakeCrew>;
-  const tool = async (name: string, a: Record<string, unknown>) => ((await fake.tools.get(name)!(a)) as Result).content[0].text;
+  const tool = async (name: string, a: Record<string, unknown>) =>
+    ((await fake.tools.get(name)!(a)) as Result).content[0].text;
   // The scripted models act on what the tools answer, as real ones would
   const helperFinds: Turn = async (p, o) => {
     const [t] = JSON.parse(await tool('find_tasks', { query: '시험', status: 'stopped' }));
     await tool('open_log', { task_id: t.id });
     return reply(`업무 #${t.id}: ${t.stopReasons.join(' / ')}`, 'h')(p, o);
   };
-  const helperResumes: Turn = async (p, o) => reply(await tool('resume_task', { task_id: Number(p.match(/#(\d+)/)![1]) }), 'h')(p, o);
-  const relay = (request: string): Turn => async (p, o) => reply(await tool('ask_helper', { request }), 's')(p, o);
+  const helperResumes: Turn = async (p, o) =>
+    reply(await tool('resume_task', { task_id: Number(p.match(/#(\d+)/)![1]) }), 'h')(p, o);
+  const relay =
+    (request: string): Turn =>
+    async (p, o) =>
+      reply(await tool('ask_helper', { request }), 's')(p, o);
   const never: Turn = () => new Promise(() => {});
-  fake = fakeCrew({ 비서: [relay('지난번 테스트가 왜 멈췄는지 보여줘'), relay('')], 도우미: [helperFinds, helperResumes], 시험: [never] });
-  const chat = new Chat(store, async () => fake.sdk, CREW, (ch, p) => ch === 'navigate' && navigated.push(p), paths);
+  fake = fakeCrew({
+    비서: [relay('지난번 테스트가 왜 멈췄는지 보여줘'), relay('')],
+    도우미: [helperFinds, helperResumes],
+    시험: [never],
+  });
+  const chat = new Chat(
+    store,
+    async () => fake.sdk,
+    CREW,
+    (ch, p) => ch === 'navigate' && navigated.push(p),
+    paths,
+  );
   const p = store.addProject(project);
   chat.seed(p.id);
   const s = store.createSession(p.id);
   const research = chat.workflows.find((w) => w.kind === 'research')!;
   const stopped = ['시험 A', '시험 B'].map((title, i) => {
-    const t = store.createTask({ sessionId: s.id, kind: 'research', title, request: '테스트', workflow: { ...research, steps: research.steps.map((x) => ({ ...x, role: 'tester' })) } });
+    const t = store.createTask({
+      sessionId: s.id,
+      kind: 'research',
+      title,
+      request: '테스트',
+      workflow: { ...research, steps: research.steps.map((x) => ({ ...x, role: 'tester' })) },
+    });
     store.writeTaskStatus(t.id, 'stopped', '', `업무 "${title}" 중단됨: 사유 ${i + 1}`);
     return t;
   });

@@ -3,7 +3,15 @@ import type { Message, Question, Session, Task } from '../../main/db';
 import { call, onChanged, onStream } from '../api';
 import { TaskCards } from './TaskCards';
 
-export function Chat({ session, onLog, onClear }: { session: Session; onLog: (taskId: number) => void; onClear: () => void }) {
+export function Chat({
+  session,
+  onLog,
+  onClear,
+}: {
+  session: Session;
+  onLog: (taskId: number) => void;
+  onClear: () => void;
+}) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [streaming, setStreaming] = useState<string | null>(null);
@@ -89,7 +97,11 @@ type BubbleProps = { author: Message['author']; text: string; pending?: boolean;
 function Bubble({ author, text, pending, question }: BubbleProps) {
   // Only two people talk here, so the side a bubble sits on says who said it: me right, 비서 left
   return (
-    <div className={`message ${author}`} data-pending={pending || undefined} aria-label={author === 'user' ? '나' : '비서'}>
+    <div
+      className={`message ${author}`}
+      data-pending={pending || undefined}
+      aria-label={author === 'user' ? '나' : '비서'}
+    >
       {question ? (
         <AnswerCard question={question} />
       ) : (
@@ -123,7 +135,9 @@ function AnswerCard({ question }: { question: Question }) {
 
 // Agents write file names in backticks; showing them as code is the only formatting chat needs
 function renderInline(text: string) {
-  return text.split(/(`[^`\n]+`)/).map((part, i) =>
-    part.startsWith('`') && part.endsWith('`') && part.length > 2 ? <code key={i}>{part.slice(1, -1)}</code> : part,
-  );
+  return text
+    .split(/(`[^`\n]+`)/)
+    .map((part, i) =>
+      part.startsWith('`') && part.endsWith('`') && part.length > 2 ? <code key={i}>{part.slice(1, -1)}</code> : part,
+    );
 }

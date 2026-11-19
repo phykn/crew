@@ -1,16 +1,27 @@
 import { expect, test } from '@playwright/test';
 import { launchApp, makeScratch, openProject } from './launch';
 
-const hb = (summary: string, more: Record<string, unknown> = {}) => ({ structured: { summary, body: '', points: [], files: [], checks: [], ...more } });
+const hb = (summary: string, more: Record<string, unknown> = {}) => ({
+  structured: { summary, body: '', points: [], files: [], checks: [], ...more },
+});
 const SCRIPT = {
   비서: [
-    { call: { name: 'start_task', input: { kind: 'code', title: '검색 개선', request: '빈 검색어는 전체 목록' } }, text: '업무를 시작했습니다.' },
+    {
+      call: { name: 'start_task', input: { kind: 'code', title: '검색 개선', request: '빈 검색어는 전체 목록' } },
+      text: '업무를 시작했습니다.',
+    },
     { text: '검색을 고쳤고 리뷰와 시험을 통과했습니다.' },
   ],
   기획: [hb('계획')],
   리뷰: [hb('계획 통과', { verdict: 'pass' }), hb('코드 통과', { verdict: 'pass' })],
   // 개발 reaches for a tool outside its role, which becomes an answer card
-  개발: [{ tool: { name: 'WebFetch', input: { url: 'https://example.com/docs' } }, write: { file: 'search.js', text: 'v1' }, ...hb('검색 수정') }],
+  개발: [
+    {
+      tool: { name: 'WebFetch', input: { url: 'https://example.com/docs' } },
+      write: { file: 'search.js', text: 'v1' },
+      ...hb('검색 수정'),
+    },
+  ],
   시험: [hb('시험 통과', { verdict: 'pass', checks: ['npm test → 3 passed'] })],
   표준: [hb('스타일 통과', { verdict: 'pass' })],
 };

@@ -14,7 +14,11 @@ export function makeScratch(files: Record<string, string> = {}) {
   const project = path.join(dir, 'demo');
   fs.mkdirSync(project);
   for (const [name, text] of Object.entries(files)) fs.writeFileSync(path.join(project, name), text);
-  return { db: path.join(dir, 'crew.db'), project, paths: { output: path.join(dir, 'output'), protected: [path.join(dir, 'crew.db')] } };
+  return {
+    db: path.join(dir, 'crew.db'),
+    project,
+    paths: { output: path.join(dir, 'output'), protected: [path.join(dir, 'crew.db')] },
+  };
 }
 
 export function openScratch(files?: Record<string, string>) {

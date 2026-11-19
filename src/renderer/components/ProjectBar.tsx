@@ -30,7 +30,9 @@ export function ProjectBar(props: Props) {
     <div className="project-bar">
       <Select.Root
         value={project ? String(project.id) : ''}
-        onValueChange={(v) => (v === OPEN ? props.onOpenFolder() : props.onProject(projects.find((p) => String(p.id) === v)!))}
+        onValueChange={(v) =>
+          v === OPEN ? props.onOpenFolder() : props.onProject(projects.find((p) => String(p.id) === v)!)
+        }
       >
         <Select.Trigger className="picker project-picker" aria-label="프로젝트">
           <FolderIcon />
@@ -55,7 +57,13 @@ export function ProjectBar(props: Props) {
       <Select.Root
         value={session ? String(session.id) : ''}
         disabled={!project}
-        onValueChange={(v) => (v === NEW ? props.onNewSession() : v === EXPLORER ? props.onExplorer() : props.onSession(sessions.find((s) => String(s.id) === v)!))}
+        onValueChange={(v) =>
+          v === NEW
+            ? props.onNewSession()
+            : v === EXPLORER
+              ? props.onExplorer()
+              : props.onSession(sessions.find((s) => String(s.id) === v)!)
+        }
       >
         <Select.Trigger className="picker session-picker" aria-label="세션">
           <span className="picker-value">{session ? sessionLabel(session) : '세션'}</span>
@@ -87,7 +95,12 @@ export function ProjectBar(props: Props) {
 function FolderIcon() {
   return (
     <svg viewBox="0 0 20 20" className="icon" aria-hidden="true">
-      <path d="M2 5.5A1.5 1.5 0 0 1 3.5 4h4l2 2h7A1.5 1.5 0 0 1 18 7.5v7a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 2 14.5z" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M2 5.5A1.5 1.5 0 0 1 3.5 4h4l2 2h7A1.5 1.5 0 0 1 18 7.5v7a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 2 14.5z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
     </svg>
   );
 }

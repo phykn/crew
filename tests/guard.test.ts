@@ -6,7 +6,13 @@ import { CREW, fakeQuery, openScratch } from './support';
 
 function setup() {
   const scratch = openScratch();
-  const chat = new Chat(scratch.store, async () => fakeQuery([]).sdk, CREW, () => {}, scratch.paths);
+  const chat = new Chat(
+    scratch.store,
+    async () => fakeQuery([]).sdk,
+    CREW,
+    () => {},
+    scratch.paths,
+  );
   const project = scratch.store.addProject(scratch.project);
   chat.seed(project.id);
   const session = scratch.store.createSession(project.id);
@@ -27,7 +33,12 @@ test('리뷰 cannot write the project or push, and each refusal is logged', asyn
   const redirect = await guard(...call('Bash', { command: `echo hi > ${path.join(project.path, 'out.txt')}` }));
   const own = await guard(...call('Bash', { command: 'npm test 2>&1 | tail -5' }));
 
-  expect([write!.behavior, push!.behavior, redirect!.behavior, own!.behavior]).toEqual(['deny', 'deny', 'deny', 'allow']);
+  expect([write!.behavior, push!.behavior, redirect!.behavior, own!.behavior]).toEqual([
+    'deny',
+    'deny',
+    'deny',
+    'allow',
+  ]);
   expect(store.listEvents(session.id).map((e) => [e.kind, e.memberId, e.taskId])).toEqual([
     ['denied', reviewer.id, 7],
     ['denied', reviewer.id, 7],
@@ -76,6 +87,8 @@ test('the app record and crew files are protected even from 개발', () => {
   expect(checkCall(policy, 'Bash', { command: 'rm -rf build' }).kind).toBe('deny');
   // PowerShell is a shell too, so an approval for it never opens a forbidden command or a write outside scope
   expect(checkCall(policy, 'PowerShell', { command: 'Remove-Item -Recurse build' }).kind).toBe('deny');
-  expect(checkCall(policy, 'PowerShell', { command: 'Set-Content -Path C:/elsewhere/x.txt -Value hi' }).kind).toBe('deny');
+  expect(checkCall(policy, 'PowerShell', { command: 'Set-Content -Path C:/elsewhere/x.txt -Value hi' }).kind).toBe(
+    'deny',
+  );
   expect(store.listMembers(project.id).length).toBe(11);
 });

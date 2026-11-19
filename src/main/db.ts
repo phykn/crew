@@ -103,9 +103,21 @@ export type Member = {
   leaving: boolean;
 };
 type MemberRow = Omit<Member, 'config' | 'temp' | 'leaving'> & { config: string; temp: number; leaving: number };
-const MEMBER = 'SELECT id, project_id AS projectId, key, nickname, model, status, config, definition, temp, leaving FROM members';
-const toMember = (r: MemberRow): Member => ({ ...r, config: JSON.parse(r.config), temp: r.temp === 1, leaving: r.leaving === 1 });
-export type AgentSession = { id: number; sessionId: number; memberId: number; claudeId: string | null; model: string | null };
+const MEMBER =
+  'SELECT id, project_id AS projectId, key, nickname, model, status, config, definition, temp, leaving FROM members';
+const toMember = (r: MemberRow): Member => ({
+  ...r,
+  config: JSON.parse(r.config),
+  temp: r.temp === 1,
+  leaving: r.leaving === 1,
+});
+export type AgentSession = {
+  id: number;
+  sessionId: number;
+  memberId: number;
+  claudeId: string | null;
+  model: string | null;
+};
 export type Question = {
   id: number;
   sessionId: number;
@@ -135,7 +147,16 @@ export type Event = {
   at: string;
 };
 type QuestionRow = Omit<Question, 'options' | 'payload'> & { options: string; payload: string };
-export type TaskStatus = 'queued' | 'running' | 'reviewing' | 'fixing' | 'waiting' | 'done' | 'failed' | 'stopping' | 'stopped';
+export type TaskStatus =
+  | 'queued'
+  | 'running'
+  | 'reviewing'
+  | 'fixing'
+  | 'waiting'
+  | 'done'
+  | 'failed'
+  | 'stopping'
+  | 'stopped';
 export type Task = {
   id: number;
   sessionId: number;
@@ -154,7 +175,15 @@ const TASK =
 const toTask = (r: TaskRow): Task => ({ ...r, workflow: JSON.parse(r.workflow) });
 // A peer request and its back-and-forth, oldest line first
 export type PeerLine = { from: string; text: string };
-export type PeerRequest = { id: number; taskId: number; stepId: string; fromMember: number; toRole: string; expected: string; thread: PeerLine[] };
+export type PeerRequest = {
+  id: number;
+  taskId: number;
+  stepId: string;
+  fromMember: number;
+  toRole: string;
+  expected: string;
+  thread: PeerLine[];
+};
 export type Handback = {
   summary: string;
   body: string;
@@ -190,7 +219,11 @@ export type Run = {
   costUsd: number;
   error: string | null;
 };
-type RunResult = { status: string; usage: { turns: number; inputTokens: number; outputTokens: number; costUsd: number }; error?: string };
+type RunResult = {
+  status: string;
+  usage: { turns: number; inputTokens: number; outputTokens: number; costUsd: number };
+  error?: string;
+};
 
 export function now() {
   return new Date().toISOString();
@@ -272,10 +305,15 @@ export class Store {
 
   // What deleting would take with it, shown before the user confirms
   impact(where: { sessionId: number } | { projectId: number }) {
-    const scope = 'sessionId' in where ? 'session_id = ?' : 'session_id IN (SELECT id FROM sessions WHERE project_id = ?)';
+    const scope =
+      'sessionId' in where ? 'session_id = ?' : 'session_id IN (SELECT id FROM sessions WHERE project_id = ?)';
     const arg = 'sessionId' in where ? where.sessionId : where.projectId;
-    const count = (table: string) => (this.db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE ${scope}`).get(arg) as { n: number }).n;
-    const sessions = 'sessionId' in where ? 1 : (this.db.prepare('SELECT COUNT(*) AS n FROM sessions WHERE project_id = ?').get(arg) as { n: number }).n;
+    const count = (table: string) =>
+      (this.db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE ${scope}`).get(arg) as { n: number }).n;
+    const sessions =
+      'sessionId' in where
+        ? 1
+        : (this.db.prepare('SELECT COUNT(*) AS n FROM sessions WHERE project_id = ?').get(arg) as { n: number }).n;
     return { sessions, tasks: count('tasks'), events: count('events'), messages: count('messages') };
   }
 
@@ -320,7 +358,9 @@ export class Store {
   }
 
   seedMembers(projectId: number, defs: { key: string; nickname: string; model: string }[]) {
-    const insert = this.db.prepare('INSERT OR IGNORE INTO members (project_id, key, nickname, model) VALUES (?, ?, ?, ?)');
+    const insert = this.db.prepare(
+      'INSERT OR IGNORE INTO members (project_id, key, nickname, model) VALUES (?, ?, ?, ?)',
+    );
     for (const d of defs) insert.run(projectId, d.key, d.nickname, d.model);
   }
 
@@ -329,12 +369,17 @@ export class Store {
   }
 
   readMember(projectId: number, key: string): Member {
-    const row = this.db.prepare(`${MEMBER} WHERE project_id = ? AND key = ?`).get(projectId, key) as MemberRow | undefined;
+    const row = this.db.prepare(`${MEMBER} WHERE project_id = ? AND key = ?`).get(projectId, key) as
+      | MemberRow
+      | undefined;
     if (!row) throw new Error(`no member ${key} in project ${projectId}`);
     return toMember(row);
   }
 
-  addMember(projectId: number, m: { key: string; nickname: string; model: string; definition: string; temp: boolean }): Member {
+  addMember(
+    projectId: number,
+    m: { key: string; nickname: string; model: string; definition: string; temp: boolean },
+  ): Member {
     const { lastInsertRowid } = this.db
       .prepare('INSERT INTO members (project_id, key, nickname, model, definition, temp) VALUES (?, ?, ?, ?, ?, ?)')
       .run(projectId, m.key, m.nickname, m.model, m.definition, m.temp ? 1 : 0);
@@ -346,18 +391,24 @@ export class Store {
   }
 
   assign(taskId: number, stepId: string, memberId: number) {
-    this.db.prepare('INSERT OR REPLACE INTO assignees (task_id, step_id, member_id) VALUES (?, ?, ?)').run(taskId, stepId, memberId);
+    this.db
+      .prepare('INSERT OR REPLACE INTO assignees (task_id, step_id, member_id) VALUES (?, ?, ?)')
+      .run(taskId, stepId, memberId);
   }
 
   assignee(taskId: number, stepId: string): number | null {
-    const row = this.db.prepare('SELECT member_id AS id FROM assignees WHERE task_id = ? AND step_id = ?').get(taskId, stepId) as { id: number } | undefined;
+    const row = this.db
+      .prepare('SELECT member_id AS id FROM assignees WHERE task_id = ? AND step_id = ?')
+      .get(taskId, stepId) as { id: number } | undefined;
     return row?.id ?? null;
   }
 
   updateMember(id: number, change: { nickname?: string; model?: string; status?: Member['status'] }) {
-    if (change.nickname !== undefined) this.db.prepare('UPDATE members SET nickname = ? WHERE id = ?').run(change.nickname, id);
+    if (change.nickname !== undefined)
+      this.db.prepare('UPDATE members SET nickname = ? WHERE id = ?').run(change.nickname, id);
     if (change.model !== undefined) this.db.prepare('UPDATE members SET model = ? WHERE id = ?').run(change.model, id);
-    if (change.status !== undefined) this.db.prepare('UPDATE members SET status = ? WHERE id = ?').run(change.status, id);
+    if (change.status !== undefined)
+      this.db.prepare('UPDATE members SET status = ? WHERE id = ?').run(change.status, id);
   }
 
   readMemberById(id: number): Member {
@@ -375,7 +426,9 @@ export class Store {
   }
 
   listPermissionChanges(memberId: number): { change: string; at: string }[] {
-    return this.db.prepare('SELECT change, at FROM permission_changes WHERE member_id = ? ORDER BY id').all(memberId) as {
+    return this.db
+      .prepare('SELECT change, at FROM permission_changes WHERE member_id = ? ORDER BY id')
+      .all(memberId) as {
       change: string;
       at: string;
     }[];
@@ -393,7 +446,9 @@ export class Store {
   }
 
   writeClaudeId(agentSessionId: number, claudeId: string, model: string) {
-    this.db.prepare('UPDATE agent_sessions SET claude_id = ?, model = ? WHERE id = ?').run(claudeId, model, agentSessionId);
+    this.db
+      .prepare('UPDATE agent_sessions SET claude_id = ?, model = ? WHERE id = ?')
+      .run(claudeId, model, agentSessionId);
   }
 
   addMessage(sessionId: number, author: Message['author'], text: string, questionId: number | null = null) {
@@ -413,7 +468,9 @@ export class Store {
 
   addQuestion(q: Omit<Question, 'id' | 'answer'>): number {
     const { lastInsertRowid } = this.db
-      .prepare('INSERT INTO questions (session_id, task_id, kind, prompt, options, payload, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .prepare(
+        'INSERT INTO questions (session_id, task_id, kind, prompt, options, payload, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      )
       .run(q.sessionId, q.taskId, q.kind, q.prompt, JSON.stringify(q.options), JSON.stringify(q.payload), now());
     return Number(lastInsertRowid);
   }
@@ -429,21 +486,29 @@ export class Store {
   }
 
   openQuestionIds(taskId: number): number[] {
-    return (this.db.prepare('SELECT id FROM questions WHERE task_id = ? AND answer IS NULL').all(taskId) as { id: number }[]).map((r) => r.id);
+    return (
+      this.db.prepare('SELECT id FROM questions WHERE task_id = ? AND answer IS NULL').all(taskId) as { id: number }[]
+    ).map((r) => r.id);
   }
 
   // Work cut off by a restart: its runs were lost with the process, so the task waits stopped for the user to resume it
   recoverInterrupted(): number[] {
     return this.transact(() => {
-      const cut = this.db.prepare("SELECT id FROM tasks WHERE status IN ('running', 'reviewing', 'fixing', 'waiting', 'stopping')").all() as { id: number }[];
-      this.db.prepare("UPDATE step_runs SET status = 'stopped', error = 'app restarted' WHERE status = 'running'").run();
+      const cut = this.db
+        .prepare("SELECT id FROM tasks WHERE status IN ('running', 'reviewing', 'fixing', 'waiting', 'stopping')")
+        .all() as { id: number }[];
+      this.db
+        .prepare("UPDATE step_runs SET status = 'stopped', error = 'app restarted' WHERE status = 'running'")
+        .run();
       for (const { id } of cut) this.writeTaskStatus(id, 'stopped', '', '앱이 다시 시작되어 업무가 멈췄습니다');
       return cut.map((r) => r.id);
     });
   }
 
   answerQuestion(id: number, answer: string) {
-    this.db.prepare('UPDATE questions SET answer = ?, answered_at = ? WHERE id = ? AND answer IS NULL').run(answer, now(), id);
+    this.db
+      .prepare('UPDATE questions SET answer = ?, answered_at = ? WHERE id = ? AND answer IS NULL')
+      .run(answer, now(), id);
   }
 
   // An approval counts only inside the task (or, before tasks, the session) it was given in, and only until the member's permissions change
@@ -460,7 +525,9 @@ export class Store {
 
   addEvent(e: Omit<Event, 'id' | 'at'>) {
     this.db
-      .prepare('INSERT INTO events (session_id, task_id, member_id, kind, text, detail, at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .prepare(
+        'INSERT INTO events (session_id, task_id, member_id, kind, text, detail, at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      )
       .run(e.sessionId, e.taskId, e.memberId, e.kind, e.text, e.detail, now());
   }
 
@@ -498,7 +565,15 @@ export class Store {
          FROM runs r JOIN agent_sessions a ON a.id = r.agent_session_id WHERE a.session_id = ?
          GROUP BY a.member_id, r.model ORDER BY costUsd DESC`,
       )
-      .all(sessionId) as { memberId: number; model: string; runs: number; seconds: number; inputTokens: number; outputTokens: number; costUsd: number }[];
+      .all(sessionId) as {
+      memberId: number;
+      model: string;
+      runs: number;
+      seconds: number;
+      inputTokens: number;
+      outputTokens: number;
+      costUsd: number;
+    }[];
   }
 
   listRuns(sessionId: number): Run[] {
@@ -533,15 +608,26 @@ export class Store {
   // A status change and its log line are written together, so the log never disagrees with the card
   writeTaskStatus(id: number, status: TaskStatus, stage: string, log: string) {
     this.transact(() => {
-      this.db.prepare('UPDATE tasks SET status = ?, stage = ?, updated_at = ? WHERE id = ?').run(status, stage, now(), id);
+      this.db
+        .prepare('UPDATE tasks SET status = ?, stage = ?, updated_at = ? WHERE id = ?')
+        .run(status, stage, now(), id);
       const task = this.readTask(id);
-      this.addEvent({ sessionId: task.sessionId, taskId: id, memberId: null, kind: 'status', text: log, detail: status });
+      this.addEvent({
+        sessionId: task.sessionId,
+        taskId: id,
+        memberId: null,
+        kind: 'status',
+        text: log,
+        detail: status,
+      });
     });
   }
 
   startStepRun(taskId: number, stepId: string, memberId: number, versionId: number | null = null): number {
     const { lastInsertRowid } = this.db
-      .prepare("INSERT INTO step_runs (task_id, step_id, member_id, status, started_at, version_id) VALUES (?, ?, ?, 'running', ?, ?)")
+      .prepare(
+        "INSERT INTO step_runs (task_id, step_id, member_id, status, started_at, version_id) VALUES (?, ?, ?, 'running', ?, ?)",
+      )
       .run(taskId, stepId, memberId, now(), versionId);
     return Number(lastInsertRowid);
   }
@@ -566,7 +652,9 @@ export class Store {
   }
 
   readBaseline(taskId: number): Record<string, string> {
-    return JSON.parse((this.db.prepare('SELECT baseline FROM tasks WHERE id = ?').get(taskId) as { baseline: string }).baseline);
+    return JSON.parse(
+      (this.db.prepare('SELECT baseline FROM tasks WHERE id = ?').get(taskId) as { baseline: string }).baseline,
+    );
   }
 
   addVersion(taskId: number, files: string[], snap: Record<string, string>): number {
@@ -577,44 +665,75 @@ export class Store {
   }
 
   latestVersion(taskId: number): Version | null {
-    const row = this.db.prepare('SELECT id, task_id AS taskId, files FROM versions WHERE task_id = ? ORDER BY id DESC LIMIT 1').get(taskId) as
-      | { id: number; taskId: number; files: string }
-      | undefined;
+    const row = this.db
+      .prepare('SELECT id, task_id AS taskId, files FROM versions WHERE task_id = ? ORDER BY id DESC LIMIT 1')
+      .get(taskId) as { id: number; taskId: number; files: string } | undefined;
     return row ? { ...row, files: JSON.parse(row.files) } : null;
   }
 
   // A rework the user asked for after the report: recorded like a reviewer's, so the engine reruns from there
   addUserRework(taskId: number, memberId: number, target: string, text: string) {
     const id = this.startStepRun(taskId, '_user', memberId);
-    this.finishStepRun(id, 'done', { summary: text, body: text, verdict: 'rework', points: [text], files: [], checks: [], target });
+    this.finishStepRun(id, 'done', {
+      summary: text,
+      body: text,
+      verdict: 'rework',
+      points: [text],
+      files: [],
+      checks: [],
+      target,
+    });
   }
 
   appendRequest(taskId: number, text: string) {
-    this.db.prepare("UPDATE tasks SET request = request || char(10) || char(10) || ? WHERE id = ?").run(`추가 요청: ${text}`, taskId);
+    this.db
+      .prepare('UPDATE tasks SET request = request || char(10) || char(10) || ? WHERE id = ?')
+      .run(`추가 요청: ${text}`, taskId);
   }
 
   latestWorkflow(projectId: number, kind: string): { version: number; rules: Workflow; layout: unknown } | null {
     const row = this.db
-      .prepare('SELECT version, rules, layout FROM workflow_versions WHERE project_id = ? AND kind = ? ORDER BY version DESC LIMIT 1')
+      .prepare(
+        'SELECT version, rules, layout FROM workflow_versions WHERE project_id = ? AND kind = ? ORDER BY version DESC LIMIT 1',
+      )
       .get(projectId, kind) as { version: number; rules: string; layout: string | null } | undefined;
-    return row ? { version: row.version, rules: JSON.parse(row.rules), layout: row.layout ? JSON.parse(row.layout) : null } : null;
+    return row
+      ? { version: row.version, rules: JSON.parse(row.rules), layout: row.layout ? JSON.parse(row.layout) : null }
+      : null;
   }
 
   // The base check and the insert are one transaction, so two saves from the same base cannot both land
-  addWorkflowVersion(projectId: number, kind: string, base: number, rules: Workflow, layout: unknown, author: string): number | null {
+  addWorkflowVersion(
+    projectId: number,
+    kind: string,
+    base: number,
+    rules: Workflow,
+    layout: unknown,
+    author: string,
+  ): number | null {
     return this.transact(() => {
       if ((this.latestWorkflow(projectId, kind)?.version ?? 0) !== base) return null;
       this.db
-        .prepare('INSERT INTO workflow_versions (project_id, kind, version, rules, layout, author, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-        .run(projectId, kind, base + 1, JSON.stringify(rules), layout === undefined ? null : JSON.stringify(layout), author, now());
+        .prepare(
+          'INSERT INTO workflow_versions (project_id, kind, version, rules, layout, author, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        )
+        .run(
+          projectId,
+          kind,
+          base + 1,
+          JSON.stringify(rules),
+          layout === undefined ? null : JSON.stringify(layout),
+          author,
+          now(),
+        );
       return base + 1;
     });
   }
 
   readWorkflowVersion(projectId: number, kind: string, version: number): Workflow | null {
-    const row = this.db.prepare('SELECT rules FROM workflow_versions WHERE project_id = ? AND kind = ? AND version = ?').get(projectId, kind, version) as
-      | { rules: string }
-      | undefined;
+    const row = this.db
+      .prepare('SELECT rules FROM workflow_versions WHERE project_id = ? AND kind = ? AND version = ?')
+      .get(projectId, kind, version) as { rules: string } | undefined;
     return row ? JSON.parse(row.rules) : null;
   }
 
@@ -633,7 +752,9 @@ export class Store {
 
   createRequest(r: Omit<PeerRequest, 'id' | 'thread'>): number {
     const { lastInsertRowid } = this.db
-      .prepare('INSERT INTO requests (task_id, step_id, from_member, to_role, expected, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+      .prepare(
+        'INSERT INTO requests (task_id, step_id, from_member, to_role, expected, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      )
       .run(r.taskId, r.stepId, r.fromMember, r.toRole, r.expected, now());
     return Number(lastInsertRowid);
   }
@@ -658,6 +779,8 @@ export class Store {
   }
 
   writeSetting(key: string, value: string) {
-    this.db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value').run(key, value);
+    this.db
+      .prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value')
+      .run(key, value);
   }
 }

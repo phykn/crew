@@ -13,9 +13,7 @@
       "id": "plan_review",
       "role": "reviewer",
       "label": "계획 검토",
-      "after": [
-        "plan"
-      ],
+      "after": ["plan"],
       "verdict": true,
       "rework": "plan",
       "does": "Review the plan before anyone edits code."
@@ -24,21 +22,15 @@
       "id": "develop",
       "role": "coder",
       "label": "개발",
-      "after": [
-        "plan_review"
-      ],
+      "after": ["plan_review"],
       "does": "Make the change the approved plan describes.",
-      "requires": [
-        "files"
-      ]
+      "requires": ["files"]
     },
     {
       "id": "review",
       "role": "reviewer",
       "label": "코드 리뷰",
-      "after": [
-        "develop"
-      ],
+      "after": ["develop"],
       "verdict": true,
       "rework": "develop",
       "does": "Review the code change for correctness."
@@ -47,23 +39,17 @@
       "id": "test",
       "role": "tester",
       "label": "시험",
-      "after": [
-        "develop"
-      ],
+      "after": ["develop"],
       "verdict": true,
       "rework": "develop",
       "does": "Run the project's full test suite and build on the change.",
-      "requires": [
-        "checks"
-      ]
+      "requires": ["checks"]
     },
     {
       "id": "style",
       "role": "stylist",
       "label": "스타일 검토",
-      "after": [
-        "develop"
-      ],
+      "after": ["develop"],
       "verdict": true,
       "rework": "develop",
       "does": "Check that the change fits the project's conventions."

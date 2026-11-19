@@ -8,7 +8,15 @@ type Target = { kind: 'session'; id: number; name: string } | { kind: 'project';
 type Impact = { sessions: number; tasks: number; events: number; messages: number };
 
 // 프로젝트 → 세션 → 에이전트 세션, with removal that says what it takes before it happens
-export function ProjectTree({ open, onClose, onDeleted }: { open: boolean; onClose: () => void; onDeleted: () => void }) {
+export function ProjectTree({
+  open,
+  onClose,
+  onDeleted,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onDeleted: () => void;
+}) {
   const [tree, setTree] = useState<Tree>([]);
   const [target, setTarget] = useState<Target | null>(null);
   const [impact, setImpact] = useState<Impact | null>(null);
@@ -20,7 +28,11 @@ export function ProjectTree({ open, onClose, onDeleted }: { open: boolean; onClo
 
   async function ask(t: Target) {
     setTarget(t);
-    setImpact(t.kind === 'session' ? await call('sessions.impact', { sessionId: t.id }) : await call('projects.impact', { projectId: t.id }));
+    setImpact(
+      t.kind === 'session'
+        ? await call('sessions.impact', { sessionId: t.id })
+        : await call('projects.impact', { projectId: t.id }),
+    );
   }
 
   async function confirm() {
@@ -42,22 +54,36 @@ export function ProjectTree({ open, onClose, onDeleted }: { open: boolean; onClo
             {tree.map(({ project, sessions }) => (
               <li key={project.id}>
                 <div className="tree-row">
-                  <span className="tree-name" title={project.path}>{project.name}</span>
-                  <button className="tree-delete" onClick={() => ask({ kind: 'project', id: project.id, name: project.name })}>목록에서 빼기</button>
+                  <span className="tree-name" title={project.path}>
+                    {project.name}
+                  </span>
+                  <button
+                    className="tree-delete"
+                    onClick={() => ask({ kind: 'project', id: project.id, name: project.name })}
+                  >
+                    목록에서 빼기
+                  </button>
                 </div>
                 <ul>
                   {sessions.map(({ session, agents }) => (
                     <li key={session.id}>
                       <div className="tree-row">
                         <span className="tree-name">{sessionLabel(session)}</span>
-                        <button className="tree-delete" onClick={() => ask({ kind: 'session', id: session.id, name: sessionLabel(session) })} aria-label={`${sessionLabel(session)} 삭제`}>
+                        <button
+                          className="tree-delete"
+                          onClick={() => ask({ kind: 'session', id: session.id, name: sessionLabel(session) })}
+                          aria-label={`${sessionLabel(session)} 삭제`}
+                        >
                           세션 삭제
                         </button>
                       </div>
                       <ul>
                         {agents.map((a) => (
                           <li key={a.id} className="tree-agent">
-                            {a.role} <span className="muted">{a.nickname} · 실행 {a.runs}회</span>
+                            {a.role}{' '}
+                            <span className="muted">
+                              {a.nickname} · 실행 {a.runs}회
+                            </span>
                           </li>
                         ))}
                       </ul>
@@ -71,7 +97,9 @@ export function ProjectTree({ open, onClose, onDeleted }: { open: boolean; onClo
             <div className="confirm" role="alertdialog" aria-label="삭제 확인">
               <p>
                 {target.name}
-                {target.kind === 'project' ? `을(를) 목록에서 뺍니다. 세션 ${impact.sessions}개, ` : '을(를) 삭제합니다. '}
+                {target.kind === 'project'
+                  ? `을(를) 목록에서 뺍니다. 세션 ${impact.sessions}개, `
+                  : '을(를) 삭제합니다. '}
                 업무 {impact.tasks}건, 로그 {impact.events}건, 메시지 {impact.messages}건이 지워집니다.
                 {target.kind === 'project' && ' 폴더의 파일은 그대로 둡니다.'}
               </p>

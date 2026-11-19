@@ -177,11 +177,21 @@ export function App() {
               {session && <Log session={session} members={members} taskId={logTask} onTask={setLogTask} />}
             </Tabs.Content>
             <Tabs.Content value="memory" className="tab-body">
-              {project && <Memory projectId={project.id} members={members} memberId={memoryOf} onMember={setMemoryOf} />}
+              {project && (
+                <Memory projectId={project.id} members={members} memberId={memoryOf} onMember={setMemoryOf} />
+              )}
             </Tabs.Content>
             {/* Kept mounted so unsaved edits survive a look at another tab */}
             <Tabs.Content value="workflow" className="tab-body" forceMount>
-              {project && <WorkflowView project={project} members={members} kind={kind} onKind={setKind} active={tab === 'workflow'} />}
+              {project && (
+                <WorkflowView
+                  project={project}
+                  members={members}
+                  kind={kind}
+                  onKind={setKind}
+                  active={tab === 'workflow'}
+                />
+              )}
             </Tabs.Content>
           </Tabs.Root>
         </aside>

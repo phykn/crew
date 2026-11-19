@@ -2,14 +2,23 @@ import { expect, test } from '@playwright/test';
 import { launchApp, makeScratch, openProject } from './launch';
 
 // 조사 has no scripted answer, so the task stays on record with 조사 in it
-const SCRIPT = { 비서: [{ call: { name: 'start_task', input: { kind: 'research', title: '자료 조사', request: 'x', role: '조사' } }, text: '시작했습니다.' }, { text: '실패 보고' }] };
+const SCRIPT = {
+  비서: [
+    {
+      call: { name: 'start_task', input: { kind: 'research', title: '자료 조사', request: 'x', role: '조사' } },
+      text: '시작했습니다.',
+    },
+    { text: '실패 보고' },
+  ],
+};
 type Where = { name: string; x: number; y: number } | null;
 
 test('a nickname change shows over the head at once, and clicking a member opens its task log', async () => {
   const scratch = makeScratch();
   const app = await launchApp(scratch.db, SCRIPT);
   const page = await openProject(app, scratch.project);
-  const where = (key: string) => page.evaluate((k) => (window as unknown as { camp: (k: string) => Where }).camp(k), key);
+  const where = (key: string) =>
+    page.evaluate((k) => (window as unknown as { camp: (k: string) => Where }).camp(k), key);
   await expect.poll(async () => (await where('researcher'))?.name).toBe('누리');
   await page.getByLabel('조사 설정').click();
   await page.getByLabel('조사 별명').fill('나래');

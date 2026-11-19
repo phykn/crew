@@ -63,13 +63,23 @@ test('real Claude: 비서 opens a code task and the crew plans, reviews, changes
 
   const [task] = store.listTasks(s.id);
   const steps = store.listStepRuns(task.id).map((r) => `${r.stepId}:${r.status}:${r.verdict ?? ''}`);
-  console.log({ errors: store.listStepRuns(task.id).map((r) => r.error), runs: store.listRuns(s.id).map((r) => r.error), steps, asked, report: store.listMessages(s.id).at(-1)!.text });
+  console.log({
+    errors: store.listStepRuns(task.id).map((r) => r.error),
+    runs: store.listRuns(s.id).map((r) => r.error),
+    steps,
+    asked,
+    report: store.listMessages(s.id).at(-1)!.text,
+  });
   expect(task.status).toBe('done');
   expect(steps[0]).toBe('plan:done:');
-  const out = execFileSync(process.execPath, ['-e', `import('./search.js').then(m => console.log(JSON.stringify(m.search(['a','b'], ''))))`], {
-    cwd: scratch.project,
-    encoding: 'utf-8',
-  });
+  const out = execFileSync(
+    process.execPath,
+    ['-e', `import('./search.js').then(m => console.log(JSON.stringify(m.search(['a','b'], ''))))`],
+    {
+      cwd: scratch.project,
+      encoding: 'utf-8',
+    },
+  );
   expect(JSON.parse(out)).toEqual(['a', 'b']);
   expect(store.listEvents(s.id).some((e) => e.kind === 'step' && e.text.includes('개발: 개발 완료'))).toBe(true);
   expect(path.basename(scratch.project)).toBe('demo');

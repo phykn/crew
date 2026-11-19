@@ -1,6 +1,14 @@
 /* Every size and color the window uses lives here; styles.css only refers to these, so the UI stays consistent */
-@font-face { font-family: Galmuri11; font-weight: 400; src: url('../../node_modules/galmuri/dist/Galmuri11.woff2') format('woff2'); }
-@font-face { font-family: Galmuri11; font-weight: 700; src: url('../../node_modules/galmuri/dist/Galmuri11-Bold.woff2') format('woff2'); }
+@font-face {
+  font-family: Galmuri11;
+  font-weight: 400;
+  src: url('../../node_modules/galmuri/dist/Galmuri11.woff2') format('woff2');
+}
+@font-face {
+  font-family: Galmuri11;
+  font-weight: 700;
+  src: url('../../node_modules/galmuri/dist/Galmuri11-Bold.woff2') format('woff2');
+}
 
 :root {
   color-scheme: light;

@@ -10,8 +10,18 @@ test('a broken step fails after its retries; a stopped task leaves the other run
   const held: Turn = (p, o) => new Promise((r) => (release = () => r(reply('', 'claude-research')(p, o) as never)));
   const never: Turn = () => new Promise(() => {});
   const broken = reply('형식 없음', 'claude-research');
-  const fake = fakeCrew({ 비서: [reply('실패 보고', 'claude-secretary')], 조사: [broken, broken, broken, broken, held], 기획: [never] });
-  const chat = new Chat(store, async () => fake.sdk, CREW, () => {}, paths);
+  const fake = fakeCrew({
+    비서: [reply('실패 보고', 'claude-secretary')],
+    조사: [broken, broken, broken, broken, held],
+    기획: [never],
+  });
+  const chat = new Chat(
+    store,
+    async () => fake.sdk,
+    CREW,
+    () => {},
+    paths,
+  );
   const p = store.addProject(project);
   chat.seed(p.id);
   const s = store.createSession(p.id);
@@ -33,8 +43,14 @@ test('a broken step fails after its retries; a stopped task leaves the other run
   // A restart cuts off what was running; the user's word resumes it from the unfinished step
   const after = new Store(db);
   expect(after.recoverInterrupted()).toEqual([three.id]);
-  const fresh = fakeCrew({ 기획: [handback('p', { summary: '계획' }), never] , 리뷰: [never] });
-  const again = new Chat(after, async () => fresh.sdk, CREW, () => {}, paths);
+  const fresh = fakeCrew({ 기획: [handback('p', { summary: '계획' }), never], 리뷰: [never] });
+  const again = new Chat(
+    after,
+    async () => fresh.sdk,
+    CREW,
+    () => {},
+    paths,
+  );
   expect(again.tasks.resume(three.id)).toBe(true);
   await vi.waitFor(() => expect(fresh.calls.map((c) => c.role)).toEqual(['기획', '리뷰']));
 });
@@ -45,7 +61,13 @@ test('a refused reopen leaves no trace, and a step queued before a stop is not r
   const held: Turn = (p, o) => new Promise((r) => (release = () => r(reply('', 'claude-plan')(p, o) as never)));
   const never: Turn = () => new Promise(() => {});
   const fake = fakeCrew({ 기획: [held, handback('claude-plan', { summary: '계획' })], 리뷰: [never] });
-  const chat = new Chat(store, async () => fake.sdk, CREW, () => {}, paths);
+  const chat = new Chat(
+    store,
+    async () => fake.sdk,
+    CREW,
+    () => {},
+    paths,
+  );
   const p = store.addProject(project);
   chat.seed(p.id);
   const s = store.createSession(p.id);

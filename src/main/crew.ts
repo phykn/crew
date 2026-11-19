@@ -6,7 +6,19 @@ import type { Member } from './db';
 export const MODELS = ['haiku', 'sonnet', 'opus'] as const;
 
 // The legend lists the starting crew in this order; anyone hired later follows in the order they joined
-const ORDER = ['orchestrator', 'hr', 'tools', 'advisor', 'coder', 'reviewer', 'tester', 'stylist', 'researcher', 'images', 'helper'];
+const ORDER = [
+  'orchestrator',
+  'hr',
+  'tools',
+  'advisor',
+  'coder',
+  'reviewer',
+  'tester',
+  'stylist',
+  'researcher',
+  'images',
+  'helper',
+];
 // The crew cannot run without these: 비서 takes every request, and only 인사 and 도구 bring in people and tools
 export const KEPT = ['orchestrator', 'hr', 'tools', 'helper'];
 
@@ -23,7 +35,12 @@ const TOOL_KINDS = {
 const list = z
   .string()
   .default('')
-  .transform((s) => s.split(',').map((x) => x.trim()).filter(Boolean));
+  .transform((s) =>
+    s
+      .split(',')
+      .map((x) => x.trim())
+      .filter(Boolean),
+  );
 
 const Front = z.object({
   role: z.string().min(1),
@@ -39,7 +56,12 @@ const Front = z.object({
 });
 
 // readTools lists an MCP server's tools that only look, for members given read access to it
-const KitItem = z.object({ icon: z.string(), label: z.string(), use: z.string(), readTools: z.array(z.string()).optional() });
+const KitItem = z.object({
+  icon: z.string(),
+  label: z.string(),
+  use: z.string(),
+  readTools: z.array(z.string()).optional(),
+});
 const Kit = z.object({ skills: z.record(z.string(), KitItem), mcp: z.record(z.string(), KitItem) });
 const McpFile = z.object({ mcpServers: z.record(z.string(), z.record(z.string(), z.unknown())) });
 
@@ -76,10 +98,13 @@ export function parseDefinition(key: string, text: string): Definition {
   const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
   if (!m) throw new Error(`${key}.md has no front matter`);
   const fields = Object.fromEntries(
-    m[1].split(/\r?\n/).filter(Boolean).map((line) => {
-      const at = line.indexOf(':');
-      return [line.slice(0, at).trim(), line.slice(at + 1).trim()];
-    }),
+    m[1]
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map((line) => {
+        const at = line.indexOf(':');
+        return [line.slice(0, at).trim(), line.slice(at + 1).trim()];
+      }),
   );
   return { ...Front.parse(fields), key, instructions: m[2].trim() };
 }
@@ -101,7 +126,9 @@ export class Crew {
       .filter((f) => f.endsWith('.md'))
       .map((f) => parseDefinition(f.slice(0, -3), fs.readFileSync(path.join(agents, f), 'utf-8')));
     this.rules = fs.readFileSync(path.join(dir, 'RULES.md'), 'utf-8');
-    this.nicknames = z.record(z.string(), z.string().min(1)).parse(JSON.parse(fs.readFileSync(path.join(dir, 'nicknames.json'), 'utf-8')));
+    this.nicknames = z
+      .record(z.string(), z.string().min(1))
+      .parse(JSON.parse(fs.readFileSync(path.join(dir, 'nicknames.json'), 'utf-8')));
     const unnamed = this.defs.filter((d) => !this.nicknames[d.key]).map((d) => d.key);
     if (unnamed.length) throw new Error(`nicknames.json has no nickname for: ${unnamed.join(', ')}`);
     this.kit = Kit.parse(JSON.parse(fs.readFileSync(path.join(dir, 'kit.json'), 'utf-8')));
@@ -128,7 +155,9 @@ export class Crew {
     if (!member.definition) return this.find(member.key);
     const def = parseDefinition(member.key, member.definition);
     // A temp may only read, search, and write into its output folder, with no MCP server
-    return member.temp ? { ...def, tools: def.tools.filter((t) => ['read', 'search', 'write'].includes(t)), write: 'output', mcp: [] } : def;
+    return member.temp
+      ? { ...def, tools: def.tools.filter((t) => ['read', 'search', 'write'].includes(t)), write: 'output', mcp: [] }
+      : def;
   }
 
   find(key: string): Definition {
@@ -154,7 +183,9 @@ export class Crew {
   // Only the servers this member holds are started for its run
   mcpServers(settings: Settings) {
     // A server with no command, such as the app's own, is started in process by the caller
-    return Object.fromEntries(settings.mcp.filter(({ server }) => this.servers[server]).map(({ server }) => [server, this.servers[server]])) as Record<string, never>;
+    return Object.fromEntries(
+      settings.mcp.filter(({ server }) => this.servers[server]).map(({ server }) => [server, this.servers[server]]),
+    ) as Record<string, never>;
   }
 
   checkConfig(config: Config) {
@@ -167,26 +198,28 @@ export class Crew {
 
   describe(members: Member[]): CrewMember[] {
     const rank = (key: string) => (ORDER.includes(key) ? ORDER.indexOf(key) : ORDER.length);
-    return members
-      // A temp is on the legend only while hired
-      .filter((m) => !(m.temp && m.status !== 'hired'))
-      .map((m) => {
-        const def = this.defOf(m);
-        const settings = this.settings(def, m.config);
-        return {
-          ...m,
-          role: def.role,
-          color: def.color,
-          kept: KEPT.includes(m.key),
-          skills: [
-            ...settings.skills.map((name) => ({ name, ...this.kit.skills[name] })),
-            ...settings.mcp.map(({ server }) => ({ name: server, ...this.kit.mcp[server] })),
-          ],
-          look: def.look,
-          description: def.description,
-        };
-      })
-      .sort((a, b) => rank(a.key) - rank(b.key) || a.id - b.id);
+    return (
+      members
+        // A temp is on the legend only while hired
+        .filter((m) => !(m.temp && m.status !== 'hired'))
+        .map((m) => {
+          const def = this.defOf(m);
+          const settings = this.settings(def, m.config);
+          return {
+            ...m,
+            role: def.role,
+            color: def.color,
+            kept: KEPT.includes(m.key),
+            skills: [
+              ...settings.skills.map((name) => ({ name, ...this.kit.skills[name] })),
+              ...settings.mcp.map(({ server }) => ({ name: server, ...this.kit.mcp[server] })),
+            ],
+            look: def.look,
+            description: def.description,
+          };
+        })
+        .sort((a, b) => rank(a.key) - rank(b.key) || a.id - b.id)
+    );
   }
 }
 

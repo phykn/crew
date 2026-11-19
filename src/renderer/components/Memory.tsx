@@ -8,7 +8,17 @@ const KIND: Record<Change['kind'], string> = { create: '생성', edit: '수정',
 const ALL = 'all';
 
 // The memory tab: the project wiki everyone shares, and each member's own notes
-export function Memory({ projectId, members, memberId, onMember }: { projectId: number; members: CrewMember[]; memberId: number | null; onMember: (id: number | null) => void }) {
+export function Memory({
+  projectId,
+  members,
+  memberId,
+  onMember,
+}: {
+  projectId: number;
+  members: CrewMember[];
+  memberId: number | null;
+  onMember: (id: number | null) => void;
+}) {
   const [view, setView] = useState<'wiki' | 'agents'>(memberId ? 'agents' : 'wiki');
   const [writing, setWriting] = useState(0);
   useEffect(() => {
@@ -18,23 +28,36 @@ export function Memory({ projectId, members, memberId, onMember }: { projectId: 
     <div className="memory">
       <div className="toolbar">
         <div className="seg" role="group" aria-label="메모리 종류">
-          <button aria-pressed={view === 'wiki'} onClick={() => setView('wiki')}>위키</button>
-          <button aria-pressed={view === 'agents'} onClick={() => setView('agents')}>기억</button>
+          <button aria-pressed={view === 'wiki'} onClick={() => setView('wiki')}>
+            위키
+          </button>
+          <button aria-pressed={view === 'agents'} onClick={() => setView('agents')}>
+            기억
+          </button>
         </div>
         <span className="toolbar-end">
           {view === 'wiki' ? (
-            <button className="button" onClick={() => setWriting((n) => n + 1)}>+ 새 문서</button>
+            <button className="button" onClick={() => setWriting((n) => n + 1)}>
+              + 새 문서
+            </button>
           ) : (
             <Choice
               label="담당자"
               value={memberId ? String(memberId) : ALL}
-              options={[{ value: ALL, label: '모든 담당자' }, ...members.map((m) => ({ value: String(m.id), label: `${m.role} ${m.nickname}` }))]}
+              options={[
+                { value: ALL, label: '모든 담당자' },
+                ...members.map((m) => ({ value: String(m.id), label: `${m.role} ${m.nickname}` })),
+              ]}
               onChange={(v) => onMember(v === ALL ? null : Number(v))}
             />
           )}
         </span>
       </div>
-      {view === 'wiki' ? <WikiView projectId={projectId} writing={writing} /> : <Notes projectId={projectId} members={members} memberId={memberId} />}
+      {view === 'wiki' ? (
+        <WikiView projectId={projectId} writing={writing} />
+      ) : (
+        <Notes projectId={projectId} members={members} memberId={memberId} />
+      )}
     </div>
   );
 }
@@ -64,7 +87,7 @@ function WikiView({ projectId, writing }: { projectId: number; writing: number }
   }, [writing]);
 
   // With nothing picked, the first document shows, so the reader never lands on an empty pane
-  const doc = docs.find((d) => d.id === picked) ?? (draft ? null : docs[0] ?? null);
+  const doc = docs.find((d) => d.id === picked) ?? (draft ? null : (docs[0] ?? null));
   async function save() {
     if (!draft?.title.trim()) return;
     await call('wiki.write', { projectId, ...draft });
@@ -82,26 +105,47 @@ function WikiView({ projectId, writing }: { projectId: number; writing: number }
 
   return (
     <div className="wiki">
-      <div className="wiki-top" data-single={(!docs.length) || undefined}>
+      <div className="wiki-top" data-single={!docs.length || undefined}>
         {docs.length > 0 && (
-        <ul className="wiki-toc" aria-label="위키 목차">
-          {docs.map((d) => (
-            <li key={d.id}>
-              <button aria-current={d.id === doc?.id || undefined} onClick={() => { setPicked(d.id); setDraft(null); setAsking(false); }}>
-                {d.title}
-              </button>
-            </li>
-          ))}
-        </ul>
+          <ul className="wiki-toc" aria-label="위키 목차">
+            {docs.map((d) => (
+              <li key={d.id}>
+                <button
+                  aria-current={d.id === doc?.id || undefined}
+                  onClick={() => {
+                    setPicked(d.id);
+                    setDraft(null);
+                    setAsking(false);
+                  }}
+                >
+                  {d.title}
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
         <div className="wiki-doc" aria-label="위키 본문">
           {draft ? (
             <>
-              <input aria-label="문서 제목" placeholder="제목" value={draft.title} disabled={!!doc} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
-              <textarea aria-label="문서 본문" value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
+              <input
+                aria-label="문서 제목"
+                placeholder="제목"
+                value={draft.title}
+                disabled={!!doc}
+                onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+              />
+              <textarea
+                aria-label="문서 본문"
+                value={draft.body}
+                onChange={(e) => setDraft({ ...draft, body: e.target.value })}
+              />
               <div className="wiki-actions">
-                <button className="button" onClick={() => setDraft(null)}>취소</button>
-                <button className="button primary" onClick={save}>저장</button>
+                <button className="button" onClick={() => setDraft(null)}>
+                  취소
+                </button>
+                <button className="button primary" onClick={save}>
+                  저장
+                </button>
               </div>
             </>
           ) : doc ? (
@@ -109,15 +153,24 @@ function WikiView({ projectId, writing }: { projectId: number; writing: number }
               <h3>{doc.title}</h3>
               <pre className="wiki-body">{doc.body}</pre>
               <div className="wiki-actions">
-                <button className="button" onClick={() => setDraft({ title: doc.title, body: doc.body })}>편집</button>
-                <button className="button danger" onClick={() => (doc.workflowKind ? (setRefusal(null), setAsking(true)) : remove(false))}>삭제</button>
+                <button className="button" onClick={() => setDraft({ title: doc.title, body: doc.body })}>
+                  편집
+                </button>
+                <button
+                  className="button danger"
+                  onClick={() => (doc.workflowKind ? (setRefusal(null), setAsking(true)) : remove(false))}
+                >
+                  삭제
+                </button>
               </div>
               {asking && (
                 <div className="confirm" role="alertdialog" aria-label="삭제 방법">
                   <p>{refusal ?? '워크플로우 규칙과 연결된 문서입니다.'}</p>
                   <div className="confirm-actions">
                     <button onClick={() => remove(false)}>문서만</button>
-                    <button className="danger" onClick={() => remove(true)}>규칙도 해제</button>
+                    <button className="danger" onClick={() => remove(true)}>
+                      규칙도 해제
+                    </button>
                   </div>
                 </div>
               )}
@@ -133,18 +186,27 @@ function WikiView({ projectId, writing }: { projectId: number; writing: number }
             <li key={c.id}>
               <button className="log-line" aria-expanded={detail?.id === c.id} onClick={() => open(c)}>
                 <time>{c.at.slice(5, 16).replace('T', ' ')}</time>
-                <span className="wiki-kind" data-kind={c.kind}>{KIND[c.kind]}</span>
+                <span className="wiki-kind" data-kind={c.kind}>
+                  {KIND[c.kind]}
+                </span>
                 <span className="log-text">
                   {c.title} <span className="muted">{c.author}</span>
                 </span>
               </button>
               {detail?.id === c.id && (
                 <div className="log-detail">
-                  {detail.added.length > 0 && <pre className="added">{detail.added.map((l) => `+ ${l}`).join('\n')}</pre>}
-                  {detail.removed.length > 0 && <pre className="removed">{detail.removed.map((l) => `- ${l}`).join('\n')}</pre>}
+                  {detail.added.length > 0 && (
+                    <pre className="added">{detail.added.map((l) => `+ ${l}`).join('\n')}</pre>
+                  )}
+                  {detail.removed.length > 0 && (
+                    <pre className="removed">{detail.removed.map((l) => `- ${l}`).join('\n')}</pre>
+                  )}
                   {(c.taskId || c.files.length > 0) && (
                     <p className="muted">
-                      {c.taskId && `업무 #${c.taskId}`} {c.files.map((f) => <code key={f}>{f}</code>)}
+                      {c.taskId && `업무 #${c.taskId}`}{' '}
+                      {c.files.map((f) => (
+                        <code key={f}>{f}</code>
+                      ))}
                     </p>
                   )}
                 </div>
@@ -157,7 +219,15 @@ function WikiView({ projectId, writing }: { projectId: number; writing: number }
   );
 }
 
-function Notes({ projectId, members, memberId }: { projectId: number; members: CrewMember[]; memberId: number | null }) {
+function Notes({
+  projectId,
+  members,
+  memberId,
+}: {
+  projectId: number;
+  members: CrewMember[];
+  memberId: number | null;
+}) {
   const [notes, setNotes] = useState<Note[]>([]);
   useEffect(() => {
     const load = async () => setNotes(await call('memories.list', { projectId, memberId: memberId ?? undefined }));
@@ -171,7 +241,11 @@ function Notes({ projectId, members, memberId }: { projectId: number; members: C
       {notes.map((n) => (
         <li key={n.id} className="note">
           <span className="log-who">{who(n.memberId)?.role ?? '?'}</span> {n.text}
-          <span className="muted"> {n.at.slice(5, 16).replace('T', ' ')}{n.taskId ? ` · 업무 #${n.taskId}` : ''}</span>
+          <span className="muted">
+            {' '}
+            {n.at.slice(5, 16).replace('T', ' ')}
+            {n.taskId ? ` · 업무 #${n.taskId}` : ''}
+          </span>
         </li>
       ))}
     </ul>

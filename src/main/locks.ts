@@ -15,7 +15,9 @@ export class Locks {
   constructor(private root: string) {}
 
   blockers(taskId: number, paths: string[]) {
-    return [...this.held].filter(([id, mine]) => id !== taskId && paths.some((p) => [...mine].some((q) => overlaps(p, q)))).map(([id]) => id);
+    return [...this.held]
+      .filter(([id, mine]) => id !== taskId && paths.some((p) => [...mine].some((q) => overlaps(p, q))))
+      .map(([id]) => id);
   }
 
   // Resolves once the task holds every path; 'deadlock' when the holder it would wait for is waiting on this task
@@ -23,7 +25,11 @@ export class Locks {
     const blockers = this.blockers(taskId, paths);
     if (blockers.length) {
       const mine = this.held.get(taskId);
-      const stuck = mine && this.waiting.some((w) => blockers.includes(w.taskId) && w.paths.some((p) => [...mine].some((q) => overlaps(p, q))));
+      const stuck =
+        mine &&
+        this.waiting.some(
+          (w) => blockers.includes(w.taskId) && w.paths.some((p) => [...mine].some((q) => overlaps(p, q))),
+        );
       if (stuck) return 'deadlock';
       onWait(blockers);
       await new Promise<void>((resolve) => this.waiting.push({ taskId, paths, resolve }));
@@ -38,7 +44,10 @@ export class Locks {
   stale(taskId: number, base: Snapshot, paths: string[]) {
     const seen = { ...base, ...this.seen.get(taskId) };
     const now = this.hashes(paths);
-    const keys = new Set([...Object.keys(now), ...Object.keys(seen).filter((k) => paths.some((p) => overlaps(path.join(this.root, k), p)))]);
+    const keys = new Set([
+      ...Object.keys(now),
+      ...Object.keys(seen).filter((k) => paths.some((p) => overlaps(path.join(this.root, k), p))),
+    ]);
     this.seen.set(taskId, { ...this.seen.get(taskId), ...now });
     return [...keys].filter((k) => seen[k] !== now[k]);
   }

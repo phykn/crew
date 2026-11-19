@@ -5,8 +5,18 @@ import { createWalkers } from '../src/renderer/camp/walkers.js';
 test('idle members stroll only on open ground and chat among themselves without touching the record', () => {
   vi.useFakeTimers();
   const w = createWalkers(false);
-  w.applyStaff(['a', 'b', 'c', 'd', 'e', 'f'].map((k) => ({ team: k, name: k, color: '#fff', look: ['hair', 'vest', 'boots'], state: 'idle' })));
-  let moved = 0, chats = 0, now = 0;
+  w.applyStaff(
+    ['a', 'b', 'c', 'd', 'e', 'f'].map((k) => ({
+      team: k,
+      name: k,
+      color: '#fff',
+      look: ['hair', 'vest', 'boots'],
+      state: 'idle',
+    })),
+  );
+  let moved = 0,
+    chats = 0,
+    now = 0;
   const start = [...w.people.values()].map((p) => [p.x, p.y]);
   for (let i = 0; i < 6000; i++) {
     now += 50;

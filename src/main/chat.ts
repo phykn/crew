@@ -22,7 +22,10 @@ export type Emit = (channel: 'changed' | 'stream' | 'navigate', payload: unknown
 export type Paths = { output: string; protected: string[] };
 
 const Draft = z.object({
-  key: z.string().regex(/^[a-z][a-z0-9_]*$/).describe('The role in lowercase English, such as translator'),
+  key: z
+    .string()
+    .regex(/^[a-z][a-z0-9_]*$/)
+    .describe('The role in lowercase English, such as translator'),
   nickname: z.string().min(1).max(12).describe('A Korean nickname unlike the ones in use'),
   definition: z.string().describe('The whole definition: front matter and instructions'),
 });
@@ -95,7 +98,16 @@ export class Chat {
       server,
       readTools: access === 'read' ? (this.crew.kit.mcp[server].readTools ?? []) : null,
     }));
-    return { key: def.key, role: def.role, tools: toolsOf(settings), write: settings.write, mcp, project: project.path, output, protected: this.paths.protected };
+    return {
+      key: def.key,
+      role: def.role,
+      tools: toolsOf(settings),
+      write: settings.write,
+      mcp,
+      project: project.path,
+      output,
+      protected: this.paths.protected,
+    };
   }
 
   outputDir(project: Project, scope: string) {
@@ -109,14 +121,20 @@ export class Chat {
     const member = this.store.readMemberById(memberId);
     const merged = { ...member.config, ...config };
     // Only names of what changed are recorded: server settings may hold credentials
-    this.store.writeConfig(memberId, merged, describeChange(this.settings(member), this.settings({ ...member, config: merged })));
+    this.store.writeConfig(
+      memberId,
+      merged,
+      describeChange(this.settings(member), this.settings({ ...member, config: merged })),
+    );
   }
 
   guard(member: Member, project: Project, sessionId: number, taskId: number | null) {
     const scope = taskId ? `task-${taskId}` : `session-${sessionId}`;
     // Read from the record on every call, so a permission changed or revoked mid-run applies to the next call
     const policy = () => this.policy(this.store.readMemberById(member.id), project, scope);
-    const reserve = taskId ? (tool: string, input: Record<string, unknown>) => this.reserve(project, taskId, policy(), tool, input) : undefined;
+    const reserve = taskId
+      ? (tool: string, input: Record<string, unknown>) => this.reserve(project, taskId, policy(), tool, input)
+      : undefined;
     return guardMember({ store: this.store, questions: this.questions, policy, sessionId, taskId, member, reserve });
   }
 
@@ -135,26 +153,53 @@ export class Chat {
     // Only paths newly taken are checked: while the task holds a path, the changes on it are its own
     const fresh = paths.filter((p) => !locks.held.get(taskId)?.has(p));
     const got = await locks.reserve(taskId, paths, (holders) => {
-      this.store.addEvent({ sessionId: task.sessionId, taskId, memberId: null, kind: 'waiting', text: `쓰기 예약 대기: 업무 #${holders.join(', #')}가 같은 범위를 쓰는 중`, detail: JSON.stringify({ paths }) });
+      this.store.addEvent({
+        sessionId: task.sessionId,
+        taskId,
+        memberId: null,
+        kind: 'waiting',
+        text: `쓰기 예약 대기: 업무 #${holders.join(', #')}가 같은 범위를 쓰는 중`,
+        detail: JSON.stringify({ paths }),
+      });
       this.emit('changed', 'tasks');
     });
-    if (got === 'deadlock') return `Blocked by the crew guard: another task is waiting on files you hold. Finish your step without ${paths.join(', ')} and say so in your handback.`;
+    if (got === 'deadlock')
+      return `Blocked by the crew guard: another task is waiting on files you hold. Finish your step without ${paths.join(', ')} and say so in your handback.`;
     const stale = locks.stale(taskId, this.store.readBaseline(taskId), fresh);
     if (!stale.length) return null;
-    this.store.addEvent({ sessionId: task.sessionId, taskId, memberId: null, kind: 'stale', text: `다시 읽어야 할 파일: ${stale.join(', ')}`, detail: null });
+    this.store.addEvent({
+      sessionId: task.sessionId,
+      taskId,
+      memberId: null,
+      kind: 'stale',
+      text: `다시 읽어야 할 파일: ${stale.join(', ')}`,
+      detail: null,
+    });
     return `Not written: ${stale.join(', ')} changed since this task last read it (another task or the user changed it while you waited). Read it again and redo your change on top of the current content.`;
   }
 
   seed(projectId: number) {
-    this.store.seedMembers(projectId, this.crew.defs.map((d) => ({ ...d, nickname: this.crew.nicknames[d.key] })));
+    this.store.seedMembers(
+      projectId,
+      this.crew.defs.map((d) => ({ ...d, nickname: this.crew.nicknames[d.key] })),
+    );
   }
 
   // Runs one member in its own Claude session for this app session, after whatever it is already doing
-  runMember(member: Member, sessionId: number, taskId: number | null, prompt: string, opts: RunOptions = {}): Promise<RunOutput> {
+  runMember(
+    member: Member,
+    sessionId: number,
+    taskId: number | null,
+    prompt: string,
+    opts: RunOptions = {},
+  ): Promise<RunOutput> {
     const agentSession = this.store.openAgentSession(sessionId, member.id);
     const before = this.lanes.get(agentSession.id) ?? Promise.resolve();
     const turn = before.then(() => this.execute(member, sessionId, taskId, prompt, opts));
-    this.lanes.set(agentSession.id, turn.catch(() => undefined));
+    this.lanes.set(
+      agentSession.id,
+      turn.catch(() => undefined),
+    );
     return turn;
   }
 
@@ -209,18 +254,35 @@ export class Chat {
   }
 
   // One place for the editor's and 비서's changes, so both make the same kind of version
-  saveWorkflow(o: { projectId: number; kind: string; base: number; rules: unknown; layout?: unknown; author: string; scope: Scope; taskId?: number }) {
+  saveWorkflow(o: {
+    projectId: number;
+    kind: string;
+    base: number;
+    rules: unknown;
+    layout?: unknown;
+    author: string;
+    scope: Scope;
+    taskId?: number;
+  }) {
     const parsed = WorkflowShape.safeParse(o.rules);
-    if (!parsed.success) return { ok: false as const, problems: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`) };
+    if (!parsed.success)
+      return { ok: false as const, problems: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`) };
     const rules = { ...parsed.data, kind: o.kind };
-    const keys = this.store.listMembers(o.projectId).filter((m) => m.status === 'hired').map((m) => m.key);
+    const keys = this.store
+      .listMembers(o.projectId)
+      .filter((m) => m.status === 'hired')
+      .map((m) => m.key);
     const problems = validateWorkflow(rules, keys);
     // A broken edit is refused whole, so the last valid version stays in force
     if (problems.length) return { ok: false as const, problems };
     if (o.scope !== 'future' && !o.taskId) return { ok: false as const, problems: ['적용할 업무가 없습니다'] };
     if (o.scope !== 'once') {
       const version = this.store.addWorkflowVersion(o.projectId, o.kind, o.base, rules, o.layout, o.author);
-      if (version === null) return { ok: false as const, problems: [`버전 ${o.base} 이후에 다른 변경이 저장되었습니다. 최신 규칙을 다시 읽고 고치세요`] };
+      if (version === null)
+        return {
+          ok: false as const,
+          problems: [`버전 ${o.base} 이후에 다른 변경이 저장되었습니다. 최신 규칙을 다시 읽고 고치세요`],
+        };
     }
     if (o.taskId && o.scope !== 'future') this.store.writeTaskWorkflow(o.taskId, rules);
     this.emit('changed', 'workflows');
@@ -232,11 +294,23 @@ export class Chat {
     const doc = this.wiki.read(docId);
     if (releaseRule && doc.workflowKind && doc.workflowVersion) {
       if (this.workflowFor(doc.projectId, doc.workflowKind).version !== doc.workflowVersion) {
-        return { ok: false as const, problems: ['이 문서 뒤에 저장된 규칙이 있어 되돌리지 않았습니다. 워크플로우 탭에서 직접 고치세요'] };
+        return {
+          ok: false as const,
+          problems: ['이 문서 뒤에 저장된 규칙이 있어 되돌리지 않았습니다. 워크플로우 탭에서 직접 고치세요'],
+        };
       }
-      const prev = this.store.readWorkflowVersion(doc.projectId, doc.workflowKind, doc.workflowVersion - 1) ?? this.workflows.find((w) => w.kind === doc.workflowKind)!;
+      const prev =
+        this.store.readWorkflowVersion(doc.projectId, doc.workflowKind, doc.workflowVersion - 1) ??
+        this.workflows.find((w) => w.kind === doc.workflowKind)!;
       const base = this.workflowFor(doc.projectId, doc.workflowKind).version;
-      const r = this.saveWorkflow({ projectId: doc.projectId, kind: doc.workflowKind, base, rules: prev, author: by.name, scope: 'future' });
+      const r = this.saveWorkflow({
+        projectId: doc.projectId,
+        kind: doc.workflowKind,
+        base,
+        rules: prev,
+        author: by.name,
+        scope: 'future',
+      });
       if (!r.ok) return r;
     }
     this.wiki.remove(docId, by);
@@ -249,7 +323,14 @@ export class Chat {
     const { store } = this;
     const old = store.readSession(sessionId);
     const next = store.createSession(old.projectId);
-    store.addEvent({ sessionId, taskId: null, memberId: null, kind: 'clear', text: `/clear: 세션 ${String(next.number).padStart(2, '0')}에서 새로 시작`, detail: null });
+    store.addEvent({
+      sessionId,
+      taskId: null,
+      memberId: null,
+      kind: 'clear',
+      text: `/clear: 세션 ${String(next.number).padStart(2, '0')}에서 새로 시작`,
+      detail: null,
+    });
     return next;
   }
 
@@ -304,11 +385,21 @@ export class Chat {
     const { store } = this;
     const project = store.projectOf(sessionId);
     const members = store.listMembers(project.id);
-    const existing = members.map((m) => `- ${this.crew.defOf(m).role} (${m.key}): ${this.crew.defOf(m).description}`).join('\n');
+    const existing = members
+      .map((m) => `- ${this.crew.defOf(m).role} (${m.key}): ${this.crew.defOf(m).description}`)
+      .join('\n');
     const nicknames = members.map((m) => m.nickname).join(', ');
     const kit = `Skills: ${Object.keys(this.crew.kit.skills).join(', ')}. MCP servers: ${Object.keys(this.crew.kit.mcp).join(', ')}.`;
-    const prompt = [`[Hire] The crew needs: ${need}`, `As a ${temp ? 'temp (알바)' : 'regular'}.`, `# Existing members\n${existing}`, `# Nicknames in use\n${nicknames}`, `# Kit\n${kit}`].join('\n\n');
-    const out = await this.runMember(store.readMember(project.id, 'hr'), sessionId, null, prompt, { schema: HIRE_SCHEMA });
+    const prompt = [
+      `[Hire] The crew needs: ${need}`,
+      `As a ${temp ? 'temp (알바)' : 'regular'}.`,
+      `# Existing members\n${existing}`,
+      `# Nicknames in use\n${nicknames}`,
+      `# Kit\n${kit}`,
+    ].join('\n\n');
+    const out = await this.runMember(store.readMember(project.id, 'hr'), sessionId, null, prompt, {
+      schema: HIRE_SCHEMA,
+    });
     const draft = Draft.safeParse(out.structured);
     if (!draft.success) return `인사가 정의를 만들지 못했습니다: ${out.error ?? '형식이 맞지 않습니다'}`;
     const { key, nickname } = draft.data;
@@ -320,9 +411,11 @@ export class Chat {
     } catch (err) {
       return `인사의 정의가 맞지 않습니다: ${String(err)}`;
     }
-    if (members.some((m) => m.key === key || this.crew.defOf(m).role === def.role)) return `${def.role}(${key})는 이미 있습니다.`;
+    if (members.some((m) => m.key === key || this.crew.defOf(m).role === def.role))
+      return `${def.role}(${key})는 이미 있습니다.`;
     // The role line is how a run knows who it is; a draft that left it out still gets it
-    if (!def.instructions.includes(`**${def.role}**`)) definition = definition.replace(/\n---\r?\n/, `\n---\n\nYou are the crew's **${def.role}** (${key}).\n\n`);
+    if (!def.instructions.includes(`**${def.role}**`))
+      definition = definition.replace(/\n---\r?\n/, `\n---\n\nYou are the crew's **${def.role}** (${key}).\n\n`);
     const member = store.addMember(project.id, { key, nickname, model: def.model, definition, temp });
     this.note(member, 'hire', `${def.role}(${nickname}) ${temp ? '알바로' : '정규로'} 고용`);
     this.emit('changed', 'members');
@@ -334,13 +427,19 @@ export class Chat {
     const { store } = this;
     const lines =
       member.key === 'orchestrator'
-        ? store.listMessages(sessionId).slice(-30).map((m) => `${m.author === 'user' ? 'User' : '비서'}: ${m.text}`)
+        ? store
+            .listMessages(sessionId)
+            .slice(-30)
+            .map((m) => `${m.author === 'user' ? 'User' : '비서'}: ${m.text}`)
         : store
             .listTasks(sessionId)
             .flatMap((t) => store.listStepRuns(t.id).filter((r) => r.memberId === member.id && r.handback))
             .slice(-10)
             .map((r) => `Task #${r.taskId} ${r.stepId}: ${r.handback!.summary}`);
-    return ['[Handoff] Your earlier session in this conversation cannot be continued (the model changed). What happened so far:', ...lines].join('\n');
+    return [
+      '[Handoff] Your earlier session in this conversation cannot be continued (the model changed). What happened so far:',
+      ...lines,
+    ].join('\n');
   }
 
   async send(sessionId: number, text: string) {

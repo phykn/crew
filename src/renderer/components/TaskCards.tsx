@@ -29,7 +29,15 @@ function KindIcon({ kind }: { kind: string }) {
 }
 
 // One pinned row per task still open; a finished task's row goes and its report stays in the chat
-export function TaskCards({ tasks, messages, onLog }: { tasks: Task[]; messages: Message[]; onLog: (taskId: number) => void }) {
+export function TaskCards({
+  tasks,
+  messages,
+  onLog,
+}: {
+  tasks: Task[];
+  messages: Message[];
+  onLog: (taskId: number) => void;
+}) {
   const open = tasks.filter((t) => t.status !== 'done');
   // Stop asks once inline, since a click cuts off the work in progress
   const [stopping, setStopping] = useState<number | null>(null);
@@ -55,7 +63,13 @@ export function TaskCards({ tasks, messages, onLog }: { tasks: Task[]; messages:
             {stoppable && stopping === t.id && (
               <span className="task-confirm" role="group" aria-label="중단 확인">
                 중단할까요?
-                <button className="task-link danger" onClick={() => { setStopping(null); call('tasks.stop', { id: t.id }); }}>
+                <button
+                  className="task-link danger"
+                  onClick={() => {
+                    setStopping(null);
+                    call('tasks.stop', { id: t.id });
+                  }}
+                >
                   중단
                 </button>
                 <button className="task-link" onClick={() => setStopping(null)}>

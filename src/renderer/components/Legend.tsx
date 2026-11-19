@@ -16,7 +16,15 @@ const modelLabel = (m: string) => MODELS.find((x) => x.value === m)?.label ?? m;
 type Definition = Awaited<ReturnType<typeof call<'members.definition'>>> & { id: number };
 
 // What matters at a glance (who, which model, hired or not) shows in the row; everything else opens from it
-export function Legend({ members, onChange, onMemory }: { members: CrewMember[]; onChange: () => void; onMemory: (memberId: number) => void }) {
+export function Legend({
+  members,
+  onChange,
+  onMemory,
+}: {
+  members: CrewMember[];
+  onChange: () => void;
+  onMemory: (memberId: number) => void;
+}) {
   const [open, setOpen] = useState(true);
   const [shown, setShown] = useState<Definition | null>(null);
   const current = members.find((m) => m.id === shown?.id);
@@ -47,9 +55,7 @@ export function Legend({ members, onChange, onMemory }: { members: CrewMember[];
                 <span className="hired-dot" aria-hidden="true" />
                 <span className="role">{m.role}</span>
                 <span className="nick">{m.nickname}</span>
-                <span className="model-tag">
-                  {m.status === 'hired' ? modelLabel(m.model) : '미고용'}
-                </span>
+                <span className="model-tag">{m.status === 'hired' ? modelLabel(m.model) : '미고용'}</span>
               </button>
             </li>
           ))}
@@ -64,7 +70,12 @@ export function Legend({ members, onChange, onMemory }: { members: CrewMember[];
             {current && (
               <div className="member-basics">
                 <Nickname member={current} onSave={(nickname) => update(current, { nickname })} />
-                <Choice label={`${current.role} 모델`} value={current.model} options={MODELS} onChange={(model) => update(current, { model })} />
+                <Choice
+                  label={`${current.role} 모델`}
+                  value={current.model}
+                  options={MODELS}
+                  onChange={(model) => update(current, { model })}
+                />
                 {!current.kept && (
                   <label className="hire">
                     고용

@@ -4,9 +4,22 @@ import { CREW, fakeCrew, handback, openScratch, reply, type Turn } from './suppo
 
 test('a usage limit pauses the task and 비서 reports what is done and left; usage adds up per role and model', async () => {
   const { store, project, paths } = openScratch();
-  const limited: Turn = (p, o) => [{ type: 'rate_limit_event', rate_limit_info: { status: 'rejected' } } as never, ...(reply('', 'r')(p, o) as never[])];
-  const fake = fakeCrew({ 기획: [handback('p', { summary: '계획 완료' })], 리뷰: [limited], 비서: [reply('한도 보고')] });
-  const chat = new Chat(store, async () => fake.sdk, CREW, () => {}, paths);
+  const limited: Turn = (p, o) => [
+    { type: 'rate_limit_event', rate_limit_info: { status: 'rejected' } } as never,
+    ...(reply('', 'r')(p, o) as never[]),
+  ];
+  const fake = fakeCrew({
+    기획: [handback('p', { summary: '계획 완료' })],
+    리뷰: [limited],
+    비서: [reply('한도 보고')],
+  });
+  const chat = new Chat(
+    store,
+    async () => fake.sdk,
+    CREW,
+    () => {},
+    paths,
+  );
   const p = store.addProject(project);
   chat.seed(p.id);
   const s = store.createSession(p.id);
@@ -19,6 +32,9 @@ test('a usage limit pauses the task and 비서 reports what is done and left; us
   expect(report).toMatch(/Left to do\n- 계획 검토\n- 개발/);
   // reply() charges 10 in, 5 out, $0.01 per run
   expect(store.usage(s.id).map((u) => [u.model, u.runs, u.inputTokens, u.outputTokens])).toEqual(
-    expect.arrayContaining([['opus', 1, 10, 5], ['opus', 1, 10, 5]]),
+    expect.arrayContaining([
+      ['opus', 1, 10, 5],
+      ['opus', 1, 10, 5],
+    ]),
   );
 });

@@ -2,7 +2,15 @@ import { expect, test } from '@playwright/test';
 import { launchApp, makeScratch, openProject } from './launch';
 
 // One task whose 조사 has no scripted answer, so its card stays (failed) while the editor is open and closed
-const SCRIPT = { 비서: [{ call: { name: 'start_task', input: { kind: 'research', title: '자료 조사', request: 'x', role: '조사' } }, text: '시작했습니다.' }, { text: '실패 보고' }] };
+const SCRIPT = {
+  비서: [
+    {
+      call: { name: 'start_task', input: { kind: 'research', title: '자료 조사', request: 'x', role: '조사' } },
+      text: '시작했습니다.',
+    },
+    { text: '실패 보고' },
+  ],
+};
 
 test('the editor saves review and test in parallel after 개발 as a new version, keeps the layout, and leaves the session as it was', async () => {
   const scratch = makeScratch();
@@ -38,7 +46,8 @@ test('the editor saves review and test in parallel after 개발 as a new version
   await editor.getByRole('button', { name: '저장' }).click();
   await expect(editor).toContainText('버전 2 저장');
   // Flow coordinates, which do not depend on how the view is zoomed
-  const where = () => editor.locator('.react-flow__node[data-id="test"]').evaluate((n) => (n as HTMLElement).style.transform);
+  const where = () =>
+    editor.locator('.react-flow__node[data-id="test"]').evaluate((n) => (n as HTMLElement).style.transform);
   const moved = await where();
   await page.getByRole('tab', { name: '대화' }).click();
   await expect(page.getByLabel('업무 자료 조사')).toBeVisible();

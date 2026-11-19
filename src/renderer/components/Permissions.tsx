@@ -6,7 +6,14 @@ import { KitIcon } from './Icons';
 
 type Data = Awaited<ReturnType<typeof call<'members.permissions'>>>;
 
-const TOOL_LABELS: Record<string, string> = { read: '읽기', search: '검색', write: '쓰기', edit: '편집', shell: '셸', web: '웹' };
+const TOOL_LABELS: Record<string, string> = {
+  read: '읽기',
+  search: '검색',
+  write: '쓰기',
+  edit: '편집',
+  shell: '셸',
+  web: '웹',
+};
 const WRITE = [
   { value: 'project', label: '프로젝트 폴더' },
   { value: 'output', label: '자기 산출물 폴더' },
@@ -45,20 +52,33 @@ export function Permissions({ memberId, onChange }: { memberId: number; onChange
       <div className="perm-items">
         {Object.entries(TOOL_LABELS).map(([kind, label]) => (
           <label key={kind} className="chip">
-            <input type="checkbox" checked={settings.tools.includes(kind as never)} onChange={() => save({ tools: toggle(settings.tools, kind as never) })} />
+            <input
+              type="checkbox"
+              checked={settings.tools.includes(kind as never)}
+              onChange={() => save({ tools: toggle(settings.tools, kind as never) })}
+            />
             {label}
           </label>
         ))}
       </div>
       <span className="perm-label">쓰기</span>
       <div className="perm-items">
-        <Choice label="쓰기 범위" value={settings.write} options={WRITE} onChange={(v) => save({ write: v as Config['write'] })} />
+        <Choice
+          label="쓰기 범위"
+          value={settings.write}
+          options={WRITE}
+          onChange={(v) => save({ write: v as Config['write'] })}
+        />
       </div>
       <span className="perm-label">스킬</span>
       <div className="perm-items">
         {skills.map(([name, item]) => (
           <label key={name} className="chip" title={item.use}>
-            <input type="checkbox" checked={settings.skills.includes(name)} onChange={() => save({ skills: toggle(settings.skills, name) })} />
+            <input
+              type="checkbox"
+              checked={settings.skills.includes(name)}
+              onChange={() => save({ skills: toggle(settings.skills, name) })}
+            />
             <KitIcon icon={item.icon} label={item.label} />
             {item.label}
           </label>

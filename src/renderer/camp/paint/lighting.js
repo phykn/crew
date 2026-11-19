@@ -28,7 +28,9 @@ export function drawGlow(ctx, people, now, still, lit) {
 
 // True black everywhere except around what gives light: the fire, torches, lanterns, spells and the people themselves
 export function drawDarkness(ctx, dark, view, people, lit) {
-  const d = dark.getContext('2d'), m = ctx.getTransform(), k = DARK_SCALE;
+  const d = dark.getContext('2d'),
+    m = ctx.getTransform(),
+    k = DARK_SCALE;
   d.setTransform(1, 0, 0, 1, 0, 0);
   d.clearRect(0, 0, dark.width, dark.height);
   d.setTransform(m.a * k, 0, 0, m.d * k, m.e * k, m.f * k);

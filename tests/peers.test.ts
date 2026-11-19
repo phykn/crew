@@ -6,14 +6,32 @@ import { CREW, fakeCrew, handback, openScratch, reply } from './support';
 test('a peer request asked back stays one thread, a resent line runs once, and a handoff without files is sent back', async () => {
   const { store, project, paths } = openScratch();
   const fake = fakeCrew({
-    표준: [reply('', 'claude-style', { answer: '', ask_back: '어느 파일인가요?' }), reply('', 'claude-style', { answer: 'searchItems가 맞습니다' })],
-    개발: [handback('claude-code', { summary: '수정했습니다' }), handback('claude-code', { summary: '수정했습니다', files: ['search.js'] })],
+    표준: [
+      reply('', 'claude-style', { answer: '', ask_back: '어느 파일인가요?' }),
+      reply('', 'claude-style', { answer: 'searchItems가 맞습니다' }),
+    ],
+    개발: [
+      handback('claude-code', { summary: '수정했습니다' }),
+      handback('claude-code', { summary: '수정했습니다', files: ['search.js'] }),
+    ],
   });
-  const chat = new Chat(store, async () => fake.sdk, CREW, () => {}, paths);
+  const chat = new Chat(
+    store,
+    async () => fake.sdk,
+    CREW,
+    () => {},
+    paths,
+  );
   const p = store.addProject(project);
   chat.seed(p.id);
   const s = store.createSession(p.id);
-  const task = store.createTask({ sessionId: s.id, kind: 'code', title: 't', request: 'r', workflow: chat.workflows.find((w) => w.kind === 'code')! });
+  const task = store.createTask({
+    sessionId: s.id,
+    kind: 'code',
+    title: 't',
+    request: 'r',
+    workflow: chat.workflows.find((w) => w.kind === 'code')!,
+  });
   const coder = store.readMember(p.id, 'coder');
   const step = task.workflow.steps.find((x) => x.id === 'develop')!;
 

@@ -8,19 +8,32 @@ import { CREW, fakeCrew, openScratch } from './support';
 test('overlapping writes go in turn and re-read what changed; others run at once', async () => {
   const { store, project, paths } = openScratch({ 'a.js': 'a', 'b.js': 'b', 'old.js': 'o' });
   fs.mkdirSync(path.join(project, 'src'));
-  const chat = new Chat(store, async () => fakeCrew({}).sdk, CREW, () => {}, paths);
+  const chat = new Chat(
+    store,
+    async () => fakeCrew({}).sdk,
+    CREW,
+    () => {},
+    paths,
+  );
   const p = store.addProject(project);
   chat.seed(p.id);
   const s = store.createSession(p.id);
   const coder = store.readMember(p.id, 'coder');
   const open = () => {
-    const t = store.createTask({ sessionId: s.id, kind: 'code', title: 't', request: 'r', workflow: chat.workflows[0] });
+    const t = store.createTask({
+      sessionId: s.id,
+      kind: 'code',
+      title: 't',
+      request: 'r',
+      workflow: chat.workflows[0],
+    });
     store.writeBaseline(t.id, snapshot(project));
     const policy = chat.policy(coder, p, `task-${t.id}`);
     return (tool: string, input: Record<string, unknown>) => chat.reserve(p, t.id, policy, tool, input);
   };
   const [a, b, c] = [open(), open(), open()];
-  const settled = (x: Promise<unknown>) => Promise.race([x.then(() => true), new Promise((r) => setTimeout(() => r(false), 30))]);
+  const settled = (x: Promise<unknown>) =>
+    Promise.race([x.then(() => true), new Promise((r) => setTimeout(() => r(false), 30))]);
 
   // Same file: the second waits until the first run has ended, then must read the first change
   await expect(a('Write', { file_path: path.join(project, 'a.js') })).resolves.toBeNull();

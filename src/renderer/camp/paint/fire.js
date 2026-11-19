@@ -3,7 +3,8 @@ import { iso } from '../projection.js';
 import { COLOR as C } from '../tokens.js';
 
 export function drawTorch(ctx, t, i, now, still) {
-  const p = iso(t.x, t.y), h = still ? 7 : 6 + Math.sin(now / 90 + i * 1.3) * 2;
+  const p = iso(t.x, t.y),
+    h = still ? 7 : 6 + Math.sin(now / 90 + i * 1.3) * 2;
   ctx.fillStyle = C.pole;
   ctx.fillRect(p.x - 1.5, p.y - 30, 3, 30);
   ctx.fillStyle = C.iron;
@@ -20,7 +21,13 @@ export function drawTorch(ctx, t, i, now, still) {
 // Without a readable record the fire is out: embers and rising smoke instead of flames
 function drawEmbers(ctx, p, now, still) {
   ctx.fillStyle = C.blood;
-  for (const [dx, dy] of [[-6, -2], [-1, -3], [4, -2], [1, -1]]) ctx.fillRect(p.x + dx, p.y + dy, 3, 2);
+  for (const [dx, dy] of [
+    [-6, -2],
+    [-1, -3],
+    [4, -2],
+    [1, -1],
+  ])
+    ctx.fillRect(p.x + dx, p.y + dy, 3, 2);
   ctx.fillStyle = C.muted;
   for (let k = 0; k < 4; k++) {
     const t = still ? k / 4 : (now / 2400 + k / 4) % 1;
@@ -32,7 +39,10 @@ function drawEmbers(ctx, p, now, still) {
 
 export function drawFire(ctx, now, still, lit) {
   const p = iso(FIRE.x, FIRE.y);
-  if (!lit) { drawEmbers(ctx, p, now, still); return; }
+  if (!lit) {
+    drawEmbers(ctx, p, now, still);
+    return;
+  }
   for (let k = 0; k < 4; k++) {
     const h = still ? 12 : 9 + Math.sin(now / 80 + k * 1.7) * 4;
     ctx.fillStyle = k % 2 ? C.flameDeep : C.flame;

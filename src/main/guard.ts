@@ -26,32 +26,44 @@ const SHELLS = ['Bash', 'PowerShell'];
 // git options that may stand between git and its subcommand, such as -C . or --no-pager
 const GIT = String.raw`\bgit(?:\s+(?:--no-pager|--paginate|-p|-P|--bare|--no-optional-locks|-C\s+\S+|-c\s+\S+|--(?:git-dir|work-tree|namespace)(?:=|\s+)\S+))*`;
 const FORBIDDEN: [RegExp, string][] = [
-  [new RegExp(`${GIT}\\s+(push|clean)\\b|${GIT}\\s+reset\\s+--hard\\b`, 'i'), 'pushing or throwing away git history needs the user'],
+  [
+    new RegExp(`${GIT}\\s+(push|clean)\\b|${GIT}\\s+reset\\s+--hard\\b`, 'i'),
+    'pushing or throwing away git history needs the user',
+  ],
   [
     /\brm\s+(?:-[\w-]+\s+)*(?:-\w*r\w*|--recursive)\b|\b(?:Remove-Item|ri|del|erase)\b[^;&|\n]*\s-r\w*|\b(rmdir|rd|del|erase)\b[^;&|\n]*\s\/s\b|\brmtree\b/i,
     'deleting a folder tree needs the user',
   ],
-  [/\bnpm\s+(i|install|add)\b[^;&|\n]*\s(-g\b|--global\b|--location(=|\s+)global\b)/i, 'a global install needs the user'],
-  [/\bclaude(\.exe)?\s+mcp\s+(add|add-json|add-from-claude-desktop|remove)\b/i, 'MCP servers are brought in by 도구 with the user\'s approval'],
+  [
+    /\bnpm\s+(i|install|add)\b[^;&|\n]*\s(-g\b|--global\b|--location(=|\s+)global\b)/i,
+    'a global install needs the user',
+  ],
+  [
+    /\bclaude(\.exe)?\s+mcp\s+(add|add-json|add-from-claude-desktop|remove)\b/i,
+    "MCP servers are brought in by 도구 with the user's approval",
+  ],
 ];
 // Checkers leave the project as they found it
 const CHECKER_FORBIDDEN: [RegExp, string][] = [
-  [new RegExp(`${GIT}\\s+(stash|checkout|restore|switch|commit|apply|add|rm|mv)\\b`, 'i'), 'a checker never changes the project'],
+  [
+    new RegExp(`${GIT}\\s+(stash|checkout|restore|switch|commit|apply|add|rm|mv)\\b`, 'i'),
+    'a checker never changes the project',
+  ],
 ];
 // A pip install is safe only into a virtual environment named by its path
-const VENV_PIP = /(?:[\w.-]*[\\/])?\.?venv[\\/](?:Scripts|bin)[\\/](?:python[\d.]*(?:\.exe)?\s+-m\s+pip|pip[\d.]*(?:\.exe)?)\s+install\b/gi;
+const VENV_PIP =
+  /(?:[\w.-]*[\\/])?\.?venv[\\/](?:Scripts|bin)[\\/](?:python[\d.]*(?:\.exe)?\s+-m\s+pip|pip[\d.]*(?:\.exe)?)\s+install\b/gi;
 const SILENT = ['/dev/null', 'nul', '$null'];
 
 export function checkCall(policy: Policy, tool: string, input: Record<string, unknown>, cwd = policy.project): Verdict {
   if (tool.startsWith('mcp__')) return checkMcp(policy, tool, input, cwd);
   if (READ_ONLY.includes(tool)) return { kind: 'allow' };
   // Where a call would write is settled first: no approval can open a place the role may never write
-  const scope =
-    SHELLS.includes(tool)
-      ? checkShell(policy, String(input.command ?? ''), cwd)
-      : ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'].includes(tool)
-        ? checkWrite(policy, path.resolve(cwd, String(input.file_path ?? input.notebook_path ?? '')))
-        : ({ kind: 'allow' } as Verdict);
+  const scope = SHELLS.includes(tool)
+    ? checkShell(policy, String(input.command ?? ''), cwd)
+    : ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'].includes(tool)
+      ? checkWrite(policy, path.resolve(cwd, String(input.file_path ?? input.notebook_path ?? '')))
+      : ({ kind: 'allow' } as Verdict);
   if (scope.kind === 'deny') return scope;
   if (!policy.tools.includes(tool)) return { kind: 'ask', reason: `${policy.role}에게 ${tool} 도구가 없습니다` };
   return scope;
@@ -67,15 +79,21 @@ function checkMcp(policy: Policy, tool: string, input: Record<string, unknown>, 
   if (!held) return { kind: 'ask', reason: `${policy.role}에게 ${server} MCP 서버가 없습니다` };
   const name = tool.split('__').slice(2).join('__');
   if (held.readTools && !held.readTools.includes(name)) {
-    return { kind: 'ask', reason: `${policy.role}은 ${server}를 읽기로만 쓸 수 있어 ${name}을 쓰려면 승인이 필요합니다` };
+    return {
+      kind: 'ask',
+      reason: `${policy.role}은 ${server}를 읽기로만 쓸 수 있어 ${name}을 쓰려면 승인이 필요합니다`,
+    };
   }
   const file = input.filename;
-  return typeof file === 'string' ? checkWrite({ ...policy, write: 'output' }, path.resolve(cwd, file)) : { kind: 'allow' };
+  return typeof file === 'string'
+    ? checkWrite({ ...policy, write: 'output' }, path.resolve(cwd, file))
+    : { kind: 'allow' };
 }
 
 function checkShell(policy: Policy, cmd: string, cwd: string): Verdict {
   const pips = cmd.match(/\bpip[\d.]*(?:\.exe)?\s+install\b/gi)?.length ?? 0;
-  if (pips > (cmd.match(VENV_PIP)?.length ?? 0)) return { kind: 'deny', reason: 'installing into the system Python needs the user' };
+  if (pips > (cmd.match(VENV_PIP)?.length ?? 0))
+    return { kind: 'deny', reason: 'installing into the system Python needs the user' };
   const checker = policy.write !== 'project';
   for (const [pattern, reason] of [...FORBIDDEN, ...(checker ? CHECKER_FORBIDDEN : [])]) {
     if (pattern.test(cmd)) return { kind: 'deny', reason };
@@ -98,7 +116,10 @@ function checkWrite(policy: Policy, file: string): Verdict {
   }
   const allowed = [policy.output, ...(policy.write === 'project' ? [policy.project] : [])];
   if (policy.write === 'none' || !allowed.some((a) => inside(file, a))) {
-    return { kind: 'deny', reason: `${file} is outside where ${policy.role} may write (${policy.write === 'none' ? 'nowhere' : allowed.join(', ')})` };
+    return {
+      kind: 'deny',
+      reason: `${file} is outside where ${policy.role} may write (${policy.write === 'none' ? 'nowhere' : allowed.join(', ')})`,
+    };
   }
   return { kind: 'allow' };
 }
@@ -194,14 +215,18 @@ function readOption(args: string[], names: string[]) {
 }
 
 // The project paths a call writes, or the whole project when the command's text does not say
-export function projectWrites(policy: Policy, tool: string, input: Record<string, unknown>, cwd = policy.project): string[] {
+export function projectWrites(
+  policy: Policy,
+  tool: string,
+  input: Record<string, unknown>,
+  cwd = policy.project,
+): string[] {
   if (policy.write !== 'project' || READ_ONLY.includes(tool) || tool.startsWith('mcp__')) return [];
-  const files =
-    SHELLS.includes(tool)
-      ? writeTargets(String(input.command ?? '')).filter((t) => !SILENT.includes(t.toLowerCase()))
-      : ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'].includes(tool)
-        ? [String(input.file_path ?? input.notebook_path ?? '')]
-        : [];
+  const files = SHELLS.includes(tool)
+    ? writeTargets(String(input.command ?? '')).filter((t) => !SILENT.includes(t.toLowerCase()))
+    : ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'].includes(tool)
+      ? [String(input.file_path ?? input.notebook_path ?? '')]
+      : [];
   if (SHELLS.includes(tool) && (!files.length || files.some((t) => /^[~$%`]/.test(t)))) return [policy.project];
   return files.map((t) => resolveTarget(t, cwd)).filter((f) => inside(f, policy.project));
 }
@@ -219,7 +244,9 @@ export type GuardHooks = {
 export function makeCanUseTool(policy: () => Policy, hooks: GuardHooks): CanUseTool {
   const allow = async (tool: string, input: Record<string, unknown>) => {
     const late = await hooks.reserve?.(tool, input);
-    return late ? ({ behavior: 'deny', message: late } as const) : ({ behavior: 'allow', updatedInput: input } as const);
+    return late
+      ? ({ behavior: 'deny', message: late } as const)
+      : ({ behavior: 'allow', updatedInput: input } as const);
   };
   return async (tool, input) => {
     const verdict = checkCall(policy(), tool, input);

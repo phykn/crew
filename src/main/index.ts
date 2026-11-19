@@ -34,7 +34,10 @@ app.whenReady().then(() => {
   const store = new Store(dbFile);
   const crewDir = app.isPackaged ? path.join(process.resourcesPath, 'crew') : path.join(app.getAppPath(), 'crew');
   const crew = new Crew(crewDir);
-  const paths = { output: path.join(path.dirname(dbFile), 'output'), protected: [dbFile, `${dbFile}-wal`, `${dbFile}-shm`, crewDir] };
+  const paths = {
+    output: path.join(path.dirname(dbFile), 'output'),
+    protected: [dbFile, `${dbFile}-wal`, `${dbFile}-shm`, crewDir],
+  };
   // Window tests run the crew from a script instead of Claude
   const script = process.env.AI_CREW_SCRIPT;
   const scripted = script ? scriptSdk(script) : null;

@@ -16,7 +16,8 @@ export function campState(chat: Chat, sessionId: number) {
       const key = keyOf(r.memberId);
       if (!key) continue;
       tasks[key] = t.id;
-      if (r.status === 'running') working[key] = `${t.workflow.steps.find((s) => s.id === r.stepId)?.label ?? '작업'} 중`;
+      if (r.status === 'running')
+        working[key] = `${t.workflow.steps.find((s) => s.id === r.stepId)?.label ?? '작업'} 중`;
     }
   }
   // 비서 waits by the fire with a ? while a card waits for the user
@@ -27,11 +28,22 @@ export function campState(chat: Chat, sessionId: number) {
     if (e.kind === 'request' && who) {
       const [, from, to] = e.text.match(/^(\S+) → (\S+):/) ?? [];
       const peer = to && keyOfRole(to);
-      if (peer) log.push({ id: e.id, who, to: peer, text: from === crew.defOf(members.find((m) => m.key === who)!).role ? '요청 메모' : '답변', kind: 'chat' });
-    } else if (e.kind === 'step' && who && /실패/.test(e.text)) log.push({ id: e.id, who, text: '실패', kind: 'rework' });
-    else if (e.kind === 'step' && who && /수정 요청/.test(e.text)) log.push({ id: e.id, who, text: '수정 요청', kind: 'rework' });
-    else if (e.kind === 'status' && e.text.endsWith(' 완료')) log.push({ id: e.id, who: 'orchestrator', text: '완료 보고', kind: 'work' });
-    else if (e.kind === 'status' && / 실패:/.test(e.text)) log.push({ id: e.id, who: 'orchestrator', text: '업무 실패', kind: 'rework' });
+      if (peer)
+        log.push({
+          id: e.id,
+          who,
+          to: peer,
+          text: from === crew.defOf(members.find((m) => m.key === who)!).role ? '요청 메모' : '답변',
+          kind: 'chat',
+        });
+    } else if (e.kind === 'step' && who && /실패/.test(e.text))
+      log.push({ id: e.id, who, text: '실패', kind: 'rework' });
+    else if (e.kind === 'step' && who && /수정 요청/.test(e.text))
+      log.push({ id: e.id, who, text: '수정 요청', kind: 'rework' });
+    else if (e.kind === 'status' && e.text.endsWith(' 완료'))
+      log.push({ id: e.id, who: 'orchestrator', text: '완료 보고', kind: 'work' });
+    else if (e.kind === 'status' && / 실패:/.test(e.text))
+      log.push({ id: e.id, who: 'orchestrator', text: '업무 실패', kind: 'rework' });
   }
   return { working, tasks, log };
 }

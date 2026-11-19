@@ -3,7 +3,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 // Folders no task edits by hand; hashing them would only slow every snapshot down
-const SKIP = new Set(['.git', 'node_modules', '.venv', 'venv', '__pycache__', 'dist', 'out', '.vite', '.next', 'build']);
+const SKIP = new Set([
+  '.git',
+  'node_modules',
+  '.venv',
+  'venv',
+  '__pycache__',
+  'dist',
+  'out',
+  '.vite',
+  '.next',
+  'build',
+]);
 const MAX_BYTES = 2_000_000;
 
 export type Snapshot = Record<string, string>;
@@ -17,7 +28,10 @@ export function snapshot(root: string): Snapshot {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) walk(full);
       else if (entry.isFile() && fs.statSync(full).size <= MAX_BYTES) {
-        out[path.relative(root, full).split(path.sep).join('/')] = crypto.createHash('sha1').update(fs.readFileSync(full)).digest('hex');
+        out[path.relative(root, full).split(path.sep).join('/')] = crypto
+          .createHash('sha1')
+          .update(fs.readFileSync(full))
+          .digest('hex');
       }
     }
   };

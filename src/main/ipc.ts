@@ -30,9 +30,15 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
     },
     'sessions.clear': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => chat.clear(a.sessionId) },
     'sessions.impact': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => store.impact(a) },
-    'sessions.delete': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => chat.deleteSession(a.sessionId) },
+    'sessions.delete': {
+      args: z.object({ sessionId: id }),
+      run: (a: { sessionId: number }) => chat.deleteSession(a.sessionId),
+    },
     'projects.impact': { args: z.object({ projectId: id }), run: (a: { projectId: number }) => store.impact(a) },
-    'projects.remove': { args: z.object({ projectId: id }), run: (a: { projectId: number }) => chat.removeProject(a.projectId) },
+    'projects.remove': {
+      args: z.object({ projectId: id }),
+      run: (a: { projectId: number }) => chat.removeProject(a.projectId),
+    },
     // 프로젝트 → 세션 → 에이전트 세션
     'tree.list': {
       args: z.undefined(),
@@ -48,7 +54,10 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
           })),
         })),
     },
-    'sessions.list': { args: z.object({ projectId: id }), run: (a: { projectId: number }) => store.listSessions(a.projectId) },
+    'sessions.list': {
+      args: z.object({ projectId: id }),
+      run: (a: { projectId: number }) => store.listSessions(a.projectId),
+    },
     'sessions.create': {
       args: z.object({ projectId: id }),
       run: (a: { projectId: number }) => store.createSession(a.projectId),
@@ -61,17 +70,26 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
       args: z.object({ projectId: id.optional(), sessionId: id.optional() }),
       run: (a: { projectId?: number; sessionId?: number }) => store.writeSetting('last', JSON.stringify(a)),
     },
-    'messages.list': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => store.listMessages(a.sessionId) },
+    'messages.list': {
+      args: z.object({ sessionId: id }),
+      run: (a: { sessionId: number }) => store.listMessages(a.sessionId),
+    },
     'messages.send': {
       args: z.object({ sessionId: id, text: z.string().trim().min(1).max(20_000) }),
       // The reply arrives through the change feed; the call only hands the message over
       run: (a: { sessionId: number; text: string }) => void chat.send(a.sessionId, a.text),
     },
-    'tasks.list': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => store.listTasks(a.sessionId) },
+    'tasks.list': {
+      args: z.object({ sessionId: id }),
+      run: (a: { sessionId: number }) => store.listTasks(a.sessionId),
+    },
     'tasks.stop': { args: z.object({ id }), run: (a: { id: number }) => chat.tasks.stop(a.id) },
     'tasks.resume': { args: z.object({ id }), run: (a: { id: number }) => chat.tasks.resume(a.id) },
     'wiki.list': { args: z.object({ projectId: id }), run: (a: { projectId: number }) => chat.wiki.list(a.projectId) },
-    'wiki.timeline': { args: z.object({ projectId: id }), run: (a: { projectId: number }) => chat.wiki.timeline(a.projectId) },
+    'wiki.timeline': {
+      args: z.object({ projectId: id }),
+      run: (a: { projectId: number }) => chat.wiki.timeline(a.projectId),
+    },
     'wiki.change': { args: z.object({ id }), run: (a: { id: number }) => chat.wiki.change(a.id) },
     'wiki.write': {
       args: z.object({ projectId: id, title: z.string().trim().min(1).max(60), body: z.string() }),
@@ -82,25 +100,46 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
     },
     'wiki.remove': {
       args: z.object({ id, releaseRule: z.boolean() }),
-      run: (a: { id: number; releaseRule: boolean }) => chat.removeDoc(a.id, a.releaseRule, { memberId: null, name: '사용자' }),
+      run: (a: { id: number; releaseRule: boolean }) =>
+        chat.removeDoc(a.id, a.releaseRule, { memberId: null, name: '사용자' }),
     },
     'memories.list': {
       args: z.object({ projectId: id, memberId: id.optional() }),
       run: (a: { projectId: number; memberId?: number }) => chat.wiki.memories(a.projectId, a.memberId),
     },
     'usage.list': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => store.usage(a.sessionId) },
-    'workflows.kinds': { args: z.undefined(), run: () => chat.workflows.map((w) => ({ kind: w.kind, label: w.label })) },
+    'workflows.kinds': {
+      args: z.undefined(),
+      run: () => chat.workflows.map((w) => ({ kind: w.kind, label: w.label })),
+    },
     'workflows.read': {
       args: z.object({ projectId: id, kind: z.string() }),
       run: (a: { projectId: number; kind: string }) => chat.workflowFor(a.projectId, a.kind),
     },
     'workflows.save': {
-      args: z.object({ projectId: id, kind: z.string(), base: z.number().int().min(0), rules: z.unknown(), layout: z.record(z.string(), z.object({ x: z.number(), y: z.number() })) }),
-      run: (a: { projectId: number; kind: string; base: number; rules: unknown; layout: Record<string, { x: number; y: number }> }) =>
-        chat.saveWorkflow({ ...a, author: '사용자', scope: 'future' }),
+      args: z.object({
+        projectId: id,
+        kind: z.string(),
+        base: z.number().int().min(0),
+        rules: z.unknown(),
+        layout: z.record(z.string(), z.object({ x: z.number(), y: z.number() })),
+      }),
+      run: (a: {
+        projectId: number;
+        kind: string;
+        base: number;
+        rules: unknown;
+        layout: Record<string, { x: number; y: number }>;
+      }) => chat.saveWorkflow({ ...a, author: '사용자', scope: 'future' }),
     },
-    'camp.state': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => campState(chat, a.sessionId) },
-    'events.list': { args: z.object({ sessionId: id }), run: (a: { sessionId: number }) => store.listEvents(a.sessionId) },
+    'camp.state': {
+      args: z.object({ sessionId: id }),
+      run: (a: { sessionId: number }) => campState(chat, a.sessionId),
+    },
+    'events.list': {
+      args: z.object({ sessionId: id }),
+      run: (a: { sessionId: number }) => store.listEvents(a.sessionId),
+    },
     'questions.answer': {
       args: z.object({ id, choice: z.string().min(1) }),
       run: (a: { id: number; choice: string }) => chat.questions.answer(a.id, a.choice),
@@ -118,7 +157,8 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
       }),
       run: (a: { id: number; nickname?: string; model?: string; status?: 'hired' | 'unhired' }) => {
         // The crew stops working without 비서 or 인사, so the window cannot let them go
-        if (a.status === 'unhired' && KEPT.includes(store.readMemberById(a.id).key)) throw new Error('this member cannot be let go');
+        if (a.status === 'unhired' && KEPT.includes(store.readMemberById(a.id).key))
+          throw new Error('this member cannot be let go');
         // Letting go goes through the crew, so a member at work leaves once, after its step
         if (a.status === 'unhired') chat.fire(a.id);
         if (a.status === 'hired') chat.rehire(a.id);

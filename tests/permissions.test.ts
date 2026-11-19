@@ -7,12 +7,24 @@ import { CREW, fakeQuery, openScratch } from './support';
 
 function setup(crew = CREW) {
   const scratch = openScratch();
-  const chat = new Chat(scratch.store, async () => fakeQuery([]).sdk, crew, () => {}, scratch.paths);
+  const chat = new Chat(
+    scratch.store,
+    async () => fakeQuery([]).sdk,
+    crew,
+    () => {},
+    scratch.paths,
+  );
   const project = scratch.store.addProject(scratch.project);
   chat.seed(project.id);
   const session = scratch.store.createSession(project.id);
   // Task 1, which the guards below work in
-  scratch.store.createTask({ sessionId: session.id, kind: 'code', title: 't', request: 'r', workflow: chat.workflows[0] });
+  scratch.store.createTask({
+    sessionId: session.id,
+    kind: 'code',
+    title: 't',
+    request: 'r',
+    workflow: chat.workflows[0],
+  });
   return { ...scratch, chat, project, session };
 }
 

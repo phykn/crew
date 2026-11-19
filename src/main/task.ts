@@ -8,7 +8,21 @@ import { memberTools } from './crew-tools';
 import { changedFiles, snapshot } from './changes';
 import { REFUSE } from './questions';
 
-type TaskEvent = { type: 'START' | 'WORK' | 'REVIEW' | 'REWORK' | 'ASK' | 'ANSWERED' | 'DONE' | 'FAIL' | 'STOP' | 'STOPPED' | 'RESUME' | 'REOPEN' };
+type TaskEvent = {
+  type:
+    | 'START'
+    | 'WORK'
+    | 'REVIEW'
+    | 'REWORK'
+    | 'ASK'
+    | 'ANSWERED'
+    | 'DONE'
+    | 'FAIL'
+    | 'STOP'
+    | 'STOPPED'
+    | 'RESUME'
+    | 'REOPEN';
+};
 
 // Which status a task may move to from which; the engine decides when, this decides whether
 export const taskMachine = setup({ types: { events: {} as TaskEvent } }).createMachine({
@@ -16,9 +30,39 @@ export const taskMachine = setup({ types: { events: {} as TaskEvent } }).createM
   initial: 'queued',
   states: {
     queued: { on: { START: 'running', STOP: 'stopped' } },
-    running: { on: { WORK: 'running', REVIEW: 'reviewing', REWORK: 'fixing', ASK: 'waiting', DONE: 'done', FAIL: 'failed', STOP: 'stopping' } },
-    reviewing: { on: { WORK: 'running', REVIEW: 'reviewing', REWORK: 'fixing', ASK: 'waiting', DONE: 'done', FAIL: 'failed', STOP: 'stopping' } },
-    fixing: { on: { WORK: 'running', REVIEW: 'reviewing', REWORK: 'fixing', ASK: 'waiting', DONE: 'done', FAIL: 'failed', STOP: 'stopping' } },
+    running: {
+      on: {
+        WORK: 'running',
+        REVIEW: 'reviewing',
+        REWORK: 'fixing',
+        ASK: 'waiting',
+        DONE: 'done',
+        FAIL: 'failed',
+        STOP: 'stopping',
+      },
+    },
+    reviewing: {
+      on: {
+        WORK: 'running',
+        REVIEW: 'reviewing',
+        REWORK: 'fixing',
+        ASK: 'waiting',
+        DONE: 'done',
+        FAIL: 'failed',
+        STOP: 'stopping',
+      },
+    },
+    fixing: {
+      on: {
+        WORK: 'running',
+        REVIEW: 'reviewing',
+        REWORK: 'fixing',
+        ASK: 'waiting',
+        DONE: 'done',
+        FAIL: 'failed',
+        STOP: 'stopping',
+      },
+    },
     waiting: { on: { ANSWERED: 'running', FAIL: 'failed', STOP: 'stopping' } },
     stopping: { on: { STOPPED: 'stopped' } },
     stopped: { on: { RESUME: 'running' } },
@@ -71,7 +115,11 @@ export function satisfied(w: Workflow, runs: StepRun[], id: string): boolean {
 
 function sentBack(w: Workflow, runs: StepRun[], id: string, since: number) {
   return runs.some(
-    (r) => r.id > since && r.status === 'done' && r.verdict === 'rework' && (w.steps.find((s) => s.id === r.stepId)?.rework ?? r.handback?.target) === id,
+    (r) =>
+      r.id > since &&
+      r.status === 'done' &&
+      r.verdict === 'rework' &&
+      (w.steps.find((s) => s.id === r.stepId)?.rework ?? r.handback?.target) === id,
   );
 }
 
@@ -212,7 +260,14 @@ export class Tasks {
     if (member.status !== 'hired' || member.leaving) return absent;
     let prompt = this.brief(task, step);
     const log = (text: string, detail: unknown = null) =>
-      store.addEvent({ sessionId: task.sessionId, taskId: task.id, memberId: member.id, kind: 'step', text, detail: detail ? JSON.stringify(detail) : null });
+      store.addEvent({
+        sessionId: task.sessionId,
+        taskId: task.id,
+        memberId: member.id,
+        kind: 'step',
+        text,
+        detail: detail ? JSON.stringify(detail) : null,
+      });
     // Retries stay out of the log until the last one fails; that one line carries every error
     const errors: string[] = [];
     for (let attempt = 0; attempt <= RETRIES; attempt++) {
@@ -281,11 +336,24 @@ export class Tasks {
     const cut = runs.filter((r) => r.stepId === step.id).at(-1)?.error === 'app restarted';
     const saved = cut && !step.verdict ? changedFiles(store.readBaseline(task.id), snapshot(project.path)) : [];
     const earlier = w.steps
-      .filter((s) => s.id !== step.id && lastDone(runs, s.id) && (step.after.includes(s.id) || isAncestor(w, s.id, step.id)))
+      .filter(
+        (s) => s.id !== step.id && lastDone(runs, s.id) && (step.after.includes(s.id) || isAncestor(w, s.id, step.id)),
+      )
       .map((s) => section(`${s.label} (${this.roleOf(task, s)})`, lastDone(runs, s.id)!.handback!));
     const sentBackBy = runs
-      .filter((r) => r.status === 'done' && r.verdict === 'rework' && (!own || r.id > own.id) && (w.steps.find((s) => s.id === r.stepId)?.rework ?? r.handback?.target) === step.id)
-      .map((r) => section(`Sent back by ${w.steps.find((s) => s.id === r.stepId)?.label ?? 'the user after the report'}`, r.handback!));
+      .filter(
+        (r) =>
+          r.status === 'done' &&
+          r.verdict === 'rework' &&
+          (!own || r.id > own.id) &&
+          (w.steps.find((s) => s.id === r.stepId)?.rework ?? r.handback?.target) === step.id,
+      )
+      .map((r) =>
+        section(
+          `Sent back by ${w.steps.find((s) => s.id === r.stepId)?.label ?? 'the user after the report'}`,
+          r.handback!,
+        ),
+      );
     return [
       `[Task #${task.id}] ${task.title}`,
       `The user's request, through 비서:\n${task.request}`,
@@ -293,9 +361,15 @@ export class Tasks {
       `Project folder: ${project.path}\nYour output folder for files you produce: ${this.chat.outputDir(project, `task-${task.id}`)}`,
       ...(earlier.length ? ['# Earlier steps', ...earlier] : []),
       // A step handed over from a member who left continues from what they saved
-      ...(own && own.memberId !== this.memberFor(task, step).id ? ['# This step so far, by the member before you', section(step.label, own.handback!)] : []),
+      ...(own && own.memberId !== this.memberFor(task, step).id
+        ? ['# This step so far, by the member before you', section(step.label, own.handback!)]
+        : []),
       ...(sentBackBy.length ? ['# Fix exactly these points', ...sentBackBy] : []),
-      ...(saved.length ? [`# Cut off by a restart\nYour earlier run of this step was cut off after changing: ${saved.join(', ')}. Read them, keep what is right, and finish the step.`] : []),
+      ...(saved.length
+        ? [
+            `# Cut off by a restart\nYour earlier run of this step was cut off after changing: ${saved.join(', ')}. Read them, keep what is right, and finish the step.`,
+          ]
+        : []),
       step.verdict
         ? 'Judge it and answer with verdict pass, or rework with each point to fix.'
         : 'Do the step, then answer with your handback.',
@@ -323,10 +397,13 @@ export class Tasks {
   // A temp's work is the task it came for; once that is done and nothing else needs it, it leaves
   dismissTemps(task: Task) {
     const { store } = this.chat;
-    const open = store.listTasks(task.sessionId).filter((t) => t.id !== task.id && !['done', 'failed', 'stopped'].includes(t.status));
+    const open = store
+      .listTasks(task.sessionId)
+      .filter((t) => t.id !== task.id && !['done', 'failed', 'stopped'].includes(t.status));
     for (const s of task.workflow.steps) {
       const m = this.memberFor(task, s);
-      if (m.temp && !open.some((t) => t.workflow.steps.some((x) => this.memberFor(t, x).id === m.id))) this.chat.fire(m.id);
+      if (m.temp && !open.some((t) => t.workflow.steps.some((x) => this.memberFor(t, x).id === m.id)))
+        this.chat.fire(m.id);
     }
   }
 
@@ -343,12 +420,31 @@ export class Tasks {
         : outcome === LIMIT
           ? `[Task #${task.id} paused] "${task.title}" stopped at the model usage limit. Tell the user what is done, what is left, and that they can resume it once the limit resets.`
           : `[Task #${task.id} stopped] "${task.title}" could not finish: ${outcome}. Tell the user what was done, what blocked it, and what they can decide.`;
-    return [head, ...steps, ...(outcome !== 'done' && left.length ? [`## Left to do\n${left.map((l) => `- ${l}`).join('\n')}`] : [])].join('\n\n');
+    return [
+      head,
+      ...steps,
+      ...(outcome !== 'done' && left.length ? [`## Left to do\n${left.map((l) => `- ${l}`).join('\n')}`] : []),
+    ].join('\n\n');
   }
 }
 
 function solo(role: string, key: string): Workflow {
-  return { kind: 'solo', label: role, use: '', steps: [{ id: 'work', role: key, label: `${role} 작업`, does: 'Do the request.', after: [], verdict: false, requires: [] }] };
+  return {
+    kind: 'solo',
+    label: role,
+    use: '',
+    steps: [
+      {
+        id: 'work',
+        role: key,
+        label: `${role} 작업`,
+        does: 'Do the request.',
+        after: [],
+        verdict: false,
+        requires: [],
+      },
+    ],
+  };
 }
 
 function isAncestor(w: Workflow, maybe: string, of: string): boolean {

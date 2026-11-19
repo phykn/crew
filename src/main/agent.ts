@@ -1,4 +1,11 @@
-import type { CanUseTool, ModelUsage, Options, Query, SDKMessage, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
+import type {
+  CanUseTool,
+  ModelUsage,
+  Options,
+  Query,
+  SDKMessage,
+  SDKUserMessage,
+} from '@anthropic-ai/claude-agent-sdk';
 
 export type QueryFn = (params: { prompt: AsyncIterable<SDKUserMessage>; options: Options }) => Query;
 // The parts of the SDK the app uses; tests hand in stand-ins with the same shape
@@ -107,7 +114,8 @@ export class AgentRun {
     try {
       for await (const msg of this.query) {
         out = this.read(msg, out);
-        if (msg.type === 'result' && msg.subtype === 'success' && out.status === 'done') this.input.onReply?.(msg.result);
+        if (msg.type === 'result' && msg.subtype === 'success' && out.status === 'done')
+          this.input.onReply?.(msg.result);
         // The inbox stays open while the agent works, so more can be said to it; a result with nothing queued ends the run
         if (msg.type === 'result' && this.inbox.queue.length === 0) this.inbox.close();
       }
@@ -138,7 +146,8 @@ export class AgentRun {
       costUsd: msg.total_cost_usd,
     };
     if (out.status === 'limit') return { ...out, usage };
-    if (msg.subtype === 'success') return { ...out, text: msg.result, status: 'done', usage, structured: msg.structured_output };
+    if (msg.subtype === 'success')
+      return { ...out, text: msg.result, status: 'done', usage, structured: msg.structured_output };
     return { ...out, status: 'failed', usage, error: msg.errors.join('\n') || msg.subtype };
   }
 

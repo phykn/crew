@@ -88,13 +88,7 @@
       "icon": "list",
       "label": "앱 조작",
       "use": "The crew app itself: read its help, find tasks, open screens, and resume work in this project.",
-      "readTools": [
-        "read_help",
-        "find_tasks",
-        "open_log",
-        "open_wiki_history",
-        "open_workflow_editor"
-      ]
+      "readTools": ["read_help", "find_tasks", "open_log", "open_wiki_history", "open_workflow_editor"]
     }
   }
 }

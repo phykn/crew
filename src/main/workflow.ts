@@ -28,10 +28,12 @@ export function validateWorkflow(w: Workflow, roles: string[]): string[] {
     if (!roles.includes(s.role)) problems.push(`${s.label}: 없는 역할 ${s.role}`);
     for (const a of s.after) if (!ids.includes(a)) problems.push(`${s.label}: 없는 선행 단계 ${a}`);
     if (s.verdict && !s.rework) problems.push(`${s.label}: 판정 단계에 되돌릴 단계가 없습니다`);
-    if (s.rework && !ancestors(w, s.id).includes(s.rework)) problems.push(`${s.label}: ${s.rework}는 앞선 단계가 아닙니다`);
+    if (s.rework && !ancestors(w, s.id).includes(s.rework))
+      problems.push(`${s.label}: ${s.rework}는 앞선 단계가 아닙니다`);
   }
   if (problems.length === 0 && hasCycle(w)) problems.push('단계가 순환합니다');
-  if (problems.length === 0 && !w.steps.some((s) => s.after.length === 0)) problems.push('시작할 수 있는 단계가 없어 완료에 닿지 못합니다');
+  if (problems.length === 0 && !w.steps.some((s) => s.after.length === 0))
+    problems.push('시작할 수 있는 단계가 없어 완료에 닿지 못합니다');
   return problems;
 }
 

@@ -9,7 +9,7 @@ const SCRIPT = {
   도우미: [{ call: { name: 'open_workflow_editor', input: { kind: 'code' } }, text: '편집 화면을 열었습니다.' }],
 };
 
-test('비서 answers from the help and 도우미 opens this project\'s workflow editor', async () => {
+test("비서 answers from the help and 도우미 opens this project's workflow editor", async () => {
   const scratch = makeScratch();
   const app = await launchApp(scratch.db, SCRIPT);
   const page = await openProject(app, scratch.project);

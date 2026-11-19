@@ -27,7 +27,19 @@ type Layout = Record<string, { x: number; y: number }>;
 const NONE = 'none';
 
 // The workflow tab: this project's rules for one task kind, drawn as nodes and saved as a new version
-export function WorkflowView({ project, members, kind, onKind, active }: { project: Project; members: CrewMember[]; kind: string; onKind: (k: string) => void; active: boolean }) {
+export function WorkflowView({
+  project,
+  members,
+  kind,
+  onKind,
+  active,
+}: {
+  project: Project;
+  members: CrewMember[];
+  kind: string;
+  onKind: (k: string) => void;
+  active: boolean;
+}) {
   const [kinds, setKinds] = useState<{ kind: string; label: string }[]>([]);
   const [w, setW] = useState<Read | null>(null);
   const [steps, setSteps] = useState<Step[]>([]);
@@ -54,7 +66,19 @@ export function WorkflowView({ project, members, kind, onKind, active }: { proje
   }, [project.id, kind]);
 
   // Nodes carry the step, so edits in the side panel show on the canvas at once
-  const shown = useMemo(() => nodes.map((n) => ({ ...n, data: { step: steps.find((s) => s.id === n.id)!, member: members.find((m) => m.key === steps.find((s) => s.id === n.id)?.role) } })).filter((n) => n.data.step), [nodes, steps, members]);
+  const shown = useMemo(
+    () =>
+      nodes
+        .map((n) => ({
+          ...n,
+          data: {
+            step: steps.find((s) => s.id === n.id)!,
+            member: members.find((m) => m.key === steps.find((s) => s.id === n.id)?.role),
+          },
+        }))
+        .filter((n) => n.data.step),
+    [nodes, steps, members],
+  );
   const edges: Edge[] = steps.flatMap((s) => s.after.map((a) => ({ id: `${a}->${s.id}`, source: a, target: s.id })));
   const edit = (id: string, change: Partial<Step>) => {
     setDirty(true);
@@ -62,19 +86,30 @@ export function WorkflowView({ project, members, kind, onKind, active }: { proje
   };
 
   function onConnect(c: Connection) {
-    if (c.source && c.target && c.source !== c.target) edit(c.target, { after: [...new Set([...steps.find((s) => s.id === c.target)!.after, c.source])] });
+    if (c.source && c.target && c.source !== c.target)
+      edit(c.target, { after: [...new Set([...steps.find((s) => s.id === c.target)!.after, c.source])] });
   }
   function onEdgesChange(changes: EdgeChange[]) {
-    for (const ch of changes) if (ch.type === 'remove') {
-      const [from, to] = ch.id.split('->');
-      edit(to, { after: steps.find((s) => s.id === to)!.after.filter((a) => a !== from) });
-    }
+    for (const ch of changes)
+      if (ch.type === 'remove') {
+        const [from, to] = ch.id.split('->');
+        edit(to, { after: steps.find((s) => s.id === to)!.after.filter((a) => a !== from) });
+      }
     applyEdgeChanges(changes, edges);
   }
   function onNodesChange(changes: NodeChange<StepNode>[]) {
     if (changes.some((ch) => ch.type === 'remove' || (ch.type === 'position' && ch.dragging))) setDirty(true);
     const gone = changes.flatMap((ch) => (ch.type === 'remove' ? [ch.id] : []));
-    if (gone.length) setSteps((all) => all.filter((s) => !gone.includes(s.id)).map((s) => ({ ...s, after: s.after.filter((a) => !gone.includes(a)), rework: gone.includes(s.rework ?? '') ? undefined : s.rework })));
+    if (gone.length)
+      setSteps((all) =>
+        all
+          .filter((s) => !gone.includes(s.id))
+          .map((s) => ({
+            ...s,
+            after: s.after.filter((a) => !gone.includes(a)),
+            rework: gone.includes(s.rework ?? '') ? undefined : s.rework,
+          })),
+      );
     setNodes((ns) => applyNodeChanges(changes, ns));
   }
   function addStep() {
@@ -82,11 +117,16 @@ export function WorkflowView({ project, members, kind, onKind, active }: { proje
     setDirty(true);
     const role = members.find((m) => m.status === 'hired' && !m.kept)?.key ?? members[0].key;
     setSteps((all) => [...all, { id, role, label: '새 단계', does: '', after: [], verdict: false, requires: [] }]);
-    setNodes((ns) => [...ns, { id, type: 'step', position: { x: 40, y: 40 + ns.length * 20 }, data: { step: null as never } }]);
+    setNodes((ns) => [
+      ...ns,
+      { id, type: 'step', position: { x: 40, y: 40 + ns.length * 20 }, data: { step: null as never } },
+    ]);
     setPicked(id);
   }
   async function save() {
-    const layout = Object.fromEntries(nodes.map((n) => [n.id, { x: Math.round(n.position.x), y: Math.round(n.position.y) }]));
+    const layout = Object.fromEntries(
+      nodes.map((n) => [n.id, { x: Math.round(n.position.x), y: Math.round(n.position.y) }]),
+    );
     const rules = { ...w!.rules, steps };
     const r = await call('workflows.save', { projectId: project.id, kind, base: w!.version, rules, layout });
     if (r.ok) {
@@ -103,82 +143,144 @@ export function WorkflowView({ project, members, kind, onKind, active }: { proje
       <header className="toolbar">
         <div className="seg" role="group" aria-label="업무 종류">
           {kinds.map((k) => (
-            <button key={k.kind} aria-pressed={k.kind === kind} onClick={() => (!dirty || confirm('저장 안 한 변경이 사라집니다. 다른 업무 종류로 바꿀까요?')) && onKind(k.kind)}>
+            <button
+              key={k.kind}
+              aria-pressed={k.kind === kind}
+              onClick={() =>
+                (!dirty || confirm('저장 안 한 변경이 사라집니다. 다른 업무 종류로 바꿀까요?')) && onKind(k.kind)
+              }
+            >
               {k.label}
             </button>
           ))}
         </div>
         <span className="badge">버전 {w?.version ?? 0}</span>
         <span className="toolbar-end">
-          <button className="button" onClick={addStep}>단계 추가</button>
-          <button className="button primary" data-dirty={dirty || undefined} title={dirty ? '저장 안 한 변경이 있습니다' : undefined} onClick={save}>
+          <button className="button" onClick={addStep}>
+            단계 추가
+          </button>
+          <button
+            className="button primary"
+            data-dirty={dirty || undefined}
+            title={dirty ? '저장 안 한 변경이 있습니다' : undefined}
+            onClick={save}
+          >
             저장
           </button>
         </span>
       </header>
-      {note && <p className={`workflow-note${note.ok ? '' : ' bad'}`} role="status">{note.text}</p>}
+      {note && (
+        <p className={`workflow-note${note.ok ? '' : ' bad'}`} role="status">
+          {note.text}
+        </p>
+      )}
       <div className="workflow-body">
         <div className="workflow-canvas">
           {/* A hidden canvas has no size to fit nodes to, so it is drawn only while the tab shows; the steps stay in state */}
           {active && (
-          <ReactFlow
-            nodes={shown}
-            edges={edges}
-            nodeTypes={NODE_TYPES}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeClick={(_, n) => setPicked(n.id)}
-            onPaneClick={() => setPicked(null)}
-            colorMode="light"
-            fitView
-            // Fits the whole flow but never enlarges past real size
-            fitViewOptions={{ maxZoom: 1, padding: 0.15 }}
-            deleteKeyCode={['Backspace', 'Delete']}
-          >
-            <Background />
-            <Controls showInteractive={false} />
-          </ReactFlow>
+            <ReactFlow
+              nodes={shown}
+              edges={edges}
+              nodeTypes={NODE_TYPES}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onNodeClick={(_, n) => setPicked(n.id)}
+              onPaneClick={() => setPicked(null)}
+              colorMode="light"
+              fitView
+              // Fits the whole flow but never enlarges past real size
+              fitViewOptions={{ maxZoom: 1, padding: 0.15 }}
+              deleteKeyCode={['Backspace', 'Delete']}
+            >
+              <Background />
+              <Controls showInteractive={false} />
+            </ReactFlow>
           )}
         </div>
         {step && (
           <aside className="workflow-side" aria-label="단계 설정">
             <label>
               이름
-              <input aria-label="단계 이름" value={step.label} onChange={(e) => edit(step.id, { label: e.target.value })} />
+              <input
+                aria-label="단계 이름"
+                value={step.label}
+                onChange={(e) => edit(step.id, { label: e.target.value })}
+              />
             </label>
             <label>
               담당
-              <Choice label="담당 역할" value={step.role} options={members.filter((m) => m.status === 'hired').map((m) => ({ value: m.key, label: `${m.role} ${m.nickname}` }))} onChange={(role) => edit(step.id, { role })} />
+              <Choice
+                label="담당 역할"
+                value={step.role}
+                options={members
+                  .filter((m) => m.status === 'hired')
+                  .map((m) => ({ value: m.key, label: `${m.role} ${m.nickname}` }))}
+                onChange={(role) => edit(step.id, { role })}
+              />
             </label>
             <label>
               할 일
-              <textarea aria-label="할 일" value={step.does} onChange={(e) => edit(step.id, { does: e.target.value })} />
+              <textarea
+                aria-label="할 일"
+                value={step.does}
+                onChange={(e) => edit(step.id, { does: e.target.value })}
+              />
             </label>
             <fieldset aria-label="선행 단계">
               <legend>선행 단계</legend>
-              {steps.filter((s) => s.id !== step.id).map((s) => (
-                <label key={s.id} className="check">
-                  <input type="checkbox" checked={step.after.includes(s.id)} onChange={(e) => edit(step.id, { after: e.target.checked ? [...step.after, s.id] : step.after.filter((a) => a !== s.id) })} />
-                  {s.label}
-                </label>
-              ))}
+              {steps
+                .filter((s) => s.id !== step.id)
+                .map((s) => (
+                  <label key={s.id} className="check">
+                    <input
+                      type="checkbox"
+                      checked={step.after.includes(s.id)}
+                      onChange={(e) =>
+                        edit(step.id, {
+                          after: e.target.checked ? [...step.after, s.id] : step.after.filter((a) => a !== s.id),
+                        })
+                      }
+                    />
+                    {s.label}
+                  </label>
+                ))}
             </fieldset>
             <label className="check">
-              <input type="checkbox" checked={step.verdict} onChange={(e) => edit(step.id, { verdict: e.target.checked })} />
+              <input
+                type="checkbox"
+                checked={step.verdict}
+                onChange={(e) => edit(step.id, { verdict: e.target.checked })}
+              />
               판정 단계
             </label>
             {step.verdict && (
               <label>
                 되돌릴 단계
-                <Choice label="되돌릴 단계" value={step.rework ?? NONE} options={[{ value: NONE, label: '—' }, ...steps.filter((s) => s.id !== step.id).map((s) => ({ value: s.id, label: s.label }))]} onChange={(v) => edit(step.id, { rework: v === NONE ? undefined : v })} />
+                <Choice
+                  label="되돌릴 단계"
+                  value={step.rework ?? NONE}
+                  options={[
+                    { value: NONE, label: '—' },
+                    ...steps.filter((s) => s.id !== step.id).map((s) => ({ value: s.id, label: s.label })),
+                  ]}
+                  onChange={(v) => edit(step.id, { rework: v === NONE ? undefined : v })}
+                />
               </label>
             )}
             <fieldset>
               <legend>필수 인계</legend>
               {(['files', 'checks'] as const).map((k) => (
                 <label key={k} className="check">
-                  <input type="checkbox" checked={step.requires.includes(k)} onChange={(e) => edit(step.id, { requires: e.target.checked ? [...step.requires, k] : step.requires.filter((r) => r !== k) })} />
+                  <input
+                    type="checkbox"
+                    checked={step.requires.includes(k)}
+                    onChange={(e) =>
+                      edit(step.id, {
+                        requires: e.target.checked ? [...step.requires, k] : step.requires.filter((r) => r !== k),
+                      })
+                    }
+                  />
                   {k === 'files' ? '변경 파일' : '실행한 검사'}
                 </label>
               ))}
@@ -196,7 +298,9 @@ function StepBox({ data }: NodeProps<StepNode>) {
     <div className="workflow-node" aria-label={`단계 ${step.label}`}>
       <Handle type="target" position={Position.Top} />
       {/* The role shows only when the step's name does not already say it */}
-      {!step.label.startsWith(member?.role ?? step.role) && <div className="workflow-role">{member?.role ?? step.role}</div>}
+      {!step.label.startsWith(member?.role ?? step.role) && (
+        <div className="workflow-role">{member?.role ?? step.role}</div>
+      )}
       <div>{step.label}</div>
       {step.verdict && <div className="muted">판정</div>}
       <Handle type="source" position={Position.Bottom} />
@@ -216,7 +320,12 @@ function toNodes(steps: Step[], layout: Layout, members: CrewMember[]): StepNode
   return steps.map((s) => {
     const d = depth(s.id);
     const row = (rows[d] = (rows[d] ?? -1) + 1);
-    return { id: s.id, type: 'step', position: layout[s.id] ?? { x: row * 170, y: d * 100 }, data: { step: s, member: members.find((m) => m.key === s.role) } };
+    return {
+      id: s.id,
+      type: 'step',
+      position: layout[s.id] ?? { x: row * 170, y: d * 100 },
+      data: { step: s, member: members.find((m) => m.key === s.role) },
+    };
   });
 }
 

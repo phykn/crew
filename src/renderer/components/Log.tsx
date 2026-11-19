@@ -7,7 +7,17 @@ import { Choice } from './Choice';
 const ALL = 'all';
 
 // The session's record in time order: when, who, what, and the handback behind it when opened
-export function Log({ session, members, taskId, onTask }: { session: Session; members: CrewMember[]; taskId: number | null; onTask: (id: number | null) => void }) {
+export function Log({
+  session,
+  members,
+  taskId,
+  onTask,
+}: {
+  session: Session;
+  members: CrewMember[];
+  taskId: number | null;
+  onTask: (id: number | null) => void;
+}) {
   const [events, setEvents] = useState<Event[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [open, setOpen] = useState<number | null>(null);
@@ -34,11 +44,18 @@ export function Log({ session, members, taskId, onTask }: { session: Session; me
         <Choice
           label="업무 선택"
           value={taskId ? String(taskId) : ALL}
-          options={[{ value: ALL, label: '모든 업무' }, ...tasks.map((t) => ({ value: String(t.id), label: `#${t.id} ${t.title}` }))]}
+          options={[
+            { value: ALL, label: '모든 업무' },
+            ...tasks.map((t) => ({ value: String(t.id), label: `#${t.id} ${t.title}` })),
+          ]}
           onChange={(v) => onTask(v === ALL ? null : Number(v))}
         />
         {runs > 0 && (
-          <button className="toolbar-end usage-toggle" aria-expanded={showUsage} onClick={() => setShowUsage(!showUsage)}>
+          <button
+            className="toolbar-end usage-toggle"
+            aria-expanded={showUsage}
+            onClick={() => setShowUsage(!showUsage)}
+          >
             {runs}회 · ${cost.toFixed(3)}
           </button>
         )}
@@ -81,8 +98,18 @@ export function Log({ session, members, taskId, onTask }: { session: Session; me
           const minute = e.at.slice(11, 16);
           const same = i > 0 && shown[i - 1].at.slice(0, 16) === e.at.slice(0, 16);
           return (
-            <li key={e.id} className="log-row" data-kind={e.kind} data-bad={/실패|거부|denied/.test(e.text) || undefined}>
-              <button className="log-line" disabled={!opens} aria-expanded={opens ? open === e.id : undefined} onClick={() => setOpen(open === e.id ? null : e.id)}>
+            <li
+              key={e.id}
+              className="log-row"
+              data-kind={e.kind}
+              data-bad={/실패|거부|denied/.test(e.text) || undefined}
+            >
+              <button
+                className="log-line"
+                disabled={!opens}
+                aria-expanded={opens ? open === e.id : undefined}
+                onClick={() => setOpen(open === e.id ? null : e.id)}
+              >
                 <time>{same ? '' : minute}</time>
                 <span className="log-who">{m ? m.role : '앱'}</span>
                 <span className="log-text">{m ? e.text.replace(new RegExp(`^${m.role}: `), '') : e.text}</span>
@@ -112,12 +139,22 @@ function HandbackView({ hb }: { hb: Handback }) {
   return (
     <div className="log-detail">
       {hb.files.length > 0 && (
-        <ul className="files">{hb.files.map((f) => <li key={f}><code>{f}</code></li>)}</ul>
+        <ul className="files">
+          {hb.files.map((f) => (
+            <li key={f}>
+              <code>{f}</code>
+            </li>
+          ))}
+        </ul>
       )}
       {hb.points.length > 0 && (
         <section>
           <h4>검토 의견</h4>
-          <ul>{hb.points.map((p) => <li key={p}>{p}</li>)}</ul>
+          <ul>
+            {hb.points.map((p) => (
+              <li key={p}>{p}</li>
+            ))}
+          </ul>
         </section>
       )}
       {hb.checks.length > 0 && (

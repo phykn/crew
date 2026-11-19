@@ -3,7 +3,19 @@ import * as Select from '@radix-ui/react-select';
 export type Option = { value: string; label: string };
 
 // Every pick-one control looks the same, instead of the system's own dropdown in some places
-export function Choice({ value, options, onChange, label, className = '' }: { value: string; options: Option[]; onChange: (v: string) => void; label: string; className?: string }) {
+export function Choice({
+  value,
+  options,
+  onChange,
+  label,
+  className = '',
+}: {
+  value: string;
+  options: Option[];
+  onChange: (v: string) => void;
+  label: string;
+  className?: string;
+}) {
   return (
     <Select.Root value={value} onValueChange={onChange}>
       <Select.Trigger className={`choice ${className}`} aria-label={label}>

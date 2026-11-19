@@ -20,7 +20,9 @@ const git = (...args) => execFileSync('git', args, { cwd: root, stdio: 'inherit'
 function setVersion(f, version, count) {
   let left = count;
   const file = path.join(root, f);
-  const text = fs.readFileSync(file, 'utf-8').replace(/("version": ")[^"]*(")/g, (m, a, b) => (left-- > 0 ? a + version + b : m));
+  const text = fs
+    .readFileSync(file, 'utf-8')
+    .replace(/("version": ")[^"]*(")/g, (m, a, b) => (left-- > 0 ? a + version + b : m));
   fs.writeFileSync(file, text);
 }
 

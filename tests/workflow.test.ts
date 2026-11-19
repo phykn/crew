@@ -5,19 +5,53 @@ import { CREW, fakeCrew, openScratch, type Turn } from './support';
 test('rule versions: broken or stale saves are refused, and each scope reaches only its tasks', () => {
   const { store, project, paths } = openScratch();
   const never: Turn = () => new Promise(() => {});
-  const chat = new Chat(store, async () => fakeCrew({ 기획: [never, never, never] }).sdk, CREW, () => {}, paths);
+  const chat = new Chat(
+    store,
+    async () => fakeCrew({ 기획: [never, never, never] }).sdk,
+    CREW,
+    () => {},
+    paths,
+  );
   const p = store.addProject(project);
   chat.seed(p.id);
   const s = store.createSession(p.id);
   const base = chat.workflowFor(p.id, 'code');
   const save = (rules: unknown, o: { base?: number; scope?: 'future' | 'current' | 'once'; taskId?: number } = {}) =>
-    chat.saveWorkflow({ projectId: p.id, kind: 'code', base: o.base ?? chat.workflowFor(p.id, 'code').version, rules, author: 'test', scope: o.scope ?? 'future', taskId: o.taskId });
-  const withDocs = { ...base.rules, steps: [...base.rules.steps, { id: 'docs', role: 'researcher', label: '문서 확인', does: '문서 확인', after: ['develop'], verdict: true, rework: 'develop' }] };
+    chat.saveWorkflow({
+      projectId: p.id,
+      kind: 'code',
+      base: o.base ?? chat.workflowFor(p.id, 'code').version,
+      rules,
+      author: 'test',
+      scope: o.scope ?? 'future',
+      taskId: o.taskId,
+    });
+  const withDocs = {
+    ...base.rules,
+    steps: [
+      ...base.rules.steps,
+      {
+        id: 'docs',
+        role: 'researcher',
+        label: '문서 확인',
+        does: '문서 확인',
+        after: ['develop'],
+        verdict: true,
+        rework: 'develop',
+      },
+    ],
+  };
   const ids = (taskId: number) => store.readTask(taskId).workflow.steps.map((x) => x.id);
 
-  const cyclic = { ...base.rules, steps: base.rules.steps.map((x) => (x.id === 'plan' ? { ...x, after: ['test'] } : x)) };
+  const cyclic = {
+    ...base.rules,
+    steps: base.rules.steps.map((x) => (x.id === 'plan' ? { ...x, after: ['test'] } : x)),
+  };
   expect(save(cyclic)).toMatchObject({ ok: false, problems: ['단계가 순환합니다'] });
-  const dangling = { ...base.rules, steps: [...base.rules.steps, { id: 'x', role: 'tester', label: 'x', does: 'x', after: ['nope'] }] };
+  const dangling = {
+    ...base.rules,
+    steps: [...base.rules.steps, { id: 'x', role: 'tester', label: 'x', does: 'x', after: ['nope'] }],
+  };
   expect(save(dangling).ok).toBe(false);
   expect(chat.workflowFor(p.id, 'code').version).toBe(0);
 
@@ -28,7 +62,15 @@ test('rule versions: broken or stale saves are refused, and each scope reaches o
   expect(ids(running.id)).not.toContain('docs');
   expect(ids(chat.tasks.start(s.id, 'code', '새 업무', 'r').id)).toContain('docs');
 
-  const lean = { ...base.rules, steps: base.rules.steps.filter((x) => x.id !== 'plan_review').map((x) => ({ ...x, after: x.after.filter((a) => a !== 'plan_review').concat(x.id === 'develop' ? ['plan'] : []) })) };
+  const lean = {
+    ...base.rules,
+    steps: base.rules.steps
+      .filter((x) => x.id !== 'plan_review')
+      .map((x) => ({
+        ...x,
+        after: x.after.filter((a) => a !== 'plan_review').concat(x.id === 'develop' ? ['plan'] : []),
+      })),
+  };
   expect(save(lean, { scope: 'once', taskId: running.id }).ok).toBe(true);
   expect(ids(running.id)).not.toContain('plan_review');
   expect(chat.workflowFor(p.id, 'code').version).toBe(1);

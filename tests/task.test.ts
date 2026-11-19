@@ -13,10 +13,7 @@ test('기획 → 리뷰 (sent back once) → 기획 → 리뷰 → 개발 → �
   };
   fake = fakeCrew({
     비서: [opens, reply('검색을 고쳤고 리뷰와 시험을 통과했습니다.', 'claude-secretary')],
-    기획: [
-      handback('claude-plan', { summary: '계획 v1' }),
-      handback('claude-plan', { summary: '계획 v2' }),
-    ],
+    기획: [handback('claude-plan', { summary: '계획 v1' }), handback('claude-plan', { summary: '계획 v2' })],
     리뷰: [
       handback('claude-review', { summary: '범위 누락', verdict: 'rework', points: ['빈 검색어 경우가 없습니다'] }),
       handback('claude-review', { summary: '계획 통과', verdict: 'pass' }),
@@ -26,7 +23,13 @@ test('기획 → 리뷰 (sent back once) → 기획 → 리뷰 → 개발 → �
     시험: [handback('claude-test', { summary: '시험 통과', verdict: 'pass', checks: ['npm test: 3 passed'] })],
     표준: [handback('claude-style', { summary: '스타일 통과', verdict: 'pass' })],
   });
-  const chat = new Chat(store, async () => fake.sdk, CREW, () => {}, paths);
+  const chat = new Chat(
+    store,
+    async () => fake.sdk,
+    CREW,
+    () => {},
+    paths,
+  );
   const p = store.addProject(project);
   chat.seed(p.id);
   const s = store.createSession(p.id);
@@ -58,16 +61,12 @@ test('기획 → 리뷰 (sent back once) → 기획 → 리뷰 → 개발 → �
     ['tester', 'claude-test'],
     ['stylist', 'claude-style'],
   ]);
-  expect(store.listEvents(s.id).filter((e) => e.kind === 'status').map((e) => e.detail)).toEqual([
-    'running',
-    'running',
-    'reviewing',
-    'fixing',
-    'reviewing',
-    'running',
-    'reviewing',
-    'done',
-  ]);
+  expect(
+    store
+      .listEvents(s.id)
+      .filter((e) => e.kind === 'status')
+      .map((e) => e.detail),
+  ).toEqual(['running', 'running', 'reviewing', 'fixing', 'reviewing', 'running', 'reviewing', 'done']);
   // The report 비서 is asked to give carries the changed files and the checks
   const report = fake.calls.filter((c) => c.role === '비서')[1].prompt;
   expect(report).toContain('[Task #1 finished]');

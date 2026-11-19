@@ -5,9 +5,16 @@ import { CREW, fakeCrew, handback, openScratch, reply, type Turn } from './suppo
 test('/clear starts an empty 비서 on the same crew while the old session works on; deleting counts what goes', async () => {
   const { store, project, paths } = openScratch({ 'a.md': 'x' });
   let release = () => {};
-  const held: Turn = (p, o) => new Promise((r) => (release = () => r(handback('r', { summary: '조사 끝' })(p, o) as never)));
+  const held: Turn = (p, o) =>
+    new Promise((r) => (release = () => r(handback('r', { summary: '조사 끝' })(p, o) as never)));
   const fake = fakeCrew({ 조사: [held], 비서: [reply('새 세션입니다', 'claude-new'), reply('보고', 'claude-old')] });
-  const chat = new Chat(store, async () => fake.sdk, CREW, () => {}, paths);
+  const chat = new Chat(
+    store,
+    async () => fake.sdk,
+    CREW,
+    () => {},
+    paths,
+  );
   const p = store.addProject(project);
   chat.seed(p.id);
   const old = store.createSession(p.id);
@@ -23,7 +30,12 @@ test('/clear starts an empty 비서 on the same crew while the old session works
   await vi.waitFor(() => expect(store.readTask(task.id).status).toBe('done'));
 
   const impact = store.impact({ sessionId: old.id });
-  expect(impact).toEqual({ sessions: 1, tasks: 1, events: store.listEvents(old.id).length, messages: store.listMessages(old.id).length });
+  expect(impact).toEqual({
+    sessions: 1,
+    tasks: 1,
+    events: store.listEvents(old.id).length,
+    messages: store.listMessages(old.id).length,
+  });
   chat.deleteSession(old.id);
   expect(store.listSessions(p.id).map((s) => s.id)).toEqual([next.id]);
   chat.removeProject(p.id);
