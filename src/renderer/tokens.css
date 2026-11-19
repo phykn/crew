@@ -25,6 +25,9 @@
   --wood-dark: #5c3213;
   --wood-light: #c98a4b;
   --on-wood: #fff1d6;
+  /* The campfire logo; the app icon in assets/icon.ico uses the same colors */
+  --flame: #f59e0b;
+  --flame-core: #fde68a;
   --camp-bg: #2b3a2a;
 
   /* Text */

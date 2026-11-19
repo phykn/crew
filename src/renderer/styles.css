@@ -288,6 +288,22 @@ code {
   width: var(--icon-logo);
   height: var(--icon-logo);
 }
+/* Light logs, so they show on the wooden plank */
+.titlebar .logo .flame {
+  fill: var(--flame);
+}
+.titlebar .logo .flame-core {
+  fill: var(--flame-core);
+}
+.titlebar .logo .logs {
+  stroke: var(--wood-light);
+}
+/* The version sits on the title's baseline, not centered beside it */
+.titlebar .name {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+}
 .titlebar .title {
   font-size: var(--fs-title);
   font-weight: var(--fw-bold);

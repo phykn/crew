@@ -7,6 +7,8 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    // The title bar's campfire, drawn from the same paths as TitleBar.tsx
+    icon: 'assets/icon',
     // The crew's rules and definitions are read at runtime from resources/crew
     extraResource: ['crew'],
   },
