@@ -39,8 +39,8 @@ function bump() {
 function bundle() {
   const out = path.join(root, 'out');
   fs.mkdirSync(out, { recursive: true });
-  for (const f of fs.readdirSync(out)) if (/^ai-crew-.*\.bundle$/.test(f)) fs.rmSync(path.join(out, f));
-  const file = path.join(out, `ai-crew-${read('package.json').version.replaceAll('.', '-')}.bundle`);
+  for (const f of fs.readdirSync(out)) if (/^crew-.*\.bundle$/.test(f)) fs.rmSync(path.join(out, f));
+  const file = path.join(out, `crew-${read('package.json').version.replaceAll('.', '-')}.bundle`);
   git('bundle', 'create', file, '--all');
 }
 

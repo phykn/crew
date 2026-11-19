@@ -12,7 +12,7 @@ type Turn = {
   call?: { name: string; input: Record<string, unknown> };
 };
 
-// Stands in for Claude when AI_CREW_SCRIPT names a script, so the window's flows can be tested without a model
+// Stands in for Claude when CREW_SCRIPT names a script, so the window's flows can be tested without a model
 export function scriptSdk(file: string): Sdk {
   const script = JSON.parse(fs.readFileSync(file, 'utf-8')) as Record<string, Turn[]>;
   const tools = new Map<string, (a: Record<string, unknown>) => Promise<unknown>>();

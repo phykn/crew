@@ -11,7 +11,7 @@ export const CREW = new Crew(path.resolve(__dirname, '../crew'));
 
 // A scratch record and project folder per test, so tests never touch real data
 export function makeScratch(files: Record<string, string> = {}) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-crew-test-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crew-test-'));
   const project = path.join(dir, 'demo');
   fs.mkdirSync(project);
   for (const [name, text] of Object.entries(files)) fs.writeFileSync(path.join(project, name), text);
