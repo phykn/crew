@@ -28,8 +28,8 @@ test('a slash lists the commands, Tab completes one, /clear opens a new session,
   await page.getByRole('option', { name: '탐색기…' }).click();
   await expect(page.getByLabel('프로젝트 목록')).toContainText('비서');
   await page.getByRole('button', { name: '안녕 삭제' }).click();
-  // The session named 안녕 holds two messages and the /clear log line, and no task
-  await expect(page.getByLabel('삭제 확인')).toContainText('업무 0건, 로그 1건, 메시지 2건');
+  // The session named 안녕 holds two messages, and no task or log line
+  await expect(page.getByLabel('삭제 확인')).toContainText('업무 0건, 로그 0건, 메시지 2건');
   await page.getByLabel('삭제 확인').getByRole('button', { name: '세션 삭제' }).click();
   await expect(page.getByLabel('프로젝트 목록')).not.toContainText('안녕');
   await app.close();

@@ -12,12 +12,14 @@ export function Chat({
   session,
   mode,
   onMode,
+  onWaiting,
   onLog,
   commands,
 }: {
   session: Session;
   mode: Mode;
   onMode: (m: Mode) => void;
+  onWaiting: (waiting: boolean) => void;
   onLog: (taskId: number) => void;
   commands: Command[];
 }) {
@@ -52,6 +54,9 @@ export function Chat({
   useEffect(() => {
     end.current?.scrollIntoView({ block: 'end' });
   }, [messages, streaming]);
+
+  const waiting = messages.some((m) => m.question && m.question.answer === null);
+  useEffect(() => onWaiting(waiting), [waiting]);
 
   function send() {
     const text = draft.trim();

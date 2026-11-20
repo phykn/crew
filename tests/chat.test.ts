@@ -76,7 +76,7 @@ test('stopping 비서 mid-answer ends that run and says so in the chat', async (
   expect(store.listMessages(s.id).at(-1)!.text).toBe('답변을 멈췄습니다.');
 });
 
-test('/clear starts an empty 비서 on the same crew while the old session works on; deleting counts what goes', async () => {
+test('a new session (/clear) starts an empty 비서 on the same crew while the old session works on; deleting counts what goes', async () => {
   let release = () => {};
   const held: Turn = (p, o) =>
     new Promise((r) => (release = () => r(handback('r', { summary: '조사 끝' })(p, o) as never)));
@@ -94,7 +94,7 @@ test('/clear starts an empty 비서 on the same crew while the old session works
   const task = chat.tasks.start(old.id, 'research', '조사', 'r');
   await vi.waitFor(() => expect(fake.calls).toHaveLength(1));
 
-  const next = chat.clear(old.id);
+  const next = chat.createSession(p.id);
   await chat.send(next.id, '안녕');
   expect(fake.calls[1].options.resume).toBeUndefined();
   expect(store.readMember(p.id, 'researcher').model).toBe('haiku');

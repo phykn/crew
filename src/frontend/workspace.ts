@@ -78,10 +78,6 @@ export function useWorkspace() {
     }
   }
 
-  async function clearSession() {
-    selectSession(await call('sessions.clear', { sessionId: session!.id }));
-  }
-
   async function newSession() {
     selectSession(await call('sessions.create', { projectId: project!.id }));
   }
@@ -100,7 +96,6 @@ export function useWorkspace() {
     selectSession,
     openFolder,
     afterDelete,
-    clearSession,
     newSession,
     setMode,
   };

@@ -4,6 +4,7 @@ import type { CrewMember } from '../../backend/crew/shipped';
 import { call, onChanged } from '../api';
 import { clock, duration } from '../time';
 import { Choice } from './Choice';
+import { MarkIcon } from './Icons';
 
 const ALL = 'all';
 
@@ -92,25 +93,30 @@ export function Log({
         </table>
       )}
       <ol className="log-list" aria-label="업무 로그">
-        {shown.map((e, i) => {
+        {shown.map((e) => {
           const m = who(e.memberId);
           const hb = e.kind === 'step' ? readHandback(e.detail) : null;
           const errors = e.kind === 'step' && !hb ? readErrors(e.detail) : null;
           const opens = !!(hb || errors);
-          // A refusal, a failed task, or a step that failed every retry, read from the record rather than the wording
-          const bad = e.kind === 'denied' || (e.kind === 'status' && e.detail === 'failed') || !!errors;
-          // A minute already shown on the line above is not repeated
-          const minute = clock(e.at);
-          const same = i > 0 && shown[i - 1].at.slice(0, 16) === e.at.slice(0, 16);
+          const mark = markOf(e, hb, errors);
           return (
-            <li key={e.id} className="log-row" data-kind={e.kind} data-bad={bad || undefined}>
+            <li key={e.id} className="log-row" data-kind={e.kind} data-bad={mark.state === 'bad' || undefined}>
               <button
                 className="log-line"
                 disabled={!opens}
                 aria-expanded={opens ? open === e.id : undefined}
                 onClick={() => setOpen(open === e.id ? null : e.id)}
               >
-                <time>{same ? '' : minute}</time>
+                <time>{clock(e.at)}</time>
+                <span
+                  className="log-mark"
+                  data-state={mark.state}
+                  role="img"
+                  aria-label={mark.label}
+                  title={mark.label}
+                >
+                  <MarkIcon state={mark.state} />
+                </span>
                 <span className="log-who">{m ? m.role : '앱'}</span>
                 <span className="log-text">{m ? e.text.replace(new RegExp(`^${m.role}: `), '') : e.text}</span>
               </button>
@@ -166,6 +172,26 @@ function HandbackView({ hb }: { hb: Handback }) {
       {hb.body && <p className="log-body">{hb.body}</p>}
     </div>
   );
+}
+
+// What became of a line, read from what it records rather than its wording
+function markOf(e: Event, hb: Handback | null, errors: string[] | null) {
+  const mark = (state: 'ok' | 'bad' | 'wait' | 'work' | 'info', label: string) => ({ state, label });
+  if (e.kind === 'status') {
+    if (e.detail === 'done') return mark('ok', '완료');
+    if (e.detail === 'failed') return mark('bad', '실패');
+    if (e.detail === 'stopping' || e.detail === 'stopped') return mark('wait', '중단');
+    if (e.detail === 'waiting') return mark('wait', '대기');
+    return mark('work', '진행');
+  }
+  if (errors) return mark('bad', '실패');
+  if (hb) return hb.verdict === 'rework' ? mark('wait', '수정 요청') : mark('ok', '완료');
+  if (e.kind === 'step') return e.detail ? mark('wait', '보완 요청') : mark('work', '시작');
+  if (e.kind === 'denied') return mark('bad', '거부');
+  if (e.kind === 'approved') return mark('ok', '승인');
+  if (e.kind === 'refused') return mark('wait', '거절');
+  if (e.kind === 'waiting' || e.kind === 'stale') return mark('wait', '대기');
+  return mark('info', '기록');
 }
 
 // The same error repeated across retries shows once with its count

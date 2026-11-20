@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Config } from '../../backend/crew/shipped';
 import { call } from '../api';
+import { stamp } from '../time';
 import { Choice } from './Choice';
 import { KitIcon } from './Icons';
 
@@ -112,7 +113,7 @@ export function Permissions({ memberId }: { memberId: number }) {
         <ul className="perm-changes" aria-label="권한 변경 기록">
           {data.changes.map((c, i) => (
             <li key={i}>
-              <time>{new Date(c.at).toLocaleString('ko-KR')}</time> {c.change}
+              <time>{stamp(c.at)}</time> {c.change}
             </li>
           ))}
         </ul>

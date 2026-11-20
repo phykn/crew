@@ -115,6 +115,8 @@ test('changing the approval mode waits for the user, and a refusal leaves it as 
 
   const refused = act('bypass');
   await vi.waitFor(() => expect(card().prompt).toContain('전부로'));
+  // Allowing is the last option, the card's main button, as on every card
+  expect(card().options).toEqual(['거절', '허용']);
   chat.questions.answer(card().id, '거절');
   expect(await refused).toContain('거절');
   expect(store.readProject(p.id).mode).toBe('manual');

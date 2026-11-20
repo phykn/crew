@@ -80,6 +80,9 @@ test('기획 → 리뷰 (sent back once) → 기획 → 리뷰 → 개발 → �
   expect(report).toContain('[Task #1 finished]');
   expect(report).toContain('search.js');
   expect(report).toContain('npm test: 3 passed');
+  // One log line per finished step: its start shows in the task's own status line
+  const steps = store.listEvents(s.id).filter((e) => e.kind === 'step');
+  expect([steps.length, steps.filter((e) => e.text.endsWith(' 시작')).length]).toEqual([8, 0]);
 });
 
 test('a small change and one given to a member who writes the project skip the plan and keep every check; others work alone', () => {

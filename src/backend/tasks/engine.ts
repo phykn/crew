@@ -293,7 +293,6 @@ export class Tasks {
     const errors: string[] = [];
     for (let attempt = 0; attempt <= RETRIES; attempt++) {
       const runId = store.startStepRun(task.id, step.id, member.id, store.latestVersion(task.id)?.id ?? null);
-      if (attempt === 0) log(`${role}: ${step.label} 시작`);
       this.chat.emit('changed', 'tasks');
       const out = await this.chat.runs
         .run(member, task.sessionId, task.id, prompt, {
@@ -329,7 +328,7 @@ export class Tasks {
       if (missing.length) {
         // An incomplete handoff goes back to the same member, in its own session, before anyone takes it
         store.finishStepRun(runId, 'failed', hb, `missing ${missing.join(', ')}`);
-        log(`${role}: ${step.label} 인계 보완 요청 — ${missing.join(', ')} 없음`);
+        log(`${role}: ${step.label} 인계 보완 요청 — ${missing.join(', ')} 없음`, { missing });
         prompt = `Your handback is missing ${missing.join(' and ')}, which the next step needs. Answer again with the complete handback.`;
         continue;
       }

@@ -205,8 +205,10 @@ export function createWalkers() {
       bottom = view.y + view.h;
     },
 
-    // The first call only records what the page found, so history does not replay as news
+    // The first crew only records what the page found, so history does not replay as news
     applyStaff(staff) {
+      // The window has no crew until a project loads; that empty list is not the crew the page found
+      if (before === null && !staff.length) return;
       const now = performance.now(),
         leading = staff.some((s) => s.team === LEAD);
       // A temp whose mission ended, or someone let go, walks out instead of vanishing

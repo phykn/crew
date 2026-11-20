@@ -4,7 +4,12 @@ const PAIRS = { 을: ['을', '를'], 이: ['이', '가'], 은: ['은', '는'], �
 const DIGIT_FINAL = [21, 8, 0, 16, 0, 0, 1, 8, 8, 0];
 
 function finalOf(word: string): number {
-  const last = word.trim().at(-1) ?? '';
+  // Closing quotes and brackets, and the ellipsis of a cut title, are not read aloud
+  const last =
+    word
+      .trim()
+      .replace(/["'”’)\]…]+$/, '')
+      .at(-1) ?? '';
   const code = last.charCodeAt(0);
   if (code >= 0xac00 && code <= 0xd7a3) return (code - 0xac00) % 28;
   if (/\d/.test(last)) return DIGIT_FINAL[Number(last)];

@@ -53,6 +53,8 @@ export function WorkflowView({
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   // Unsaved edits are marked, so leaving them behind is a known choice
   const [dirty, setDirty] = useState(false);
+  // The kind picked while edits were unsaved, waiting for the user to let them go
+  const [leaveFor, setLeaveFor] = useState<string | null>(null);
   const [flow, setFlow] = useState<ReactFlowInstance<StepNode, LinkEdge> | null>(null);
 
   useEffect(() => {
@@ -182,9 +184,7 @@ export function WorkflowView({
             <button
               key={k.kind}
               aria-pressed={k.kind === kind}
-              onClick={() =>
-                (!dirty || confirm('저장 안 한 변경이 사라집니다. 다른 업무 종류로 바꿀까요?')) && onKind(k.kind)
-              }
+              onClick={() => (dirty && k.kind !== kind ? setLeaveFor(k.kind) : onKind(k.kind))}
             >
               {k.label}
             </button>
@@ -208,6 +208,23 @@ export function WorkflowView({
           </button>
         </span>
       </header>
+      {leaveFor && (
+        <div className="confirm" role="alertdialog" aria-label="저장 안 한 변경">
+          <p>저장 안 한 변경이 사라집니다. 다른 업무 종류로 바꿀까요?</p>
+          <div className="confirm-actions">
+            <button onClick={() => setLeaveFor(null)}>취소</button>
+            <button
+              className="danger"
+              onClick={() => {
+                onKind(leaveFor);
+                setLeaveFor(null);
+              }}
+            >
+              바꾸기
+            </button>
+          </div>
+        </div>
+      )}
       {note && (
         <p className={`workflow-note${note.ok ? '' : ' bad'}`} role="status">
           {note.text}

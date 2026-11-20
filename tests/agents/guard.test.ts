@@ -43,6 +43,8 @@ test('a tool outside the role becomes an answer card, and the approval holds onl
   const card = store.listMessages(s.id).at(-1)!;
   expect(card.question?.kind).toBe('approval');
   expect(card.question?.options).toEqual(['거절', '허용']);
+  // The member is named once, then what it lacks
+  expect(card.question?.prompt).toBe('권한 요청: 조사(누리) — Bash 도구가 역할에 없습니다.\nls');
   chat.questions.answer(card.question!.id, '허용');
   expect((await pending)!.behavior).toBe('allow');
 

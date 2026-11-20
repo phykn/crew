@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
+import { josa } from '../../korean';
 import { call } from '../api';
 import { sessionLabel } from './ProjectBar';
 
@@ -96,10 +97,8 @@ export function ProjectTree({
           {target && impact && (
             <div className="confirm" role="alertdialog" aria-label="삭제 확인">
               <p>
-                {target.name}
-                {target.kind === 'project'
-                  ? `을(를) 목록에서 뺍니다. 세션 ${impact.sessions}개, `
-                  : '을(를) 삭제합니다. '}
+                {josa(target.name, '을')}
+                {target.kind === 'project' ? ` 목록에서 뺍니다. 세션 ${impact.sessions}개, ` : ' 삭제합니다. '}
                 업무 {impact.tasks}건, 로그 {impact.events}건, 메시지 {impact.messages}건이 지워집니다.
                 {target.kind === 'project' && ' 폴더의 파일은 그대로 둡니다.'}
               </p>

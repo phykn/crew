@@ -36,14 +36,23 @@ test('a message opens a pinned task card, the answer card lets it go on, and the
 
   const card = page.getByLabel('업무 검색 개선');
   await expect(card).toContainText('내 답변 대기');
+  // Looking at another tab, the chat tab still says a card waits
+  await page.getByRole('tab', { name: '로그' }).click();
+  await expect(page.getByRole('tab', { name: '대화, 대답 대기' })).toHaveAttribute('data-waiting', 'true');
+  await page.getByRole('tab', { name: '대화' }).click();
   await page.getByRole('button', { name: '허용' }).click();
   // The card keeps only the answer, so it reads as done
   await expect(page.getByRole('status').filter({ hasText: '✓ 허용' })).toBeVisible();
   await expect(page.getByText('검색을 고쳤고 리뷰와 시험을 통과했습니다.')).toBeVisible();
   await expect(card).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: '대화, 대답 대기' })).toHaveCount(0);
 
   await page.getByRole('tab', { name: '로그' }).click();
-  await expect(page.locator('.log-row', { hasText: '개발 완료' })).not.toHaveAttribute('data-bad', 'true');
+  const developed = page.locator('.log-row', { hasText: '개발 완료' });
+  await expect(developed).not.toHaveAttribute('data-bad', 'true');
+  // Each line reads its time, then what became of it, then who did what
+  await expect(developed.locator('.log-line > *').first()).toHaveText(/^\d\d:\d\d$/);
+  await expect(developed.locator('.log-mark')).toHaveAttribute('aria-label', '완료');
   await page.getByRole('button', { name: /개발 완료/ }).click();
   await expect(page.getByLabel('업무 로그')).toContainText('search.js');
   await page.getByRole('button', { name: /시험 완료/ }).click();

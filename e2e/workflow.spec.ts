@@ -92,3 +92,22 @@ test('a version 비서 saves by talk shows in the editor that was already open',
   await expect(editor).toContainText('버전 1');
   await app.close();
 });
+
+test('leaving unsaved edits for another kind asks in the window first', async () => {
+  const scratch = makeScratch();
+  const app = await launchApp(scratch.db);
+  const page = await openProject(app, scratch.project);
+  await page.getByRole('tab', { name: '워크플로우' }).click();
+  const editor = page.getByLabel('워크플로우 편집');
+  await editor.getByRole('button', { name: '단계 추가' }).click();
+  await editor.getByRole('button', { name: '개선 제안' }).click();
+  const ask = page.getByRole('alertdialog', { name: '저장 안 한 변경' });
+  await expect(ask).toContainText('저장 안 한 변경이 사라집니다');
+  await ask.getByRole('button', { name: '취소' }).click();
+  await expect(editor.getByRole('button', { name: '코드 변경' })).toHaveAttribute('aria-pressed', 'true');
+  await editor.getByRole('button', { name: '개선 제안' }).click();
+  await ask.getByRole('button', { name: '바꾸기' }).click();
+  await expect(editor.getByRole('button', { name: '개선 제안' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(ask).toHaveCount(0);
+  await app.close();
+});

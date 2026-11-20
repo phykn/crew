@@ -137,7 +137,7 @@ test('a permission change is recorded by name, never with the server settings it
   });
 
   const [change] = store.listPermissionChanges(reviewer.id);
-  expect(change.change).toBe('스킬 -report, MCP +browser(읽기), MCP -browser(전체)');
+  expect(change.change).toBe('스킬 -report, MCP +browser(읽기만), MCP -browser(전체)');
   expect(JSON.stringify(store.listPermissionChanges(reviewer.id))).not.toContain('secret-123');
 });
 

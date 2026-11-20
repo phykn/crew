@@ -7,6 +7,8 @@ import { type Args, call } from '../api';
 import { Choice } from './Choice';
 import { Permissions } from './Permissions';
 
+// The stacked layout of a narrow window in styles.css, where an open legend would cover the camp
+const STACKED = '(max-width: 1000px)';
 const modelLabel = (m: string) => m[0].toUpperCase() + m.slice(1);
 // The strongest model first
 const MODEL_OPTIONS = [...MODELS].reverse().map((m) => ({ value: m, label: modelLabel(m) }));
@@ -15,7 +17,7 @@ type Definition = Awaited<ReturnType<typeof call<'members.definition'>>> & { id:
 
 // What matters at a glance (who, which model, hired or not) shows in the row; everything else opens from it
 export function Legend({ members, onMemory }: { members: CrewMember[]; onMemory: (memberId: number) => void }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(() => !matchMedia(STACKED).matches);
   const [shown, setShown] = useState<Definition | null>(null);
   const current = members.find((m) => m.id === shown?.id);
 

@@ -41,3 +41,21 @@ test('small talk follows the hour: breakfast in the morning, no lunch plans at m
   expect(smallTalk(0)).toContain('이제 좀 쉬어야지.');
   expect(smallTalk(0).join()).not.toContain('점심');
 });
+
+test('the crew found when a project loads is already in camp, even after the empty list before it', () => {
+  const w = createWalkers();
+  const crew = ['a', 'b', 'c'].map((k) => ({
+    team: k,
+    name: k,
+    color: '#fff',
+    look: ['hair', 'vest', 'boots'],
+    state: 'idle',
+  }));
+  w.applyStaff([]);
+  w.applyStaff(crew);
+  // Nobody walks in from the edge: everyone stands where they were placed
+  expect([...w.people.values()].map((p) => p.path.length)).toEqual([0, 0, 0]);
+  // Someone hired afterwards does walk in
+  w.applyStaff([...crew, { ...crew[0], team: 'd', name: 'd' }]);
+  expect(w.people.get('d')!.path.length).toBeGreaterThan(0);
+});

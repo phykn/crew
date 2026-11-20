@@ -25,7 +25,7 @@ test('the legend lists the crew with their models, and its settings keep nicknam
   await expect(dialog).toContainText('You are the crew');
   await dialog.getByLabel('브라우저 접근').click();
   await page.getByRole('option', { name: '읽기만' }).click();
-  await expect(page.getByLabel('권한 변경 기록')).toContainText('MCP +browser(읽기)');
+  await expect(page.getByLabel('권한 변경 기록')).toContainText('MCP +browser(읽기만)');
   await dialog.getByRole('button', { name: '닫기' }).click();
   await expect(page.getByLabel('개발 설정')).toContainText('망치');
   await expect(page.getByLabel('개발 설정')).toContainText('Opus');
@@ -44,5 +44,17 @@ test('the legend lists the crew with their models, and its settings keep nicknam
   await page.getByLabel('시험 설정').click();
   await page.getByLabel('시험 고용').click();
   await expect(page.getByLabel('시험 고용')).toBeChecked();
+  await app.close();
+});
+
+test('in a narrow window the legend starts folded, so the camp stays in sight', async () => {
+  const scratch = makeScratch();
+  const app = await launchApp(scratch.db);
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(460, 900));
+  const page = await openProject(app, scratch.project);
+  await expect(page.locator('.legend-head')).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.locator('.legend-row')).toHaveCount(0);
+  await page.locator('.legend-head').click();
+  await expect(page.locator('.legend-row')).toHaveCount(10);
   await app.close();
 });

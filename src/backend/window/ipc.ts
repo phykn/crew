@@ -45,7 +45,6 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
     ),
     'sessions.list': handle(z.object({ projectId: id }), (a) => store.listSessions(a.projectId)),
     'sessions.create': handle(z.object({ projectId: id }), (a) => chat.createSession(a.projectId)),
-    'sessions.clear': handle(z.object({ sessionId: id }), (a) => chat.clear(a.sessionId)),
     'sessions.impact': handle(z.object({ sessionId: id }), (a) => store.impact(a)),
     'sessions.delete': handle(z.object({ sessionId: id }), (a) => chat.deleteSession(a.sessionId)),
     'last.read': handle(

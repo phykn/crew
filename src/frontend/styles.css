@@ -408,8 +408,10 @@ code {
   border-bottom: var(--bw-frame) solid var(--line-hi);
 }
 .tab-list button {
-  flex: 1 1 0;
-  min-width: 0;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--w-tab);
   height: var(--h-picker);
   margin-bottom: calc(-1 * var(--bw-frame));
   background: var(--card-hi);
@@ -417,12 +419,28 @@ code {
   border-bottom: none;
   border-radius: var(--r) var(--r) 0 0;
   color: var(--muted);
-  font-size: var(--fs-md);
   cursor: pointer;
 }
 .tab-list button[data-state='active'] {
   background: var(--card);
   border-bottom: var(--bw-frame) solid var(--card);
+}
+.tab-icon,
+.tab-icon svg {
+  display: block;
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+}
+/* A card waits for the user's answer */
+.tab-list button[data-waiting]::after {
+  content: '';
+  position: absolute;
+  top: var(--sp-1);
+  right: var(--sp-1);
+  width: var(--mark);
+  height: var(--mark);
+  background: var(--wait-line);
+  border-radius: 50%;
 }
 .tab-body {
   flex: 1;
@@ -995,39 +1013,14 @@ code {
   font-variant-numeric: tabular-nums;
 }
 .log-list {
-  position: relative;
   display: flex;
   flex-direction: column;
-  padding-left: var(--sp-4);
 }
-.log-list::before {
-  content: '';
-  position: absolute;
-  top: var(--sp-2);
-  bottom: var(--sp-2);
-  left: var(--sp-1);
-  width: var(--bw);
-  background: var(--line);
-}
-.log-row {
-  position: relative;
-}
-.log-row::before {
-  content: '';
-  position: absolute;
-  top: var(--sp-3);
-  left: calc(-1 * var(--sp-4));
-  width: var(--mark);
-  height: var(--mark);
-  background: var(--wood-light);
-  border: var(--bw) solid var(--wood-dark);
-}
-.log-row[data-bad]::before {
-  background: var(--danger);
-}
+/* Time first, then what became of the line, then who did what */
 .log-line {
   display: grid;
-  grid-template-columns: var(--w-col) var(--w-col) 1fr;
+  grid-template-columns: var(--w-col) var(--icon-md) var(--w-col) 1fr;
+  align-items: start;
   gap: var(--sp-2);
   width: 100%;
   padding: var(--sp-1) var(--sp-2);
@@ -1037,6 +1030,42 @@ code {
 }
 .log-line:disabled {
   cursor: default;
+}
+/* Green is done, red is failure, butter is waiting or sent back, wood is at work */
+.log-mark {
+  display: grid;
+  place-items: center;
+  width: var(--icon-md);
+  height: var(--icon-md);
+  margin-top: calc((1lh - var(--icon-md)) / 2);
+  background: var(--card-hi);
+  border: var(--bw) solid var(--line-hi);
+  border-radius: var(--r-xs);
+  color: var(--muted);
+}
+.log-mark svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+.log-mark[data-state='ok'] {
+  background: var(--accent-soft);
+  border-color: var(--ok);
+  color: var(--ok-text);
+}
+.log-mark[data-state='bad'] {
+  background: var(--rose);
+  border-color: var(--danger);
+  color: var(--bad-text);
+}
+.log-mark[data-state='wait'] {
+  background: var(--wait-bg);
+  border-color: var(--wait-line);
+  color: var(--wait-text);
+}
+.log-mark[data-state='work'] {
+  background: var(--wood-light);
+  border-color: var(--wood-dark);
+  color: var(--on-wood);
 }
 .log-line time {
   color: var(--muted);

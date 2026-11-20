@@ -12,4 +12,7 @@ test('a particle follows the final sound of the word before it, digits read alou
   expect(josa('#2', '이')).toBe('#2가');
   expect(josa('#10', '을')).toBe('#10을');
   expect(josa('WebFetch', '을')).toBe('WebFetch를');
+  // A closing quote or the ellipsis of a cut title is not read aloud
+  expect(josa('"검색 고치기"', '을')).toBe('"검색 고치기"를');
+  expect(josa('로그인 화면 만들…', '을')).toBe('로그인 화면 만들…을');
 });

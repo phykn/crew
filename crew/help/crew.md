@@ -1,6 +1,6 @@
 # Crew and memory
 
-- The legend in the camp's top-left lists the crew. For each member the user can toggle hiring, edit the nickname in place, pick the model, and open its definition and permissions: tools, write scope, skills, and MCP servers. 비서, 인사, and 도구 cannot be let go.
+- The legend in the camp's top-left lists the crew; in a narrow window, where the panel goes under the camp, it starts folded. For each member the user can toggle hiring, edit the nickname in place, pick the model, and open its definition and permissions: tools, write scope, skills, and MCP servers. 비서, 인사, and 도구 cannot be let go.
 - Making, changing, or deleting a skill, and deciding who holds which skill or MCP server, go through 비서 to 도구. In **묻기** mode each change waits on an approval card showing what it adds and drops, and it applies to that project only. To undo changes to the shipped skills, the user can say "기본값으로 되돌려줘".
 - The **승인 모드** next to the input is set per project. **묻기** asks on a card before a tool outside a member's role and before skill changes. **자동** allows those without asking, but still blocks forbidden commands and writes outside a member's scope. **전부** checks nothing and allows everything.
 - When no role fits the work, 인사 designs a new member and 비서 brings it in as a regular or a temp (알바). A temp leaves once its work is done, and the files it made move into the project folder when its task finishes.

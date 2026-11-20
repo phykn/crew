@@ -83,7 +83,7 @@ export function checkCall(policy: Policy, tool: string, input: Record<string, un
       ? checkWrite(policy, path.resolve(policy.project, namedWrites(tool, input)[0]))
       : ({ kind: 'allow' } as Verdict);
   if (scope.kind === 'deny') return scope;
-  if (!policy.tools.includes(tool)) return { kind: 'ask', reason: `${policy.role}에게 ${tool} 도구가 없습니다` };
+  if (!policy.tools.includes(tool)) return { kind: 'ask', reason: `${tool} 도구가 역할에 없습니다` };
   return scope;
 }
 
@@ -94,12 +94,12 @@ function checkMcp(policy: Policy, tool: string, input: Record<string, unknown>):
   // The app's own in-process tools are how members report; everyone has them
   if (server === 'crew') return { kind: 'allow' };
   const held = policy.mcp.find((m) => m.server === server);
-  if (!held) return { kind: 'ask', reason: `${policy.role}에게 ${server} MCP 서버가 없습니다` };
+  if (!held) return { kind: 'ask', reason: `${server} MCP 서버가 역할에 없습니다` };
   const name = tool.split('__').slice(2).join('__');
   if (held.readTools && !held.readTools.includes(name)) {
     return {
       kind: 'ask',
-      reason: `${josa(policy.role, '은')} ${josa(server, '을')} 읽기로만 쓸 수 있어 ${josa(name, '을')} 쓰려면 승인이 필요합니다`,
+      reason: `${josa(server, '을')} 읽기로만 쓸 수 있어 ${josa(name, '을')} 쓰려면 승인이 필요합니다`,
     };
   }
   const file = input.filename;
@@ -267,7 +267,7 @@ export function guardMember({ store, questions, policy, sessionId, taskId, membe
       sessionId,
       taskId,
       kind: 'approval',
-      prompt: `권한 요청: ${policy().role}(${member.nickname}). ${reason}.${what ? `\n${what}` : ''}`,
+      prompt: `권한 요청: ${policy().role}(${member.nickname}) — ${reason}.${what ? `\n${what}` : ''}`,
       // The last option is the card's main button, so allowing is the one that stands out
       options: [REFUSE, ALLOW],
       payload: { memberId: member.id, tool },

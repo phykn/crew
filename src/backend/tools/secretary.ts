@@ -45,7 +45,7 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
           const one = a.role ? memberOf(a.role) : null;
           if (a.role && !one) return text(`${josa(a.role, '은')} 지금 고용되어 있지 않습니다.`);
           const task = chat.tasks.start(sessionId, a.kind, a.title, a.request, one ?? undefined, a.size === 'small');
-          return text(`업무 #${task.id} "${task.title}"을 시작했습니다.`);
+          return text(`업무 #${task.id} ${josa(`"${task.title}"`, '을')} 시작했습니다.`);
         },
       ),
       sdk.tool(

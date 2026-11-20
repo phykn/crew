@@ -131,7 +131,7 @@ export function kitTools(sdk: Sdk, chat: Chat, sessionId: number) {
           }
           const now = chat.members.settings(m);
           const mcp = (list: typeof now.mcp) =>
-            list.map((x) => `${kit.mcp[x.server].label}(${x.access === 'all' ? '전체' : '읽기'})`);
+            list.map((x) => `${kit.mcp[x.server].label}(${x.access === 'all' ? '전체' : '읽기만'})`);
           // The new list in full, then what it adds and drops, so a long list does not hide the change
           const line = (name: string, before: string[], after: string[]) => {
             const delta = [

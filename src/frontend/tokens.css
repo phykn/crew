@@ -115,12 +115,13 @@
   --camp-share: 64%;
   --camp-share-stacked: 38vh;
   --w-panel-min: 360px;
+  --w-tab: 52px;
   --w-legend-role: 3.6em;
   --w-legend-nick: 3.4em;
   --w-field: 120px;
   /* Every workflow node is this wide, so the arranged rows line up */
   --w-node: 150px;
-  --h-node-row: 130px;
+  --h-node-row: 104px;
   --w-field-sm: 76px;
   /* Narrow label and data columns, and the switch */
   --w-col: 40px;

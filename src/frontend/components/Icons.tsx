@@ -56,19 +56,64 @@ const ICONS: Record<string, React.ReactNode> = {
   ),
 };
 
+// The panel's tabs, drawn like the kit icons
+const TAB_ICONS: Record<string, React.ReactNode> = {
+  chat: (
+    <path d="M4 4.5h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H9l-4 3v-3H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1zM7 9h.5M10 9h.5M13 9h.5" />
+  ),
+  log: ICONS.list,
+  memory: ICONS.book,
+  workflow: (
+    <>
+      <rect x="7" y="2.5" width="6" height="4" rx="1" />
+      <rect x="2.5" y="13.5" width="6" height="4" rx="1" />
+      <rect x="11.5" y="13.5" width="6" height="4" rx="1" />
+      <path d="M10 6.5V10M5.5 13.5V10h9v3.5" />
+    </>
+  ),
+};
+
+function Glyph({ children }: { children: React.ReactNode }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {children}
+    </svg>
+  );
+}
+
 export function KitIcon({ icon, label }: { icon: string; label: string }) {
   return (
     <span className="kit-icon" title={label} aria-label={label} role="img">
-      <svg
-        viewBox="0 0 20 20"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        {ICONS[icon] ?? ICONS.puzzle}
-      </svg>
+      <Glyph>{ICONS[icon] ?? ICONS.puzzle}</Glyph>
+    </span>
+  );
+}
+
+// What became of a log line: done, failed, waiting or sent back, at work, or only said
+const MARKS: Record<string, React.ReactNode> = {
+  ok: ICONS.check,
+  bad: <path d="M6 6l8 8M14 6l-8 8" />,
+  wait: <path d="M10 5v6M10 14.5v.5" />,
+  work: <path d="M7.5 5.5l6 4.5-6 4.5z" fill="currentColor" />,
+  info: <circle cx="10" cy="10" r="2" fill="currentColor" />,
+};
+
+export function MarkIcon({ state }: { state: string }) {
+  return <Glyph>{MARKS[state]}</Glyph>;
+}
+
+export function TabIcon({ tab }: { tab: string }) {
+  return (
+    <span className="tab-icon">
+      <Glyph>{TAB_ICONS[tab]}</Glyph>
     </span>
   );
 }

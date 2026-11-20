@@ -4,7 +4,7 @@ The user sees Korean labels; they are quoted here in bold so you can name them e
 
 - Top bar: **프로젝트** picks a project; **폴더 열기…** adds a folder as a new project with its own crew, kit, workflows, wiki, and approval mode. **세션** picks a session; **새 세션** opens one; **탐색기…** deletes sessions or removes projects from the list, showing first how many tasks and log lines go with them. Removing a project from the list leaves its folder untouched.
 - Left: the camp. Each member walks, works, and talks there: one at a step shows the step's name, a failure or a request to redo plays as a scene, and 비서 waits by the fire with a **?** while a card waits for the user. Clicking a member opens the log of the task it last worked on. The legend in its top-left corner lists the crew (see the crew section).
-- Right: the **대화**, **로그**, **메모리**, and **워크플로우** tabs.
+- Right: the **대화**, **로그**, **메모리**, and **워크플로우** tabs, drawn as icons whose names show on hover. A dot on **대화** means a card waits for the user's answer.
 - When the window is in the background, each of 비서's replies and cards also shows as a system notification; clicking it brings the window forward.
 
 # What the user can ask 비서 to do in the app

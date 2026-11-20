@@ -11,6 +11,14 @@ import { ProjectTree } from './components/ProjectTree';
 import { Memory } from './components/Memory';
 import { WorkflowView } from './components/WorkflowView';
 import { Camp } from './components/Camp';
+import { TabIcon } from './components/Icons';
+
+const TABS = [
+  ['chat', '대화'],
+  ['log', '로그'],
+  ['memory', '메모리'],
+  ['workflow', '워크플로우'],
+] as const;
 
 export function App() {
   const ws = useWorkspace();
@@ -23,6 +31,8 @@ export function App() {
   const [kind, setKind] = useState('code');
   // The task the log shows; null shows every task in the session
   const [logTask, setLogTask] = useState<number | null>(null);
+  // A card waits for the user's answer, which the chat tab shows while another tab is open
+  const [waiting, setWaiting] = useState(false);
 
   function openLog(taskId: number | null) {
     setLogTask(taskId);
@@ -74,11 +84,22 @@ export function App() {
             onExplorer={() => setTree(true)}
           />
           <Tabs.Root className="tabs" value={tab} onValueChange={setTab}>
+            {/* Icons keep the tabs small; each name shows on hover and is what a screen reader says */}
             <Tabs.List className="tab-list">
-              <Tabs.Trigger value="chat">대화</Tabs.Trigger>
-              <Tabs.Trigger value="log">로그</Tabs.Trigger>
-              <Tabs.Trigger value="memory">메모리</Tabs.Trigger>
-              <Tabs.Trigger value="workflow">워크플로우</Tabs.Trigger>
+              {TABS.map(([value, name]) => {
+                const marked = value === 'chat' && waiting && !!session;
+                return (
+                  <Tabs.Trigger
+                    key={value}
+                    value={value}
+                    title={name}
+                    aria-label={marked ? `${name}, 대답 대기` : name}
+                    data-waiting={marked || undefined}
+                  >
+                    <TabIcon tab={value} />
+                  </Tabs.Trigger>
+                );
+              })}
             </Tabs.List>
             {/* Kept mounted so a reply streaming in keeps its first words while another tab is open */}
             <Tabs.Content value="chat" className="tab-body" forceMount>
@@ -87,8 +108,9 @@ export function App() {
                   session={session}
                   mode={project!.mode}
                   onMode={ws.setMode}
+                  onWaiting={setWaiting}
                   commands={[
-                    { name: 'clear', label: '새 세션', run: ws.clearSession },
+                    { name: 'clear', label: '새 세션', run: ws.newSession },
                     { name: 'log', label: '로그 열기', run: () => setTab('log') },
                     { name: 'memory', label: '메모리 열기', run: () => setTab('memory') },
                     { name: 'workflow', label: '워크플로우 열기', run: () => setTab('workflow') },

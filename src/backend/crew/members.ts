@@ -226,7 +226,7 @@ function describeChange(before: Settings, after: Settings) {
     ...b.filter((x) => !a.includes(x)).map((x) => `${label} +${x}`),
     ...a.filter((x) => !b.includes(x)).map((x) => `${label} -${x}`),
   ];
-  const mcp = (s: Settings) => s.mcp.map((m) => `${m.server}(${m.access === 'all' ? '전체' : '읽기'})`);
+  const mcp = (s: Settings) => s.mcp.map((m) => `${m.server}(${m.access === 'all' ? '전체' : '읽기만'})`);
   const parts = [
     ...diff('도구', before.tools, after.tools),
     ...diff('스킬', before.skills, after.skills),

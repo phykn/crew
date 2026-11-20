@@ -86,6 +86,7 @@ export class Chat {
     this.emit('changed', 'projects');
   }
 
+  // A fresh session on the same project and crew (새 세션, /clear): 비서 starts without context and older sessions' tasks go on
   createSession(projectId: number) {
     const session = this.store.createSession(projectId);
     this.emit('changed', 'sessions');
@@ -95,21 +96,6 @@ export class Chat {
   renameSession(sessionId: number, title: string) {
     this.store.renameSession(sessionId, title);
     this.emit('changed', 'sessions');
-  }
-
-  // /clear: a fresh session on the same project and crew; 비서 starts without context and the old session's tasks go on
-  clear(sessionId: number) {
-    const { store } = this;
-    const next = this.createSession(store.readSession(sessionId).projectId);
-    store.addEvent({
-      sessionId,
-      taskId: null,
-      memberId: null,
-      kind: 'clear',
-      text: `/clear: 세션 ${String(next.number).padStart(2, '0')}에서 새로 시작`,
-      detail: null,
-    });
-    return next;
   }
 
   // A deleted session's work stops first, so nothing keeps writing for a record that is gone

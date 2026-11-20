@@ -3,7 +3,7 @@ import { type Sdk, text } from '../agents/run';
 import type { Chat } from '../chat';
 import type { Member, Task } from '../db';
 import { KEPT } from '../crew/shipped';
-import { ALLOW } from '../questions';
+import { ALLOW, REFUSE } from '../questions';
 import { josa, particle } from '../../korean';
 import { MODE_LABELS, MODELS, MODES } from '../../shared';
 
@@ -34,8 +34,7 @@ export const OFF_CATALOG: Record<string, string> = {
   'projects.open': 'opening a folder needs the native dialog',
   'projects.impact': 'removing the project the crew works in is for the user',
   'projects.remove': 'removing the project the crew works in is for the user',
-  'sessions.create': 'a fresh session is the user’s /clear',
-  'sessions.clear': 'a fresh session is the user’s /clear',
+  'sessions.create': 'a fresh session is the user’s to start, with /clear or 새 세션',
   'last.read': 'window state, not an action',
   'last.write': 'window state, not an action',
   'messages.list': '비서 is the conversation itself',
@@ -392,15 +391,16 @@ export function appServer(sdk: Sdk, chat: Chat, sessionId: number) {
 
   async function perform(id: string, args: unknown, kind: Action['kind']) {
     const a = byId.get(id);
-    if (!a) return text(`"${id}"라는 동작은 없습니다. app_find_actions로 찾으세요.`);
-    if (a.kind !== kind) return text(`"${id}"은(는) ${a.kind === 'read' ? 'app_read' : 'app_act'}로 합니다.`);
+    if (!a) return text(`없는 동작입니다: ${id}. app_find_actions로 찾으세요.`);
+    if (a.kind !== kind) return text(`${id}: ${a.kind === 'read' ? 'app_read' : 'app_act'}로 하는 동작입니다.`);
     const parsed = a.args.safeParse(args ?? {});
     if (!parsed.success) return text(`인자가 맞지 않습니다: ${parsed.error.message}`);
     try {
       // 전부 checks nothing; otherwise who may do what, and deleting, is the user's call
       const prompt = store.projectOf(sessionId).mode === 'bypass' ? null : a.confirm?.(parsed.data as never);
       if (prompt) {
-        const answer = await chat.questions.choose(sessionId, prompt, [ALLOW, '거절']);
+        // The last option is the card's main button, as on every other card
+        const answer = await chat.questions.choose(sessionId, prompt, [REFUSE, ALLOW]);
         if (answer !== ALLOW) return text('사용자가 거절해서 하지 않았습니다.');
       }
       const out = await a.run(parsed.data as never);
