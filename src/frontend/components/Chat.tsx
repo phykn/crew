@@ -1,24 +1,18 @@
-import { useEffect, useRef, useState } from "react";
-import type { Message, Question, Session, Task } from "../../backend/db";
-import {
-  IMAGE_TYPES,
-  type Image,
-  imageUrl,
-  MODE_LABELS,
-  type Mode,
-} from "../../shared";
-import { call, onChanged, onStream } from "../api";
-import { Choice } from "./Choice";
-import { TaskCards } from "./TaskCards";
+import { useEffect, useRef, useState } from 'react';
+import type { Message, Question, Session, Task } from '../../backend/db';
+import { IMAGE_TYPES, type Image, imageUrl, MODE_LABELS, type Mode } from '../../shared';
+import { call, onChanged, onStream } from '../api';
+import { Choice } from './Choice';
+import { TaskCards } from './TaskCards';
 
 // The window's own commands: typed after a slash, they act here and never reach 비서
 // A label only where the name alone does not say it
 type Command = { name: string; label?: string; run: () => void };
 // What each approval mode lets a member do without asking
 const MODE_HINTS: Record<Mode, string> = {
-  manual: "역할 밖 도구는 카드로 확인",
-  auto: "역할 밖 도구도 바로 허용",
-  bypass: "아무것도 검사하지 않음",
+  manual: '역할 밖 도구는 카드로 확인',
+  auto: '역할 밖 도구도 바로 허용',
+  bypass: '아무것도 검사하지 않음',
 };
 // A message held back until 비서 is done answering
 type Queued = { id: number; sessionId: number; text: string; images: Image[] };
@@ -34,8 +28,7 @@ function readImage(file: File): Promise<Image | null> {
   if (!type || file.size > MAX_IMAGE_BYTES) return Promise.resolve(null);
   return new Promise((resolve) => {
     const reader = new FileReader();
-    reader.onload = () =>
-      resolve({ mediaType: type, data: String(reader.result).split(",")[1] });
+    reader.onload = () => resolve({ mediaType: type, data: String(reader.result).split(',')[1] });
     reader.onerror = () => resolve(null);
     reader.readAsDataURL(file);
   });
@@ -63,7 +56,7 @@ export function Chat({
   const [streaming, setStreaming] = useState<string | null>(null);
   // The session whose answering state the window has read; held messages wait until it is this one
   const [known, setKnown] = useState<number | null>(null);
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState('');
   const [images, setImages] = useState<Image[]>([]);
   const [queued, setQueued] = useState<Queued[]>([]);
   // Why the last pictures were left out, or that a message did not go
@@ -75,38 +68,33 @@ export function Chat({
   const end = useRef<HTMLDivElement>(null);
   const [pick, setPick] = useState(0);
   // A lone word after a slash lists the commands it could start
-  const matches = /^\/\S*$/.test(draft)
-    ? commands.filter((c) => `/${c.name}`.startsWith(draft))
-    : [];
+  const matches = /^\/\S*$/.test(draft) ? commands.filter((c) => `/${c.name}`.startsWith(draft)) : [];
   const picked = matches[Math.min(pick, matches.length - 1)];
 
   useEffect(() => {
-    const load = () =>
-      call("messages.list", { sessionId: session.id }).then(setMessages);
-    const loadTasks = () =>
-      call("tasks.list", { sessionId: session.id }).then(setTasks);
+    const load = () => call('messages.list', { sessionId: session.id }).then(setMessages);
+    const loadTasks = () => call('tasks.list', { sessionId: session.id }).then(setTasks);
     load();
     loadTasks();
     setStreaming(null);
     // A draft belongs to the session it was written in
-    setDraft("");
+    setDraft('');
     setImages([]);
     setNotice(null);
     stick.current = true;
     let current = true;
-    call("messages.busy", { sessionId: session.id }).then((busy) => {
+    call('messages.busy', { sessionId: session.id }).then((busy) => {
       if (!current) return;
-      if (busy) setStreaming((s) => s ?? "");
+      if (busy) setStreaming((s) => s ?? '');
       setKnown(session.id);
     });
     const offChanged = onChanged(
-      (topic) =>
-        topic === "messages" ? load() : topic === "tasks" && loadTasks(),
+      (topic) => (topic === 'messages' ? load() : topic === 'tasks' && loadTasks()),
       session.id,
     );
     const offStream = onStream((ev) => {
       if (ev.sessionId !== session.id) return;
-      setStreaming((s) => (ev.done ? null : (s ?? "") + (ev.delta ?? "")));
+      setStreaming((s) => (ev.done ? null : (s ?? '') + (ev.delta ?? '')));
     });
     return () => {
       current = false;
@@ -117,12 +105,10 @@ export function Chat({
 
   // Braces matter: scrollIntoView returns a promise in current Chromium, which React would take for a cleanup
   useEffect(() => {
-    if (stick.current) end.current?.scrollIntoView({ block: "end" });
+    if (stick.current) end.current?.scrollIntoView({ block: 'end' });
   }, [messages, streaming, queued, images.length]);
 
-  const waiting = messages.some(
-    (m) => m.question && m.question.answer === null,
-  );
+  const waiting = messages.some((m) => m.question && m.question.answer === null);
   useEffect(() => onWaiting(waiting), [waiting]);
 
   // Once 비서 is done, the oldest held message goes; its answer holds the rest until it is done too
@@ -133,15 +119,11 @@ export function Chat({
 
   function dispatch(text: string, pictures: Image[]) {
     // Shows the thinking state at once; the first streamed words replace it
-    setStreaming((s) => s ?? "");
+    setStreaming((s) => s ?? '');
     // A refused send never ends its stream, so the thinking state is cleared here
-    call("messages.send", {
-      sessionId: session.id,
-      text,
-      images: pictures,
-    }).catch(() => {
+    call('messages.send', { sessionId: session.id, text, images: pictures }).catch(() => {
       setStreaming(null);
-      setNotice("보내지 못했습니다. 다시 보내 주세요.");
+      setNotice('보내지 못했습니다. 다시 보내 주세요.');
     });
   }
 
@@ -154,27 +136,21 @@ export function Chat({
   function send(later = false) {
     const text = draft.trim();
     if (!text && !images.length) return;
-    setDraft("");
+    setDraft('');
     setImages([]);
     setNotice(null);
-    const command =
-      !images.length && commands.find((c) => `/${c.name}` === text);
+    const command = !images.length && commands.find((c) => `/${c.name}` === text);
     if (command) return command.run();
     // What the user just said is shown, even if they had scrolled back to read
     stick.current = true;
     if (later && streaming !== null)
-      return setQueued((qs) => [
-        ...qs,
-        { id: nextId.current++, sessionId: session.id, text, images },
-      ]);
+      return setQueued((qs) => [...qs, { id: nextId.current++, sessionId: session.id, text, images }]);
     dispatch(text, images);
   }
 
   async function attach(files: Iterable<File>) {
     const list = [...files];
-    const read = (await Promise.all(list.map(readImage))).filter(
-      (i): i is Image => i !== null,
-    );
+    const read = (await Promise.all(list.map(readImage))).filter((i): i is Image => i !== null);
     const kept = read.slice(0, MAX_IMAGES - images.length);
     setImages([...images, ...kept]);
     const left = list.length - kept.length;
@@ -193,8 +169,7 @@ export function Chat({
         aria-label="대화"
         onScroll={(e) => {
           const el = e.currentTarget;
-          stick.current =
-            el.scrollHeight - el.scrollTop - el.clientHeight < STICK_PX;
+          stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < STICK_PX;
         }}
       >
         {messages.map((m) => (
@@ -202,32 +177,20 @@ export function Chat({
             key={m.id}
             author={m.author}
             text={m.text}
-            pictures={Array.from({ length: m.imageCount }, (_, n) =>
-              imageUrl(m.id, n),
-            )}
+            pictures={Array.from({ length: m.imageCount }, (_, n) => imageUrl(m.id, n))}
             question={m.question}
           />
         ))}
-        {streaming !== null && (
-          <Bubble author="secretary" text={streaming} pending />
-        )}
+        {streaming !== null && <Bubble author="secretary" text={streaming} pending />}
         {queued
           .filter((q) => q.sessionId === session.id)
           .map((q) => (
-            <div
-              key={q.id}
-              className="message user queued"
-              aria-label="대기 중"
-            >
+            <div key={q.id} className="message user queued" aria-label="대기 중">
               <div className="bubble">
                 <Pictures srcs={q.images.map(src)} />
                 {q.text}
               </div>
-              <button
-                type="button"
-                className="send-now"
-                onClick={() => sendQueued(q)}
-              >
+              <button type="button" className="send-now" onClick={() => sendQueued(q)}>
                 지금 보내기
               </button>
             </div>
@@ -259,9 +222,7 @@ export function Chat({
                 <button
                   type="button"
                   aria-label={`그림 ${n + 1} 빼기`}
-                  onClick={() =>
-                    setImages((have) => have.filter((_, k) => k !== n))
-                  }
+                  onClick={() => setImages((have) => have.filter((_, k) => k !== n))}
                 >
                   ×
                 </button>
@@ -280,12 +241,11 @@ export function Chat({
                 data-highlighted={m === picked || undefined}
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  setDraft("");
+                  setDraft('');
                   m.run();
                 }}
               >
-                <b>/{m.name}</b>{" "}
-                {m.label && <span className="muted">{m.label}</span>}
+                <b>/{m.name}</b> {m.label && <span className="muted">{m.label}</span>}
               </li>
             ))}
           </ul>
@@ -299,24 +259,19 @@ export function Chat({
           onClick={() => picker.current?.click()}
         >
           <svg viewBox="0 0 20 20" aria-hidden="true">
-            <path
-              d="M10 4v12M4 10h12"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
+            <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         </button>
         <input
           ref={picker}
           type="file"
-          accept={IMAGE_TYPES.join(",")}
+          accept={IMAGE_TYPES.join(',')}
           multiple
           hidden
           aria-label="그림 파일"
           onChange={(e) => {
             void attach(e.target.files ?? []);
-            e.target.value = "";
+            e.target.value = '';
           }}
         />
         <textarea
@@ -329,9 +284,7 @@ export function Chat({
             setPick(0);
           }}
           onPaste={(e) => {
-            const files = [...e.clipboardData.files].filter((x) =>
-              x.type.startsWith("image/"),
-            );
+            const files = [...e.clipboardData.files].filter((x) => x.type.startsWith('image/'));
             if (!files.length) return;
             e.preventDefault();
             void attach(files);
@@ -344,23 +297,16 @@ export function Chat({
                 return setPick((pick + move + matches.length) % matches.length);
               }
               // Tab completes the picked command; Enter runs it at once
-              if (
-                e.key === "Tab" ||
-                (e.key === "Enter" && !e.nativeEvent.isComposing)
-              ) {
+              if (e.key === 'Tab' || (e.key === 'Enter' && !e.nativeEvent.isComposing)) {
                 e.preventDefault();
-                if (e.key === "Tab") return setDraft(`/${picked.name}`);
-                setDraft("");
+                if (e.key === 'Tab') return setDraft(`/${picked.name}`);
+                setDraft('');
                 return picked.run();
               }
-              if (e.key === "Escape") return setDraft("");
+              if (e.key === 'Escape') return setDraft('');
             }
             // Enter sends now, Ctrl+Enter waits for the answer, Shift+Enter breaks the line; composing Korean must not send half a syllable
-            if (
-              e.key === "Enter" &&
-              !e.shiftKey &&
-              !e.nativeEvent.isComposing
-            ) {
+            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
               send(e.ctrlKey || e.metaKey);
             }
@@ -382,26 +328,14 @@ export function Chat({
             type="button"
             className="send stop"
             aria-label="중지"
-            onClick={() => call("messages.stop", { sessionId: session.id })}
+            onClick={() => call('messages.stop', { sessionId: session.id })}
           >
             <svg viewBox="0 0 20 20" aria-hidden="true">
-              <rect
-                x="5"
-                y="5"
-                width="10"
-                height="10"
-                rx="1.5"
-                fill="currentColor"
-              />
+              <rect x="5" y="5" width="10" height="10" rx="1.5" fill="currentColor" />
             </svg>
           </button>
         ) : (
-          <button
-            type="submit"
-            className="send"
-            aria-label="보내기"
-            disabled={!draft.trim() && !images.length}
-          >
+          <button type="submit" className="send" aria-label="보내기" disabled={!draft.trim() && !images.length}>
             <svg viewBox="0 0 20 20" aria-hidden="true">
               <path d="M3 3l15 7-15 7 2.5-7z" fill="currentColor" />
             </svg>
@@ -413,7 +347,7 @@ export function Chat({
 }
 
 type BubbleProps = {
-  author: Message["author"];
+  author: Message['author'];
   text: string;
   pictures?: string[];
   pending?: boolean;
@@ -431,32 +365,20 @@ function Pictures({ srcs }: { srcs: string[] }) {
   );
 }
 
-function Bubble({
-  author,
-  text,
-  pictures = [],
-  pending,
-  question,
-}: BubbleProps) {
+function Bubble({ author, text, pictures = [], pending, question }: BubbleProps) {
   // Only two people talk here, so the side a bubble sits on says who said it: me right, 비서 left
   return (
     <div
       className={`message ${author}`}
       data-pending={pending || undefined}
-      aria-label={author === "user" ? "나" : "비서"}
+      aria-label={author === 'user' ? '나' : '비서'}
     >
       {question ? (
         <AnswerCard question={question} />
       ) : (
         <div className="bubble">
           <Pictures srcs={pictures} />
-          {text ? (
-            renderInline(text)
-          ) : pending ? (
-            <span className="typing">···</span>
-          ) : (
-            ""
-          )}
+          {text ? renderInline(text) : pending ? <span className="typing">···</span> : ''}
         </div>
       )}
     </div>
@@ -479,13 +401,11 @@ function AnswerCard({ question }: { question: Question }) {
           {question.options.map((o, i) => (
             <button
               key={o}
-              className={`answer-option${i === question.options.length - 1 ? " primary" : ""}`}
+              className={`answer-option${i === question.options.length - 1 ? ' primary' : ''}`}
               onClick={() => {
                 setPicked(o);
                 // A pick the record refused shows the options again
-                call("questions.answer", { id: question.id, choice: o }).catch(
-                  () => setPicked(null),
-                );
+                call('questions.answer', { id: question.id, choice: o }).catch(() => setPicked(null));
               }}
             >
               {o}
@@ -501,13 +421,12 @@ function AnswerCard({ question }: { question: Question }) {
 function renderInline(text: string) {
   // A heading slips in now and then despite the rules; it reads as a bold line instead of stray #s
   return text
-    .replace(/^#{1,6}\s+(.+?)\s*$/gm, "**$1**")
+    .replace(/^#{1,6}\s+(.+?)\s*$/gm, '**$1**')
     .split(/(`[^`\n]+`|\*\*[^*\n]+\*\*)/)
     .map((part, i) => {
-      if (part.length > 2 && part.startsWith("`") && part.endsWith("`"))
+      if (part.length > 2 && part.startsWith('`') && part.endsWith('`'))
         return <code key={i}>{part.slice(1, -1)}</code>;
-      if (part.length > 4 && part.startsWith("**") && part.endsWith("**"))
-        return <b key={i}>{part.slice(2, -2)}</b>;
+      if (part.length > 4 && part.startsWith('**') && part.endsWith('**')) return <b key={i}>{part.slice(2, -2)}</b>;
       return part;
     });
 }

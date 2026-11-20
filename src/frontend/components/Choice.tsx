@@ -1,5 +1,5 @@
-import * as Select from "@radix-ui/react-select";
-import { Chevron } from "./Icons";
+import * as Select from '@radix-ui/react-select';
+import { Chevron } from './Icons';
 
 // A hint shows only in the open menu, so the closed control stays one word
 type Option = { value: string; label: string; hint?: string };
@@ -10,7 +10,7 @@ export function Choice({
   options,
   onChange,
   label,
-  className = "",
+  className = '',
 }: {
   value: string;
   options: Option[];

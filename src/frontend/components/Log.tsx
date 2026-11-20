@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
-import type { Event, Handback, Session, Task } from "../../backend/db";
-import type { CrewMember } from "../../backend/crew/shipped";
-import { call, onChanged } from "../api";
-import { clock, duration } from "../time";
-import { Choice } from "./Choice";
-import { MarkIcon } from "./Icons";
-import type { ChangesTarget } from "./Changes";
+import { useEffect, useState } from 'react';
+import type { Event, Handback, Session, Task } from '../../backend/db';
+import type { CrewMember } from '../../backend/crew/shipped';
+import { call, onChanged } from '../api';
+import { clock, duration } from '../time';
+import { Choice } from './Choice';
+import { MarkIcon } from './Icons';
+import type { ChangesTarget } from './Changes';
 
-const ALL = "all";
+const ALL = 'all';
 // A making step's log line also names its version when git kept it
 type Logged = Handback & { version?: number };
 
@@ -28,17 +28,15 @@ export function Log({
   const [events, setEvents] = useState<Event[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [open, setOpen] = useState<number | null>(null);
-  const [usage, setUsage] = useState<
-    Awaited<ReturnType<typeof call<"usage.list">>>
-  >([]);
+  const [usage, setUsage] = useState<Awaited<ReturnType<typeof call<'usage.list'>>>>([]);
   const [showUsage, setShowUsage] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       const [e, t, u] = await Promise.all([
-        call("events.list", { sessionId: session.id }),
-        call("tasks.list", { sessionId: session.id }),
-        call("usage.list", { sessionId: session.id }),
+        call('events.list', { sessionId: session.id }),
+        call('tasks.list', { sessionId: session.id }),
+        call('usage.list', { sessionId: session.id }),
       ]);
       setEvents(e);
       setTasks(t);
@@ -46,10 +44,7 @@ export function Log({
     };
     load();
     // Crew changes are logged too, such as a hire or a member leaving
-    return onChanged(
-      (topic) => ["tasks", "messages", "members"].includes(topic) && load(),
-      session.id,
-    );
+    return onChanged((topic) => ['tasks', 'messages', 'members'].includes(topic) && load(), session.id);
   }, [session.id]);
 
   const shown = events.filter((e) => taskId === null || e.taskId === taskId);
@@ -64,11 +59,8 @@ export function Log({
           label="업무 선택"
           value={taskId ? String(taskId) : ALL}
           options={[
-            { value: ALL, label: "모든 업무" },
-            ...tasks.map((t) => ({
-              value: String(t.id),
-              label: `#${t.id} ${t.title}`,
-            })),
+            { value: ALL, label: '모든 업무' },
+            ...tasks.map((t) => ({ value: String(t.id), label: `#${t.id} ${t.title}` })),
           ]}
           onChange={(v) => onTask(v === ALL ? null : Number(v))}
         />
@@ -100,13 +92,12 @@ export function Log({
           <tbody>
             {usage.map((u) => (
               <tr key={`${u.memberId}-${u.model}`}>
-                <td>{who(u.memberId)?.role ?? "?"}</td>
+                <td>{who(u.memberId)?.role ?? '?'}</td>
                 <td>{u.model}</td>
                 <td>{u.runs}</td>
                 <td>{duration(u.seconds)}</td>
                 <td>
-                  {u.inputTokens.toLocaleString()} /{" "}
-                  {u.outputTokens.toLocaleString()}
+                  {u.inputTokens.toLocaleString()} / {u.outputTokens.toLocaleString()}
                 </td>
                 <td>${u.costUsd.toFixed(3)}</td>
               </tr>
@@ -117,17 +108,12 @@ export function Log({
       <ol className="log-list" aria-label="업무 로그">
         {shown.map((e) => {
           const m = who(e.memberId);
-          const hb = e.kind === "step" ? readHandback(e.detail) : null;
-          const errors = e.kind === "step" && !hb ? readErrors(e.detail) : null;
+          const hb = e.kind === 'step' ? readHandback(e.detail) : null;
+          const errors = e.kind === 'step' && !hb ? readErrors(e.detail) : null;
           const opens = !!(hb || errors);
           const mark = markOf(e, hb, errors);
           return (
-            <li
-              key={e.id}
-              className="log-row"
-              data-kind={e.kind}
-              data-bad={mark.state === "bad" || undefined}
-            >
+            <li key={e.id} className="log-row" data-kind={e.kind} data-bad={mark.state === 'bad' || undefined}>
               <button
                 className="log-line"
                 disabled={!opens}
@@ -144,10 +130,8 @@ export function Log({
                 >
                   <MarkIcon state={mark.state} />
                 </span>
-                <span className="log-who">{m ? m.role : "앱"}</span>
-                <span className="log-text">
-                  {m ? e.text.replace(new RegExp(`^${m.role}: `), "") : e.text}
-                </span>
+                <span className="log-who">{m ? m.role : '앱'}</span>
+                <span className="log-text">{m ? e.text.replace(new RegExp(`^${m.role}: `), '') : e.text}</span>
               </button>
               {hb && open === e.id && (
                 <HandbackView
@@ -157,9 +141,7 @@ export function Log({
                       ? (file) =>
                           onChanges({
                             taskId: e.taskId!,
-                            title:
-                              tasks.find((t) => t.id === e.taskId)?.title ??
-                              `#${e.taskId}`,
+                            title: tasks.find((t) => t.id === e.taskId)?.title ?? `#${e.taskId}`,
                             versionId: hb.version!,
                             file,
                           })
@@ -188,13 +170,7 @@ export function Log({
 }
 
 // A file of a version git kept opens its diff; otherwise the name is just shown
-function HandbackView({
-  hb,
-  onFile,
-}: {
-  hb: Logged;
-  onFile: ((file: string) => void) | null;
-}) {
+function HandbackView({ hb, onFile }: { hb: Logged; onFile: ((file: string) => void) | null }) {
   return (
     <div className="log-detail">
       {hb.files.length > 0 && (
@@ -204,11 +180,7 @@ function HandbackView({
             {hb.files.map((f) => (
               <li key={f}>
                 {onFile ? (
-                  <button
-                    className="file-link"
-                    title="변경 내용 보기"
-                    onClick={() => onFile(f)}
-                  >
+                  <button className="file-link" title="변경 내용 보기" onClick={() => onFile(f)}>
                     <code>{f}</code>
                   </button>
                 ) : (
@@ -232,7 +204,7 @@ function HandbackView({
       {hb.checks.length > 0 && (
         <section>
           <h4>검사</h4>
-          <pre>{hb.checks.join("\n")}</pre>
+          <pre>{hb.checks.join('\n')}</pre>
         </section>
       )}
       {hb.body && <p className="log-body">{hb.body}</p>}
@@ -242,30 +214,22 @@ function HandbackView({
 
 // What became of a line, read from what it records rather than its wording
 function markOf(e: Event, hb: Handback | null, errors: string[] | null) {
-  const mark = (
-    state: "ok" | "bad" | "wait" | "work" | "info",
-    label: string,
-  ) => ({ state, label });
-  if (e.kind === "status") {
-    if (e.detail === "done") return mark("ok", "완료");
-    if (e.detail === "failed") return mark("bad", "실패");
-    if (e.detail === "stopping" || e.detail === "stopped")
-      return mark("wait", "중단");
-    if (e.detail === "waiting") return mark("wait", "대기");
-    return mark("work", "진행");
+  const mark = (state: 'ok' | 'bad' | 'wait' | 'work' | 'info', label: string) => ({ state, label });
+  if (e.kind === 'status') {
+    if (e.detail === 'done') return mark('ok', '완료');
+    if (e.detail === 'failed') return mark('bad', '실패');
+    if (e.detail === 'stopping' || e.detail === 'stopped') return mark('wait', '중단');
+    if (e.detail === 'waiting') return mark('wait', '대기');
+    return mark('work', '진행');
   }
-  if (errors) return mark("bad", "실패");
-  if (hb)
-    return hb.verdict === "rework"
-      ? mark("wait", "수정 요청")
-      : mark("ok", "완료");
-  if (e.kind === "step")
-    return e.detail ? mark("wait", "보완 요청") : mark("work", "시작");
-  if (e.kind === "denied") return mark("bad", "거부");
-  if (e.kind === "approved") return mark("ok", "승인");
-  if (e.kind === "refused") return mark("wait", "거절");
-  if (e.kind === "waiting" || e.kind === "stale") return mark("wait", "대기");
-  return mark("info", "기록");
+  if (errors) return mark('bad', '실패');
+  if (hb) return hb.verdict === 'rework' ? mark('wait', '수정 요청') : mark('ok', '완료');
+  if (e.kind === 'step') return e.detail ? mark('wait', '보완 요청') : mark('work', '시작');
+  if (e.kind === 'denied') return mark('bad', '거부');
+  if (e.kind === 'approved') return mark('ok', '승인');
+  if (e.kind === 'refused') return mark('wait', '거절');
+  if (e.kind === 'waiting' || e.kind === 'stale') return mark('wait', '대기');
+  return mark('info', '기록');
 }
 
 // The same error repeated across retries shows once with its count

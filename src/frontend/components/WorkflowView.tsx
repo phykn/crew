@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -17,23 +17,20 @@ import {
   type EdgeChange,
   type Connection,
   type ReactFlowInstance,
-} from "@xyflow/react";
-import "@xyflow/react/dist/style.css";
-import type { CrewMember } from "../../backend/crew/shipped";
-import type { Project } from "../../backend/db";
-import type { Step } from "../../backend/tasks/workflow";
-import { call, onChanged } from "../api";
-import { Confirm } from "./Confirm";
-import { Choice } from "./Choice";
-import { HIDE_MARK } from "./WikiGraph";
-import { josa } from "../../korean";
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import type { CrewMember } from '../../backend/crew/shipped';
+import type { Project } from '../../backend/db';
+import type { Step } from '../../backend/tasks/workflow';
+import { call, onChanged } from '../api';
+import { Confirm } from './Confirm';
+import { Choice } from './Choice';
+import { HIDE_MARK } from './WikiGraph';
+import { josa } from '../../korean';
 
-type Read = Awaited<ReturnType<typeof call<"workflows.read">>>;
-type StepNode = Node<
-  { step: Step; member?: CrewMember; back?: string },
-  "step"
->;
-type LinkEdge = Edge<{ remove: () => void }, "link">;
+type Read = Awaited<ReturnType<typeof call<'workflows.read'>>>;
+type StepNode = Node<{ step: Step; member?: CrewMember; back?: string }, 'step'>;
+type LinkEdge = Edge<{ remove: () => void }, 'link'>;
 type Layout = Record<string, { x: number; y: number }>;
 
 // The workflow tab: this project's rules for one task kind, drawn as nodes and saved as a new version
@@ -60,16 +57,13 @@ export function WorkflowView({
   const [dirty, setDirty] = useState(false);
   // The kind picked while edits were unsaved, waiting for the user to let them go
   const [leaveFor, setLeaveFor] = useState<string | null>(null);
-  const [flow, setFlow] = useState<ReactFlowInstance<
-    StepNode,
-    LinkEdge
-  > | null>(null);
+  const [flow, setFlow] = useState<ReactFlowInstance<StepNode, LinkEdge> | null>(null);
 
   useEffect(() => {
-    call("workflows.kinds").then(setKinds);
+    call('workflows.kinds').then(setKinds);
   }, []);
   async function load() {
-    const read = await call("workflows.read", { projectId: project.id, kind });
+    const read = await call('workflows.read', { projectId: project.id, kind });
     setW(read);
     setSteps(read.rules.steps);
     setNodes(toNodes(read.rules.steps, (read.layout ?? {}) as Layout));
@@ -81,10 +75,7 @@ export function WorkflowView({
     setNote(null);
   }, [project.id, kind]);
   // A version 비서 saves shows at once; unsaved edits stay, and saving them is refused as stale
-  useEffect(
-    () => onChanged((topic) => topic === "workflows" && !dirty && load()),
-    [project.id, kind, dirty],
-  );
+  useEffect(() => onChanged((topic) => topic === 'workflows' && !dirty && load()), [project.id, kind, dirty]);
 
   // Nodes carry the step, so edits in the side panel show on the canvas at once
   const shown = useMemo(
@@ -101,15 +92,13 @@ export function WorkflowView({
   const [link, setLink] = useState<string | null>(null);
   const label = (id: string) => steps.find((s) => s.id === id)?.label ?? id;
   const unlink = (from: string, to: string) =>
-    edit(to, {
-      after: steps.find((s) => s.id === to)!.after.filter((a) => a !== from),
-    });
+    edit(to, { after: steps.find((s) => s.id === to)!.after.filter((a) => a !== from) });
   const edges: LinkEdge[] = steps.flatMap((s) =>
     s.after.map((a) => ({
       id: `${a}->${s.id}`,
       source: a,
       target: s.id,
-      type: "link",
+      type: 'link',
       selected: link === `${a}->${s.id}`,
       ariaLabel: `${label(a)} → ${s.label}`,
       data: { remove: () => unlink(a, s.id) },
@@ -122,30 +111,17 @@ export function WorkflowView({
 
   function onConnect(c: Connection) {
     if (c.source && c.target && c.source !== c.target)
-      edit(c.target, {
-        after: [
-          ...new Set([
-            ...steps.find((s) => s.id === c.target)!.after,
-            c.source,
-          ]),
-        ],
-      });
+      edit(c.target, { after: [...new Set([...steps.find((s) => s.id === c.target)!.after, c.source])] });
   }
   function onEdgesChange(changes: EdgeChange[]) {
     for (const ch of changes) {
-      if (ch.type === "remove")
-        unlink(...(ch.id.split("->") as [string, string]));
-      if (ch.type === "select") setLink(ch.selected ? ch.id : null);
+      if (ch.type === 'remove') unlink(...(ch.id.split('->') as [string, string]));
+      if (ch.type === 'select') setLink(ch.selected ? ch.id : null);
     }
   }
   function onNodesChange(changes: NodeChange<StepNode>[]) {
-    if (
-      changes.some(
-        (ch) => ch.type === "remove" || (ch.type === "position" && ch.dragging),
-      )
-    )
-      setDirty(true);
-    const gone = changes.flatMap((ch) => (ch.type === "remove" ? [ch.id] : []));
+    if (changes.some((ch) => ch.type === 'remove' || (ch.type === 'position' && ch.dragging))) setDirty(true);
+    const gone = changes.flatMap((ch) => (ch.type === 'remove' ? [ch.id] : []));
     if (gone.length)
       setSteps((all) =>
         all
@@ -153,7 +129,7 @@ export function WorkflowView({
           .map((s) => ({
             ...s,
             after: s.after.filter((a) => !gone.includes(a)),
-            rework: gone.includes(s.rework ?? "") ? undefined : s.rework,
+            rework: gone.includes(s.rework ?? '') ? undefined : s.rework,
           })),
       );
     setNodes((ns) => applyNodeChanges(changes, ns));
@@ -161,73 +137,40 @@ export function WorkflowView({
   // Lays every node out again by order, for when hand-placed nodes have got tangled
   function tidy() {
     const auto = arrange(steps);
-    setNodes((ns) =>
-      ns.map((n) => ({ ...n, position: auto[n.id] ?? n.position })),
-    );
+    setNodes((ns) => ns.map((n) => ({ ...n, position: auto[n.id] ?? n.position })));
     setDirty(true);
     requestAnimationFrame(() => flow?.fitView(FIT));
   }
   function addStep() {
     const id = nextId(steps);
     setDirty(true);
-    const role =
-      members.find((m) => m.status === "hired" && !m.kept)?.key ??
-      members[0].key;
+    const role = members.find((m) => m.status === 'hired' && !m.kept)?.key ?? members[0].key;
     setSteps((all) => [
       ...all,
-      {
-        id,
-        role,
-        label: "새 단계",
-        does: "",
-        after: [],
-        verdict: false,
-        loops: 3,
-        requires: [],
-      },
+      { id, role, label: '새 단계', does: '', after: [], verdict: false, loops: 3, requires: [] },
     ]);
     setNodes((ns) => [
       ...ns,
-      {
-        id,
-        type: "step",
-        position: { x: 40, y: 40 + ns.length * 20 },
-        data: { step: null as never },
-      },
+      { id, type: 'step', position: { x: 40, y: 40 + ns.length * 20 }, data: { step: null as never } },
     ]);
     setPicked(id);
   }
   async function save() {
     const layout = Object.fromEntries(
-      nodes.map((n) => [
-        n.id,
-        { x: Math.round(n.position.x), y: Math.round(n.position.y) },
-      ]),
+      nodes.map((n) => [n.id, { x: Math.round(n.position.x), y: Math.round(n.position.y) }]),
     );
     // A check sends rework to the nearest making step it follows, so the links alone decide it
     const rules = {
       ...w!.rules,
-      steps: steps.map((s) => ({
-        ...s,
-        rework: s.verdict ? reworkOf(s.id, steps) : undefined,
-      })),
+      steps: steps.map((s) => ({ ...s, rework: s.verdict ? reworkOf(s.id, steps) : undefined })),
     };
-    const r = await call("workflows.save", {
-      projectId: project.id,
-      kind,
-      base: w!.version,
-      rules,
-      layout,
-    });
+    const r = await call('workflows.save', { projectId: project.id, kind, base: w!.version, rules, layout });
     if (r.ok) {
       setNote({ ok: true, text: `버전 ${r.version} 저장, 새 업무부터 적용` });
       setDirty(false);
-      const read = await call("workflows.read", {
-        projectId: project.id,
-        kind,
-      });
+      const read = await call('workflows.read', { projectId: project.id, kind });
       setW(read);
-    } else setNote({ ok: false, text: r.problems.join(" / ") });
+    } else setNote({ ok: false, text: r.problems.join(' / ') });
   }
 
   const step = steps.find((s) => s.id === picked);
@@ -243,9 +186,7 @@ export function WorkflowView({
             <button
               key={k.kind}
               aria-pressed={k.kind === kind}
-              onClick={() =>
-                dirty && k.kind !== kind ? setLeaveFor(k.kind) : onKind(k.kind)
-              }
+              onClick={() => (dirty && k.kind !== kind ? setLeaveFor(k.kind) : onKind(k.kind))}
             >
               {k.label}
             </button>
@@ -261,9 +202,7 @@ export function WorkflowView({
           <button
             className="button primary"
             data-dirty={dirty || undefined}
-            title={
-              dirty ? "저장 안 한 변경이 있습니다" : `버전 ${w?.version ?? 0}`
-            }
+            title={dirty ? '저장 안 한 변경이 있습니다' : `버전 ${w?.version ?? 0}`}
             onClick={save}
           >
             저장
@@ -276,7 +215,7 @@ export function WorkflowView({
           text="저장 안 한 변경이 사라집니다. 다른 업무 종류로 바꿀까요?"
           actions={[
             {
-              label: "바꾸기",
+              label: '바꾸기',
               danger: true,
               run: () => {
                 onKind(leaveFor);
@@ -288,7 +227,7 @@ export function WorkflowView({
         />
       )}
       {note && (
-        <p className={`workflow-note${note.ok ? "" : " bad"}`} role="status">
+        <p className={`workflow-note${note.ok ? '' : ' bad'}`} role="status">
           {note.text}
         </p>
       )}
@@ -311,14 +250,10 @@ export function WorkflowView({
               fitView
               onInit={setFlow}
               fitViewOptions={FIT}
-              deleteKeyCode={["Backspace", "Delete"]}
+              deleteKeyCode={['Backspace', 'Delete']}
             >
               <Background />
-              <Controls
-                showInteractive={false}
-                orientation="horizontal"
-                position="top-right"
-              />
+              <Controls showInteractive={false} orientation="horizontal" position="top-right" />
             </ReactFlow>
           )}
         </div>
@@ -338,11 +273,8 @@ export function WorkflowView({
                 label="담당 역할"
                 value={step.role}
                 options={members
-                  .filter((m) => m.status === "hired")
-                  .map((m) => ({
-                    value: m.key,
-                    label: `${m.role} ${m.nickname}`,
-                  }))}
+                  .filter((m) => m.status === 'hired')
+                  .map((m) => ({ value: m.key, label: `${m.role} ${m.nickname}` }))}
                 onChange={(role) => edit(step.id, { role })}
               />
             </label>
@@ -371,14 +303,7 @@ export function WorkflowView({
                   min={1}
                   max={9}
                   value={step.loops}
-                  onChange={(e) =>
-                    edit(step.id, {
-                      loops: Math.min(
-                        9,
-                        Math.max(1, Number(e.target.value) || 1),
-                      ),
-                    })
-                  }
+                  onChange={(e) => edit(step.id, { loops: Math.min(9, Math.max(1, Number(e.target.value) || 1)) })}
                 />
               </label>
             )}
@@ -401,9 +326,7 @@ function StepBox({ data }: NodeProps<StepNode>) {
       <div>{step.label}</div>
       {step.verdict && (
         <div className="muted">
-          {back
-            ? `안 되면 ${josa(back, "으로")} ${step.loops}번까지`
-            : "앞 단계에 이어 주세요"}
+          {back ? `안 되면 ${josa(back, '으로')} ${step.loops}번까지` : '앞 단계에 이어 주세요'}
         </div>
       )}
       <Handle type="source" position={Position.Bottom} />
@@ -426,14 +349,7 @@ function LinkLine({
   selected,
   data,
 }: EdgeProps<LinkEdge>) {
-  const [line, x, y] = getBezierPath({
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
-    sourcePosition,
-    targetPosition,
-  });
+  const [line, x, y] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
   return (
     <>
       <BaseEdge id={id} path={line} />
@@ -441,9 +357,7 @@ function LinkLine({
         <EdgeLabelRenderer>
           <button
             className="workflow-unlink nodrag nopan"
-            style={{
-              transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
-            }}
+            style={{ transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }}
             aria-label="연결 끊기"
             onClick={data?.remove}
           >
@@ -472,43 +386,23 @@ function reworkOf(id: string, steps: Step[]): string | undefined {
 // Saved positions where there are some; the canvas fills in each node's step from the steps in state
 function toNodes(steps: Step[], layout: Layout): StepNode[] {
   const auto = arrange(steps);
-  return steps.map((s) => ({
-    id: s.id,
-    type: "step",
-    position: layout[s.id] ?? auto[s.id],
-    data: { step: s },
-  }));
+  return steps.map((s) => ({ id: s.id, type: 'step', position: layout[s.id] ?? auto[s.id], data: { step: s } }));
 }
 
 // Rows by how many steps come before, each row centered, since the panel is tall and narrow
 function arrange(steps: Step[]): Layout {
-  const token = (name: string) =>
-    parseFloat(
-      getComputedStyle(document.documentElement).getPropertyValue(name),
-    );
-  const [width, gap, rowHeight] = [
-    token("--w-node"),
-    token("--sp-4"),
-    token("--h-node-row"),
-  ];
+  const token = (name: string) => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
+  const [width, gap, rowHeight] = [token('--w-node'), token('--sp-4'), token('--h-node-row')];
   const depth = (id: string, seen: string[] = []): number => {
     const s = steps.find((x) => x.id === id);
     const before = (s?.after ?? []).filter((a) => !seen.includes(a));
-    return before.length
-      ? 1 + Math.max(...before.map((a) => depth(a, [...seen, id])))
-      : 0;
+    return before.length ? 1 + Math.max(...before.map((a) => depth(a, [...seen, id]))) : 0;
   };
   const rows: Record<number, string[]> = {};
   for (const s of steps) (rows[depth(s.id)] ??= []).push(s.id);
   return Object.fromEntries(
     Object.entries(rows).flatMap(([d, ids]) =>
-      ids.map((id, i) => [
-        id,
-        {
-          x: (i - (ids.length - 1) / 2) * (width + gap),
-          y: Number(d) * rowHeight,
-        },
-      ]),
+      ids.map((id, i) => [id, { x: (i - (ids.length - 1) / 2) * (width + gap), y: Number(d) * rowHeight }]),
     ),
   );
 }
@@ -516,7 +410,7 @@ function arrange(steps: Step[]): Layout {
 // Step ids are lowercase letters and underscores, so a new one is step_a, step_b, ...
 function nextId(steps: Step[]) {
   for (let n = 0; ; n++) {
-    let id = "step_";
+    let id = 'step_';
     for (let k = n; ; k = Math.floor(k / 26) - 1) {
       id += String.fromCharCode(97 + (k % 26));
       if (k < 26) break;
