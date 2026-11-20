@@ -8,6 +8,9 @@ export const MODE_LABELS: Record<Mode, string> = { manual: '묻기', auto: '자�
 // A picture the user attaches to a message, kept as base64 the way Claude takes it
 export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] as const;
 export type Image = { mediaType: (typeof IMAGE_TYPES)[number]; data: string };
+// A sent picture's address; the window loads it only when shown, so the message list stays small
+export const IMAGE_SCHEME = 'crew-image';
+export const imageUrl = (messageId: number, n: number) => `${IMAGE_SCHEME}://message/${messageId}/${n}`;
 
 export const MODELS = ['haiku', 'sonnet', 'opus'] as const;
 

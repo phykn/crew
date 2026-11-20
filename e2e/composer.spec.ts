@@ -87,7 +87,15 @@ test('a chosen picture can be taken back, goes without words, and shows in the m
 
   await page.getByRole('button', { name: '보내기' }).click();
   await expect(page.getByLabel('첨부한 그림')).toHaveCount(0);
-  await expect(page.getByLabel('나').locator('img')).toHaveCount(1);
+  // A sent picture loads from its own address, not from the message list
+  await expect
+    .poll(() =>
+      page
+        .getByLabel('나')
+        .locator('img')
+        .evaluate((i: HTMLImageElement) => i.naturalWidth),
+    )
+    .toBe(1);
   await expect(page.getByLabel('비서').filter({ hasText: '그림을 받았습니다.' })).toBeVisible();
   await app.close();
 });

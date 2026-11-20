@@ -42,12 +42,14 @@ test('pictures go to 비서 before the words, stay with the message, and may go 
   await chat.send(s.id, '이거 뭐야?', [png]);
 
   expect(fake.calls.map((c) => c.prompt)).toEqual(['[image]', '[image]\n이거 뭐야?']);
-  expect(store.listMessages(s.id).map((m) => [m.author, m.text, m.images.length])).toEqual([
+  expect(store.listMessages(s.id).map((m) => [m.author, m.text, m.imageCount])).toEqual([
     ['user', '', 1],
     ['secretary', '고양이네요.', 0],
     ['user', '이거 뭐야?', 1],
     ['secretary', '같은 고양이네요.', 0],
   ]);
+  const [first] = store.listMessages(s.id);
+  expect([store.readImage(first.id, 0), store.readImage(first.id, 1)]).toEqual([png, null]);
   expect(store.listSessions(s.projectId)[0].title).toBe('이거 뭐야?');
 });
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Message, Question, Session, Task } from '../../backend/db';
-import { IMAGE_TYPES, type Image, MODE_LABELS, type Mode } from '../../shared';
+import { IMAGE_TYPES, type Image, imageUrl, MODE_LABELS, type Mode } from '../../shared';
 import { call, onChanged, onStream } from '../api';
 import { Choice } from './Choice';
 import { TaskCards } from './TaskCards';
@@ -130,7 +130,13 @@ export function Chat({
       <TaskCards tasks={tasks} messages={messages} onLog={onLog} />
       <div className="messages" aria-label="대화">
         {messages.map((m) => (
-          <Bubble key={m.id} author={m.author} text={m.text} images={m.images} question={m.question} />
+          <Bubble
+            key={m.id}
+            author={m.author}
+            text={m.text}
+            pictures={Array.from({ length: m.imageCount }, (_, n) => imageUrl(m.id, n))}
+            question={m.question}
+          />
         ))}
         {streaming !== null && <Bubble author="secretary" text={streaming} pending />}
         {queued
@@ -138,7 +144,7 @@ export function Chat({
           .map((q) => (
             <div key={q.id} className="message user queued" aria-label="대기 중">
               <div className="bubble">
-                <Pictures images={q.images} />
+                <Pictures srcs={q.images.map(src)} />
                 {q.text}
               </div>
               <button type="button" className="send-now" onClick={() => sendQueued(q)}>
@@ -291,23 +297,23 @@ export function Chat({
 type BubbleProps = {
   author: Message['author'];
   text: string;
-  images?: Image[];
+  pictures?: string[];
   pending?: boolean;
   question?: Question | null;
 };
 
-function Pictures({ images }: { images: Image[] }) {
-  if (!images.length) return null;
+function Pictures({ srcs }: { srcs: string[] }) {
+  if (!srcs.length) return null;
   return (
     <div className="pictures">
-      {images.map((img, n) => (
-        <img key={n} src={src(img)} alt={`첨부 그림 ${n + 1}`} />
+      {srcs.map((s, n) => (
+        <img key={n} src={s} alt={`첨부 그림 ${n + 1}`} loading="lazy" />
       ))}
     </div>
   );
 }
 
-function Bubble({ author, text, images = [], pending, question }: BubbleProps) {
+function Bubble({ author, text, pictures = [], pending, question }: BubbleProps) {
   // Only two people talk here, so the side a bubble sits on says who said it: me right, 비서 left
   return (
     <div
@@ -319,7 +325,7 @@ function Bubble({ author, text, images = [], pending, question }: BubbleProps) {
         <AnswerCard question={question} />
       ) : (
         <div className="bubble">
-          <Pictures images={images} />
+          <Pictures srcs={pictures} />
           {text ? renderInline(text) : pending ? <span className="typing">···</span> : ''}
         </div>
       )}

@@ -110,6 +110,14 @@ const MIGRATIONS = [
   `ALTER TABLE runs ADD COLUMN side INTEGER NOT NULL DEFAULT 0;`,
   // Pictures the user attached to a message, as JSON
   `ALTER TABLE messages ADD COLUMN images TEXT;`,
+  // Pictures in their own table, so listing messages never reads them
+  `CREATE TABLE message_images (
+     message_id INTEGER NOT NULL REFERENCES messages (id) ON DELETE CASCADE, n INTEGER NOT NULL,
+     media_type TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY (message_id, n));
+   INSERT INTO message_images
+     SELECT m.id, j.key, json_extract(j.value, '$.mediaType'), json_extract(j.value, '$.data')
+     FROM messages m, json_each(m.images) j WHERE m.images IS NOT NULL;
+   ALTER TABLE messages DROP COLUMN images;`,
 ];
 
 // A project's change to the kit: a skill written over the shipped one or new, or one deleted
@@ -164,7 +172,7 @@ export type Message = {
   sessionId: number;
   author: 'user' | 'secretary';
   text: string;
-  images: Image[];
+  imageCount: number;
   createdAt: string;
   question: Question | null;
 };
@@ -538,27 +546,30 @@ export class Store {
     questionId: number | null = null,
     images: Image[] = [],
   ) {
-    this.db
-      .prepare(
-        'INSERT INTO messages (session_id, author, text, created_at, question_id, images) VALUES (?, ?, ?, ?, ?, ?)',
-      )
-      .run(sessionId, author, text, now(), questionId, images.length ? JSON.stringify(images) : null);
+    this.transact(() => {
+      const { lastInsertRowid } = this.db
+        .prepare('INSERT INTO messages (session_id, author, text, created_at, question_id) VALUES (?, ?, ?, ?, ?)')
+        .run(sessionId, author, text, now(), questionId);
+      const add = this.db.prepare('INSERT INTO message_images (message_id, n, media_type, data) VALUES (?, ?, ?, ?)');
+      images.forEach((i, n) => add.run(lastInsertRowid, n, i.mediaType, i.data));
+    });
   }
 
+  // Pictures are only counted here; the window loads each one by its address when it shows it
   listMessages(sessionId: number): Message[] {
     const rows = this.db
       .prepare(
-        'SELECT id, session_id AS sessionId, author, text, images, created_at AS createdAt, question_id AS questionId FROM messages WHERE session_id = ? ORDER BY id',
+        'SELECT id, session_id AS sessionId, author, text, (SELECT COUNT(*) FROM message_images WHERE message_id = messages.id) AS imageCount, created_at AS createdAt, question_id AS questionId FROM messages WHERE session_id = ? ORDER BY id',
       )
-      .all(sessionId) as (Omit<Message, 'question' | 'images'> & {
-      questionId: number | null;
-      images: string | null;
-    })[];
-    return rows.map(({ questionId, images, ...m }) => ({
-      ...m,
-      images: images ? JSON.parse(images) : [],
-      question: questionId ? this.readQuestion(questionId) : null,
-    }));
+      .all(sessionId) as (Omit<Message, 'question'> & { questionId: number | null })[];
+    return rows.map(({ questionId, ...m }) => ({ ...m, question: questionId ? this.readQuestion(questionId) : null }));
+  }
+
+  readImage(messageId: number, n: number): Image | null {
+    const row = this.db
+      .prepare('SELECT media_type AS mediaType, data FROM message_images WHERE message_id = ? AND n = ?')
+      .get(messageId, n) as Image | undefined;
+    return row ?? null;
   }
 
   addQuestion(q: Omit<Question, 'id' | 'answer'>): number {

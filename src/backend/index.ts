@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Notification, powerSaveBlocker } from 'electron';
+import { app, BrowserWindow, Notification, powerSaveBlocker, protocol } from 'electron';
 import path from 'node:path';
 import { Store } from './db';
 import { Chat } from './chat';
@@ -6,8 +6,12 @@ import { Crew } from './crew/shipped';
 import { loadSdk } from './agents/run';
 import { scriptSdk } from './agents/script';
 import { createHandlers, registerHandlers } from './window/ipc';
+import { IMAGE_SCHEME } from '../shared';
 
 let win: BrowserWindow | null = null;
+
+// Registered before the app is ready, as Electron requires, so sent pictures load like files and are cached
+protocol.registerSchemesAsPrivileged([{ scheme: IMAGE_SCHEME, privileges: { standard: true, secure: true } }]);
 
 function createWindow() {
   win = new BrowserWindow({
@@ -58,6 +62,15 @@ app.whenReady().then(() => {
   // Tests point CREW_DB at a scratch file so they never touch the real record
   const dbFile = process.env.CREW_DB || path.join(app.getPath('userData'), 'crew.db');
   const store = new Store(dbFile);
+  // A sent picture never changes, so the window may keep it as long as it likes
+  protocol.handle(IMAGE_SCHEME, (req) => {
+    const [, messageId, n] = new URL(req.url).pathname.split('/').map(Number);
+    const image = store.readImage(messageId, n);
+    if (!image) return new Response(null, { status: 404 });
+    return new Response(Buffer.from(image.data, 'base64'), {
+      headers: { 'content-type': image.mediaType, 'cache-control': 'max-age=31536000, immutable' },
+    });
+  });
   const crewDir = app.isPackaged ? path.join(process.resourcesPath, 'crew') : path.join(app.getAppPath(), 'crew');
   const crew = new Crew(crewDir);
   const paths = {
