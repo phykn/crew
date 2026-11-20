@@ -66,6 +66,9 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
     'tasks.list': handle(z.object({ sessionId: id }), (a) => store.listTasks(a.sessionId)),
     'tasks.stop': handle(z.object({ id }), (a) => tasks.stop(a.id)),
     'tasks.resume': handle(z.object({ id }), (a) => tasks.resume(a.id)),
+    'changes.file': handle(z.object({ taskId: id, versionId: id, file: z.string().min(1) }), (a) =>
+      tasks.change(a.taskId, a.versionId, a.file),
+    ),
     'wiki.list': handle(z.object({ projectId: id }), (a) => wiki.list(a.projectId)),
     'wiki.timeline': handle(z.object({ projectId: id }), (a) => wiki.timeline(a.projectId)),
     'wiki.graph': handle(z.object({ projectId: id }), (a) => wiki.graph(a.projectId)),

@@ -9,6 +9,7 @@ import { Runs } from './agents/runs';
 import { Tasks } from './tasks/engine';
 import { Wiki } from './wiki';
 import { Workflows } from './tasks/workflow';
+import { forget } from './tasks/changes';
 
 export type Emit = (channel: 'changed' | 'stream' | 'navigate' | 'notify' | 'busy', payload: unknown) => void;
 // Where members' own files go, and the files no member may touch
@@ -100,7 +101,12 @@ export class Chat {
 
   // A deleted session's work stops first, so nothing keeps writing for a record that is gone
   deleteSession(sessionId: number) {
-    for (const t of this.store.listTasks(sessionId)) this.tasks.drop(t.id);
+    const tasks = this.store.listTasks(sessionId);
+    for (const t of tasks) this.tasks.drop(t.id);
+    void forget(
+      this.store.projectOf(sessionId).path,
+      tasks.map((t) => t.id),
+    );
     this.runs.live(sessionId)?.stop();
     this.store.deleteSession(sessionId);
     this.emit('changed', 'sessions');

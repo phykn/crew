@@ -133,6 +133,9 @@
   /* A dialog never covers the whole window */
   --w-dialog-max: 90vw;
   --h-dialog-max: 80vh;
+  /* The change view reads like a page of text: about the width of a chat column, never the whole window */
+  --w-changes: min(920px, 92vw);
+  --h-changes: 88vh;
   --w-tree: 520px;
   --w-bubble-max: 84%;
   --h-compose-max: 160px;

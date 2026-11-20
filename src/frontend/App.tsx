@@ -12,6 +12,7 @@ import { Memory } from './components/Memory';
 import { WorkflowView } from './components/WorkflowView';
 import { Camp } from './components/Camp';
 import { TabIcon } from './components/Icons';
+import { Changes, type ChangesTarget } from './components/Changes';
 
 const TABS = [
   ['chat', '대화'],
@@ -33,6 +34,8 @@ export function App() {
   const [logTask, setLogTask] = useState<number | null>(null);
   // A card waits for the user's answer, which the chat tab shows while another tab is open
   const [waiting, setWaiting] = useState(false);
+  // The task whose changes the popup shows; the crew keeps working while it is open
+  const [changes, setChanges] = useState<ChangesTarget | null>(null);
 
   function openLog(taskId: number | null) {
     setLogTask(taskId);
@@ -122,7 +125,9 @@ export function App() {
               )}
             </Tabs.Content>
             <Tabs.Content value="log" className="tab-body">
-              {session && <Log session={session} members={members} taskId={logTask} onTask={setLogTask} />}
+              {session && (
+                <Log session={session} members={members} taskId={logTask} onTask={setLogTask} onChanges={setChanges} />
+              )}
             </Tabs.Content>
             <Tabs.Content value="memory" className="tab-body">
               {project && (
@@ -144,6 +149,15 @@ export function App() {
           </Tabs.Root>
         </aside>
       </main>
+      <Changes
+        target={changes}
+        waiting={waiting}
+        onClose={() => setChanges(null)}
+        onChat={() => {
+          setChanges(null);
+          setTab('chat');
+        }}
+      />
     </div>
   );
 }

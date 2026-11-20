@@ -7,7 +7,7 @@ import { NOT_HIRED } from '../agents/run';
 import type { Handback, Member, StepRun, Task, TaskStatus } from '../db';
 import { ancestors, type Step, Workflow } from './workflow';
 import { memberTools } from '../tools/member';
-import { changedFiles, snapshot, type Snapshot } from './changes';
+import { changedFiles, diff, mark, snapshot, type Snapshot, taskRef, taskRefs } from './changes';
 import { REFUSE } from '../questions';
 import { josa } from '../../korean';
 import { ACTIVE } from '../../shared';
@@ -140,6 +140,8 @@ export class Tasks {
   // Each task's current drive; a loop or a queued step from an earlier drive sees it is no longer current and ends
   driving = new Map<number, number>();
   drives = 0;
+  // Each new task's starting commit, which its first step waits for so nothing is written before it is taken
+  starting = new Map<number, Promise<boolean>>();
   // How long to wait before each retry of a failed run, so an overloaded server has time to recover
   retryWaits = [2_000, 10_000, 30_000];
 
@@ -164,7 +166,11 @@ export class Tasks {
       workflow,
     });
     if (writer) for (const s of makers(workflow)) store.assign(task.id, s.id, writer.id);
-    store.writeBaseline(task.id, snapshot(this.projectOf(task).path));
+    const folder = this.projectOf(task).path;
+    store.writeBaseline(task.id, snapshot(folder));
+    // In a git repository the starting point is also kept as a commit, so each version's diff can be shown
+    const base = mark(folder, taskRef(task.id, 'base')).finally(() => this.starting.delete(task.id));
+    this.starting.set(task.id, base);
     this.chat.emit('changed', 'tasks');
     void this.drive(task.id);
     return task;
@@ -298,6 +304,7 @@ export class Tasks {
     for (let attempt = 0; attempt <= RETRIES; attempt++) {
       const runId = store.startStepRun(task.id, step.id, member.id, store.latestVersion(task.id)?.id ?? null);
       this.chat.emit('changed', 'tasks');
+      await this.starting.get(task.id);
       const out = await this.chat.runs
         .run(member, task.sessionId, task.id, prompt, {
           schema: HANDBACK_SCHEMA,
@@ -344,13 +351,37 @@ export class Tasks {
       // A making step's result is a new change version, unless it left the files as the last one did
       const last = store.latestVersion(task.id);
       const same = last && JSON.stringify(store.versionSnapshot(last.id)) === JSON.stringify(snap);
-      if (snap && files.length && !same) store.addVersion(task.id, files, snap);
-      log(`${role}: ${step.label} ${hb.verdict === 'rework' ? '수정 요청' : '완료'} — ${hb.summary}`, hb);
+      const version = snap && files.length && !same ? store.addVersion(task.id, files, snap) : null;
+      // The log line names its version only when git kept it, so only then does the window offer its diff
+      const kept = version !== null && (await mark(project.path, taskRef(task.id, `version-${version}`)));
+      log(
+        `${role}: ${step.label} ${hb.verdict === 'rework' ? '수정 요청' : '완료'} — ${hb.summary}`,
+        kept ? { ...hb, version } : hb,
+      );
       this.chat.emit('changed', 'tasks');
       return 'done';
     }
     log(`${role}: ${step.label} 실패 (${RETRIES}번 다시 시도)`, { errors });
     return `${josa(step.label, '이')} ${RETRIES}번 다시 시도해도 실패했습니다`;
+  }
+
+  // The task's versions that git kept, numbered as the user sees them; none outside a git repository
+  async versions(taskId: number) {
+    const kept = await taskRefs(this.projectOf(this.chat.store.readTask(taskId)).path, taskId);
+    if (!kept.includes('base')) return [];
+    return this.chat.store
+      .listVersions(taskId)
+      .map((v, n) => ({ id: v.id, label: `v${n + 1}`, files: v.files, at: v.createdAt }))
+      .filter((v) => kept.includes(`version-${v.id}`));
+  }
+
+  // What one version changed in one of the task's own files since the task began, with the version's number
+  async change(taskId: number, versionId: number, file: string) {
+    const v = (await this.versions(taskId)).find((x) => x.id === versionId);
+    if (!v?.files.includes(file)) return null;
+    const folder = this.projectOf(this.chat.store.readTask(taskId)).path;
+    const [d] = await diff(folder, taskRef(taskId, 'base'), taskRef(taskId, `version-${v.id}`), [file]);
+    return d ? { label: v.label, diff: d } : null;
   }
 
   // Files changed since the task began that this task wrote: under a path it reserved, or handed back by an earlier step

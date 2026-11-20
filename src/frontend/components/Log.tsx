@@ -5,6 +5,7 @@ import { call, onChanged } from '../api';
 import { clock, duration } from '../time';
 import { Choice } from './Choice';
 import { MarkIcon } from './Icons';
+import type { ChangesTarget } from './Changes';
 
 const ALL = 'all';
 
@@ -14,11 +15,13 @@ export function Log({
   members,
   taskId,
   onTask,
+  onChanges,
 }: {
   session: Session;
   members: CrewMember[];
   taskId: number | null;
   onTask: (id: number | null) => void;
+  onChanges: (target: ChangesTarget) => void;
 }) {
   const [events, setEvents] = useState<Event[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -120,7 +123,22 @@ export function Log({
                 <span className="log-who">{m ? m.role : '앱'}</span>
                 <span className="log-text">{m ? e.text.replace(new RegExp(`^${m.role}: `), '') : e.text}</span>
               </button>
-              {hb && open === e.id && <HandbackView hb={hb} />}
+              {hb && open === e.id && (
+                <HandbackView
+                  hb={hb}
+                  onFile={
+                    hb.version && e.taskId
+                      ? (file) =>
+                          onChanges({
+                            taskId: e.taskId!,
+                            title: tasks.find((t) => t.id === e.taskId)?.title ?? `#${e.taskId}`,
+                            versionId: hb.version!,
+                            file,
+                          })
+                      : null
+                  }
+                />
+              )}
               {errors && open === e.id && (
                 <div className="log-detail">
                   <ul>
@@ -141,14 +159,27 @@ export function Log({
   );
 }
 
-function HandbackView({ hb }: { hb: Handback }) {
+// A file of a version git kept opens its diff; otherwise the name is just shown
+function HandbackView({
+  hb,
+  onFile,
+}: {
+  hb: Handback & { version?: number };
+  onFile: ((file: string) => void) | null;
+}) {
   return (
     <div className="log-detail">
       {hb.files.length > 0 && (
         <ul className="files">
           {hb.files.map((f) => (
             <li key={f}>
-              <code>{f}</code>
+              {onFile ? (
+                <button className="file-link" title="변경 내용 보기" onClick={() => onFile(f)}>
+                  <code>{f}</code>
+                </button>
+              ) : (
+                <code>{f}</code>
+              )}
             </li>
           ))}
         </ul>
@@ -202,7 +233,7 @@ function group(errors: string[]): [string, number][] {
 }
 
 // Step events carry the handback; other kinds keep their own detail
-function readHandback(detail: string | null): Handback | null {
+function readHandback(detail: string | null): (Handback & { version?: number }) | null {
   if (!detail) return null;
   const d = JSON.parse(detail);
   return d && Array.isArray(d.files) && Array.isArray(d.checks) ? d : null;

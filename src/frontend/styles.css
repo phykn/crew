@@ -856,6 +856,76 @@ code {
   margin: 0 0 var(--sp-3);
   font-size: var(--fs-xl);
 }
+.dialog.changes {
+  display: flex;
+  flex-direction: column;
+  width: var(--w-changes);
+  height: var(--h-changes);
+  max-height: none;
+  overflow: hidden;
+}
+.changes-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+.changes-head .dialog-title {
+  flex: 1;
+  margin: 0;
+}
+.changes-waiting,
+.file-link {
+  cursor: pointer;
+}
+/* A file name that opens its diff reads as a link */
+.file-link {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--link);
+  text-decoration: underline;
+}
+.changes-waiting {
+  background: var(--wait-bg);
+  border-color: var(--wait-line);
+  color: var(--wait-text);
+}
+.changes-name {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+.changes-name code {
+  overflow-wrap: anywhere;
+}
+.diff {
+  flex: 1;
+  overflow: auto;
+  background: var(--paper);
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r);
+  font-family: var(--font-code);
+  font-size: var(--fs-sm);
+}
+.diff-line {
+  padding: 0 var(--sp-2);
+  white-space: pre;
+}
+.diff-line[data-kind='add'] {
+  background: var(--accent-soft);
+  color: var(--ok-text);
+}
+.diff-line[data-kind='del'] {
+  background: var(--rose);
+  color: var(--bad-text);
+}
+.diff-line[data-kind='hunk'] {
+  color: var(--muted);
+}
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
@@ -1019,7 +1089,8 @@ code {
 /* Time first, then what became of the line, then who did what */
 .log-line {
   display: grid;
-  grid-template-columns: var(--w-col) var(--icon-md) var(--w-col) 1fr;
+  /* The time column fits HH:MM:SS; tabular digits keep every row the same width */
+  grid-template-columns: max-content var(--icon-md) var(--w-col) 1fr;
   align-items: start;
   gap: var(--sp-2);
   width: 100%;

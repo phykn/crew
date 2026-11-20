@@ -749,6 +749,16 @@ export class Store {
     return Number(lastInsertRowid);
   }
 
+  listVersions(taskId: number): (Version & { createdAt: string })[] {
+    return (
+      this.db
+        .prepare(
+          'SELECT id, task_id AS taskId, files, created_at AS createdAt FROM versions WHERE task_id = ? ORDER BY id',
+        )
+        .all(taskId) as { id: number; taskId: number; files: string; createdAt: string }[]
+    ).map((r) => ({ ...r, files: JSON.parse(r.files) }));
+  }
+
   latestVersion(taskId: number): Version | null {
     const row = this.db
       .prepare('SELECT id, task_id AS taskId, files FROM versions WHERE task_id = ? ORDER BY id DESC LIMIT 1')
