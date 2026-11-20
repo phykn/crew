@@ -107,7 +107,7 @@ export function Log({
                 aria-expanded={opens ? open === e.id : undefined}
                 onClick={() => setOpen(open === e.id ? null : e.id)}
               >
-                <time>{clock(e.at)}</time>
+                <time>{clock(e.at, true)}</time>
                 <span
                   className="log-mark"
                   data-state={mark.state}

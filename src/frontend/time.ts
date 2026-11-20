@@ -1,9 +1,10 @@
 const pad = (n: number) => String(n).padStart(2, '0');
 
 // The record keeps UTC ISO times, so slicing the string would show UTC; these read it in the user's time zone
-export function clock(iso: string) {
+export function clock(iso: string, seconds = false) {
   const d = new Date(iso);
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const hm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return seconds ? `${hm}:${pad(d.getSeconds())}` : hm;
 }
 
 export function stamp(iso: string) {
