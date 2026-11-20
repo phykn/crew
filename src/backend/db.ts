@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import type { Workflow } from './tasks/workflow';
 import { ALLOW } from './questions';
-import type { Mode } from '../shared';
+import type { Image, Mode } from '../shared';
 
 // Each entry runs once, in order; PRAGMA user_version remembers how many have run
 const MIGRATIONS = [
@@ -108,6 +108,8 @@ const MIGRATIONS = [
    DROP TABLE gone;`,
   // A side question runs on a copy of a member's session; its totals are not the session's own
   `ALTER TABLE runs ADD COLUMN side INTEGER NOT NULL DEFAULT 0;`,
+  // Pictures the user attached to a message, as JSON
+  `ALTER TABLE messages ADD COLUMN images TEXT;`,
 ];
 
 // A project's change to the kit: a skill written over the shipped one or new, or one deleted
@@ -162,6 +164,7 @@ export type Message = {
   sessionId: number;
   author: 'user' | 'secretary';
   text: string;
+  images: Image[];
   createdAt: string;
   question: Question | null;
 };
@@ -528,19 +531,34 @@ export class Store {
       .run(claudeId, model, agentSessionId);
   }
 
-  addMessage(sessionId: number, author: Message['author'], text: string, questionId: number | null = null) {
+  addMessage(
+    sessionId: number,
+    author: Message['author'],
+    text: string,
+    questionId: number | null = null,
+    images: Image[] = [],
+  ) {
     this.db
-      .prepare('INSERT INTO messages (session_id, author, text, created_at, question_id) VALUES (?, ?, ?, ?, ?)')
-      .run(sessionId, author, text, now(), questionId);
+      .prepare(
+        'INSERT INTO messages (session_id, author, text, created_at, question_id, images) VALUES (?, ?, ?, ?, ?, ?)',
+      )
+      .run(sessionId, author, text, now(), questionId, images.length ? JSON.stringify(images) : null);
   }
 
   listMessages(sessionId: number): Message[] {
     const rows = this.db
       .prepare(
-        'SELECT id, session_id AS sessionId, author, text, created_at AS createdAt, question_id AS questionId FROM messages WHERE session_id = ? ORDER BY id',
+        'SELECT id, session_id AS sessionId, author, text, images, created_at AS createdAt, question_id AS questionId FROM messages WHERE session_id = ? ORDER BY id',
       )
-      .all(sessionId) as (Omit<Message, 'question'> & { questionId: number | null })[];
-    return rows.map(({ questionId, ...m }) => ({ ...m, question: questionId ? this.readQuestion(questionId) : null }));
+      .all(sessionId) as (Omit<Message, 'question' | 'images'> & {
+      questionId: number | null;
+      images: string | null;
+    })[];
+    return rows.map(({ questionId, images, ...m }) => ({
+      ...m,
+      images: images ? JSON.parse(images) : [],
+      question: questionId ? this.readQuestion(questionId) : null,
+    }));
   }
 
   addQuestion(q: Omit<Question, 'id' | 'answer'>): number {

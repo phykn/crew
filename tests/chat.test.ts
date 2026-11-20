@@ -34,6 +34,23 @@ test('비서 answers in its own Claude session and runs on the model chosen last
   ]);
 });
 
+test('pictures go to 비서 before the words, stay with the message, and may go without words, which name no session', async () => {
+  const { store, fake, chat, s } = openChat({ 비서: [reply('고양이네요.'), reply('같은 고양이네요.')] });
+  const png = { mediaType: 'image/png' as const, data: 'aGk=' };
+
+  await chat.send(s.id, '', [png]);
+  await chat.send(s.id, '이거 뭐야?', [png]);
+
+  expect(fake.calls.map((c) => c.prompt)).toEqual(['[image]', '[image]\n이거 뭐야?']);
+  expect(store.listMessages(s.id).map((m) => [m.author, m.text, m.images.length])).toEqual([
+    ['user', '', 1],
+    ['secretary', '고양이네요.', 0],
+    ['user', '이거 뭐야?', 1],
+    ['secretary', '같은 고양이네요.', 0],
+  ]);
+  expect(store.listSessions(s.projectId)[0].title).toBe('이거 뭐야?');
+});
+
 test("비서's replies and cards reach the notification feed, so a user in another window hears of them", async () => {
   const notes: unknown[] = [];
   const { chat, s } = openChat(

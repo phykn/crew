@@ -126,6 +126,9 @@
   /* Narrow label and data columns, and the switch */
   --w-col: 40px;
   --w-answer: 280px;
+  /* A picture waiting in the box, and one in a sent message */
+  --w-thumb: 56px;
+  --w-picture: 240px;
   --w-wiki-time: 88px;
   --w-toc: 140px;
   --h-workflow-side: 45%;

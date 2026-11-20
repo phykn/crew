@@ -11,7 +11,7 @@ test('skills set before a skill was renamed or split keep it under its new names
   const version = (store.db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
   // The renames rerun after them, so what was added since goes first
   store.db.exec(
-    `DROP TABLE skills; ALTER TABLE projects DROP COLUMN mode; ALTER TABLE runs DROP COLUMN side; PRAGMA user_version = ${version - 6}`,
+    `DROP TABLE skills; ALTER TABLE projects DROP COLUMN mode; ALTER TABLE runs DROP COLUMN side; ALTER TABLE messages DROP COLUMN images; PRAGMA user_version = ${version - 7}`,
   );
   expect(new Store(db).readMemberById(coder.id).config).toEqual({
     skills: ['code', 'check', 'plan-review', 'code-review', 'report'],
@@ -45,7 +45,9 @@ test('a record from when 도우미 was shipped opens without it, keeping the log
     detail: null,
   });
   const version = (store.db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
-  store.db.exec(`ALTER TABLE runs DROP COLUMN side; PRAGMA user_version = ${version - 2}`);
+  store.db.exec(
+    `ALTER TABLE runs DROP COLUMN side; ALTER TABLE messages DROP COLUMN images; PRAGMA user_version = ${version - 3}`,
+  );
 
   const after = new Store(db);
   expect(after.listMembers(p.id).map((m) => m.key)).toEqual(['orchestrator']);

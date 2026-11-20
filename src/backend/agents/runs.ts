@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Options } from '@anthropic-ai/claude-agent-sdk';
 import { AgentRun, NOT_HIRED, type RunOutput, skipped } from './run';
+import type { Image } from '../../shared';
 import type { Chat } from '../chat';
 import type { Member, Project } from '../db';
 import { toolsOf } from '../crew/shipped';
@@ -11,6 +12,7 @@ import { appServer } from '../tools/app';
 import { josa } from '../../korean';
 
 type RunOptions = {
+  images?: Image[];
   schema?: Record<string, unknown>;
   mcpServers?: Options['mcpServers'];
   onText?: (delta: string) => void;
@@ -90,7 +92,7 @@ export class Runs {
     this.active.add(active);
     if (this.active.size === 1) this.chat.emit('busy', true);
     const runId = store.startRun(agentSession.id, member.model, taskId);
-    const out: RunOutput = await run.run(prompt).finally(() => {
+    const out: RunOutput = await run.run(prompt, opts.images).finally(() => {
       this.active.delete(active);
       if (this.active.size === 0) this.chat.emit('busy', false);
     });

@@ -6,6 +6,7 @@ import type {
   SDKMessage,
   SDKUserMessage,
 } from '@anthropic-ai/claude-agent-sdk';
+import type { Image } from '../../shared';
 
 export type QueryFn = (params: { prompt: AsyncIterable<SDKUserMessage>; options: Options }) => Query;
 // The parts of the SDK the app uses; tests hand in stand-ins with the same shape
@@ -50,17 +51,17 @@ export type RunOutput = {
 
 // Messages for a running agent: the first prompt, then anything said to it while it works
 export class Inbox implements AsyncIterable<SDKUserMessage> {
-  queue: string[] = [];
+  queue: { text: string; images: Image[] }[] = [];
   // Every line taken in; the SDK may read ahead, so the queue alone cannot say how many are still to be answered
   taken = 0;
   wake: (() => void) | null = null;
   closed = false;
 
   // A closed inbox is never read again, so a line pushed then would be lost
-  push(text: string) {
+  push(text: string, images: Image[] = []) {
     if (this.closed) return false;
     this.taken++;
-    this.queue.push(text);
+    this.queue.push({ text, images });
     this.wake?.();
     return true;
   }
@@ -73,14 +74,30 @@ export class Inbox implements AsyncIterable<SDKUserMessage> {
   async *[Symbol.asyncIterator]() {
     while (true) {
       while (this.queue.length) {
-        const text = this.queue.shift()!;
-        yield { type: 'user', message: { role: 'user', content: text }, parent_tool_use_id: null } as SDKUserMessage;
+        const { text, images } = this.queue.shift()!;
+        yield {
+          type: 'user',
+          message: { role: 'user', content: content(text, images) },
+          parent_tool_use_id: null,
+        } as SDKUserMessage;
       }
       if (this.closed) return;
       await new Promise<void>((r) => (this.wake = r));
       this.wake = null;
     }
   }
+}
+
+// Plain text alone, or the pictures then the words; an empty text block is refused, so a picture may go alone
+function content(text: string, images: Image[]) {
+  if (!images.length) return text;
+  return [
+    ...images.map((i) => ({
+      type: 'image' as const,
+      source: { type: 'base64' as const, media_type: i.mediaType, data: i.data },
+    })),
+    ...(text ? [{ type: 'text' as const, text }] : []),
+  ];
 }
 
 // One agent's turn, from the first prompt to its result; the inbox may grow while it runs
@@ -98,9 +115,9 @@ export class AgentRun {
     this.claudeId = input.fork ? null : (input.resume ?? null);
   }
 
-  async run(prompt: string): Promise<RunOutput> {
+  async run(prompt: string, images: Image[] = []): Promise<RunOutput> {
     const { input } = this;
-    this.inbox.push(prompt);
+    this.inbox.push(prompt, images);
     this.query = this.queryFn({
       prompt: this.inbox,
       options: {
@@ -167,8 +184,8 @@ export class AgentRun {
     return { ...out, status: 'failed', usage, error: msg.errors.join('\n') || msg.subtype };
   }
 
-  say(text: string) {
-    return this.inbox.push(text);
+  say(text: string, images: Image[] = []) {
+    return this.inbox.push(text, images);
   }
 
   async stop() {

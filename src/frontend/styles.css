@@ -627,9 +627,10 @@ code {
 .composer {
   position: relative;
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: var(--sp-2);
-  padding: var(--sp-1) var(--sp-1) var(--sp-1) var(--sp-3);
+  padding: var(--sp-1);
   border-color: var(--line-hi);
   border-radius: var(--r-lg);
 }
@@ -660,6 +661,102 @@ code {
 }
 .composer textarea::placeholder {
   color: var(--muted);
+}
+/* Pictures waiting to go sit on their own row above the box */
+.attachments {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: var(--sp-2) var(--sp-2) 0;
+  list-style: none;
+}
+.attachments li {
+  position: relative;
+}
+.attachments img,
+.pictures img {
+  display: block;
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r);
+  object-fit: cover;
+}
+.attachments img {
+  width: var(--w-thumb);
+  height: var(--w-thumb);
+}
+.attachments button {
+  position: absolute;
+  top: calc(-1 * var(--sp-1));
+  right: calc(-1 * var(--sp-1));
+  display: grid;
+  place-items: center;
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+  padding: 0;
+  background: var(--paper);
+  border: var(--bw) solid var(--line-hi);
+  border-radius: 50%;
+  color: var(--text);
+  line-height: 1;
+  cursor: pointer;
+}
+.pictures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-1);
+}
+.pictures img {
+  max-width: var(--w-picture);
+  max-height: var(--w-picture);
+}
+.attach {
+  display: grid;
+  place-items: center;
+  width: var(--h-touch);
+  height: var(--h-touch);
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--r);
+  color: var(--muted);
+  cursor: pointer;
+}
+.attach:hover:not(:disabled) {
+  background: var(--butter);
+  color: var(--text);
+}
+.attach:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.attach svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+/* A held message looks unsent until it goes */
+.message.queued {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--sp-1);
+}
+.message.queued .bubble {
+  border-style: dashed;
+  opacity: 0.7;
+}
+.send-now {
+  padding: 0 var(--sp-1);
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.send-now:hover {
+  color: var(--text);
+  text-decoration: underline;
 }
 .send {
   display: grid;

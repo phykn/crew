@@ -94,7 +94,12 @@ export function fakeCrew(scripts: Record<string, Turn[]>) {
     const cutOff = new Promise<SDKMessage[]>((resolve) => (cut = () => resolve([])));
     async function* run() {
       for await (const msg of prompt as AsyncIterable<SDKUserMessage>) {
-        const text = String(msg.message.content);
+        const { content } = msg.message;
+        // A picture shows as its type, so a test can see it reached the run in order with the words
+        const text =
+          typeof content === 'string'
+            ? content
+            : content.map((b) => (b.type === 'text' ? b.text : `[${b.type}]`)).join('\n');
         calls.push({ role, prompt: text, options });
         const turn = scripts[role]?.shift();
         if (!turn) throw new Error(`no scripted turn left for ${role}`);

@@ -1,7 +1,7 @@
 import type { Sdk } from './agents/run';
 import type { Store } from './db';
 import type { Crew } from './crew/shipped';
-import type { Mode } from '../shared';
+import type { Image, Mode } from '../shared';
 import { Questions } from './questions';
 import { secretaryTools } from './tools/secretary';
 import { Members } from './crew/members';
@@ -39,22 +39,23 @@ export class Chat {
     this.tasks = new Tasks(this);
   }
 
-  async send(sessionId: number, text: string) {
-    this.store.addMessage(sessionId, 'user', text);
+  async send(sessionId: number, text: string, images: Image[] = []) {
+    this.store.addMessage(sessionId, 'user', text, null, images);
     const name = text.replace(/\s+/g, ' ').trim();
-    this.store.nameSession(sessionId, name.length > 18 ? `${name.slice(0, 18)}…` : name);
+    if (name) this.store.nameSession(sessionId, name.length > 18 ? `${name.slice(0, 18)}…` : name);
     this.emit('changed', 'sessions');
     this.emit('changed', 'messages');
-    await this.tell(sessionId, text);
+    await this.tell(sessionId, text, images);
   }
 
   // Hands 비서 something to answer in the chat: the user's words, or a task's result to report
-  async tell(sessionId: number, text: string) {
-    if (this.runs.live(sessionId)?.say(text)) return;
+  async tell(sessionId: number, text: string, images: Image[] = []) {
+    if (this.runs.live(sessionId)?.say(text, images)) return;
     const { store } = this;
     const member = store.readMember(store.projectOf(sessionId).id, 'orchestrator');
     const sdk = await this.sdk();
     const out = await this.runs.run(member, sessionId, null, text, {
+      images,
       mcpServers: { crew: secretaryTools(sdk, this, sessionId) },
       onText: (delta) => this.emit('stream', { sessionId, delta }),
       onReply: (reply, more) => {

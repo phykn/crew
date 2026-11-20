@@ -4,7 +4,7 @@ import { campState } from './camp';
 import type { Store } from '../db';
 import type { Chat } from '../chat';
 import { Config, type Crew } from '../crew/shipped';
-import { MODELS, MODES } from '../../shared';
+import { IMAGE_TYPES, MODELS, MODES } from '../../shared';
 
 const id = z.number().int().positive();
 const USER = { memberId: null, name: '사용자' };
@@ -56,9 +56,22 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
     ),
     'messages.list': handle(z.object({ sessionId: id }), (a) => store.listMessages(a.sessionId)),
     // The reply arrives through the change feed; the call only hands the message over
-    'messages.send': handle(z.object({ sessionId: id, text: z.string().trim().min(1).max(20_000) }), (a) => {
-      void chat.send(a.sessionId, a.text);
-    }),
+    // Words, pictures, or both; Claude takes a picture up to about 5MB
+    'messages.send': handle(
+      z
+        .object({
+          sessionId: id,
+          text: z.string().trim().max(20_000),
+          images: z
+            .array(z.object({ mediaType: z.enum(IMAGE_TYPES), data: z.string().min(1).max(7_000_000) }))
+            .max(5)
+            .default([]),
+        })
+        .refine((a) => a.text || a.images.length),
+      (a) => {
+        void chat.send(a.sessionId, a.text, a.images);
+      },
+    ),
     // Stops only 비서's answer; tasks it started go on and have their own stop
     'messages.stop': handle(z.object({ sessionId: id }), (a) => {
       void chat.runs.live(a.sessionId)?.stop();

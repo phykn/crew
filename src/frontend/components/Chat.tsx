@@ -1,12 +1,31 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Message, Question, Session, Task } from '../../backend/db';
-import { MODE_LABELS, type Mode } from '../../shared';
+import { IMAGE_TYPES, type Image, MODE_LABELS, type Mode } from '../../shared';
 import { call, onChanged, onStream } from '../api';
 import { Choice } from './Choice';
 import { TaskCards } from './TaskCards';
 
 // The window's own commands: typed after a slash, they act here and never reach 비서
 type Command = { name: string; label: string; run: () => void };
+// A message held back until 비서 is done answering
+type Queued = { id: number; sessionId: number; text: string; images: Image[] };
+
+// Claude takes up to five pictures of about 5MB each in one message
+const MAX_IMAGES = 5;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+function readImage(file: File): Promise<Image | null> {
+  const type = IMAGE_TYPES.find((t) => t === file.type);
+  if (!type || file.size > MAX_IMAGE_BYTES) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve({ mediaType: type, data: String(reader.result).split(',')[1] });
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
+
+const src = (i: Image) => `data:${i.mediaType};base64,${i.data}`;
 
 export function Chat({
   session,
@@ -27,6 +46,10 @@ export function Chat({
   const [tasks, setTasks] = useState<Task[]>([]);
   const [streaming, setStreaming] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+  const [images, setImages] = useState<Image[]>([]);
+  const [queued, setQueued] = useState<Queued[]>([]);
+  const nextId = useRef(0);
+  const picker = useRef<HTMLInputElement>(null);
   const end = useRef<HTMLDivElement>(null);
   const [pick, setPick] = useState(0);
   // A lone word after a slash lists the commands it could start
@@ -53,20 +76,44 @@ export function Chat({
   // Braces matter: scrollIntoView returns a promise in current Chromium, which React would take for a cleanup
   useEffect(() => {
     end.current?.scrollIntoView({ block: 'end' });
-  }, [messages, streaming]);
+  }, [messages, streaming, queued, images.length]);
 
   const waiting = messages.some((m) => m.question && m.question.answer === null);
   useEffect(() => onWaiting(waiting), [waiting]);
 
-  function send() {
-    const text = draft.trim();
-    if (!text) return;
-    setDraft('');
-    const command = commands.find((c) => `/${c.name}` === text);
-    if (command) return command.run();
+  // Once 비서 is done, the oldest held message goes; its answer holds the rest until it is done too
+  useEffect(() => {
+    const next = queued.find((q) => q.sessionId === session.id);
+    if (streaming === null && next) sendQueued(next);
+  }, [streaming, queued, session.id]);
+
+  function dispatch(text: string, pictures: Image[]) {
     // Shows the thinking state at once; the first streamed words replace it
     setStreaming((s) => s ?? '');
-    call('messages.send', { sessionId: session.id, text });
+    call('messages.send', { sessionId: session.id, text, images: pictures });
+  }
+
+  function sendQueued(q: Queued) {
+    setQueued((qs) => qs.filter((x) => x.id !== q.id));
+    dispatch(q.text, q.images);
+  }
+
+  // Now joins 비서's answer at once; later waits in line while 비서 is answering
+  function send(later = false) {
+    const text = draft.trim();
+    if (!text && !images.length) return;
+    setDraft('');
+    setImages([]);
+    const command = !images.length && commands.find((c) => `/${c.name}` === text);
+    if (command) return command.run();
+    if (later && streaming !== null)
+      return setQueued((qs) => [...qs, { id: nextId.current++, sessionId: session.id, text, images }]);
+    dispatch(text, images);
+  }
+
+  async function attach(files: Iterable<File>) {
+    const read = (await Promise.all([...files].map(readImage))).filter((i): i is Image => i !== null);
+    setImages((have) => [...have, ...read].slice(0, MAX_IMAGES));
   }
 
   return (
@@ -74,9 +121,22 @@ export function Chat({
       <TaskCards tasks={tasks} messages={messages} onLog={onLog} />
       <div className="messages" aria-label="대화">
         {messages.map((m) => (
-          <Bubble key={m.id} author={m.author} text={m.text} question={m.question} />
+          <Bubble key={m.id} author={m.author} text={m.text} images={m.images} question={m.question} />
         ))}
         {streaming !== null && <Bubble author="secretary" text={streaming} pending />}
+        {queued
+          .filter((q) => q.sessionId === session.id)
+          .map((q) => (
+            <div key={q.id} className="message user queued" aria-label="대기 중">
+              <div className="bubble">
+                <Pictures images={q.images} />
+                {q.text}
+              </div>
+              <button type="button" className="send-now" onClick={() => sendQueued(q)}>
+                지금 보내기
+              </button>
+            </div>
+          ))}
         <div ref={end} />
       </div>
       <form
@@ -85,7 +145,28 @@ export function Chat({
           e.preventDefault();
           send();
         }}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          void attach(e.dataTransfer.files);
+        }}
       >
+        {images.length > 0 && (
+          <ul className="attachments" aria-label="첨부한 그림">
+            {images.map((img, n) => (
+              <li key={n}>
+                <img src={src(img)} alt={`그림 ${n + 1}`} />
+                <button
+                  type="button"
+                  aria-label={`그림 ${n + 1} 빼기`}
+                  onClick={() => setImages((have) => have.filter((_, k) => k !== n))}
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         {picked && (
           <ul className="menu slash-menu" role="listbox" aria-label="명령">
             {matches.map((m) => (
@@ -106,14 +187,44 @@ export function Chat({
             ))}
           </ul>
         )}
+        <button
+          type="button"
+          className="attach"
+          aria-label="그림 첨부"
+          title="그림 첨부"
+          disabled={images.length >= MAX_IMAGES}
+          onClick={() => picker.current?.click()}
+        >
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
+        <input
+          ref={picker}
+          type="file"
+          accept={IMAGE_TYPES.join(',')}
+          multiple
+          hidden
+          aria-label="그림 파일"
+          onChange={(e) => {
+            void attach(e.target.files ?? []);
+            e.target.value = '';
+          }}
+        />
         <textarea
           value={draft}
-          placeholder="메시지 보내기"
+          placeholder="Ctrl+Enter 키로 대기열에 추가하기"
           aria-label="메시지"
           rows={1}
           onChange={(e) => {
             setDraft(e.target.value);
             setPick(0);
+          }}
+          onPaste={(e) => {
+            const files = [...e.clipboardData.files].filter((x) => x.type.startsWith('image/'));
+            if (!files.length) return;
+            e.preventDefault();
+            void attach(files);
           }}
           onKeyDown={(e) => {
             if (picked) {
@@ -131,10 +242,10 @@ export function Chat({
               }
               if (e.key === 'Escape') return setDraft('');
             }
-            // Enter sends and Shift+Enter breaks the line; composing Korean must not send half a syllable
+            // Enter sends now, Ctrl+Enter waits for the answer, Shift+Enter breaks the line; composing Korean must not send half a syllable
             if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
-              send();
+              send(e.ctrlKey || e.metaKey);
             }
           }}
         />
@@ -157,7 +268,7 @@ export function Chat({
             </svg>
           </button>
         ) : (
-          <button type="submit" className="send" aria-label="보내기" disabled={!draft.trim()}>
+          <button type="submit" className="send" aria-label="보내기" disabled={!draft.trim() && !images.length}>
             <svg viewBox="0 0 20 20" aria-hidden="true">
               <path d="M3 3l15 7-15 7 2.5-7z" fill="currentColor" />
             </svg>
@@ -168,9 +279,26 @@ export function Chat({
   );
 }
 
-type BubbleProps = { author: Message['author']; text: string; pending?: boolean; question?: Question | null };
+type BubbleProps = {
+  author: Message['author'];
+  text: string;
+  images?: Image[];
+  pending?: boolean;
+  question?: Question | null;
+};
 
-function Bubble({ author, text, pending, question }: BubbleProps) {
+function Pictures({ images }: { images: Image[] }) {
+  if (!images.length) return null;
+  return (
+    <div className="pictures">
+      {images.map((img, n) => (
+        <img key={n} src={src(img)} alt={`첨부 그림 ${n + 1}`} />
+      ))}
+    </div>
+  );
+}
+
+function Bubble({ author, text, images = [], pending, question }: BubbleProps) {
   // Only two people talk here, so the side a bubble sits on says who said it: me right, 비서 left
   return (
     <div
@@ -181,7 +309,10 @@ function Bubble({ author, text, pending, question }: BubbleProps) {
       {question ? (
         <AnswerCard question={question} />
       ) : (
-        <div className="bubble">{text ? renderInline(text) : pending ? <span className="typing">···</span> : ''}</div>
+        <div className="bubble">
+          <Pictures images={images} />
+          {text ? renderInline(text) : pending ? <span className="typing">···</span> : ''}
+        </div>
       )}
     </div>
   );
