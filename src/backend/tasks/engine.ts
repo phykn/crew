@@ -231,6 +231,8 @@ export class Tasks {
     const task = store.readTask(taskId);
     if (!this.move(taskId, 'STOP', '', `${task.title} 업무 중단 요청`)) return false;
     for (const run of this.chat.runs.ofTask(taskId)) void run.stop();
+    // A write waiting its turn is answered now, so the stopped run can end
+    this.chat.runs.locksOf(this.projectOf(task)).cancel(taskId);
     for (const id of store.openQuestionIds(taskId)) this.chat.questions.answer(id, REFUSE);
     // A task with nothing running reaches stopped at once; otherwise drive does when its runs end
     if (!this.chat.runs.ofTask(taskId).length) this.move(taskId, 'STOPPED', '', `${task.title} 업무 중단됨`);
@@ -321,8 +323,10 @@ export class Tasks {
           mcpServers: { crew: memberTools(await this.chat.sdk(), this.chat, task, step, member) },
           alive: () => current() && !this.halted(task.id),
         })
-        // The run has really ended here, so nothing it started can still be writing
-        .finally(() => this.chat.runs.locksOf(project).release(task.id));
+        // Once the task's last run has really ended, nothing it started can still be writing; a step beside it may still be
+        .finally(() => {
+          if (!this.chat.runs.ofTask(task.id).length) this.chat.runs.locksOf(project).release(task.id);
+        });
       // A drive no longer current, such as one for a deleted session, leaves the record alone
       if (!current()) return STOPPED;
       if (out.error === NOT_HIRED) {

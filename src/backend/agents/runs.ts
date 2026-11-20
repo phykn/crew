@@ -227,6 +227,7 @@ export class Runs {
       });
       emit('changed', { topic: 'tasks', sessionId: task.sessionId });
     });
+    if (got === 'cancelled') return 'Not written: the task was stopped while this write waited its turn.';
     if (got === 'deadlock')
       return `Blocked by the crew guard: another task is waiting on files you hold. Finish your step without ${paths.join(', ')} and say so in your handback.`;
     const stale = locks.stale(taskId, store.readBaseline(taskId), fresh, own);

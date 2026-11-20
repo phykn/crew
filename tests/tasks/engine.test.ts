@@ -438,3 +438,45 @@ test("a step's files are the ones it wrote, not a file someone else changed mean
   expect(store.latestVersion(task.id)!.files).toEqual(['search.js']);
   expect(store.listStepRuns(task.id).find((r) => r.stepId === 'develop')!.handback!.files).toEqual(['search.js']);
 });
+
+test('a step that ends first leaves the write reservation of the step still at work beside it', async () => {
+  let finish = () => {};
+  const write: Turn = async (prompt, options) => {
+    await options.canUseTool!('Write', { file_path: path.join(project, 'a.js'), content: 'v1' }, {
+      signal: new AbortController().signal,
+    } as never);
+    await new Promise<void>((r) => (finish = r));
+    return handback('c', { summary: '수정' })(prompt, options);
+  };
+  const { store, chat, p, s, project } = openChat(
+    { 개발: [write], 시험: [handback('t', { summary: '시험' })], 비서: [reply('보고')] },
+    { files: { 'a.js': 'v0' } },
+  );
+  // 시험 may write the project here, so both steps hold the task's reservations side by side
+  chat.members.setPermissions(store.readMember(p.id, 'tester').id, { write: 'project' });
+  const step = (id: string, role: string) => ({
+    id,
+    role,
+    label: id,
+    does: id,
+    after: [],
+    verdict: false,
+    loops: 3,
+    requires: [],
+  });
+  const task = store.createTask({
+    sessionId: s.id,
+    kind: 'code',
+    title: '둘',
+    request: 'r',
+    workflow: { kind: 'code', label: '둘', use: 'u', steps: [step('make', 'coder'), step('check', 'tester')] },
+  });
+  store.writeBaseline(task.id, snapshot(project));
+  void chat.tasks.drive(task.id);
+  const locks = chat.runs.locksOf(p);
+  await vi.waitFor(() => expect(store.listStepRuns(task.id).find((r) => r.stepId === 'check')?.status).toBe('done'));
+  expect([...(locks.held.get(task.id) ?? [])].some((f) => f.endsWith('a.js'))).toBe(true);
+  finish();
+  await vi.waitFor(() => expect(store.readTask(task.id).status).toBe('done'));
+  expect(locks.held.has(task.id)).toBe(false);
+});

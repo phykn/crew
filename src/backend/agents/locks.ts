@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { hashFile, snapshot, type Snapshot } from '../tasks/changes';
 
-type Waiter = { taskId: number; paths: string[]; resolve: () => void };
+type Waiter = { taskId: number; paths: string[]; resolve: (got: 'ok' | 'cancelled') => void };
 
 // Write reservations by real path, one holder per task: overlapping writes go in turn, the rest run side by side
 export class Locks {
@@ -21,8 +21,12 @@ export class Locks {
       .map(([id]) => id);
   }
 
-  // Resolves once the task holds every path; 'deadlock' when the holder it would wait for is waiting on this task
-  async reserve(taskId: number, paths: string[], onWait: (holders: number[]) => void): Promise<'ok' | 'deadlock'> {
+  // Resolves once the task holds every path; 'deadlock' when the holder it would wait for is waiting on this task, 'cancelled' when the task stopped while waiting
+  async reserve(
+    taskId: number,
+    paths: string[],
+    onWait: (holders: number[]) => void,
+  ): Promise<'ok' | 'deadlock' | 'cancelled'> {
     const blockers = this.blockers(taskId, paths);
     if (blockers.length) {
       const mine = this.held.get(taskId);
@@ -33,10 +37,17 @@ export class Locks {
         );
       if (stuck) return 'deadlock';
       onWait(blockers);
-      await new Promise<void>((resolve) => this.waiting.push({ taskId, paths, resolve }));
+      // Whoever resolves the wait has already taken the paths for it, or dropped it
+      return new Promise((resolve) => this.waiting.push({ taskId, paths, resolve }));
     }
     this.take(taskId, paths);
     return 'ok';
+  }
+
+  // A stopped task's waits end unanswered, so a path freed later is never handed to a run that is gone
+  cancel(taskId: number) {
+    for (const w of this.waiting.filter((w) => w.taskId === taskId)) w.resolve('cancelled');
+    this.waiting = this.waiting.filter((w) => w.taskId !== taskId);
   }
 
   take(taskId: number, paths: string[]) {
@@ -60,8 +71,9 @@ export class Locks {
     return [...keys].filter((k) => seen[k] !== now[k] && !own.some((o) => overlaps(path.join(this.root, k), o)));
   }
 
-  // Called once the run that wrote has really ended; what it left becomes what the task has seen
+  // Called once the task's last run has really ended; what it left becomes what the task has seen
   release(taskId: number) {
+    this.cancel(taskId);
     const mine = this.held.get(taskId);
     if (!mine) return;
     this.seen.set(taskId, { ...this.seen.get(taskId), ...this.hashes([...mine]) });
@@ -72,7 +84,7 @@ export class Locks {
       if (this.blockers(w.taskId, w.paths).length) this.waiting.push(w);
       else {
         this.take(w.taskId, w.paths);
-        w.resolve();
+        w.resolve('ok');
       }
     }
   }

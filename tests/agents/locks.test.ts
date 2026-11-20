@@ -47,3 +47,17 @@ test('overlapping writes go in turn and re-read what changed; others run at once
   chat.runs.locksOf(p).release(1);
   await expect(under).resolves.toBeNull();
 });
+
+test('a task stopped while its write waits keeps nothing: the wait ends unanswered and the next task gets the file', async () => {
+  const { chat, p, project } = openChat({}, { files: { 'a.js': 'a' } });
+  const locks = chat.runs.locksOf(p);
+  const file = path.join(fs.realpathSync(project), 'a.js');
+  const [one, two, three] = [1, 2, 3];
+  await locks.reserve(one, [file], () => {});
+  const waiting = locks.reserve(two, [file], () => {});
+  locks.cancel(two);
+  await expect(waiting).resolves.toBe('cancelled');
+  locks.release(one);
+  expect(locks.held.has(two)).toBe(false);
+  await expect(locks.reserve(three, [file], () => {})).resolves.toBe('ok');
+});
