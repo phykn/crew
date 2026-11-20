@@ -38,6 +38,7 @@ export const OFF_CATALOG: Record<string, string> = {
   'last.read': 'window state, not an action',
   'last.write': 'window state, not an action',
   'messages.list': '비서 is the conversation itself',
+  'messages.busy': '비서 is the conversation itself',
   'messages.send': '비서 is the conversation itself',
   'messages.stop': '비서 is the conversation itself',
   'members.setPermissions': 'the tools member changes permissions, skills, and MCP servers, through ask_tools',

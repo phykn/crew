@@ -55,6 +55,8 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
       store.writeSetting('last', JSON.stringify(a)),
     ),
     'messages.list': handle(z.object({ sessionId: id }), (a) => store.listMessages(a.sessionId)),
+    // A window coming back to a session learns whether 비서 is still answering there
+    'messages.busy': handle(z.object({ sessionId: id }), (a) => !!chat.runs.live(a.sessionId)),
     // The reply arrives through the change feed; the call only hands the message over
     // Words, pictures, or both; Claude takes a picture up to about 5MB
     'messages.send': handle(

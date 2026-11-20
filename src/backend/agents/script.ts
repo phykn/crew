@@ -18,6 +18,9 @@ export function scriptSdk(file: string): Sdk {
   const tools = new Map<string, (a: Record<string, unknown>) => Promise<unknown>>();
   const query: QueryFn = ({ prompt, options }) => {
     const role = String(options?.systemPrompt).match(/You are the crew's \*\*(.+?)\*\*/)?.[1] ?? '?';
+    // An interrupt ends a turn waiting on a card, as the real SDK does, so a stop can be tested
+    let cut = () => {};
+    const cutOff = new Promise<'cut'>((resolve) => (cut = () => resolve('cut')));
     async function* run(): AsyncGenerator<SDKMessage> {
       for await (const _ of prompt as AsyncIterable<SDKUserMessage>) {
         const turn = script[role]?.shift();
@@ -34,11 +37,13 @@ export function scriptSdk(file: string): Sdk {
           parent_tool_use_id: null,
           event: { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text } },
         } as never;
-        if (turn.tool)
-          await options!.canUseTool!(turn.tool.name, turn.tool.input, {
+        const asked =
+          turn.tool &&
+          options!.canUseTool!(turn.tool.name, turn.tool.input, {
             signal: new AbortController().signal,
             toolUseID: 'script',
           } as never);
+        if (asked && (await Promise.race([asked, cutOff])) === 'cut') return;
         if (turn.write) fs.writeFileSync(path.join(options!.cwd!, turn.write.file), turn.write.text);
         yield {
           type: 'result',
@@ -51,7 +56,7 @@ export function scriptSdk(file: string): Sdk {
         } as never;
       }
     }
-    return Object.assign(run(), { interrupt: async () => undefined }) as unknown as ReturnType<QueryFn>;
+    return Object.assign(run(), { interrupt: async () => cut() }) as unknown as ReturnType<QueryFn>;
   };
   return {
     query,

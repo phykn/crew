@@ -25,6 +25,8 @@ function createWindow() {
     webPreferences: { preload: path.join(__dirname, 'preload.cjs') },
   });
   win.on('closed', () => (win = null));
+  // A file dropped anywhere but the chat input would otherwise replace the app with that file
+  win.webContents.on('will-navigate', (e) => e.preventDefault());
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) win.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   else win.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
 }

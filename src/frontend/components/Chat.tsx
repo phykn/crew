@@ -45,6 +45,8 @@ export function Chat({
   const [messages, setMessages] = useState<Message[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [streaming, setStreaming] = useState<string | null>(null);
+  // The session whose answering state the window has read; held messages wait until it is this one
+  const [known, setKnown] = useState<number | null>(null);
   const [draft, setDraft] = useState('');
   const [images, setImages] = useState<Image[]>([]);
   const [queued, setQueued] = useState<Queued[]>([]);
@@ -62,12 +64,19 @@ export function Chat({
     load();
     loadTasks();
     setStreaming(null);
+    let current = true;
+    call('messages.busy', { sessionId: session.id }).then((busy) => {
+      if (!current) return;
+      if (busy) setStreaming((s) => s ?? '');
+      setKnown(session.id);
+    });
     const offChanged = onChanged((topic) => (topic === 'messages' ? load() : topic === 'tasks' && loadTasks()));
     const offStream = onStream((ev) => {
       if (ev.sessionId !== session.id) return;
       setStreaming((s) => (ev.done ? null : (s ?? '') + (ev.delta ?? '')));
     });
     return () => {
+      current = false;
       offChanged();
       offStream();
     };
@@ -84,8 +93,8 @@ export function Chat({
   // Once 비서 is done, the oldest held message goes; its answer holds the rest until it is done too
   useEffect(() => {
     const next = queued.find((q) => q.sessionId === session.id);
-    if (streaming === null && next) sendQueued(next);
-  }, [streaming, queued, session.id]);
+    if (known === session.id && streaming === null && next) sendQueued(next);
+  }, [known, streaming, queued, session.id]);
 
   function dispatch(text: string, pictures: Image[]) {
     // Shows the thinking state at once; the first streamed words replace it

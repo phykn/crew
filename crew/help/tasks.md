@@ -6,5 +6,5 @@
 - A step whose run fails is tried again after a short wait, up to three times.
 - After the app restarts, unfinished tasks are left **중단됨**; "이어서 해줘" continues from the steps not yet done.
 - Typing `/` in the input lists the commands: arrows pick one, Tab fills it in, Enter runs it. `/clear`, like **새 세션**, opens a new session with the same crew while the old session's tasks go on; `/log`, `/memory`, and `/workflow` open those tabs. **중지** next to the input stops 비서's answer under way.
-- Enter sends at once, even while 비서 is answering; Ctrl+Enter holds the message until the answer is done, and **지금 보내기** under a held message sends it at once. Shift+Enter breaks the line.
+- Enter sends at once, even while 비서 is answering; Ctrl+Enter holds the message until the answer is done, even if you look at another session meanwhile; **지금 보내기** under a held message sends it at once, and **중지** stops the answer and lets the held messages go. Shift+Enter breaks the line.
 - Pictures go with a message through **+**, a paste, or a drop on the input, up to five of about 5MB each; a picture can go without words.
