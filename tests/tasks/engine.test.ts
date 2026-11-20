@@ -5,7 +5,7 @@ import { Chat } from '../../src/backend/chat';
 import { nextStatus, satisfied } from '../../src/backend/tasks/engine';
 import { CREW, fakeCrew, handback, openScratch, recordedAgents, reply, type Turn } from '../support';
 import { Store } from '../../src/backend/db';
-import { readWorkflows } from '../../src/backend/tasks/workflow';
+import { Workflow } from '../../src/backend/tasks/workflow';
 import { NOT_HIRED } from '../../src/backend/agents/run';
 import { snapshot } from '../../src/backend/tasks/changes';
 import { secretaryTools } from '../../src/backend/tools/secretary';
@@ -396,7 +396,8 @@ test('words added while 개발 is at work join the task: 개발 redoes with them
   expect(checks.slice(-3).map((r) => r.versionId)).toEqual([v, v, v]);
 });
 
-const CREW_CODE = () => readWorkflows(CREW.dir).find((w) => w.kind === 'code')!;
+const CREW_CODE = () =>
+  Workflow.parse(JSON.parse(fs.readFileSync(path.join(CREW.dir, 'workflows', 'code.json'), 'utf-8')));
 
 test('a review of an older version that arrives late does not satisfy the newer one', () => {
   const w = CREW_CODE();

@@ -24,7 +24,7 @@ export const Workflow = z.object({ kind: z.string(), label: z.string(), use: z.s
 export type Workflow = z.infer<typeof Workflow>;
 export type Step = z.infer<typeof Step>;
 
-// A workflow the engine can run to the end: known roles, real references, no cycle, rework only backwards
+// A workflow the engine can run to the end: known roles, real references, no cycle (so some step can start), rework only backwards
 function validateWorkflow(w: Workflow, roles: string[]): string[] {
   const ids = w.steps.map((s) => s.id);
   const problems: string[] = [];
@@ -37,8 +37,6 @@ function validateWorkflow(w: Workflow, roles: string[]): string[] {
       problems.push(`${s.label}: ${josa(s.rework, '은')} 앞선 단계가 아닙니다`);
   }
   if (problems.length === 0 && hasCycle(w)) problems.push('단계가 순환합니다');
-  if (problems.length === 0 && !w.steps.some((s) => s.after.length === 0))
-    problems.push('시작할 수 있는 단계가 없어 완료에 닿지 못합니다');
   return problems;
 }
 
@@ -56,14 +54,6 @@ function hasCycle(w: Workflow) {
   return w.steps.some((s) => ancestors(w, s.id).includes(s.id));
 }
 
-export function readWorkflows(crewDir: string): Workflow[] {
-  const dir = path.join(crewDir, 'workflows');
-  return fs
-    .readdirSync(dir)
-    .filter((f) => f.endsWith('.json'))
-    .map((f) => Workflow.parse(JSON.parse(fs.readFileSync(path.join(dir, f), 'utf-8'))));
-}
-
 // 앞으로: new tasks from now on; 이번 업무에도: also this task's remaining steps; 이번에만: this task only
 type Scope = 'future' | 'current' | 'once';
 
@@ -72,7 +62,11 @@ export class Workflows {
   shipped: Workflow[];
 
   constructor(public chat: Chat) {
-    this.shipped = readWorkflows(chat.crew.dir);
+    const dir = path.join(chat.crew.dir, 'workflows');
+    this.shipped = fs
+      .readdirSync(dir)
+      .filter((f) => f.endsWith('.json'))
+      .map((f) => Workflow.parse(JSON.parse(fs.readFileSync(path.join(dir, f), 'utf-8'))));
   }
 
   // The rules a project runs for a kind: its latest saved version, or the shipped one as version 0

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import type { Chat } from '../chat';
 import { NOT_HIRED } from '../agents/run';
 import type { Handback, Member, StepRun, Task, TaskStatus } from '../db';
-import { ancestors, type Step, type Workflow } from './workflow';
+import { ancestors, type Step, Workflow } from './workflow';
 import { memberTools } from '../tools/member';
 import { changedFiles, snapshot } from './changes';
 import { REFUSE } from '../questions';
@@ -27,45 +27,28 @@ type TaskEvent = {
     | 'REOPEN';
 };
 
+// A task at work moves the same way whether its steps make, review, or fix
+const AT_WORK = {
+  on: {
+    WORK: 'running',
+    REVIEW: 'reviewing',
+    REWORK: 'fixing',
+    ASK: 'waiting',
+    DONE: 'done',
+    FAIL: 'failed',
+    STOP: 'stopping',
+  },
+} as const;
+
 // Which status a task may move to from which; the engine decides when, this decides whether
 const taskMachine = setup({ types: { events: {} as TaskEvent } }).createMachine({
   id: 'task',
   initial: 'queued',
   states: {
     queued: { on: { START: 'running', STOP: 'stopped' } },
-    running: {
-      on: {
-        WORK: 'running',
-        REVIEW: 'reviewing',
-        REWORK: 'fixing',
-        ASK: 'waiting',
-        DONE: 'done',
-        FAIL: 'failed',
-        STOP: 'stopping',
-      },
-    },
-    reviewing: {
-      on: {
-        WORK: 'running',
-        REVIEW: 'reviewing',
-        REWORK: 'fixing',
-        ASK: 'waiting',
-        DONE: 'done',
-        FAIL: 'failed',
-        STOP: 'stopping',
-      },
-    },
-    fixing: {
-      on: {
-        WORK: 'running',
-        REVIEW: 'reviewing',
-        REWORK: 'fixing',
-        ASK: 'waiting',
-        DONE: 'done',
-        FAIL: 'failed',
-        STOP: 'stopping',
-      },
-    },
+    running: AT_WORK,
+    reviewing: AT_WORK,
+    fixing: AT_WORK,
     waiting: { on: { ANSWERED: 'running', FAIL: 'failed', STOP: 'stopping' } },
     stopping: { on: { STOPPED: 'stopped' } },
     stopped: { on: { RESUME: 'running' } },
@@ -136,26 +119,20 @@ function sentBack(w: Workflow, runs: StepRun[], id: string, since: number) {
 
 // Why going on would only repeat itself, or null: a step sent back past its loop limit, or a redo that changed nothing
 function stuck(w: Workflow, runs: StepRun[], version: number | null) {
+  const back = w.steps
+    .map((s) => ({ s, done: runs.filter((r) => r.stepId === s.id && r.status === 'done') }))
+    .filter(({ s, done }) => done.length > 0 && sentBack(w, runs, s.id, done.at(-1)!.id));
   // A step sent back to stops at the smallest loop count among the checks that send work to it
   const limit = (s: Step) => Math.min(...w.steps.filter((v) => v.rework === s.id).map((v) => v.loops));
-  for (const s of w.steps) {
-    const done = runs.filter((r) => r.stepId === s.id && r.status === 'done');
-    if (!done.length || !sentBack(w, runs, s.id, done.at(-1)!.id)) continue;
-    if (done.length - 1 >= limit(s)) return `${josa(s.label, '을')} ${limit(s)}번 고쳤지만 검증을 통과하지 못했습니다`;
-  }
+  const over = back.find(({ s, done }) => done.length - 1 >= limit(s));
+  if (over) return `${josa(over.s.label, '을')} ${limit(over.s)}번 고쳤지만 검증을 통과하지 못했습니다`;
   // A redo that left the files as they were and is sent back again would only repeat itself: the user decides
-  for (const s of w.steps) {
-    const done = runs.filter((r) => r.stepId === s.id && r.status === 'done');
-    if (
-      version !== null &&
-      !s.verdict &&
-      done.length > 1 &&
-      done.at(-1)!.versionId === version &&
-      sentBack(w, runs, s.id, done.at(-1)!.id)
-    )
-      return `${josa(s.label, '이')} 다시 했지만 바뀐 것이 없는데 또 되돌려졌습니다. 지적과 지시가 맞지 않아 사용자 결정이 필요합니다`;
-  }
-  return null;
+  const idle = back.find(
+    ({ s, done }) => version !== null && !s.verdict && done.length > 1 && done.at(-1)!.versionId === version,
+  );
+  return idle
+    ? `${josa(idle.s.label, '이')} 다시 했지만 바뀐 것이 없는데 또 되돌려졌습니다. 지적과 지시가 맞지 않아 사용자 결정이 필요합니다`
+    : null;
 }
 
 export class Tasks {
@@ -216,8 +193,7 @@ export class Tasks {
     return ['stopping', 'stopped'].includes(this.chat.store.readTask(taskId).status);
   }
 
-  // The user asks for more on a finished task: same task, earlier report kept, the work goes back to every step that made it
-  // A finished task opens again; one still at work takes the words in, and its making steps redo with them once their turn ends
+  // More from the user goes back to every step that made the task: a finished task opens again, one at work redoes once its turn ends
   reopen(taskId: number, text: string) {
     const { store } = this.chat;
     const task = store.readTask(taskId);
@@ -296,7 +272,7 @@ export class Tasks {
     }
   }
 
-  async runStep(task: Task, step: Step, current: () => boolean = () => true): Promise<string> {
+  async runStep(task: Task, step: Step, current: () => boolean): Promise<string> {
     const { store, crew } = this.chat;
     const project = this.projectOf(task);
     const member = this.memberFor(task, step);
@@ -496,17 +472,8 @@ export class Tasks {
 }
 
 function solo(role: string, key: string): Workflow {
-  const work = {
-    id: 'work',
-    role: key,
-    label: `${role} 작업`,
-    does: 'Do the request.',
-    after: [],
-    verdict: false,
-    loops: 3,
-    requires: [],
-  };
-  return { kind: 'solo', label: role, use: '', steps: [work] };
+  const work = { id: 'work', role: key, label: `${role} 작업`, does: 'Do the request.' };
+  return Workflow.parse({ kind: 'solo', label: role, use: '', steps: [work] });
 }
 
 // The steps that make a task's result: not verdicts, and followed by no other making step
