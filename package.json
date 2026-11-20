@@ -1,7 +1,7 @@
 {
   "name": "crew",
   "productName": "crew",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "private": true,
   "description": "비서 한 명에게 맡기고 AI 에이전트 팀의 일을 픽셀 캠프에서 지켜보는 데스크톱 앱",
   "keywords": [],

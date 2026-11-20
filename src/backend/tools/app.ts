@@ -4,7 +4,7 @@ import type { Chat } from '../chat';
 import { MODES, type Member, type Task } from '../db';
 import { KEPT, MODELS } from '../crew/shipped';
 import { ALLOW } from '../questions';
-import { josa } from '../../korean';
+import { josa, particle } from '../../korean';
 
 type Action = {
   id: string;
@@ -69,7 +69,9 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
     if (!m) throw new Error(`${josa(name, '은')} 이 프로젝트 크루에 없습니다.`);
     return m;
   };
-  const named = (m: Member) => `${crew.defOf(m).role}(${m.nickname})`;
+  // The particle follows the role, since the bracket after it hides the word's last sound from josa
+  const named = (m: Member, kind?: Parameters<typeof particle>[1]) =>
+    `${crew.defOf(m).role}(${m.nickname})${kind ? particle(crew.defOf(m).role, kind) : ''}`;
   const task = (id: number) => {
     const t = ownTask(id);
     if (!t) throw new Error(`업무 ${josa(`#${id}`, '은')} 이 프로젝트에 없습니다.`);
@@ -335,11 +337,11 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       confirm: (a) => {
         const m = member(a.role);
         if (!a.hired && (m.temp || KEPT.includes(m.key))) return null;
-        return `${josa(named(m), '을')} ${a.hired ? '다시 고용할까요?' : '내보낼까요?'}`;
+        return `${named(m, '을')} ${a.hired ? '다시 고용할까요?' : '내보낼까요?'}`;
       },
       run: (a) => {
         const m = member(a.role);
-        if (!a.hired && KEPT.includes(m.key)) throw new Error(`${josa(named(m), '은')} 내보낼 수 없습니다.`);
+        if (!a.hired && KEPT.includes(m.key)) throw new Error(`${named(m, '은')} 내보낼 수 없습니다.`);
         if (a.hired) members.rehire(m.id);
         else members.fire(m.id);
         return `${named(m)} ${a.hired ? '고용' : '퇴장'} 처리했습니다.`;

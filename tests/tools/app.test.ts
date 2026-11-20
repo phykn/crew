@@ -110,14 +110,15 @@ test('a temp whose work is done leaves without a card, and a regular leaves or c
   expect((await hire('비서', false)).content[0].text).toContain('내보낼 수 없습니다');
   expect(card()).toBeUndefined();
 
-  const researcher = store.readMember(p.id, 'researcher');
+  // 시험 ends in a consonant, so the card shows whether its particle follows the role and not the bracket
+  const tester = store.readMember(p.id, 'tester');
   for (const hired of [false, true]) {
-    const asked = hire('조사', hired);
+    const asked = hire('시험', hired);
     await vi.waitFor(() => expect(card()?.answer).toBeNull());
-    expect(card()!.prompt).toContain(hired ? '조사(누리)를 다시 고용할까요' : '조사(누리)를 내보낼까요');
+    expect(card()!.prompt).toContain(hired ? '시험(솔잎)을 다시 고용할까요' : '시험(솔잎)을 내보낼까요');
     chat.questions.answer(card()!.id, '허용');
     await asked;
-    expect(store.readMemberById(researcher.id).status).toBe(hired ? 'hired' : 'unhired');
+    expect(store.readMemberById(tester.id).status).toBe(hired ? 'hired' : 'unhired');
   }
 });
 
