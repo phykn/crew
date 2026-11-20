@@ -51,7 +51,7 @@ test('a message opens a pinned task card, the answer card lets it go on, and the
   const developed = page.locator('.log-row', { hasText: '개발 완료' });
   await expect(developed).not.toHaveAttribute('data-bad', 'true');
   // Each line reads its time, then what became of it, then who did what
-  await expect(developed.locator('.log-line > *').first()).toHaveText(/^\d\d:\d\d$/);
+  await expect(developed.locator('.log-line > *').first()).toHaveText(/^\d\d:\d\d:\d\d$/);
   await expect(developed.locator('.log-mark')).toHaveAttribute('aria-label', '완료');
   await page.getByRole('button', { name: /개발 완료/ }).click();
   await expect(page.getByLabel('업무 로그')).toContainText('search.js');
