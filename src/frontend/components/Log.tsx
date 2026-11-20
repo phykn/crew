@@ -8,6 +8,8 @@ import { MarkIcon } from './Icons';
 import type { ChangesTarget } from './Changes';
 
 const ALL = 'all';
+// A making step's log line also names its version when git kept it
+type Logged = Handback & { version?: number };
 
 // The session's record in time order: when, who, what, and the handback behind it when opened
 export function Log({
@@ -160,13 +162,7 @@ export function Log({
 }
 
 // A file of a version git kept opens its diff; otherwise the name is just shown
-function HandbackView({
-  hb,
-  onFile,
-}: {
-  hb: Handback & { version?: number };
-  onFile: ((file: string) => void) | null;
-}) {
+function HandbackView({ hb, onFile }: { hb: Logged; onFile: ((file: string) => void) | null }) {
   return (
     <div className="log-detail">
       {hb.files.length > 0 && (
@@ -233,7 +229,7 @@ function group(errors: string[]): [string, number][] {
 }
 
 // Step events carry the handback; other kinds keep their own detail
-function readHandback(detail: string | null): (Handback & { version?: number }) | null {
+function readHandback(detail: string | null): Logged | null {
   if (!detail) return null;
   const d = JSON.parse(detail);
   return d && Array.isArray(d.files) && Array.isArray(d.checks) ? d : null;

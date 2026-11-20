@@ -40,12 +40,7 @@ export class Locks {
   }
 
   take(taskId: number, paths: string[]) {
-    const set = this.held.get(taskId) ?? new Set();
-    for (const p of paths) set.add(p);
-    this.held.set(taskId, set);
-    const all = this.touched.get(taskId) ?? new Set();
-    for (const p of paths) all.add(p);
-    this.touched.set(taskId, all);
+    for (const map of [this.held, this.touched]) map.set(taskId, new Set([...(map.get(taskId) ?? []), ...paths]));
   }
 
   // Whether a project file, relative to the root, lies under a path the task reserved

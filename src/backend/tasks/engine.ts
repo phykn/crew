@@ -366,20 +366,20 @@ export class Tasks {
   }
 
   // The task's versions that git kept, numbered as the user sees them; none outside a git repository
-  async versions(taskId: number) {
-    const kept = await taskRefs(this.projectOf(this.chat.store.readTask(taskId)).path, taskId);
+  async versions(taskId: number, folder = this.projectOf(this.chat.store.readTask(taskId)).path) {
+    const kept = await taskRefs(folder, taskId);
     if (!kept.includes('base')) return [];
     return this.chat.store
       .listVersions(taskId)
-      .map((v, n) => ({ id: v.id, label: `v${n + 1}`, files: v.files, at: v.createdAt }))
+      .map((v, n) => ({ id: v.id, label: `v${n + 1}`, files: v.files }))
       .filter((v) => kept.includes(`version-${v.id}`));
   }
 
   // What one version changed in one of the task's own files since the task began, with the version's number
   async change(taskId: number, versionId: number, file: string) {
-    const v = (await this.versions(taskId)).find((x) => x.id === versionId);
-    if (!v?.files.includes(file)) return null;
     const folder = this.projectOf(this.chat.store.readTask(taskId)).path;
+    const v = (await this.versions(taskId, folder)).find((x) => x.id === versionId);
+    if (!v?.files.includes(file)) return null;
     const [d] = await diff(folder, taskRef(taskId, 'base'), taskRef(taskId, `version-${v.id}`), [file]);
     return d ? { label: v.label, diff: d } : null;
   }

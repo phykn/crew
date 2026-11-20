@@ -34,7 +34,7 @@ export function App() {
   const [logTask, setLogTask] = useState<number | null>(null);
   // A card waits for the user's answer, which the chat tab shows while another tab is open
   const [waiting, setWaiting] = useState(false);
-  // The task whose changes the popup shows; the crew keeps working while it is open
+  // The file whose diff the popup shows; the crew keeps working while it is open
   const [changes, setChanges] = useState<ChangesTarget | null>(null);
 
   function openLog(taskId: number | null) {

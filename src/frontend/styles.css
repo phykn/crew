@@ -872,7 +872,6 @@ code {
   margin-bottom: var(--sp-3);
 }
 .changes-head .dialog-title {
-  flex: 1;
   margin: 0;
 }
 .changes-waiting,
