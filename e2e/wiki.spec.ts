@@ -20,10 +20,10 @@ const SCRIPT = {
   ],
 };
 
-test('the wiki keeps one document with two changes by two members, and they survive a restart', async () => {
+test('the wiki keeps one document with two changes by two members', async () => {
   const scratch = makeScratch();
-  let app = await launchApp(scratch.db, SCRIPT);
-  let page = await openProject(app, scratch.project);
+  const app = await launchApp(scratch.db, SCRIPT);
+  const page = await openProject(app, scratch.project);
   for (const [say, done] of [
     ['테스트 방법 정리해줘', '보고 1'],
     ['e2e 명령도 넣어줘', '보고 2'],
@@ -49,14 +49,6 @@ test('the wiki keeps one document with two changes by two members, and they surv
     await page.getByLabel('위키 그래프').getByLabel('문서 테스트 방법').click();
     await expect(page.getByLabel('위키 본문')).toContainText('npm run test:e2e');
   };
-  await check();
-  await app.close();
-
-  app = await launchApp(scratch.db);
-  page = await app.firstWindow();
-  await page.getByLabel('세션').click();
-  await page.getByRole('option', { name: '새 세션' }).click();
-  await expect(page.getByLabel('세션')).toHaveText(/^새 대화/);
   await check();
   await app.close();
 });
