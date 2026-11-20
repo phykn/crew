@@ -28,6 +28,8 @@ type RunInput = {
   model: string;
   system: string;
   resume?: string | null;
+  // Continue a copy of the resumed session, leaving the original as it was
+  fork?: boolean;
   canUseTool: CanUseTool;
   mcpServers?: Options['mcpServers'];
   // A JSON schema the run's final answer must match; the match comes back as structured
@@ -86,11 +88,15 @@ export class AgentRun {
   inbox = new Inbox();
   query: Query | null = null;
   stopped = false;
+  // The Claude session this run is on, known from the start when resumed and from init otherwise
+  claudeId: string | null;
 
   constructor(
     public queryFn: QueryFn,
     public input: RunInput,
-  ) {}
+  ) {
+    this.claudeId = input.fork ? null : (input.resume ?? null);
+  }
 
   async run(prompt: string): Promise<RunOutput> {
     const { input } = this;
@@ -101,6 +107,7 @@ export class AgentRun {
         cwd: input.cwd,
         model: input.model,
         resume: input.resume ?? undefined,
+        forkSession: input.fork,
         systemPrompt: input.system,
         // No tool is pre-allowed and the mode asks, so every call that is not read-only reaches the guard
         canUseTool: input.canUseTool,
@@ -133,7 +140,10 @@ export class AgentRun {
   }
 
   read(msg: SDKMessage, out: RunOutput): RunOutput {
-    if (msg.type === 'system' && msg.subtype === 'init') return { ...out, claudeId: msg.session_id };
+    if (msg.type === 'system' && msg.subtype === 'init') {
+      this.claudeId = msg.session_id;
+      return { ...out, claudeId: msg.session_id };
+    }
     if (msg.type === 'stream_event') {
       const ev = msg.event;
       if (msg.parent_tool_use_id === null && ev.type === 'content_block_delta' && ev.delta.type === 'text_delta') {

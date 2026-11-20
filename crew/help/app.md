@@ -11,6 +11,7 @@ The user sees Korean labels; they are quoted here in bold so you can name them e
 
 비서 does these itself with the app tools, the way the matching click would; the user need not find the button.
 
+- Ask a member about its work while it works, such as "개발 지금 뭐 하고 있어?"; a copy of its session answers and the work is not interrupted.
 - Find a task, read its log or why it stopped, stop or resume it, open the log, wiki, or workflow editor.
 - Rename or delete a session, change a member's nickname or model, change the approval mode, let a member go or hire one back, write or delete a wiki document, read usage.
 - Changing the approval mode, letting a regular member go or hiring one back, and deleting a session or a wiki document ask the user on a card first, except in **전부** mode. A temp whose work is done leaves without a card.

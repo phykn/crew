@@ -91,3 +91,34 @@ test('real Claude: 비서 works the app itself, asking on cards only for what ne
     clearInterval(answering);
   }
 }, 600_000);
+
+test('real Claude: a question about a member at work is answered from a copy of its session, and the work goes on', async () => {
+  const scratch = makeScratch();
+  const store = new Store(scratch.db);
+  const chat = new Chat(store, loadSdk, CREW, () => {}, scratch.paths);
+  const p = store.addProject(scratch.project);
+  chat.members.seed(p.id);
+  const s = store.createSession(p.id);
+  for (const key of ['orchestrator', 'coder']) store.updateMember(store.readMember(p.id, key).id, { model: 'haiku' });
+  store.setMode(p.id, 'auto');
+  const coder = store.readMember(p.id, 'coder');
+
+  // Only 개발's own conversation knows the codeword, so an answer that has it came from a copy of that conversation
+  const work = chat.runs.run(
+    coder,
+    s.id,
+    null,
+    "The codeword for this job is 'blue-17'. Run the shell command `sleep 30`, then reply with just DONE.",
+  );
+  await expect
+    .poll(() => [...chat.runs.active].find((a) => a.memberId === coder.id)?.run.claudeId, { timeout: 60_000 })
+    .toBeTruthy();
+  await chat.send(s.id, '개발한테 지금 뭐 하고 있는지, 이번 일의 코드워드가 뭔지 물어봐줘.');
+  expect(store.listMessages(s.id).at(-1)!.text).toMatch(/blue-17/);
+  const side = store.db.prepare('SELECT COUNT(*) AS n FROM runs WHERE side = 1').get() as { n: number };
+  expect(side.n).toBe(1);
+
+  const out = await work;
+  expect([out.status, out.text.trim()]).toEqual(['done', 'DONE']);
+  expect(recordedAgents(store, s.id).find((a) => a.key === 'coder')!.claudeId).toBe(out.claudeId);
+});

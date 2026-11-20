@@ -106,6 +106,8 @@ const MIGRATIONS = [
    DELETE FROM step_runs WHERE member_id IN (SELECT id FROM gone);
    DELETE FROM members WHERE id IN (SELECT id FROM gone);
    DROP TABLE gone;`,
+  // A side question runs on a copy of a member's session; its totals are not the session's own
+  `ALTER TABLE runs ADD COLUMN side INTEGER NOT NULL DEFAULT 0;`,
 ];
 
 // A project's change to the kit: a skill written over the shipped one or new, or one deleted
@@ -613,10 +615,12 @@ export class Store {
       .all(sessionId) as Event[];
   }
 
-  startRun(agentSessionId: number, model: string, taskId: number | null = null): number {
+  startRun(agentSessionId: number, model: string, taskId: number | null = null, side = false): number {
     const { lastInsertRowid } = this.db
-      .prepare("INSERT INTO runs (agent_session_id, model, started_at, status, task_id) VALUES (?, ?, ?, 'running', ?)")
-      .run(agentSessionId, model, now(), taskId);
+      .prepare(
+        "INSERT INTO runs (agent_session_id, model, started_at, status, task_id, side) VALUES (?, ?, ?, 'running', ?, ?)",
+      )
+      .run(agentSessionId, model, now(), taskId, side ? 1 : 0);
     return Number(lastInsertRowid);
   }
 
@@ -635,10 +639,16 @@ export class Store {
       .prepare(
         `SELECT a.member_id AS memberId, r.agent_session_id AS agentSessionId, r.model,
                 COALESCE((julianday(r.ended_at) - julianday(r.started_at)) * 86400, 0) AS seconds,
-                r.input_tokens AS inputTokens, r.output_tokens AS outputTokens, r.cost_usd AS costUsd
+                r.input_tokens AS inputTokens, r.output_tokens AS outputTokens, r.cost_usd AS costUsd, r.side
          FROM runs r JOIN agent_sessions a ON a.id = r.agent_session_id WHERE a.session_id = ? ORDER BY r.id`,
       )
-      .all(sessionId) as (Spend & { memberId: number; agentSessionId: number; model: string; seconds: number })[];
+      .all(sessionId) as (Spend & {
+      memberId: number;
+      agentSessionId: number;
+      model: string;
+      seconds: number;
+      side: number;
+    })[];
     const sums = new Map<string, { memberId: number; model: string; runs: number; seconds: number } & Spend>();
     // What each Claude session had reported so far; a resumed session's totals start from there
     const before = new Map<number, { model: string } & Spend>();
@@ -646,7 +656,7 @@ export class Store {
       const last = before.get(r.agentSessionId);
       const own = ownSpend(r, last && last.model === r.model ? last : null);
       // A run that never reported (still running, or cut before its result) says nothing about the session's totals
-      if (r.costUsd || r.inputTokens || r.outputTokens) before.set(r.agentSessionId, r);
+      if (!r.side && (r.costUsd || r.inputTokens || r.outputTokens)) before.set(r.agentSessionId, r);
       const key = `${r.memberId} ${r.model}`;
       const sum = sums.get(key) ?? { memberId: r.memberId, model: r.model, runs: 0, seconds: 0, ...NO_SPEND };
       sums.set(key, {

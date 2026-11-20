@@ -58,7 +58,7 @@ export class Runs {
   }
 
   async execute(member: Member, sessionId: number, taskId: number | null, prompt: string, opts: RunOptions) {
-    const { store, crew, members, wiki } = this.chat;
+    const { store, crew, members } = this.chat;
     // The member may have changed while it waited in its lane
     member = store.readMemberById(member.id);
     if (member.status !== 'hired' || member.leaving) return skipped('failed', NOT_HIRED);
@@ -72,11 +72,7 @@ export class Runs {
     const run = new AgentRun(sdk.query, {
       cwd: project.path,
       model: member.model,
-      system: [
-        crew.system(crew.defOf(member), settings, members.kit(project.id)),
-        members.roster(project.id),
-        wiki.context(project.id, member.id),
-      ].join('\n\n'),
+      system: this.system(member, project),
       mcpServers: {
         ...crew.mcpServers(settings),
         ...(settings.mcp.some((m) => m.server === 'app') ? { app: appServer(sdk, this.chat, sessionId) } : {}),
@@ -101,6 +97,45 @@ export class Runs {
     // A member let go mid-run leaves once this run, its last, has ended
     if (!this.busy(member.id) && store.readMemberById(member.id).leaving) members.leave(member.id);
     if (out.claudeId) store.writeClaudeId(agentSession.id, out.claudeId, member.model);
+    store.finishRun(runId, out);
+    return out;
+  }
+
+  system(member: Member, project: Project) {
+    const { crew, members, wiki } = this.chat;
+    return [
+      crew.system(crew.defOf(member), members.settings(member), members.kit(project.id)),
+      members.roster(project.id),
+      wiki.context(project.id, member.id),
+    ].join('\n\n');
+  }
+
+  // A question answered by a copy of the member's Claude session, beside its lane: the copy cannot write, and the work never hears of it
+  async ask(member: Member, sessionId: number, question: string): Promise<RunOutput | null> {
+    const { store } = this.chat;
+    const project = store.projectOf(sessionId);
+    const agentSession = store.openAgentSession(sessionId, member.id);
+    const working = [...this.active].find((a) => a.memberId === member.id && a.sessionId === sessionId)?.run;
+    const claudeId = working?.claudeId ?? agentSession.claudeId;
+    if (!claudeId) return null;
+    const model = working?.input.model ?? agentSession.model ?? member.model;
+    const sdk = await this.chat.sdk();
+    const run = new AgentRun(sdk.query, {
+      cwd: project.path,
+      model,
+      system: this.system(member, project),
+      resume: claudeId,
+      fork: true,
+      // Read-only tools need no permission, so they still work; anything else would change what the member is working on
+      canUseTool: async () => ({
+        behavior: 'deny',
+        message: 'This is a side question: answer from what you know and can read.',
+      }),
+    });
+    const runId = store.startRun(agentSession.id, model, null, true);
+    const out = await run.run(
+      `[Side question from the user, through 비서] You are answering in a copy of your session: nothing you do here reaches your work, and you cannot change files. Answer in a few Korean sentences.\n\n${question}`,
+    );
     store.finishRun(runId, out);
     return out;
   }

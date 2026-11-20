@@ -62,6 +62,24 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
         },
       ),
       sdk.tool(
+        'ask_member',
+        'Ask a member about its work, such as what it is doing now, what it found, or why it chose something, without disturbing it: a copy of its session answers and its work goes on untouched. Words meant to change the work go to reopen_task instead.',
+        {
+          role: z.string().describe("The member's key or Korean role"),
+          question: z.string().min(1).describe("The user's question in their words"),
+        },
+        async (a) => {
+          const member = memberOf(a.role);
+          if (!member) return text(`${josa(a.role, '은')} 지금 고용되어 있지 않습니다.`);
+          const role = chat.crew.defOf(member).role;
+          const out = await chat.runs.ask(member, sessionId, a.question);
+          if (!out) return text(`${josa(role, '은')} 이 세션에서 아직 일하지 않아 물어볼 대화가 없습니다.`);
+          return text(
+            out.status === 'done' ? out.text : `${josa(role, '이')} 답하지 못했습니다: ${out.error ?? out.status}`,
+          );
+        },
+      ),
+      sdk.tool(
         'read_workflow',
         "Read a task kind's current rules for this project, with the version to base a change on.",
         { kind: z.enum(kinds) },
