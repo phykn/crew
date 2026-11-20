@@ -1,9 +1,10 @@
-// 비서 hands work out, so assignments walk from them
-const LEAD = 'orchestrator';
 import { FIRE, GROUND, SEATS, blocked } from './layout.js';
 import { findPath } from './route.js';
 import { CAMP, iso } from './projection.js';
 import { headTop } from './paint/people.js';
+
+// 비서 hands work out, so assignments walk from them
+const LEAD = 'orchestrator';
 
 // Small talk follows the user's clock, so a camp at midnight does not plan lunch
 const CHAT = {
@@ -235,9 +236,7 @@ export function createWalkers() {
       for (const p of people.values()) p.doing = now[p.room.team];
     },
 
-    // Only a new rework line acts in the camp, sending the checker over to whoever must redo the work
-    // Only lines newer than the first call act in the camp, so opening it late replays nothing:
-    // a request walks a note over, a failure or a finished report is said where the person stands
+    // Only lines newer than the first call act, so a camp opened late replays nothing
     applyLog(log) {
       if (shown !== null)
         for (const line of log.filter((l) => l.id > shown)) {

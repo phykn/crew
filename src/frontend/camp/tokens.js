@@ -42,5 +42,5 @@ export const COLOR = {
   flameDeep: '#ff8c2e',
   flameCore: '#fff1b8',
 };
-// Malgun Gothic stands in on a Windows PC that cannot reach the web font
+// Nanum Gothic where it is installed, otherwise the Korean font every Windows PC has
 export const FONT = { base: '"Nanum Gothic", "Malgun Gothic", sans-serif' };

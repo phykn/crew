@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Message, Mode, Question, Session, Task } from '../../backend/db';
+import type { Message, Question, Session, Task } from '../../backend/db';
+import { MODE_LABELS, type Mode } from '../../shared';
 import { call, onChanged, onStream } from '../api';
 import { Choice } from './Choice';
 import { TaskCards } from './TaskCards';
 
 // The window's own commands: typed after a slash, they act here and never reach 비서
 type Command = { name: string; label: string; run: () => void };
-
-const MODE_LABELS: Record<Mode, string> = { manual: '묻기', auto: '자동', bypass: '전부' };
 
 export function Chat({
   session,

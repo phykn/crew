@@ -10,6 +10,7 @@ import { memberTools } from '../tools/member';
 import { changedFiles, snapshot } from './changes';
 import { REFUSE } from '../questions';
 import { josa } from '../../korean';
+import { ACTIVE } from '../../shared';
 
 type TaskEvent = {
   type:
@@ -74,8 +75,6 @@ const HandbackShape = z.object({
 // Claude Code validates --json-schema as draft-7 and refuses the 2020-12 tag zod writes by default
 const HANDBACK_SCHEMA = z.toJSONSchema(HandbackShape, { target: 'draft-7', io: 'input' }) as Record<string, unknown>;
 
-// A task in these states is being driven, so what is added to it is picked up without a new drive
-const ACTIVE: Task['status'][] = ['queued', 'running', 'reviewing', 'fixing', 'waiting'];
 // Transient failures of one step are retried this many times
 const RETRIES = 3;
 const CODE_SCOPE =

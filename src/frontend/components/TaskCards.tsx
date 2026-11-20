@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Message, Task } from '../../backend/db';
+import { ACTIVE } from '../../shared';
 import { call } from '../api';
 
 // The pill says where the task is, in the words of its current stage while it works
@@ -47,7 +48,7 @@ export function TaskCards({
       {open.map((t) => {
         const asking = messages.some((m) => m.question?.taskId === t.id && m.question.answer === null);
         const p = pill(t, asking);
-        const stoppable = ['queued', 'running', 'reviewing', 'fixing', 'waiting'].includes(t.status);
+        const stoppable = ACTIVE.includes(t.status);
         return (
           <div className="task-card" key={t.id} data-status={t.status} aria-label={`업무 ${t.title}`}>
             <KindIcon kind={t.kind} />

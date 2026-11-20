@@ -2,8 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
 import type { Member, SkillRow } from '../db';
-
-export const MODELS = ['haiku', 'sonnet', 'opus'] as const;
+import { MODELS } from '../../shared';
 
 // The legend lists the starting crew in this order; anyone hired later follows in the order they joined
 const ORDER = [

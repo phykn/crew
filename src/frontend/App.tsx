@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
-import type { Project, Session } from '../backend/db';
-import type { CrewMember } from '../backend/crew/shipped';
-import { call, onChanged, onNavigate } from './api';
+import { onNavigate } from './api';
+import { useWorkspace } from './workspace';
 import { TitleBar } from './components/TitleBar';
 import { ProjectBar } from './components/ProjectBar';
 import { Chat } from './components/Chat';
@@ -14,11 +13,8 @@ import { WorkflowView } from './components/WorkflowView';
 import { Camp } from './components/Camp';
 
 export function App() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [project, setProject] = useState<Project | null>(null);
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [session, setSession] = useState<Session | null>(null);
-  const [members, setMembers] = useState<CrewMember[]>([]);
+  const ws = useWorkspace();
+  const { project, session, members } = ws;
   const [tab, setTab] = useState('chat');
   const [tree, setTree] = useState(false);
   // The member whose memory the memory tab shows; null shows everyone's
@@ -32,24 +28,6 @@ export function App() {
     setLogTask(taskId);
     setTab('log');
   }
-
-  // Hires made through 비서 reach the legend and the camp; a session named by its first message shows its name; a mode 비서 set shows by the input
-  useEffect(() => {
-    if (!project) return;
-    return onChanged(async (t) => {
-      if (t === 'members') setMembers(await call('members.list', { projectId: project.id }));
-      if (t === 'projects') {
-        const list = await call('projects.list');
-        setProjects(list);
-        setProject((p) => list.find((x) => x.id === p?.id) ?? p);
-      }
-      if (t === 'sessions') {
-        const list = await call('sessions.list', { projectId: project.id });
-        setSessions(list);
-        setSession((s) => list.find((x) => x.id === s?.id) ?? s);
-      }
-    });
-  }, [project?.id]);
 
   // 비서 moves the window the way the user would by clicking
   useEffect(
@@ -65,74 +43,18 @@ export function App() {
       }),
     [session?.id],
   );
-  useEffect(() => {
-    (async () => {
-      const [list, last] = await Promise.all([call('projects.list'), call('last.read')]);
-      setProjects(list);
-      const picked = list.find((p) => p.id === last.projectId) ?? list[0];
-      if (picked) await selectProject(picked, last.sessionId);
-    })();
-  }, []);
-
-  async function selectProject(p: Project, sessionId?: number) {
-    let list = await call('sessions.list', { projectId: p.id });
-    // A project always has a session to talk in
-    if (list.length === 0) list = [await call('sessions.create', { projectId: p.id })];
-    setProject(p);
-    setSessions(list);
-    setMembers(await call('members.list', { projectId: p.id }));
-    selectSession(list.find((s) => s.id === sessionId) ?? list[0], p);
-  }
-
-  function selectSession(s: Session, p = project!) {
-    setSession(s);
-    call('last.write', { projectId: p.id, sessionId: s.id });
-  }
-
-  async function openFolder() {
-    const p = await call('projects.open');
-    if (!p) return;
-    setProjects(await call('projects.list'));
-    await selectProject(p);
-  }
-
-  // After a removal the window falls back to what is left, or to an empty start
-  async function afterDelete() {
-    const list = await call('projects.list');
-    setProjects(list);
-    const still = list.find((p) => p.id === project?.id) ?? list[0];
-    if (still) await selectProject(still, session?.id);
-    else {
-      setProject(null);
-      setSessions([]);
-      setSession(null);
-      setMembers([]);
-    }
-  }
-
-  async function clearSession() {
-    const s = await call('sessions.clear', { sessionId: session!.id });
-    setSessions(await call('sessions.list', { projectId: project!.id }));
-    selectSession(s);
-  }
-
-  async function newSession() {
-    const s = await call('sessions.create', { projectId: project!.id });
-    setSessions(await call('sessions.list', { projectId: project!.id }));
-    selectSession(s);
-  }
 
   return (
     <div className="app">
       <TitleBar />
-      <ProjectTree open={tree} onClose={() => setTree(false)} onDeleted={afterDelete} />
+      <ProjectTree open={tree} onClose={() => setTree(false)} onDeleted={ws.afterDelete} />
       <main className="body">
         <section className="camp" aria-label="캠프">
           <Camp members={members} session={session} onPick={openLog} />
           {project && (
             <Legend
               members={members}
-              onChange={async () => setMembers(await call('members.list', { projectId: project.id }))}
+              onChange={ws.reloadMembers}
               onMemory={(id) => {
                 setMemoryOf(id);
                 setTab('memory');
@@ -142,14 +64,14 @@ export function App() {
         </section>
         <aside className="panel">
           <ProjectBar
-            projects={projects}
+            projects={ws.projects}
             project={project}
-            sessions={sessions}
+            sessions={ws.sessions}
             session={session}
-            onProject={(p) => selectProject(p)}
-            onOpenFolder={openFolder}
-            onSession={(s) => selectSession(s)}
-            onNewSession={newSession}
+            onProject={(p) => ws.selectProject(p)}
+            onOpenFolder={ws.openFolder}
+            onSession={(s) => ws.selectSession(s)}
+            onNewSession={ws.newSession}
             onExplorer={() => setTree(true)}
           />
           <Tabs.Root className="tabs" value={tab} onValueChange={setTab}>
@@ -165,13 +87,9 @@ export function App() {
                 <Chat
                   session={session}
                   mode={project!.mode}
-                  onMode={async (mode) => {
-                    await call('projects.setMode', { projectId: project!.id, mode });
-                    setProject({ ...project!, mode });
-                    setProjects(await call('projects.list'));
-                  }}
+                  onMode={ws.setMode}
                   commands={[
-                    { name: 'clear', label: '새 세션', run: clearSession },
+                    { name: 'clear', label: '새 세션', run: ws.clearSession },
                     { name: 'log', label: '로그 열기', run: () => setTab('log') },
                     { name: 'memory', label: '메모리 열기', run: () => setTab('memory') },
                     { name: 'workflow', label: '워크플로우 열기', run: () => setTab('workflow') },

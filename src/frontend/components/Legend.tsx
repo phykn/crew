@@ -2,16 +2,14 @@ import { useState } from 'react';
 import * as Switch from '@radix-ui/react-switch';
 import * as Dialog from '@radix-ui/react-dialog';
 import type { CrewMember } from '../../backend/crew/shipped';
+import { MODELS } from '../../shared';
 import { type Args, call } from '../api';
 import { Choice } from './Choice';
 import { Permissions } from './Permissions';
 
-const MODELS = [
-  { value: 'opus', label: 'Opus' },
-  { value: 'sonnet', label: 'Sonnet' },
-  { value: 'haiku', label: 'Haiku' },
-];
-const modelLabel = (m: string) => MODELS.find((x) => x.value === m)?.label ?? m;
+const modelLabel = (m: string) => m[0].toUpperCase() + m.slice(1);
+// The strongest model first
+const MODEL_OPTIONS = [...MODELS].reverse().map((m) => ({ value: m, label: modelLabel(m) }));
 
 type Definition = Awaited<ReturnType<typeof call<'members.definition'>>> & { id: number };
 
@@ -73,7 +71,7 @@ export function Legend({
                 <Choice
                   label={`${current.role} 모델`}
                   value={current.model}
-                  options={MODELS}
+                  options={MODEL_OPTIONS}
                   onChange={(model) => update(current, { model: model as Args<'members.update'>['model'] })}
                 />
                 {!current.kept && (

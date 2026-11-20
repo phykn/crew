@@ -4,7 +4,7 @@ import type { Change, Doc, Memory as Note } from '../../backend/wiki';
 import { stamp } from '../time';
 import { call, onChanged } from '../api';
 import { Choice } from './Choice';
-import { WikiGraph } from './WikiGraph';
+import { type Graph, WikiGraph } from './WikiGraph';
 
 const KIND: Record<Change['kind'], string> = { create: '생성', edit: '수정', delete: '삭제' };
 const ALL = 'all';
@@ -88,7 +88,7 @@ function WikiView({
 }) {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [changes, setChanges] = useState<Change[]>([]);
-  const [linked, setLinked] = useState<{ from: string; to: string }[]>([]);
+  const [links, setLinks] = useState<Graph>({ nodes: [], edges: [] });
   const [picked, setPicked] = useState<number | null>(null);
   const [draft, setDraft] = useState<{ title: string; body: string } | null>(null);
   const [asking, setAsking] = useState(false);
@@ -99,7 +99,7 @@ function WikiView({
     const load = async () => {
       setDocs(await call('wiki.list', { projectId }));
       setChanges(await call('wiki.timeline', { projectId }));
-      setLinked((await call('wiki.graph', { projectId })).edges);
+      setLinks(await call('wiki.graph', { projectId }));
     };
     load();
     return onChanged((t) => t === 'wiki' && load());
@@ -136,7 +136,7 @@ function WikiView({
     setDetail(detail?.id === c.id ? null : { id: c.id, ...(await call('wiki.change', { id: c.id })) });
   }
 
-  if (graph) return <WikiGraph projectId={projectId} onOpen={openTitle} />;
+  if (graph) return <WikiGraph graph={links} onOpen={openTitle} />;
   return (
     <div className="wiki">
       <div className="wiki-top" data-single={!docs.length || undefined}>
@@ -203,10 +203,10 @@ function WikiView({
                 })}
               </pre>
               {/* The graph's lines into this document, followed from the list */}
-              {linked.some((e) => e.to === doc.title) && (
+              {links.edges.some((e) => e.to === doc.title) && (
                 <p className="wiki-backlinks" aria-label="이 문서를 가리키는 문서">
                   <span className="muted">가리키는 문서</span>
-                  {linked
+                  {links.edges
                     .filter((e) => e.to === doc.title)
                     .map((e) => (
                       <button key={e.from} className="wiki-link" onClick={() => openTitle(e.from)}>

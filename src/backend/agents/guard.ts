@@ -1,6 +1,7 @@
 import path from 'node:path';
 import type { CanUseTool } from '@anthropic-ai/claude-agent-sdk';
-import type { Member, Mode, Store } from '../db';
+import type { Member, Store } from '../db';
+import type { Mode } from '../../shared';
 import type { Settings } from '../crew/shipped';
 import { ALLOW, type Questions, REFUSE } from '../questions';
 import { inside } from './locks';

@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import { type Sdk, text } from '../agents/run';
 import type { Chat } from '../chat';
-import { MODES, type Member, type Task } from '../db';
-import { KEPT, MODELS } from '../crew/shipped';
+import type { Member, Task } from '../db';
+import { KEPT } from '../crew/shipped';
 import { ALLOW } from '../questions';
 import { josa, particle } from '../../korean';
+import { MODE_LABELS, MODELS, MODES } from '../../shared';
 
 type Action = {
   id: string;
@@ -45,8 +46,6 @@ export const OFF_CATALOG: Record<string, string> = {
   'camp.state': 'the camp is drawn from the record, not acted on',
   'workflows.save': '비서 saves workflows with change_workflow, filing the reason',
 };
-
-const MODE_LABELS: Record<(typeof MODES)[number], string> = { manual: '묻기', auto: '자동', bypass: '전부' };
 
 // Every action the user can take in the window, within this session's project
 export function appActions(chat: Chat, sessionId: number): Action[] {

@@ -724,7 +724,7 @@ code {
   margin-right: var(--sp-1);
   vertical-align: var(--bw-thin);
   background: var(--accent-dark);
-  animation: blink 1.2s steps(2) infinite;
+  animation: blink var(--t-blink) steps(2) infinite;
 }
 @keyframes blink {
   50% {
@@ -826,8 +826,8 @@ code {
   top: 50%;
   left: 50%;
   z-index: var(--z-dialog);
-  width: min(var(--w-dialog), 90vw);
-  max-height: 80vh;
+  width: min(var(--w-dialog), var(--w-dialog-max));
+  max-height: var(--h-dialog-max);
   overflow: auto;
   padding: var(--sp-4);
   color: var(--text);

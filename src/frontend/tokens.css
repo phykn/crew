@@ -129,6 +129,9 @@
   --w-toc: 140px;
   --h-workflow-side: 45%;
   --w-dialog: 720px;
+  /* A dialog never covers the whole window */
+  --w-dialog-max: 90vw;
+  --h-dialog-max: 80vh;
   --w-tree: 520px;
   --w-bubble-max: 84%;
   --h-compose-max: 160px;
@@ -146,4 +149,5 @@
   --z-dialog: 21;
   --z-menu: 30;
   --t-fast: 0.12s;
+  --t-blink: 1.2s;
 }

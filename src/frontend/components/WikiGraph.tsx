@@ -1,20 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { ReactFlow, Background, Controls, Handle, Position, type Edge, type Node, type NodeProps } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { call, onChanged } from '../api';
+import type { call } from '../api';
 
-type Graph = Awaited<ReturnType<typeof call<'wiki.graph'>>>;
+export type Graph = Awaited<ReturnType<typeof call<'wiki.graph'>>>;
 type DocNode = Node<{ title: string; missing: boolean }, 'doc'>;
 
 // The wiki as a graph: each document a dot, each [[link]] a line; a dashed dot is a topic linked to but not written
-export function WikiGraph({ projectId, onOpen }: { projectId: number; onOpen: (title: string) => void }) {
-  const [graph, setGraph] = useState<Graph>({ nodes: [], edges: [] });
-  useEffect(() => {
-    const load = async () => setGraph(await call('wiki.graph', { projectId }));
-    load();
-    return onChanged((t) => t === 'wiki' && load());
-  }, [projectId]);
-
+export function WikiGraph({ graph, onOpen }: { graph: Graph; onOpen: (title: string) => void }) {
   const nodes = useMemo<DocNode[]>(() => {
     const at = spread(
       graph.nodes.map((n) => n.title),

@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import type { Workflow } from './tasks/workflow';
 import { ALLOW } from './questions';
+import type { Mode } from '../shared';
 
 // Each entry runs once, in order; PRAGMA user_version remembers how many have run
 const MIGRATIONS = [
@@ -110,9 +111,6 @@ const MIGRATIONS = [
 // A project's change to the kit: a skill written over the shipped one or new, or one deleted
 export type SkillRow = { name: string; label: string; use: string; body: string; deleted: boolean };
 
-// How calls outside the guard's plain allow are handled: asked on a card, allowed at once, or not checked at all
-export const MODES = ['manual', 'auto', 'bypass'] as const;
-export type Mode = (typeof MODES)[number];
 export type Project = { id: number; path: string; name: string; mode: Mode };
 // A session is named after what the user first asked in it, so sessions can be told apart
 export type Session = { id: number; projectId: number; number: number; createdAt: string; title: string | null };

@@ -1,9 +1,10 @@
 import { BrowserWindow, dialog, ipcMain } from 'electron';
 import { z } from 'zod';
 import { campState } from './camp';
-import { MODES, type Store } from '../db';
+import type { Store } from '../db';
 import type { Chat } from '../chat';
-import { Config, type Crew, MODELS } from '../crew/shipped';
+import { Config, type Crew } from '../crew/shipped';
+import { MODELS, MODES } from '../../shared';
 
 const id = z.number().int().positive();
 const USER = { memberId: null, name: '사용자' };
