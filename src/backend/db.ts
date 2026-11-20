@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
+import fs from 'node:fs';
 import path from 'node:path';
 import type { Workflow } from './tasks/workflow';
 import { ALLOW } from './questions';
@@ -124,6 +125,7 @@ const MIGRATIONS = [
 export type SkillRow = { name: string; label: string; use: string; body: string; deleted: boolean };
 
 export type Project = { id: number; path: string; name: string; mode: Mode };
+export type ListedProject = Project & { missing: boolean };
 // A session is named after what the user first asked in it, so sessions can be told apart
 export type Session = { id: number; projectId: number; number: number; createdAt: string; title: string | null };
 export type Member = {
@@ -317,10 +319,11 @@ export class Store {
     return this.db.prepare('SELECT id, path, name, mode FROM projects WHERE path = ?').get(full) as Project;
   }
 
-  listProjects(): Project[] {
-    return this.db
-      .prepare('SELECT id, path, name, mode FROM projects ORDER BY added_at DESC, id DESC')
-      .all() as Project[];
+  // A folder deleted outside the app keeps its project and history until the user removes it
+  listProjects(): ListedProject[] {
+    return (
+      this.db.prepare('SELECT id, path, name, mode FROM projects ORDER BY added_at DESC, id DESC').all() as Project[]
+    ).map((p) => ({ ...p, missing: !fs.existsSync(p.path) }));
   }
 
   setMode(id: number, mode: Mode) {

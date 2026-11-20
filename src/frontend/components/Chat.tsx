@@ -269,7 +269,7 @@ export function Chat({
         />
         <textarea
           value={draft}
-          placeholder="Enter 보내기 · Ctrl+Enter 답변 뒤에 보내기"
+          placeholder="Ctrl+Enter 키로 대기열에 추가하기"
           aria-label="메시지"
           rows={1}
           onChange={(e) => {

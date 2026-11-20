@@ -23,6 +23,7 @@ import type { CrewMember } from '../../backend/crew/shipped';
 import type { Project } from '../../backend/db';
 import type { Step } from '../../backend/tasks/workflow';
 import { call, onChanged } from '../api';
+import { Confirm } from './Confirm';
 import { Choice } from './Choice';
 import { josa } from '../../korean';
 
@@ -209,21 +210,21 @@ export function WorkflowView({
         </span>
       </header>
       {leaveFor && (
-        <div className="confirm" role="alertdialog" aria-label="저장 안 한 변경">
-          <p>저장 안 한 변경이 사라집니다. 다른 업무 종류로 바꿀까요?</p>
-          <div className="confirm-actions">
-            <button onClick={() => setLeaveFor(null)}>취소</button>
-            <button
-              className="danger"
-              onClick={() => {
+        <Confirm
+          label="저장 안 한 변경"
+          text="저장 안 한 변경이 사라집니다. 다른 업무 종류로 바꿀까요?"
+          actions={[
+            {
+              label: '바꾸기',
+              danger: true,
+              run: () => {
                 onKind(leaveFor);
                 setLeaveFor(null);
-              }}
-            >
-              바꾸기
-            </button>
-          </div>
-        </div>
+              },
+            },
+          ]}
+          onCancel={() => setLeaveFor(null)}
+        />
       )}
       {note && (
         <p className={`workflow-note${note.ok ? '' : ' bad'}`} role="status">

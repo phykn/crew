@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
 import { launchApp, makeScratch, openProject } from './launch';
 
 const SCRIPT = { 비서: [{ text: '안녕하세요' }, { text: '새 세션입니다' }] };
@@ -30,7 +32,36 @@ test('a slash lists the commands, Tab completes one, /clear opens a new session,
   await page.getByRole('button', { name: '안녕 삭제' }).click();
   // The session named 안녕 holds two messages, and no task or log line
   await expect(page.getByLabel('삭제 확인')).toContainText('업무 0건, 로그 0건, 메시지 2건');
-  await page.getByLabel('삭제 확인').getByRole('button', { name: '세션 삭제' }).click();
+  await page.getByLabel('삭제 확인').getByRole('button', { name: '삭제', exact: true }).click();
   await expect(page.getByLabel('프로젝트 목록')).not.toContainText('안녕');
+  await app.close();
+});
+
+test('a project whose folder was deleted is marked, cannot be picked or opened at start, and is removed in the explorer', async () => {
+  const scratch = makeScratch();
+  const gone = path.join(path.dirname(scratch.project), 'gone');
+  fs.mkdirSync(gone);
+  let app = await launchApp(scratch.db);
+  await openProject(app, scratch.project);
+  let page = await openProject(app, gone);
+  await expect(page.getByLabel('프로젝트')).toContainText('gone');
+  await app.close();
+  fs.rmSync(gone, { recursive: true });
+
+  // The app starts on a project it can open, though gone was the last one
+  app = await launchApp(scratch.db);
+  page = await app.firstWindow();
+  await expect(page.getByLabel('프로젝트')).toContainText('demo');
+  await page.getByLabel('프로젝트').click();
+  await expect(page.getByRole('option', { name: /gone/ })).toHaveAttribute('data-disabled', '');
+  await expect(page.getByRole('option', { name: /gone/ })).toContainText('폴더 없음');
+  await page.keyboard.press('Escape');
+
+  await page.getByLabel('세션').click();
+  await page.getByRole('option', { name: '탐색기…' }).click();
+  await page.getByRole('button', { name: 'gone 삭제' }).click();
+  await expect(page.getByLabel('삭제 확인')).toContainText('폴더의 파일은 그대로 둡니다');
+  await page.getByLabel('삭제 확인').getByRole('button', { name: '삭제', exact: true }).click();
+  await expect(page.getByLabel('프로젝트 목록')).not.toContainText('gone');
   await app.close();
 });

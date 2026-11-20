@@ -172,32 +172,51 @@ code {
   cursor: pointer;
   text-align: left;
 }
-/* Small bordered buttons inside rows */
-.tree-delete,
-.confirm-actions button {
+/* A quiet remove button in a row: muted until pointed at, then red */
+.tree-delete {
+  display: inline-grid;
+  place-items: center;
   height: var(--h-xs);
   padding: 0 var(--sp-2);
-  background: var(--card-hi);
-  border: var(--bw) solid var(--line-hi);
+  background: none;
+  border: none;
   border-radius: var(--r-sm);
-  color: var(--text);
+  color: var(--muted);
   font-size: var(--fs-xs);
   cursor: pointer;
+}
+.tree-delete:hover,
+.tree-delete:focus-visible {
+  background: var(--rose);
+  color: var(--danger-dark);
+}
+.tree-delete.icon-only {
+  width: var(--h-xs);
+  padding: 0;
 }
 /* Red is only for failure and delete */
 .button.danger,
 .task-link.danger,
 .task-confirm,
-.tree-delete,
 .log-row[data-bad] .log-text,
 .workflow-note.bad,
 .log-detail .removed {
   color: var(--danger);
 }
-.confirm-actions .danger {
+.button.fill-danger {
   background: var(--danger);
   border-color: var(--danger-dark);
   color: var(--on-accent);
+}
+/* A project whose folder was deleted outside the app */
+.badge.missing {
+  margin-left: var(--sp-2);
+  background: var(--rose);
+  color: var(--danger-dark);
+}
+.menu-item[data-disabled] {
+  color: var(--muted);
+  cursor: default;
 }
 /* Headings */
 .legend-head,
@@ -237,7 +256,8 @@ code {
 .wiki-timeline,
 .notes,
 .tree,
-.tree ul,
+.tree-sessions,
+.tree-agents,
 .log-detail ul.files {
   margin: 0;
   padding: 0;
@@ -1568,33 +1588,100 @@ code {
   width: 100%;
 }
 
-/* Explorer */
+/* Explorer: one card per project, its sessions as rows inside */
 .tree-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
   width: var(--w-tree);
 }
-.tree ul {
-  padding-left: var(--sp-4);
-}
-.tree-row {
+.tree-head,
+.tree-project-head,
+.tree-session-head {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: var(--sp-1) 0;
+  gap: var(--sp-2);
 }
-.tree-agent {
-  padding: var(--bw) 0;
-  font-size: var(--fs-sm);
+.tree-head {
+  justify-content: space-between;
 }
-.confirm {
-  margin-top: var(--sp-3);
-  padding: var(--sp-3);
-  background: var(--rose);
-  border: var(--bw) solid var(--danger);
+.tree-head .dialog-title {
+  margin: 0;
+}
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.tree-project {
+  overflow: hidden;
+  background: var(--card);
+  border: var(--bw) solid var(--line);
   border-radius: var(--r);
 }
-.confirm p {
-  margin: 0 0 var(--sp-2);
+.tree-project[data-missing] {
+  border-style: dashed;
+}
+.tree-project-head {
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--card-hi);
+  color: var(--wood-dark);
+}
+.tree-title {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.tree-project[data-missing] .tree-name {
+  color: var(--muted);
+}
+.tree-path {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tree-sessions {
+  border-top: var(--bw) solid var(--line);
+}
+.tree-session {
+  padding: var(--sp-2) var(--sp-3);
+}
+.tree-session + .tree-session {
+  border-top: var(--bw) dashed var(--line);
+}
+.tree-session-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tree-agents {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-3);
+  margin-top: var(--sp-1);
   font-size: var(--fs-sm);
+}
+/* Read by screen readers, not drawn */
+.sr-only {
+  position: absolute;
+  width: var(--bw-thin);
+  height: var(--bw-thin);
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* A question before a removal: a small modal of its own */
+.dialog.confirm {
+  width: min(var(--w-confirm), var(--w-dialog-max));
+}
+.confirm p {
+  margin: 0 0 var(--sp-4);
+  line-height: var(--lh-text);
 }
 .confirm-actions {
   display: flex;

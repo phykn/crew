@@ -3,6 +3,7 @@ import type { CrewMember } from '../../backend/crew/shipped';
 import type { Change, Doc, Memory as Note } from '../../backend/wiki';
 import { stamp } from '../time';
 import { call, onChanged } from '../api';
+import { Confirm } from './Confirm';
 import { Choice } from './Choice';
 import { type Graph, WikiGraph } from './WikiGraph';
 
@@ -227,15 +228,15 @@ function WikiView({
                 </button>
               </div>
               {asking && (
-                <div className="confirm" role="alertdialog" aria-label="삭제 방법">
-                  <p>{refusal ?? '워크플로우 규칙과 연결된 문서입니다.'}</p>
-                  <div className="confirm-actions">
-                    <button onClick={() => remove(false)}>문서만</button>
-                    <button className="danger" onClick={() => remove(true)}>
-                      규칙도 해제
-                    </button>
-                  </div>
-                </div>
+                <Confirm
+                  label="삭제 방법"
+                  text={refusal ?? '워크플로우 규칙과 연결된 문서입니다.'}
+                  actions={[
+                    { label: '문서만', run: () => remove(false) },
+                    { label: '규칙도 해제', danger: true, run: () => remove(true) },
+                  ]}
+                  onCancel={() => setAsking(false)}
+                />
               )}
             </>
           ) : (

@@ -1,19 +1,20 @@
 import * as Select from '@radix-ui/react-select';
-import type { Project, Session } from '../../backend/db';
+import type { ListedProject, Project, Session } from '../../backend/db';
 import { clock } from '../time';
-import { Chevron } from './Icons';
+import { Chevron, FolderIcon } from './Icons';
 
 const OPEN = 'open';
 const NEW = 'new';
 const EXPLORER = 'explorer';
 
 type Props = {
-  projects: Project[];
+  projects: ListedProject[];
   project: Project | null;
   sessions: Session[];
   session: Session | null;
   onProject: (p: Project) => void;
   onOpenFolder: () => void;
+  onOpenList: () => void;
   onSession: (s: Session) => void;
   onNewSession: () => void;
   onExplorer: () => void;
@@ -32,6 +33,7 @@ export function ProjectBar(props: Props) {
     <div className="project-bar">
       <Select.Root
         value={project ? String(project.id) : ''}
+        onOpenChange={(o) => o && props.onOpenList()}
         onValueChange={(v) =>
           v === OPEN ? props.onOpenFolder() : props.onProject(projects.find((p) => String(p.id) === v)!)
         }
@@ -45,8 +47,9 @@ export function ProjectBar(props: Props) {
           <Select.Content className="menu" position="popper" sideOffset={4}>
             <Select.Viewport>
               {projects.map((p) => (
-                <Select.Item key={p.id} value={String(p.id)} className="menu-item" title={p.path}>
+                <Select.Item key={p.id} value={String(p.id)} className="menu-item" title={p.path} disabled={p.missing}>
                   <Select.ItemText>{p.name}</Select.ItemText>
+                  {p.missing && <span className="badge missing">폴더 없음</span>}
                 </Select.Item>
               ))}
               <Select.Item value={OPEN} className="menu-item action">
@@ -91,18 +94,5 @@ export function ProjectBar(props: Props) {
         </Select.Portal>
       </Select.Root>
     </div>
-  );
-}
-
-function FolderIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="icon" aria-hidden="true">
-      <path
-        d="M2 5.5A1.5 1.5 0 0 1 3.5 4h4l2 2h7A1.5 1.5 0 0 1 18 7.5v7a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 2 14.5z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-    </svg>
   );
 }

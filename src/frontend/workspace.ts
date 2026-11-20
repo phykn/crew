@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import type { Project, Session } from '../backend/db';
+import type { ListedProject, Project, Session } from '../backend/db';
 import type { CrewMember } from '../backend/crew/shipped';
 import type { Mode } from '../shared';
 import { call, onChanged } from './api';
 
 // The project, session, and crew the window shows, and every way to switch or change them
 export function useWorkspace() {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<ListedProject[]>([]);
   const [project, setProject] = useState<Project | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [session, setSession] = useState<Session | null>(null);
@@ -39,7 +39,9 @@ export function useWorkspace() {
     (async () => {
       const [list, last] = await Promise.all([call('projects.list'), call('last.read')]);
       setProjects(list);
-      const picked = list.find((p) => p.id === last.projectId) ?? list[0];
+      // A project whose folder is gone is never opened on its own
+      const usable = list.filter((p) => !p.missing);
+      const picked = usable.find((p) => p.id === last.projectId) ?? usable[0];
       if (picked) await selectProject(picked, last.sessionId);
     })();
   }, []);
@@ -59,6 +61,11 @@ export function useWorkspace() {
     call('last.write', { projectId: p.id, sessionId: s.id });
   }
 
+  // A folder deleted outside the app changes nothing in the record, so the list is read again when shown
+  async function refreshProjects() {
+    setProjects(await call('projects.list'));
+  }
+
   async function openFolder() {
     const p = await call('projects.open');
     if (p) await selectProject(p);
@@ -68,7 +75,7 @@ export function useWorkspace() {
   async function afterDelete() {
     const list = await call('projects.list');
     setProjects(list);
-    const still = list.find((p) => p.id === project?.id) ?? list[0];
+    const still = list.find((p) => p.id === project?.id) ?? list.find((p) => !p.missing);
     if (still) await selectProject(still, session?.id);
     else {
       setProject(null);
@@ -95,6 +102,7 @@ export function useWorkspace() {
     selectProject,
     selectSession,
     openFolder,
+    refreshProjects,
     afterDelete,
     newSession,
     setMode,

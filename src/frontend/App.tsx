@@ -82,6 +82,7 @@ export function App() {
             session={session}
             onProject={(p) => ws.selectProject(p)}
             onOpenFolder={ws.openFolder}
+            onOpenList={ws.refreshProjects}
             onSession={(s) => ws.selectSession(s)}
             onNewSession={ws.newSession}
             onExplorer={() => setTree(true)}
