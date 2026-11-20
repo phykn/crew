@@ -424,17 +424,26 @@ code {
   place-items: center;
   width: var(--w-tab);
   height: var(--h-picker);
-  margin-bottom: calc(-1 * var(--bw-frame));
   background: var(--card-hi);
   border: var(--bw-frame) solid var(--line-hi);
+  border-bottom: none;
   border-radius: var(--r) var(--r) 0 0;
   color: var(--muted);
   cursor: pointer;
 }
-/* A tab hangs over the frame line: a closed one draws that line itself, the open one leaves it out so its sides run into the frame unbroken */
+/* Only the row draws the frame line and every tab stands on it, so the line cannot step */
 .tab-list button[data-state='active'] {
   background: var(--card);
-  border-bottom: none;
+}
+/* The open tab hides the line between its sides; a strip longer than the drawn line falls on the frame's own colour */
+.tab-list button[data-state='active']::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: var(--bw-frame);
+  background: var(--card);
 }
 .tab-icon,
 .tab-icon svg {
