@@ -9,7 +9,9 @@ const PeerAnswer = z.object({
   answer: z.string().describe('Your answer in Korean, or empty when you need to ask back first'),
   ask_back: z.string().optional().describe('A question for the asker when you cannot answer without it'),
 });
-const PEER_SCHEMA = z.toJSONSchema(PeerAnswer, { target: 'draft-7', io: 'input' }) as Record<string, unknown>; // The app's tools for a member at work on one step: asking a colleague without going through 비서
+const PEER_SCHEMA = z.toJSONSchema(PeerAnswer, { target: 'draft-7', io: 'input' }) as Record<string, unknown>;
+
+// The app's tools for a member at work on one step: asking a colleague without going through 비서
 export function memberTools(sdk: Sdk, chat: Chat, task: Task, step: Step, member: Member) {
   return sdk.createSdkMcpServer({
     name: 'crew',

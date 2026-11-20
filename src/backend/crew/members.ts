@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { Chat } from '../chat';
 import type { Member } from '../db';
-import { Config, parseDefinition, type Settings } from './shipped';
+import { Config, KEPT, parseDefinition, type Settings } from './shipped';
 import { particle } from '../../korean';
 
 const Draft = z.object({
@@ -161,15 +161,28 @@ export class Members {
     return `${def.role}(${nickname})${particle(def.role, '을')} ${temp ? '알바로' : '정규로'} 고용했습니다. key: ${key}`;
   }
 
+  // The one way the window and 비서 change a member's nickname, model, or hiring
+  update(memberId: number, change: { nickname?: string; model?: string; status?: Member['status'] }) {
+    const { store, crew } = this.chat;
+    const m = store.readMemberById(memberId);
+    // The crew stops working without 비서, 인사, or 도구
+    if (change.status === 'unhired' && KEPT.includes(m.key)) {
+      const role = crew.defOf(m).role;
+      throw new Error(`${role}(${m.nickname})${particle(role, '은')} 내보낼 수 없습니다.`);
+    }
+    if (change.status === 'unhired') this.fire(memberId);
+    if (change.status === 'hired') this.rehire(memberId);
+    store.updateMember(memberId, { nickname: change.nickname, model: change.model });
+  }
+
   // Letting go is idempotent: a second press while leaving or gone changes nothing
   fire(memberId: number) {
     const m = this.chat.store.readMemberById(memberId);
-    if (m.status !== 'hired' || m.leaving) return false;
+    if (m.status !== 'hired' || m.leaving) return;
     if (this.chat.runs.busy(memberId)) {
       this.chat.store.writeLeaving(memberId, true);
       this.note(m, 'leave', `${this.chat.crew.defOf(m).role}(${m.nickname}) 퇴장 예정: 맡은 단계를 마치고 나갑니다`);
     } else this.leave(memberId);
-    return true;
   }
 
   rehire(memberId: number) {

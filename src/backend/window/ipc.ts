@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { campState } from './camp';
 import { MODES, type Store } from '../db';
 import type { Chat } from '../chat';
-import { Config, type Crew, KEPT, MODELS } from '../crew/shipped';
+import { Config, type Crew, MODELS } from '../crew/shipped';
 
 const id = z.number().int().positive();
 const USER = { memberId: null, name: '사용자' };
@@ -46,9 +46,6 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
     ),
     'sessions.list': handle(z.object({ projectId: id }), (a) => store.listSessions(a.projectId)),
     'sessions.create': handle(z.object({ projectId: id }), (a) => store.createSession(a.projectId)),
-    'sessions.rename': handle(z.object({ sessionId: id, title: z.string().trim().min(1).max(30) }), (a) =>
-      store.nameSession(a.sessionId, a.title, false),
-    ),
     'sessions.clear': handle(z.object({ sessionId: id }), (a) => chat.clear(a.sessionId)),
     'sessions.impact': handle(z.object({ sessionId: id }), (a) => store.impact(a)),
     'sessions.delete': handle(z.object({ sessionId: id }), (a) => chat.deleteSession(a.sessionId)),
@@ -118,15 +115,7 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
         model: z.enum(MODELS).optional(),
         status: z.enum(['hired', 'unhired']).optional(),
       }),
-      (a) => {
-        // The crew stops working without 비서 or 인사, so the window cannot let them go
-        if (a.status === 'unhired' && KEPT.includes(store.readMemberById(a.id).key))
-          throw new Error('this member cannot be let go');
-        // Letting go goes through the crew, so a member at work leaves once, after its step
-        if (a.status === 'unhired') members.fire(a.id);
-        if (a.status === 'hired') members.rehire(a.id);
-        store.updateMember(a.id, { nickname: a.nickname, model: a.model });
-      },
+      ({ id, ...change }) => members.update(id, change),
     ),
     'members.permissions': handle(z.object({ id }), (a) => {
       const member = store.readMemberById(a.id);

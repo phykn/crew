@@ -227,7 +227,9 @@ test('a broken step fails after its retries; a stopped task leaves the other run
 
   // A restart cuts off what was running; the user's word resumes it from the unfinished step
   const after = new Store(db);
-  expect(after.recoverInterrupted()).toEqual([three.id]);
+  after.recoverInterrupted();
+  const recovered = after.listEvents(s.id).filter((e) => e.text === '앱이 다시 시작되어 업무가 멈췄습니다');
+  expect([recovered.map((e) => e.taskId), after.readTask(three.id).status]).toEqual([[three.id], 'stopped']);
   const fresh = fakeCrew({ 기획: [handback('p', { summary: '계획' }), never], 리뷰: [never] });
   const again = new Chat(
     after,

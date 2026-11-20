@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import type { Workflow } from './tasks/workflow';
+import { ALLOW } from './questions';
 
 // Each entry runs once, in order; PRAGMA user_version remembers how many have run
 const MIGRATIONS = [
@@ -369,8 +370,12 @@ export class Store {
   }
 
   // Only an unnamed session takes a name, so a name the user gave is kept
-  nameSession(id: number, title: string, keep = true) {
-    this.db.prepare(`UPDATE sessions SET title = ? WHERE id = ?${keep ? ' AND title IS NULL' : ''}`).run(title, id);
+  nameSession(id: number, title: string) {
+    this.db.prepare('UPDATE sessions SET title = ? WHERE id = ? AND title IS NULL').run(title, id);
+  }
+
+  renameSession(id: number, title: string) {
+    this.db.prepare('UPDATE sessions SET title = ? WHERE id = ?').run(title, id);
   }
 
   listSessions(projectId: number): Session[] {
@@ -548,8 +553,8 @@ export class Store {
   }
 
   // Work cut off by a restart: its runs were lost with the process, so the task waits stopped for the user to resume it
-  recoverInterrupted(): number[] {
-    return this.transact(() => {
+  recoverInterrupted() {
+    this.transact(() => {
       const cut = this.db
         .prepare("SELECT id FROM tasks WHERE status IN ('running', 'reviewing', 'fixing', 'waiting', 'stopping')")
         .all() as { id: number }[];
@@ -557,7 +562,6 @@ export class Store {
         .prepare("UPDATE step_runs SET status = 'stopped', error = 'app restarted' WHERE status = 'running'")
         .run();
       for (const { id } of cut) this.writeTaskStatus(id, 'stopped', '', '앱이 다시 시작되어 업무가 멈췄습니다');
-      return cut.map((r) => r.id);
     });
   }
 
@@ -571,11 +575,11 @@ export class Store {
   isGranted(sessionId: number, taskId: number | null, memberId: number, tool: string) {
     const row = this.db
       .prepare(
-        `SELECT 1 FROM questions q WHERE session_id = ? AND task_id IS ? AND kind = 'approval' AND answer = '허용'
+        `SELECT 1 FROM questions q WHERE session_id = ? AND task_id IS ? AND kind = 'approval' AND answer = ?
          AND json_extract(payload, '$.memberId') = ? AND json_extract(payload, '$.tool') = ?
          AND answered_at > COALESCE((SELECT MAX(at) FROM permission_changes WHERE member_id = ?), '')`,
       )
-      .get(sessionId, taskId, memberId, tool, memberId);
+      .get(sessionId, taskId, ALLOW, memberId, tool, memberId);
     return !!row;
   }
 

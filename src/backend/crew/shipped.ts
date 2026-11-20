@@ -158,18 +158,16 @@ export class Crew {
 
   // A member's definition: its own when 인사 wrote it, the shipped one otherwise
   defOf(member: Member): Definition {
-    if (!member.definition) return this.find(member.key);
+    if (!member.definition) {
+      const def = this.defs.find((d) => d.key === member.key);
+      if (!def) throw new Error(`no definition ${member.key}`);
+      return def;
+    }
     const def = parseDefinition(member.key, member.definition);
     // A temp may only read, search, and write into its output folder, with no MCP server
     return member.temp
       ? { ...def, tools: def.tools.filter((t) => ['read', 'search', 'write'].includes(t)), write: 'output', mcp: [] }
       : def;
-  }
-
-  find(key: string): Definition {
-    const def = this.defs.find((d) => d.key === key);
-    if (!def) throw new Error(`no definition ${key}`);
-    return def;
   }
 
   settings(def: Definition, config: Config): Settings {

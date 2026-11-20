@@ -86,6 +86,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
   };
   const go = (view: Record<string, unknown>) => chat.emit('navigate', { sessionId, ...view });
   const kinds = chat.workflows.shipped.map((w) => w.kind) as [string, ...string[]];
+  const secretary = { memberId: members.find(projectId, 'orchestrator')?.id ?? null, name: '비서' };
 
   const actions: Action[] = [
     action({
@@ -287,11 +288,11 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       label: '세션 이름 바꾸기',
       kind: 'act',
       args: z.object({ session_id: z.number().int(), title: z.string().trim().min(1).max(30) }),
-      ui: ['sessions.rename'],
+      ui: [],
       run: (a) => {
         if (!ownSession(a.session_id))
           throw new Error(`세션 ${josa(`#${a.session_id}`, '은')} 이 프로젝트에 없습니다.`);
-        store.nameSession(a.session_id, a.title, false);
+        store.renameSession(a.session_id, a.title);
         chat.emit('changed', 'sessions');
         return `세션 이름을 바꿨습니다: ${a.title}`;
       },
@@ -322,7 +323,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       ui: ['members.update'],
       run: (a) => {
         const m = member(a.role);
-        store.updateMember(m.id, { nickname: a.nickname, model: a.model });
+        members.update(m.id, { nickname: a.nickname, model: a.model });
         chat.emit('changed', 'members');
         return `${a.role}: ${[a.nickname && `별명 ${a.nickname}`, a.model && `모델 ${a.model}`].filter(Boolean).join(', ') || '바뀐 것 없음'}`;
       },
@@ -341,9 +342,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       },
       run: (a) => {
         const m = member(a.role);
-        if (!a.hired && KEPT.includes(m.key)) throw new Error(`${named(m, '은')} 내보낼 수 없습니다.`);
-        if (a.hired) members.rehire(m.id);
-        else members.fire(m.id);
+        members.update(m.id, { status: a.hired ? 'hired' : 'unhired' });
         return `${named(m)} ${a.hired ? '고용' : '퇴장'} 처리했습니다.`;
       },
     }),
@@ -367,10 +366,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       args: z.object({ title: z.string().trim().min(1).max(60), body: z.string() }),
       ui: ['wiki.write'],
       run: (a) => {
-        wiki.write(projectId, a.title, a.body, {
-          memberId: members.find(projectId, 'orchestrator')?.id ?? null,
-          name: '비서',
-        });
+        wiki.write(projectId, a.title, a.body, secretary);
         chat.emit('changed', 'wiki');
         return `위키 문서를 저장했습니다: ${a.title}`;
       },
@@ -385,10 +381,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       run: (a) => {
         const doc = wiki.list(projectId).find((d) => d.title === a.title);
         if (!doc) throw new Error(`위키에 "${a.title}" 문서가 없습니다.`);
-        return chat.workflows.removeDoc(doc.id, a.release_rule, {
-          memberId: members.find(projectId, 'orchestrator')?.id ?? null,
-          name: '비서',
-        });
+        return chat.workflows.removeDoc(doc.id, a.release_rule, secretary);
       },
     }),
   ];

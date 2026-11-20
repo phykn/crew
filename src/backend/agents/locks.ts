@@ -44,7 +44,7 @@ export class Locks {
   }
 
   // Files under these paths that changed since the task last saw them; files under what it already holds are its own changes
-  stale(taskId: number, base: Snapshot, paths: string[], own: string[] = []) {
+  stale(taskId: number, base: Snapshot, paths: string[], own: string[]) {
     const seen = { ...base, ...this.seen.get(taskId) };
     const now = this.hashes(paths);
     const keys = new Set([

@@ -72,21 +72,21 @@ function shellWrites(cmd: string) {
   return writeTargets(cmd).filter((t) => !SILENT.includes(t.toLowerCase()));
 }
 
-export function checkCall(policy: Policy, tool: string, input: Record<string, unknown>, cwd = policy.project): Verdict {
-  if (tool.startsWith('mcp__')) return checkMcp(policy, tool, input, cwd);
+export function checkCall(policy: Policy, tool: string, input: Record<string, unknown>): Verdict {
+  if (tool.startsWith('mcp__')) return checkMcp(policy, tool, input);
   if (READ_ONLY.includes(tool)) return { kind: 'allow' };
   // Where a call would write is settled first: no approval can open a place the role may never write
   const scope = SHELLS.includes(tool)
-    ? checkShell(policy, String(input.command ?? ''), cwd)
+    ? checkShell(policy, String(input.command ?? ''))
     : EDITS.includes(tool)
-      ? checkWrite(policy, path.resolve(cwd, namedWrites(tool, input)[0]))
+      ? checkWrite(policy, path.resolve(policy.project, namedWrites(tool, input)[0]))
       : ({ kind: 'allow' } as Verdict);
   if (scope.kind === 'deny') return scope;
   if (!policy.tools.includes(tool)) return { kind: 'ask', reason: `${policy.role}에게 ${tool} 도구가 없습니다` };
   return scope;
 }
 
-function checkMcp(policy: Policy, tool: string, input: Record<string, unknown>, cwd: string): Verdict {
+function checkMcp(policy: Policy, tool: string, input: Record<string, unknown>): Verdict {
   // Code run by the MCP server itself would pass every check below
   if (tool.endsWith('_unsafe')) return { kind: 'deny', reason: `${tool} runs arbitrary code outside the guard` };
   const server = tool.split('__')[1];
@@ -103,11 +103,11 @@ function checkMcp(policy: Policy, tool: string, input: Record<string, unknown>, 
   }
   const file = input.filename;
   return typeof file === 'string'
-    ? checkWrite({ ...policy, write: 'output' }, path.resolve(cwd, file))
+    ? checkWrite({ ...policy, write: 'output' }, path.resolve(policy.project, file))
     : { kind: 'allow' };
 }
 
-function checkShell(policy: Policy, cmd: string, cwd: string): Verdict {
+function checkShell(policy: Policy, cmd: string): Verdict {
   const pips = cmd.match(/\bpip[\d.]*(?:\.exe)?\s+install\b/gi)?.length ?? 0;
   if (pips > (cmd.match(VENV_PIP)?.length ?? 0))
     return { kind: 'deny', reason: 'installing into the system Python needs the user' };
@@ -121,7 +121,7 @@ function checkShell(policy: Policy, cmd: string, cwd: string): Verdict {
       if (checker) return { kind: 'deny', reason: `write the path out instead of ${target}` };
       continue;
     }
-    const verdict = checkWrite(policy, resolveTarget(target, cwd));
+    const verdict = checkWrite(policy, resolveTarget(target, policy.project));
     if (verdict.kind !== 'allow') return verdict;
   }
   return { kind: 'allow' };
@@ -228,58 +228,11 @@ function readOption(args: string[], names: string[]) {
 }
 
 // The project paths a call writes, or the whole project when the command's text does not say
-export function projectWrites(
-  policy: Policy,
-  tool: string,
-  input: Record<string, unknown>,
-  cwd = policy.project,
-): string[] {
+export function projectWrites(policy: Policy, tool: string, input: Record<string, unknown>): string[] {
   if (policy.write !== 'project' || READ_ONLY.includes(tool) || tool.startsWith('mcp__')) return [];
   const files = namedWrites(tool, input);
   if (SHELLS.includes(tool) && (!files.length || files.some((t) => BUILT.test(t)))) return [policy.project];
-  return files.map((t) => resolveTarget(t, cwd)).filter((f) => inside(f, policy.project));
-}
-
-type GuardHooks = {
-  // An approval already given for this tool in this task
-  granted: (tool: string) => boolean;
-  // Asks the user through 비서's chat; resolves true when they allow it
-  ask: (tool: string, input: Record<string, unknown>, reason: string) => Promise<boolean>;
-  record: (kind: 'denied' | 'approved' | 'refused', text: string) => void;
-  // Holds the write reservation for an allowed call; a reason comes back when the call must not go ahead yet
-  reserve?: (tool: string, input: Record<string, unknown>) => Promise<string | null>;
-};
-
-function makeCanUseTool(policy: () => Policy, hooks: GuardHooks): CanUseTool {
-  const allow = async (tool: string, input: Record<string, unknown>) => {
-    const late = await hooks.reserve?.(tool, input);
-    return late
-      ? ({ behavior: 'deny', message: late } as const)
-      : ({ behavior: 'allow', updatedInput: input } as const);
-  };
-  return async (tool, input) => {
-    const { mode } = policy();
-    if (mode === 'bypass') return allow(tool, input);
-    const verdict = checkCall(policy(), tool, input);
-    if (verdict.kind === 'allow') return allow(tool, input);
-    if (verdict.kind === 'deny') {
-      hooks.record('denied', `${tool} 거부: ${verdict.reason}`);
-      return { behavior: 'deny', message: refused(verdict.reason) };
-    }
-    if (mode === 'auto') {
-      hooks.record('approved', `${tool} 자동 승인: ${verdict.reason}`);
-      return allow(tool, input);
-    }
-    if (hooks.granted(tool)) return allow(tool, input);
-    const ok = await hooks.ask(tool, input, verdict.reason);
-    hooks.record(ok ? 'approved' : 'refused', `${tool} ${ok ? '승인' : '거절'}: ${verdict.reason}`);
-    // The permissions may have changed while the user was deciding; the approval answered the question as it was asked
-    const now = checkCall(policy(), tool, input);
-    if (ok && now.kind !== 'allow' && !(now.kind === 'ask' && now.reason === verdict.reason)) {
-      return { behavior: 'deny', message: refused('permissions changed while waiting for approval') };
-    }
-    return ok ? allow(tool, input) : { behavior: 'deny', message: refused('the user did not allow it') };
-  };
+  return files.map((t) => resolveTarget(t, policy.project)).filter((f) => inside(f, policy.project));
 }
 
 function refused(reason: string) {
@@ -293,29 +246,55 @@ type GuardDeps = {
   sessionId: number;
   taskId: number | null;
   member: Member;
-  reserve?: GuardHooks['reserve'];
+  // Holds the write reservation for an allowed call; a reason comes back when the call must not go ahead yet
+  reserve: (tool: string, input: Record<string, unknown>) => Promise<string | null>;
 };
 
 // One member's guard inside one task: denials go to the log, approvals are asked in 비서's chat and kept for the task
 export function guardMember({ store, questions, policy, sessionId, taskId, member, reserve }: GuardDeps): CanUseTool {
-  const record = (kind: string, text: string) =>
+  const record = (kind: 'denied' | 'approved' | 'refused', text: string) =>
     store.addEvent({ sessionId, taskId, memberId: member.id, kind, text, detail: null });
-  return makeCanUseTool(policy, {
-    granted: (tool) => store.isGranted(sessionId, taskId, member.id, tool),
-    ask: async (tool, input, reason) => {
-      const what = String(input.command ?? input.file_path ?? input.url ?? '').slice(0, 300);
-      const answer = await questions.ask({
-        sessionId,
-        taskId,
-        kind: 'approval',
-        prompt: `권한 요청: ${policy().role}(${member.nickname}). ${reason}.${what ? `\n${what}` : ''}`,
-        // The last option is the card's main button, so allowing is the one that stands out
-        options: [REFUSE, ALLOW],
-        payload: { memberId: member.id, tool },
-      });
-      return answer === ALLOW;
-    },
-    record,
-    reserve,
-  });
+  const allow = async (tool: string, input: Record<string, unknown>) => {
+    const late = await reserve(tool, input);
+    return late
+      ? ({ behavior: 'deny', message: late } as const)
+      : ({ behavior: 'allow', updatedInput: input } as const);
+  };
+  const ask = async (tool: string, input: Record<string, unknown>, reason: string) => {
+    const what = String(input.command ?? input.file_path ?? input.url ?? '').slice(0, 300);
+    const answer = await questions.ask({
+      sessionId,
+      taskId,
+      kind: 'approval',
+      prompt: `권한 요청: ${policy().role}(${member.nickname}). ${reason}.${what ? `\n${what}` : ''}`,
+      // The last option is the card's main button, so allowing is the one that stands out
+      options: [REFUSE, ALLOW],
+      payload: { memberId: member.id, tool },
+    });
+    return answer === ALLOW;
+  };
+  return async (tool, input) => {
+    const { mode } = policy();
+    if (mode === 'bypass') return allow(tool, input);
+    const verdict = checkCall(policy(), tool, input);
+    if (verdict.kind === 'allow') return allow(tool, input);
+    if (verdict.kind === 'deny') {
+      record('denied', `${tool} 거부: ${verdict.reason}`);
+      return { behavior: 'deny', message: refused(verdict.reason) };
+    }
+    if (mode === 'auto') {
+      record('approved', `${tool} 자동 승인: ${verdict.reason}`);
+      return allow(tool, input);
+    }
+    // An approval already given for this tool in this task holds
+    if (store.isGranted(sessionId, taskId, member.id, tool)) return allow(tool, input);
+    const ok = await ask(tool, input, verdict.reason);
+    record(ok ? 'approved' : 'refused', `${tool} ${ok ? '승인' : '거절'}: ${verdict.reason}`);
+    // The permissions may have changed while the user was deciding; the approval answered the question as it was asked
+    const now = checkCall(policy(), tool, input);
+    if (ok && now.kind !== 'allow' && !(now.kind === 'ask' && now.reason === verdict.reason)) {
+      return { behavior: 'deny', message: refused('permissions changed while waiting for approval') };
+    }
+    return ok ? allow(tool, input) : { behavior: 'deny', message: refused('the user did not allow it') };
+  };
 }
