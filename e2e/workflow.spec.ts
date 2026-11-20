@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
-import { launchApp, makeScratch, openProject } from './launch';
+import { answerFolderDialog, launchApp, makeScratch, openProject } from './launch';
 
 // One task whose 조사 has no scripted answer, so its card stays (failed) while the editor is open and closed
 const SCRIPT = {
@@ -109,5 +109,31 @@ test('leaving unsaved edits for another kind asks in the window first', async ()
   await ask.getByRole('button', { name: '바꾸기' }).click();
   await expect(editor.getByRole('button', { name: '개선 제안' })).toHaveAttribute('aria-pressed', 'true');
   await expect(ask).toHaveCount(0);
+  await app.close();
+});
+
+test('switching project with unsaved workflow edits asks first, and staying keeps them', async () => {
+  const scratch = makeScratch();
+  const other = path.join(path.dirname(scratch.project), 'other');
+  fs.mkdirSync(other);
+  const app = await launchApp(scratch.db);
+  const page = await openProject(app, scratch.project);
+  await page.getByRole('tab', { name: '워크플로우' }).click();
+  await page.getByRole('button', { name: '단계 추가' }).click();
+  const added = page.getByLabel('단계 새 단계');
+  await expect(added).toHaveCount(1);
+
+  await answerFolderDialog(app, other);
+  await page.getByLabel('프로젝트').click();
+  await page.getByRole('option', { name: '폴더 열기…' }).click();
+  await page.getByLabel('저장 안 한 변경').getByRole('button', { name: '취소' }).click();
+  await expect(page.getByLabel('프로젝트')).toContainText('demo');
+  await expect(added).toHaveCount(1);
+
+  await page.getByLabel('프로젝트').click();
+  await page.getByRole('option', { name: '폴더 열기…' }).click();
+  await page.getByLabel('저장 안 한 변경').getByRole('button', { name: '바꾸기' }).click();
+  await expect(page.getByLabel('프로젝트')).toContainText('other');
+  await expect(added).toHaveCount(0);
   await app.close();
 });

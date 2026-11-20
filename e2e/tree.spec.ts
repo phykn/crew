@@ -26,8 +26,7 @@ test('a slash lists the commands, Tab completes one, /clear opens a new session,
   await expect(page.getByLabel('세션')).toHaveText(/^새 대화/);
   await expect(page.getByText('안녕하세요')).toHaveCount(0);
 
-  await page.getByLabel('세션').click();
-  await page.getByRole('option', { name: '탐색기…' }).click();
+  await page.getByRole('button', { name: '탐색기' }).click();
   await expect(page.getByLabel('프로젝트 목록')).toContainText('비서');
   await page.getByRole('button', { name: '안녕 삭제' }).click();
   // The session named 안녕 holds two messages, and no task or log line
@@ -57,8 +56,7 @@ test('a project whose folder was deleted is marked, cannot be picked or opened a
   await expect(page.getByRole('option', { name: /gone/ })).toContainText('폴더 없음');
   await page.keyboard.press('Escape');
 
-  await page.getByLabel('세션').click();
-  await page.getByRole('option', { name: '탐색기…' }).click();
+  await page.getByRole('button', { name: '탐색기' }).click();
   await page.getByRole('button', { name: 'gone 삭제' }).click();
   await expect(page.getByLabel('삭제 확인')).toContainText('폴더의 파일은 그대로 둡니다');
   await page.getByLabel('삭제 확인').getByRole('button', { name: '삭제', exact: true }).click();

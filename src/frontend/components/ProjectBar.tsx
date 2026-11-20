@@ -1,11 +1,10 @@
 import * as Select from '@radix-ui/react-select';
 import type { ListedProject, Project, Session } from '../../backend/db';
 import { clock } from '../time';
-import { Chevron, FolderIcon } from './Icons';
+import { Chevron, ExplorerIcon, FolderIcon } from './Icons';
 
 const OPEN = 'open';
 const NEW = 'new';
-const EXPLORER = 'explorer';
 
 type Props = {
   projects: ListedProject[];
@@ -73,11 +72,7 @@ export function ProjectBar(props: Props) {
         value={session ? String(session.id) : ''}
         disabled={!project}
         onValueChange={(v) =>
-          v === NEW
-            ? props.onNewSession()
-            : v === EXPLORER
-              ? props.onExplorer()
-              : props.onSession(sessions.find((s) => String(s.id) === v)!)
+          v === NEW ? props.onNewSession() : props.onSession(sessions.find((s) => String(s.id) === v)!)
         }
       >
         <Select.Trigger className="picker session-picker" aria-label="세션">
@@ -96,13 +91,14 @@ export function ProjectBar(props: Props) {
               <Select.Item value={NEW} className="menu-item action">
                 <Select.ItemText>새 세션</Select.ItemText>
               </Select.Item>
-              <Select.Item value={EXPLORER} className="menu-item action">
-                <Select.ItemText>탐색기…</Select.ItemText>
-              </Select.Item>
             </Select.Viewport>
           </Select.Content>
         </Select.Portal>
       </Select.Root>
+      {/* Folders and sessions both, so it sits beside the two pickers rather than in either; it also clears projects whose folder is gone */}
+      <button className="picker explorer-button" aria-label="탐색기" title="탐색기" onClick={props.onExplorer}>
+        <ExplorerIcon />
+      </button>
     </div>
   );
 }

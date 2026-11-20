@@ -414,6 +414,13 @@ code {
   flex: 1;
   min-width: 0;
 }
+/* A square of the pickers' height: the explorer covers both of them */
+.explorer-button {
+  flex: none;
+  justify-content: center;
+  width: var(--h-picker);
+  padding: 0;
+}
 .picker-value {
   overflow: hidden;
   font-weight: var(--fw-bold);

@@ -108,6 +108,14 @@ function WikiView({
       (t) => t === 'wiki',
     );
   }, [projectId]);
+  // A draft, a pick, or an open change belongs to the project it was made in
+  useEffect(() => {
+    setPicked(null);
+    setDraft(null);
+    setAsking(false);
+    setRefusal(null);
+    setDetail(null);
+  }, [projectId]);
   // The toolbar's + 새 문서 opens an empty draft here
   useEffect(() => {
     if (!writing) return;

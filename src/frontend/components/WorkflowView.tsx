@@ -40,12 +40,14 @@ export function WorkflowView({
   kind,
   onKind,
   active,
+  onDirty,
 }: {
   project: Project;
   members: CrewMember[];
   kind: string;
   onKind: (k: string) => void;
   active: boolean;
+  onDirty: (dirty: boolean) => void;
 }) {
   const [kinds, setKinds] = useState<{ kind: string; label: string }[]>([]);
   const [w, setW] = useState<Read | null>(null);
@@ -55,6 +57,7 @@ export function WorkflowView({
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   // Unsaved edits are marked, so leaving them behind is a known choice
   const [dirty, setDirty] = useState(false);
+  useEffect(() => onDirty(dirty), [dirty]);
   // The kind picked while edits were unsaved, waiting for the user to let them go
   const [leaveFor, setLeaveFor] = useState<string | null>(null);
   const [flow, setFlow] = useState<ReactFlowInstance<StepNode, LinkEdge> | null>(null);

@@ -154,3 +154,16 @@ export function PencilIcon() {
     </svg>
   );
 }
+
+export function ExplorerIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="icon" aria-hidden="true">
+      <path
+        d="M3 3h5v4H3zM11 9h6v3.5h-6zM11 14.5h6V18h-6zM5.5 7v9h5.5M5.5 10.75h5.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+}

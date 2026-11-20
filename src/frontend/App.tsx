@@ -13,6 +13,7 @@ import { WorkflowView } from './components/WorkflowView';
 import { Camp } from './components/Camp';
 import { TabIcon } from './components/Icons';
 import { Changes, type ChangesTarget } from './components/Changes';
+import { Confirm } from './components/Confirm';
 
 const TABS = [
   ['chat', '대화'],
@@ -36,6 +37,14 @@ export function App() {
   const [waiting, setWaiting] = useState(false);
   // The file whose diff the popup shows; the crew keeps working while it is open
   const [changes, setChanges] = useState<ChangesTarget | null>(null);
+  // Unsaved workflow edits belong to this project, so leaving it asks first
+  const [workflowDirty, setWorkflowDirty] = useState(false);
+  const [leaving, setLeaving] = useState<(() => void) | null>(null);
+  const guard = (go: () => void) => (workflowDirty ? setLeaving(() => go) : go());
+
+  // A task filter belongs to its session, a member filter to its project
+  useEffect(() => setLogTask(null), [session?.id]);
+  useEffect(() => setMemoryOf(null), [project?.id]);
 
   function openLog(taskId: number | null) {
     setLogTask(taskId);
@@ -80,8 +89,8 @@ export function App() {
             project={project}
             sessions={ws.sessions}
             session={session}
-            onProject={(p) => ws.selectProject(p)}
-            onOpenFolder={ws.openFolder}
+            onProject={(p) => guard(() => ws.selectProject(p))}
+            onOpenFolder={() => guard(ws.openFolder)}
             onOpenList={ws.refreshProjects}
             onSession={(s) => ws.selectSession(s)}
             onNewSession={ws.newSession}
@@ -144,12 +153,30 @@ export function App() {
                   kind={kind}
                   onKind={setKind}
                   active={tab === 'workflow'}
+                  onDirty={setWorkflowDirty}
                 />
               )}
             </Tabs.Content>
           </Tabs.Root>
         </aside>
       </main>
+      {leaving && (
+        <Confirm
+          label="저장 안 한 변경"
+          text="저장 안 한 워크플로우 변경이 사라집니다. 다른 프로젝트로 바꿀까요?"
+          actions={[
+            {
+              label: '바꾸기',
+              danger: true,
+              run: () => {
+                leaving();
+                setLeaving(null);
+              },
+            },
+          ]}
+          onCancel={() => setLeaving(null)}
+        />
+      )}
       <Changes
         target={changes}
         waiting={waiting}
