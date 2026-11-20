@@ -182,6 +182,19 @@ export class Members {
     this.chat.emit('changed', { topic: 'members' });
   }
 
+  // Back to how the member came: its shipped nickname, its definition's model, hired, and no permission changes
+  reset(memberId: number) {
+    const { store, crew } = this.chat;
+    const m = store.readMemberById(memberId);
+    store.transact(() => {
+      if (Object.keys(m.config).length)
+        store.writeConfig(memberId, {}, describeChange(this.settings(m), this.settings({ ...m, config: {} })));
+      store.updateMember(memberId, { nickname: crew.nicknames[m.key] ?? m.nickname, model: crew.defOf(m).model });
+    });
+    if (m.status !== 'hired' || m.leaving) this.rehire(memberId);
+    this.chat.emit('changed', { topic: 'members' });
+  }
+
   // Letting go is idempotent: a second press while leaving or gone changes nothing
   fire(memberId: number) {
     const m = this.chat.store.readMemberById(memberId);

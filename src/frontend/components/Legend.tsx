@@ -5,6 +5,7 @@ import type { CrewMember } from '../../backend/crew/shipped';
 import { MODELS } from '../../shared';
 import { type Args, call } from '../api';
 import { Choice } from './Choice';
+import { Confirm } from './Confirm';
 import { Permissions } from './Permissions';
 
 // The stacked layout of a narrow window in styles.css, where an open legend would cover the camp
@@ -19,6 +20,7 @@ type Definition = Awaited<ReturnType<typeof call<'members.definition'>>> & { id:
 export function Legend({ members, onMemory }: { members: CrewMember[]; onMemory: (memberId: number) => void }) {
   const [open, setOpen] = useState(() => !matchMedia(STACKED).matches);
   const [shown, setShown] = useState<Definition | null>(null);
+  const [resetting, setResetting] = useState(false);
   const current = members.find((m) => m.id === shown?.id);
 
   function update(m: CrewMember, change: Omit<Args<'members.update'>, 'id'>) {
@@ -89,6 +91,9 @@ export function Legend({ members, onMemory }: { members: CrewMember[]; onMemory:
               <Prose className="def-body" text={shown?.instructions ?? ''} />
             </details>
             <div className="dialog-actions">
+              <button className="button start" onClick={() => setResetting(true)}>
+                초기화
+              </button>
               <button
                 className="button"
                 onClick={() => {
@@ -100,6 +105,23 @@ export function Legend({ members, onMemory }: { members: CrewMember[]; onMemory:
               </button>
               <Dialog.Close className="button">닫기</Dialog.Close>
             </div>
+            {resetting && current && (
+              <Confirm
+                label="초기화"
+                text="별명, 모델, 고용, 권한을 처음 설정으로 되돌립니다."
+                actions={[
+                  {
+                    label: '되돌리기',
+                    danger: true,
+                    run: async () => {
+                      setResetting(false);
+                      await call('members.reset', { id: current.id });
+                    },
+                  },
+                ]}
+                onCancel={() => setResetting(false)}
+              />
+            )}
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>

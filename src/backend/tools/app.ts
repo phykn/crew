@@ -41,6 +41,7 @@ export const OFF_CATALOG: Record<string, string> = {
   'messages.busy': '비서 is the conversation itself',
   'messages.send': '비서 is the conversation itself',
   'messages.stop': '비서 is the conversation itself',
+  'members.reset': 'a reset also drops permission changes, which are the tools member’s to make',
   'members.setPermissions': 'the tools member changes permissions, skills, and MCP servers, through ask_tools',
   'questions.answer': 'only the user answers cards',
   'camp.state': 'the camp is drawn from the record, not acted on',

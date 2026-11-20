@@ -1,6 +1,6 @@
 import { FIRE, GROUND, SEATS, blocked } from './layout.js';
 import { findPath } from './route.js';
-import { CAMP, iso } from './projection.js';
+import { CAMP, TW, iso } from './projection.js';
 import { headTop } from './paint/people.js';
 
 // 비서 hands work out, so assignments walk from them
@@ -25,13 +25,17 @@ const SPACE = 1.3;
 // How far ahead, in tiles, a walker looks for someone to step around
 const AHEAD = 1.2;
 const SPEED = { stroll: 1.1, brisk: 3.4 };
+// The four screen edges as ground angles: bottom, right, top, left
+const SIDES = [Math.PI / 4, -Math.PI / 4, (-3 * Math.PI) / 4, (3 * Math.PI) / 4];
+// Gap between one arrival and the next when the crew first walks in, in ms
+const ARRIVAL_GAP = 250;
 
 // Everyone in the camp, kept by team: where they stand, where they walk, and what shows over their head
 export function createWalkers() {
   const people = new Map();
   let before = null,
     shown = null,
-    bottom = CAMP.y + CAMP.h;
+    view = CAMP;
 
   const others = (p) => [...people.values()].filter((o) => o !== p);
   const endOf = (o) => (o.path.length ? o.path[o.path.length - 1] : o);
@@ -51,24 +55,32 @@ export function createWalkers() {
   }
 
   function walk(p, to, fast, end = {}) {
-    // Someone on a bench steps off it first, as the bench itself is in the way
-    const path = findPath(p.seat ? p.seat.from : p, to);
+    // Someone on a bench steps off it first, as the bench itself is in the way; someone still outside comes in through their gap first
+    const outside = p.entering && Math.hypot(p.x - FIRE.x, p.y - FIRE.y) > GROUND - 0.5,
+      via = p.seat ? p.seat.from : outside ? p.door : null,
+      path = findPath(via || p, to);
     if (!path) return false;
-    const pts = [...(p.seat ? [p.seat.from] : []), ...path];
+    const pts = [...(via ? [via] : []), ...path];
     pts[pts.length - 1] = { ...pts[pts.length - 1], ...end };
-    Object.assign(p, { path: pts, fast, sitting: false, seat: null, waitUntil: 0 });
+    Object.assign(p, { path: pts, fast, sitting: false, seat: null, waitUntil: outside ? p.waitUntil : 0 });
     return true;
   }
 
-  // People come and go below the view, through the gap in the trees nearest the bottom of the screen
-  function findDoorway() {
+  // A whole person past the given screen edge, with room for their width
+  const outOfSight = (pt) => {
+    const f = iso(pt.x, pt.y);
+    return headTop(pt) > view.y + view.h || f.y < view.y || f.x < view.x - TW || f.x > view.x + view.w + TW;
+  };
+
+  // People come and go through the gap in the trees nearest a screen edge, the bottom one unless told otherwise
+  function findDoorway(side = SIDES[0]) {
     for (const turn of [0, 0.3, -0.3, 0.6, -0.6, 0.9, -0.9]) {
-      const a = Math.PI / 4 + turn,
+      const a = side + turn,
         at = (d) => ({ x: FIRE.x + d * Math.cos(a), y: FIRE.y + d * Math.sin(a) }),
         gap = at(GROUND - 0.5);
       if (blocked(gap.x, gap.y)) continue;
       let d = GROUND;
-      while (headTop(at(d)) < bottom) d += 0.5;
+      while (!outOfSight(at(d))) d += 0.5;
       return { gap, off: at(d) };
     }
     return null;
@@ -94,9 +106,11 @@ export function createWalkers() {
     const p = people.get(from),
       q = people.get(to);
     if (!p || !q || p === q) return;
-    const side = Math.atan2(p.y - q.y, p.x - q.x);
+    // Someone still walking in is met where they are headed
+    const at = q.entering ? endOf(q) : q,
+      side = Math.atan2(p.y - at.y, p.x - at.x);
     for (const turn of [0, 0.8, -0.8, 1.6, -1.6, Math.PI]) {
-      const s = { x: q.x + Math.cos(side + turn), y: q.y + Math.sin(side + turn) };
+      const s = { x: at.x + Math.cos(side + turn), y: at.y + Math.sin(side + turn) };
       if (!blocked(s.x, s.y) && walk(p, s, true, { wait: 2500, say: { text, kind } })) return;
     }
   }
@@ -170,12 +184,13 @@ export function createWalkers() {
     if (q.wait) p.waitUntil = now + q.wait;
     if (q.say) speak(p, q.say.text, q.say.kind);
     if (p.leaving && !p.path.length) people.delete(p.leaving);
+    if (!p.path.length) p.entering = false;
     // The last step onto a bench is a hop over its edge, which the path finder would not allow
     if (q.seatTo)
       Object.assign(p, { x: q.seatTo.x, y: q.seatTo.y, seat: q.seatTo, sitting: true, facing: faceFire(q.seatTo) });
   }
 
-  function add(member, entering, key = member.team) {
+  function add(member, entering, key = member.team, side = SIDES[0], delay = 0) {
     const p = {
       room: member,
       x: FIRE.x,
@@ -186,12 +201,19 @@ export function createWalkers() {
       nextIdle: performance.now() + Math.random() * 6000,
     };
     people.set(key, p);
-    // A new hire walks in from out of sight, briskly so work never waits on them; everyone found on page open is already somewhere
-    const door = entering && findDoorway(),
+    // Anyone arriving walks in from out of sight, briskly so work never waits on them
+    const door = entering && findDoorway(side),
       s = findSpot(p),
       inside = door && s && findPath(door.gap, s);
     Object.assign(p, inside ? door.off : s || {});
-    if (inside) Object.assign(p, { path: [door.gap, ...inside], fast: true });
+    if (inside)
+      Object.assign(p, {
+        path: [door.gap, ...inside],
+        door: door.gap,
+        fast: true,
+        entering: true,
+        waitUntil: performance.now() + delay,
+      });
     p.facing = faceFire(p);
     return p;
   }
@@ -201,8 +223,8 @@ export function createWalkers() {
     tick(now, dt) {
       for (const p of people.values()) step(p, now, dt);
     },
-    fitView(view) {
-      bottom = view.y + view.h;
+    fitView(v) {
+      view = v;
     },
 
     // The first crew only records what the page found, so history does not replay as news
@@ -213,9 +235,15 @@ export function createWalkers() {
         leading = staff.some((s) => s.team === LEAD);
       // A temp whose mission ended, or someone let go, walks out instead of vanishing
       for (const [team, p] of people) if (!p.leaving && !staff.some((s) => s.team === team)) leave(team, p);
+      // The crew the app opens with walks in from every edge in turn; anyone hired later comes from the bottom
+      const first = before === null;
+      staff.forEach((s, i) => {
+        if (!people.has(s.team))
+          add(s, true, s.team, first ? SIDES[i % SIDES.length] : SIDES[0], first ? i * ARRIVAL_GAP : 0);
+      });
       for (const s of staff) {
         // People are kept by team, so a renamed employee keeps walking where they were and only their name tag changes
-        const p = people.get(s.team) || add(s, before !== null),
+        const p = people.get(s.team),
           was = before?.[s.team];
         // Hired back on the way out, they simply stay
         if (p.leaving) Object.assign(p, { leaving: null, path: [] });

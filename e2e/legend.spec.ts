@@ -42,6 +42,15 @@ test('the legend lists the crew with their models, and its settings change nickn
   await expect(page.getByLabel('시험 고용')).toBeChecked();
   await page.getByRole('dialog').getByRole('button', { name: '닫기' }).click();
   await expect(page.locator('.legend-head')).toHaveText('크루 10명 고용');
+
+  // A wrong press is undone in one go, after a confirm
+  await page.getByLabel('개발 설정').click();
+  await page.getByRole('dialog').getByRole('button', { name: '초기화' }).click();
+  await page.getByLabel('초기화').getByRole('button', { name: '되돌리기' }).click();
+  await expect(page.getByRole('dialog').getByLabel('브라우저 접근')).toHaveText('없음');
+  await page.getByRole('dialog').getByRole('button', { name: '닫기' }).click();
+  await expect(page.getByLabel('개발 설정')).toContainText('모루');
+  await expect(page.getByLabel('개발 설정')).toContainText('Sonnet');
   await app.close();
 });
 

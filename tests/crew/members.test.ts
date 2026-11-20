@@ -147,3 +147,15 @@ test("a crew change is logged in the project's latest session, where the user is
   chat.members.fire(store.readMember(p.id, 'tester').id);
   expect([store.listEvents(s.id), store.listEvents(latest.id).map((e) => e.text)]).toEqual([[], ['시험(시우) 퇴장']]);
 });
+
+test('a reset brings a member back as shipped: nickname, model, hired, and no permission changes', () => {
+  const { store, chat, p } = openChat();
+  const coder = chat.members.find(p.id, 'coder')!;
+  const shipped = chat.members.settings(coder);
+  chat.members.update(coder.id, { nickname: '망치', model: 'opus', status: 'unhired' });
+  chat.members.setPermissions(coder.id, { tools: ['read'] });
+  chat.members.reset(coder.id);
+  const back = store.readMemberById(coder.id);
+  expect(back).toMatchObject({ nickname: coder.nickname, model: coder.model, status: 'hired', config: {} });
+  expect(chat.members.settings(back)).toEqual(shipped);
+});

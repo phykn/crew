@@ -133,6 +133,7 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
       }),
       ({ id, ...change }) => members.update(id, change),
     ),
+    'members.reset': handle(z.object({ id }), (a) => members.reset(a.id)),
     'members.permissions': handle(z.object({ id }), (a) => {
       const member = store.readMemberById(a.id);
       const { skills, mcp } = members.kit(member.projectId);

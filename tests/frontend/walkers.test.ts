@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest';
-import { SEATS, blocked } from '../../src/frontend/camp/layout.js';
+import { FIRE, GROUND, SEATS, blocked } from '../../src/frontend/camp/layout.js';
 import { createWalkers, smallTalk } from '../../src/frontend/camp/walkers.js';
 
 test('idle members stroll only on open ground and chat among themselves without touching the record', () => {
@@ -25,7 +25,7 @@ test('idle members stroll only on open ground and chat among themselves without 
     for (const p of w.people.values()) {
       // Standing points are never inside a prop, the fire, or past the trodden ground; a bench's step-off spot is its own
       const stepOff = SEATS.some((t: { from: { x: number; y: number } }) => t.from.x === p.x && t.from.y === p.y);
-      if (!p.sitting && !p.moving && !stepOff) expect(blocked(p.x, p.y)).toBe(false);
+      if (!p.sitting && !p.moving && !p.entering && !stepOff) expect(blocked(p.x, p.y)).toBe(false);
       if (p.bubble?.kind === 'chat') chats++;
     }
   }
@@ -42,9 +42,9 @@ test('small talk follows the hour: breakfast in the morning, no lunch plans at m
   expect(smallTalk(0).join()).not.toContain('점심');
 });
 
-test('the crew found when a project loads is already in camp, even after the empty list before it', () => {
+test('the crew the app opens with walks in from out of sight on every side, even after the empty list before it', () => {
   const w = createWalkers();
-  const crew = ['a', 'b', 'c'].map((k) => ({
+  const crew = ['a', 'b', 'c', 'd'].map((k) => ({
     team: k,
     name: k,
     color: '#fff',
@@ -53,9 +53,17 @@ test('the crew found when a project loads is already in camp, even after the emp
   }));
   w.applyStaff([]);
   w.applyStaff(crew);
-  // Nobody walks in from the edge: everyone stands where they were placed
-  expect([...w.people.values()].map((p) => p.path.length)).toEqual([0, 0, 0]);
-  // Someone hired afterwards does walk in
-  w.applyStaff([...crew, { ...crew[0], team: 'd', name: 'd' }]);
-  expect(w.people.get('d')!.path.length).toBeGreaterThan(0);
+  const people = [...w.people.values()];
+  // Everyone starts past the trees and has a way in
+  expect(people.every((p) => p.path.length > 0 && Math.hypot(p.x - FIRE.x, p.y - FIRE.y) > GROUND)).toBe(true);
+  // Screen right-left is x - y and down-up is x + y; the four starts lie off more than two edges
+  const edge = (p: { x: number; y: number }) => {
+    const sx = p.x - FIRE.x - (p.y - FIRE.y),
+      sy = p.x - FIRE.x + (p.y - FIRE.y);
+    return Math.abs(sx) > Math.abs(sy) ? Math.sign(sx) : 2 * Math.sign(sy);
+  };
+  expect(new Set(people.map(edge)).size).toBeGreaterThan(2);
+  // Someone hired afterwards walks in too
+  w.applyStaff([...crew, { ...crew[0], team: 'e', name: 'e' }]);
+  expect(w.people.get('e')!.path.length).toBeGreaterThan(0);
 });

@@ -18,6 +18,9 @@ body {
   color: var(--text);
   font-family: var(--font-ui);
   font-size: var(--fs-md);
+  /* Korean wraps between words, not inside one; a word too long for its box still breaks */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 button {
   font: inherit;
@@ -609,7 +612,6 @@ code {
   border-radius: var(--bw) var(--r-lg) var(--r-lg) var(--r-lg);
   line-height: var(--lh-text);
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
 }
 .message.user .bubble {
   background: var(--sky);
@@ -638,7 +640,6 @@ code {
   border-bottom: var(--bw) dashed var(--line);
   line-height: var(--lh-text);
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
 }
 .answer-options {
   display: flex;
@@ -1094,6 +1095,10 @@ code {
   justify-content: flex-end;
   gap: var(--sp-2);
 }
+/* An undo-everything button stands apart from the ones that close */
+.dialog-actions .start {
+  margin-right: auto;
+}
 .member-basics {
   display: flex;
   flex-wrap: wrap;
@@ -1446,7 +1451,6 @@ input[type='checkbox'] {
   border-radius: var(--r-lg);
   color: var(--text);
   font-size: var(--fs-sm);
-  word-break: keep-all;
   text-align: center;
   cursor: pointer;
 }
@@ -1560,8 +1564,6 @@ input[type='checkbox'] {
 }
 .workflow-node {
   width: var(--w-node);
-  /* Korean wraps between words, not inside one */
-  word-break: keep-all;
   padding: var(--sp-2) var(--sp-3);
   background: var(--card);
   border: var(--bw) solid var(--line-hi);
