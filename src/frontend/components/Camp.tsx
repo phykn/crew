@@ -5,7 +5,7 @@ import { call, follow } from '../api';
 import { CAMP, iso } from '../camp/projection.js';
 import { createWalkers } from '../camp/walkers.js';
 import { paintGround } from '../camp/paint/ground.js';
-import { DARK_SCALE } from '../camp/paint/lighting.js';
+import { LIGHT_SCALE } from '../camp/paint/lighting.js';
 import { createPainter } from '../camp/paint/frame.js';
 
 // 30 frames a second is plenty for walking and torch flicker, and halves the drawing work
@@ -98,12 +98,12 @@ export function Camp({
     const view = { x: -ox / scale, y: -oy / scale, w: box.w / scale, h: box.h / scale };
     walkers.current!.fitView(view);
     const ground = layer(1),
-      dark = layer(DARK_SCALE);
+      light = layer(LIGHT_SCALE);
     const gctx = ground.getContext('2d')!;
     gctx.setTransform(scale * dpr, 0, 0, scale * dpr, ox * dpr, oy * dpr);
     paintGround(gctx, view);
     const ctx = c.getContext('2d')!,
-      drawFrame = createPainter(ground, dark, view);
+      drawFrame = createPainter(ground, light, view);
     let last = performance.now(),
       raf = 0;
     const frame = (t: number) => {

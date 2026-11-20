@@ -3,17 +3,22 @@ import { iso } from '../projection.js';
 import { drawPerson, drawSeal, drawSpell, isCasting } from './people.js';
 import { drawDecor, depthOf } from './decor.js';
 import { drawTorch, drawFire } from './fire.js';
-import { drawGlow, drawDarkness } from './lighting.js';
+import { createLighting, drawGlow } from './lighting.js';
 import { drawOverheads } from './labels.js';
 
-// ground and dark are the canvases made for this view; what lies past the view is left out once, not every frame
-export function createPainter(ground, dark, view) {
+// ground and light are the canvases made for this view; what lies past the view is left out once, not every frame
+export function createPainter(ground, light, view) {
   // A piece counts while any of it can show: crowns rise up to 70px above the base
   const shows = (d) => {
     const p = iso(d.x, d.y);
     return p.x > view.x - 40 && p.x < view.x + view.w + 40 && p.y > view.y && p.y < view.y + view.h + 70;
   };
   const pieces = [...DECOR, ...WILDS.filter(shows)];
+  // Everything that never moves is drawn once off screen to learn what blocks the light, and where
+  const probe = document.createElement('canvas').getContext('2d');
+  probe.casters = [];
+  for (const d of pieces) drawDecor(probe, d);
+  const drawLight = createLighting(light, probe.casters);
 
   return function drawFrame(ctx, people, now) {
     ctx.drawImage(ground, view.x, view.y, view.w, view.h);
@@ -37,8 +42,8 @@ export function createPainter(ground, dark, view) {
       });
     items.sort((a, b) => a.depth - b.depth).forEach((i) => i.draw());
 
-    drawGlow(ctx, people, now);
-    drawDarkness(ctx, dark, view, people);
+    drawLight(ctx, people, now);
+    drawGlow(ctx, now);
     drawOverheads(ctx, people.values(), now, view.y);
   };
 }

@@ -1,6 +1,6 @@
 import { iso } from '../projection.js';
 import { COLOR as C } from '../tokens.js';
-import { TAU, oval, poly, prism, shadow } from './shapes.js';
+import { TAU, longShadow, oval, poly, prism, shadow } from './shapes.js';
 
 // Height of a bench's plank, where a sitting person's hips rest
 export const SEAT_Z = 8;
@@ -30,7 +30,7 @@ const outline = (ctx, x, y, rx, ry, color, width) => {
 // Fronds arch up from one root and droop at the tip, with paired leaflets that shorten toward it; single dots read as noise
 function fern(ctx, d) {
   const b = iso(d.x, d.y);
-  shadow(ctx, d.x + 0.15, d.y + 0.15, 14, 4);
+  shadow(ctx, d.x + 0.15, d.y + 0.15, 14, 4, 10);
   ctx.lineCap = 'round';
   [-150, -128, -105, -75, -52, -30].forEach((deg, i) => {
     const a = (deg * Math.PI) / 180,
@@ -65,7 +65,7 @@ function fern(ctx, d) {
 
 // A thick stroke with a lit top, and a cut end ringed with growth lines, reads as a round trunk
 function log(ctx, d) {
-  shadow(ctx, d.x + d.w / 2 + 0.2, d.y + d.h / 2 + 0.3, 30, 7);
+  longShadow(ctx, d.x, d.y, d.w, d.h, 10);
   const yc = d.y + d.h / 2,
     a = iso(d.x, yc, 5),
     b = iso(d.x + d.w, yc, 5);
@@ -92,7 +92,7 @@ function drum(ctx, d) {
     h = 20,
     rx = 7,
     ry = 3;
-  shadow(ctx, d.x + 0.15, d.y + 0.15, 10, 4);
+  shadow(ctx, d.x + 0.15, d.y + 0.15, 10, 4, 22);
   ctx.beginPath();
   ctx.moveTo(b.x - rx, b.y - h);
   ctx.quadraticCurveTo(b.x - rx - 2, b.y - h / 2, b.x - rx, b.y);
@@ -132,7 +132,7 @@ function well(ctx, d) {
   const top = b.y - wall,
     courses = 3,
     course = wall / courses;
-  shadow(ctx, d.x + 0.3, d.y + 0.3, 30, 13);
+  shadow(ctx, d.x + 0.3, d.y + 0.3, 30, 13, 40);
   oval(ctx, b.x, b.y, rx, ry, C.rock, Math.PI);
   ctx.fillRect(b.x - rx, top, rx * 2, wall);
   // Mortar runs along the wall's curve and the joints stagger by course; square blocks laid flat read as a box
@@ -191,7 +191,7 @@ function bench(ctx, d) {
   const { x, y, w, h } = d,
     leg = 0.18,
     long = w > h;
-  shadow(ctx, x + w / 2 + 0.2, y + h / 2 + 0.2, (w + h) * 13, 7);
+  longShadow(ctx, x, y, w, h, SEAT_Z + 2);
   if (d.wood) {
     for (const [lx, ly] of [
       [x, y],
@@ -232,7 +232,7 @@ function rock(ctx, d) {
   const b = iso(d.x, d.y),
     s = d.size ?? 1;
   const at = (pts) => pts.map(([x, y]) => ({ x: b.x + x * s, y: b.y + y * s }));
-  shadow(ctx, d.x + 0.2, d.y + 0.2, 15 * s, 5 * s);
+  shadow(ctx, d.x + 0.2, d.y + 0.2, 15 * s, 5 * s, 14 * s);
   poly(
     ctx,
     at([
@@ -283,7 +283,7 @@ function rock(ctx, d) {
 function pine(ctx, d) {
   const b = iso(d.x, d.y),
     s = d.size ?? 1;
-  shadow(ctx, d.x + 0.3, d.y + 0.3, 14 * s, 5 * s);
+  shadow(ctx, d.x + 0.3, d.y + 0.3, 14 * s, 5 * s, 70 * s);
   pixels(ctx, [[b.x - 2, b.y - 10 * s, 4, 10 * s]], C.barkDark);
   // Tiers stepped in 2px rows read as pixel art rather than a smooth cone
   for (let tier = 0; tier < 3; tier++) {
@@ -321,7 +321,7 @@ function tent(ctx, d) {
     at = along(d, L);
   // A point on the near slope at height z, so the hem follows the cloth
   const slope = (u, z) => at(u, (W / 2) * (1 - z / H), z);
-  shadow(ctx, d.x + 0.3, d.y + 0.3, 30, 12);
+  shadow(ctx, d.x + 0.3, d.y + 0.3, 30, 12, 26);
   for (const side of [-1, 1]) {
     const stake = at(L + 0.5, side * (W / 2 + 0.3));
     line(ctx, at(L, 0, H), stake, C.muted);
@@ -349,7 +349,7 @@ function wagon(ctx, d) {
   const L = 2.4,
     W = 1.1,
     at = along(d, L);
-  shadow(ctx, d.x + 0.3, d.y + 0.3, 34, 12);
+  shadow(ctx, d.x + 0.3, d.y + 0.3, 34, 12, 32);
   const wheel = (p) => {
     outline(ctx, p.x, p.y, 5, 7, C.woodDeep, 2);
     pixels(
@@ -399,7 +399,7 @@ function wagon(ctx, d) {
 }
 
 function crates(ctx, d) {
-  shadow(ctx, d.x + 0.3, d.y + 0.3, 20, 7);
+  shadow(ctx, d.x + 0.3, d.y + 0.3, 20, 7, 20);
   const box = (x, y, z0) => {
     const z = z0 + 10;
     prism(ctx, { x, y, w: 0.6, h: 0.6, z, z0 }, C.wood, C.woodDark, C.woodDeep);
@@ -425,7 +425,7 @@ function crates(ctx, d) {
 function hay(ctx, d) {
   const x = d.x - 0.5,
     y = d.y - 0.3;
-  shadow(ctx, d.x + 0.25, d.y + 0.25, 18, 6);
+  shadow(ctx, d.x + 0.25, d.y + 0.25, 18, 6, 15);
   prism(ctx, { x, y, w: 1, h: 0.6, z: 10 }, C.hay, C.hayDark, C.hayDeep);
   // Straw runs along the bale, and two twine bands hold it
   for (const z of [3, 6.5]) line(ctx, iso(x + 0.05, y + 0.6, z), iso(x + 0.95, y + 0.6, z), C.hayDeep);
@@ -446,7 +446,7 @@ function hay(ctx, d) {
 }
 
 function woodpile(ctx, d) {
-  shadow(ctx, d.x + 0.25, d.y + 0.25, 18, 6);
+  shadow(ctx, d.x + 0.25, d.y + 0.25, 18, 6, 15);
   prism(ctx, { x: d.x - 0.25, y: d.y - 0.6, w: 0.5, h: 1.2, z: 12 }, C.bark, C.bark, C.barkDark);
   // Log ends face the camera in a stack of three under two
   for (const [t, z] of [

@@ -1,7 +1,7 @@
 import { FIRE, GROUND } from '../layout.js';
 import { COLOR as C } from '../tokens.js';
 import { TW, TH, iso } from '../projection.js';
-import { oval, prism, shadow } from './shapes.js';
+import { prism, shadow } from './shapes.js';
 
 // A fixed seed keeps the ground pattern identical across resizes and reloads
 function seeded(seed) {
@@ -37,21 +37,33 @@ export function paintGround(ctx, view) {
   }
   speckle(view.x, view.y, view.w, view.h, (view.w * view.h) / 90, [C.grassDark, C.grassLight], 0.6);
 
-  // The trodden ground fades into the grass at its edge, and is worn darkest near the fire
+  // The trodden ground hides the grass and fades into it only at its edge; it darkens evenly toward the fire,
+  // since scattered worn patches read as stains under the firelight
   const fire = iso(FIRE.x, FIRE.y),
     rx = ((GROUND + 0.6) * TW) / 2,
     ry = ((GROUND + 0.6) * TH) / 2;
-  ctx.filter = 'blur(10px)';
-  ctx.globalAlpha = 0.8;
-  oval(ctx, fire.x, fire.y, rx, ry, C.dirt);
+  // A wide fade at the edge, so under firelight the patch never shows a rim
+  const fade = (stops) => {
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx * 1.2);
+    for (const [at, color] of stops) g.addColorStop(at, color);
+    ctx.fillStyle = g;
+    ctx.fillRect(-rx * 1.2, -rx * 1.2, rx * 2.4, rx * 2.4);
+  };
+  ctx.save();
+  ctx.translate(fire.x, fire.y);
+  ctx.scale(1, ry / rx);
+  fade([
+    [0, C.dirt],
+    [0.55, C.dirt],
+    [1, 'transparent'],
+  ]);
+  ctx.globalAlpha = 0.7;
+  fade([
+    [0, C.dirtWorn],
+    [0.65, 'transparent'],
+  ]);
+  ctx.restore();
   ctx.globalAlpha = 1;
-  ctx.filter = 'none';
-  for (let i = 0; i < 60; i++) {
-    const a = rnd() * Math.PI * 2,
-      d = Math.sqrt(rnd()) * GROUND * 0.9;
-    const p = iso(FIRE.x + d * Math.cos(a), FIRE.y + d * Math.sin(a));
-    blot(p.x, p.y, 10 + rnd() * 26, rnd() < 0.6 ? C.dirtWorn : C.grassDry, 0.5);
-  }
   blot(fire.x, fire.y, 70, C.barkDark, 0.6);
   speckle(fire.x - rx, fire.y - ry, rx * 2, ry * 2, 900, [C.rockDark, C.dirtWorn, C.rock], 0.5);
 
