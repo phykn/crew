@@ -38,14 +38,18 @@ export function Changes({
                 <code>{target?.file}</code>
               </Dialog.Title>
               {change && (
-                <span className="muted">
-                  {target?.title} · {change.label} · {STATUS[change.diff.status]}
-                </span>
+                <>
+                  <span className="badge" data-status={change.diff.status}>
+                    {STATUS[change.diff.status]}
+                  </span>
+                  <span className="badge">{change.label}</span>
+                  <span className="muted changes-task">{target?.title}</span>
+                </>
               )}
             </div>
             {waiting && (
               <button className="badge changes-waiting" onClick={onChat}>
-                답변 대기 중 · 대화로
+                대화로 가서 답하기
               </button>
             )}
             <Dialog.Close className="button">닫기</Dialog.Close>

@@ -856,12 +856,10 @@ code {
   margin: 0 0 var(--sp-3);
   font-size: var(--fs-xl);
 }
+/* Sized like every dialog and as tall as its diff; a long diff scrolls inside */
 .dialog.changes {
   display: flex;
   flex-direction: column;
-  width: var(--w-changes);
-  height: var(--h-changes);
-  max-height: none;
   overflow: hidden;
 }
 .changes-head {
@@ -891,18 +889,47 @@ code {
   border-color: var(--wait-line);
   color: var(--wait-text);
 }
+/* The file name and where it comes from share one line */
 .changes-name {
   display: flex;
   flex: 1;
-  flex-direction: column;
-  gap: var(--sp-1);
+  gap: var(--sp-2);
+  align-items: center;
   min-width: 0;
 }
-.changes-name code {
-  overflow-wrap: anywhere;
+.changes-name .dialog-title {
+  flex: none;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.changes-name .badge {
+  flex: none;
+}
+.changes-name .badge[data-status='added'] {
+  background: var(--accent-soft);
+  border-color: var(--ok);
+  color: var(--ok-text);
+}
+.changes-name .badge[data-status='deleted'] {
+  background: var(--rose);
+  border-color: var(--danger);
+  color: var(--bad-text);
+}
+.changes-name .badge[data-status='changed'] {
+  background: var(--butter);
+  border-color: var(--wait-line);
+  color: var(--wait-text);
+}
+.changes-task {
+  overflow: hidden;
+  font-size: var(--fs-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .diff {
-  flex: 1;
+  min-height: 0;
   overflow: auto;
   background: var(--paper);
   border: var(--bw) solid var(--line);
