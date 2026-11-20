@@ -1,8 +1,7 @@
-# 크루와 메모리
+# Crew and memory
 
-- 캠프 왼쪽 위 범례에서 고용 토글, 별명(그 자리에서 편집), 모델, 정의 MD와 권한(도구·쓰기 범위·스킬·MCP)을 바꿉니다. 비서·인사·도구·도우미는 내보낼 수 없습니다.
-- 스킬을 새로 만들거나 고치거나 지우는 일, 누가 어떤 스킬·MCP를 쓸지는 비서에게 말하면 도구가 맡습니다. **묻기** 모드에서는 바뀔 때마다 승인 카드가 뜨고, 변경은 그 프로젝트에만 적용됩니다. 기본 스킬을 고치거나 지웠다면 비서에게 "기본값으로 되돌려줘"라고 하면 됩니다.
-- 입력창 옆 **승인 모드**는 프로젝트마다 정합니다. **묻기**는 역할 밖 도구와 스킬 변경을 카드로 묻고, **자동**은 묻지 않고 허용하되 금지 명령과 범위 밖 쓰기는 계속 막으며, **전부**는 아무것도 검사하지 않고 다 허용합니다.
-- 맞는 역할이 없으면 인사가 새 담당자를 설계하고, 비서가 정규 또는 알바로 데려옵니다. 알바는 일이 끝나면 나갑니다. 알바가 만든 파일은 업무가 끝나면 프로젝트 폴더로 옮겨집니다.
-- 메모리 탭의 **위키**는 크루가 업무를 하며 쌓아 가는 문서입니다. 주제마다 문서 하나이고, 본문의 `[[제목]]`은 다른 문서로 이어집니다. **그래프**로 바꾸면 문서는 점, 링크는 선으로 보이고, 점선 점은 링크만 있고 아직 쓰지 않은 주제입니다. 아래 변경 목록에서 누가 무엇을 바꿨는지 봅니다. 비서에게 "위키 점검해줘"라고 하면 모순, 아무도 가리키지 않는 문서, 빠진 주제를 찾아 보고합니다. **기억**은 담당자마다 따로 있습니다.
-- 세션 목록 맨 아래 **탐색기…** 에서 세션을 지우거나 프로젝트를 목록에서 뺄 수 있고, 지워질 업무·로그 수를 먼저 보여줍니다.
+- The legend in the camp's top-left lists the crew. For each member the user can toggle hiring, edit the nickname in place, pick the model, and open its definition and permissions: tools, write scope, skills, and MCP servers. 비서, 인사, and 도구 cannot be let go.
+- Making, changing, or deleting a skill, and deciding who holds which skill or MCP server, go through 비서 to 도구. In **묻기** mode each change waits on an approval card showing what it adds and drops, and it applies to that project only. To undo changes to the shipped skills, the user can say "기본값으로 되돌려줘".
+- The **승인 모드** next to the input is set per project. **묻기** asks on a card before a tool outside a member's role and before skill changes. **자동** allows those without asking, but still blocks forbidden commands and writes outside a member's scope. **전부** checks nothing and allows everything.
+- When no role fits the work, 인사 designs a new member and 비서 brings it in as a regular or a temp (알바). A temp leaves once its work is done, and the files it made move into the project folder when its task finishes.
+- The **위키** in the **메모리** tab is the documents the crew builds up while working: one document per topic, with `[[title]]` in a body linking to another. **그래프** shows documents as dots and links as lines; a dashed dot is a topic linked to but not yet written. The change list below shows who changed what. Saying "위키 점검해줘" to 비서 reports contradictions, documents nothing points to, and missing topics. **기억** is kept per member.

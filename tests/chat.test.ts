@@ -42,6 +42,27 @@ test('비서 answers in its own Claude session and runs on the model chosen last
   ]);
 });
 
+test("비서's replies and cards reach the notification feed, so a user in another window hears of them", async () => {
+  const { store, project, paths } = openScratch();
+  const notes: unknown[] = [];
+  const chat = new Chat(
+    store,
+    async () => fakeQuery([reply('끝났습니다.')]).sdk,
+    CREW,
+    (channel, p) => channel === 'notify' && notes.push(p),
+    paths,
+  );
+  const p = store.addProject(project);
+  chat.members.seed(p.id);
+  const s = store.createSession(p.id);
+  await chat.send(s.id, '어떻게 됐어?');
+  void chat.questions.choose(s.id, '어느 업무를 말씀하시나요?', ['#1', '#2']);
+  expect(notes).toEqual([
+    { sessionId: s.id, text: '끝났습니다.' },
+    { sessionId: s.id, text: '어느 업무를 말씀하시나요?' },
+  ]);
+});
+
 test('a closed inbox refuses a line, so 비서 is told it in a new run instead of losing it', () => {
   const inbox = new Inbox();
   inbox.close();

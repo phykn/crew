@@ -2,10 +2,9 @@ import { z } from 'zod';
 import { type Sdk, text } from '../agents/run';
 import type { Chat } from '../chat';
 import type { Task } from '../db';
-import { KEPT } from '../crew/shipped';
 import { kitTools } from './kit';
 import { wikiTools } from './wiki';
-import { josa, particle } from '../../korean';
+import { josa } from '../../korean';
 
 // The app's own tools for 비서 in one session; a call is how 비서 opens real work for the crew
 export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
@@ -47,19 +46,6 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
           if (a.role && !one) return text(`${josa(a.role, '은')} 지금 고용되어 있지 않습니다.`);
           const task = chat.tasks.start(sessionId, a.kind, a.title, a.request, one ?? undefined, a.size === 'small');
           return text(`업무 #${task.id} "${task.title}"을 시작했습니다.`);
-        },
-      ),
-      sdk.tool('read_help', "Read the app's help before answering how to use the crew app.", {}, async () =>
-        text(chat.crew.help()),
-      ),
-      sdk.tool(
-        'ask_helper',
-        'Hand 도우미 something the user wants done in the app itself, anything they could do in its window: find a task, open a screen, resume work, rename a session, change a nickname or the approval mode. Its answer comes back as the result.',
-        { request: z.string().min(1).describe("The user's request in their words") },
-        async (a) => {
-          const helper = chat.store.readMember(projectId(), 'helper');
-          const out = await chat.runs.run(helper, sessionId, null, a.request);
-          return text(out.status === 'done' ? out.text : `도우미가 답하지 못했습니다: ${out.error ?? out.status}`);
         },
       ),
       sdk.tool(
@@ -111,22 +97,9 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
       ),
       sdk.tool(
         'hire',
-        'When no member fits the work, have 인사 design one. A temp (알바) joins for this work and leaves when it is done; a regular stays.',
+        'When no member fits the work, have 인사 design a new one. A temp (알바) joins for this work and leaves when it is done; a regular stays. To bring back a member who left, use the app action crew.hire instead.',
         { need: z.string().min(1).describe('The work no one fits'), temp: z.boolean() },
         async (a) => text(await chat.members.hire(sessionId, a.need, a.temp)),
-      ),
-      sdk.tool(
-        'fire',
-        'Let a member go when the user asks, or a temp whose work is done. One at work finishes or hands back its step first.',
-        { role: z.string().describe('The member: its key or Korean role') },
-        async (a) => {
-          const m = memberOf(a.role);
-          if (!m) return text(`${josa(a.role, '은')} 지금 고용되어 있지 않습니다.`);
-          if (KEPT.includes(m.key)) return text(`${josa(a.role, '은')} 내보낼 수 없습니다.`);
-          if (!chat.members.fire(m.id))
-            return text(`${a.role}(${m.nickname})${particle(a.role, '은')} 이미 퇴장 중입니다.`);
-          return text(`${a.role}(${m.nickname}) 퇴장 처리했습니다.`);
-        },
       ),
       sdk.tool(
         'reassign',
@@ -173,25 +146,6 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
               : `업무 ${josa(`#${task.id}`, '은')} 지금 다시 열 수 없습니다 (${task.status}).`,
           );
         },
-      ),
-      ...(['stop', 'resume'] as const).map((verb) =>
-        sdk.tool(
-          `${verb}_task`,
-          verb === 'stop'
-            ? 'Stop one task the user asks you to stop. Other tasks keep going.'
-            : 'Continue a stopped or failed task when the user asks, from the steps it has not finished.',
-          { task_id: z.number().int() },
-          async (a) => {
-            const task = chat.store.listTasks(sessionId).find((t) => t.id === a.task_id);
-            if (!task) return text(`업무 ${josa(`#${a.task_id}`, '은')} 이 세션에 없습니다.`);
-            const ok = verb === 'stop' ? chat.tasks.stop(task.id) : chat.tasks.resume(task.id);
-            return text(
-              ok
-                ? `업무 #${task.id}: ${verb === 'stop' ? '중단' : '재개'}했습니다.`
-                : `업무 ${josa(`#${task.id}`, '은')} 지금 ${task.status} 상태라 할 수 없습니다.`,
-            );
-          },
-        ),
       ),
     ],
   });

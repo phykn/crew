@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, Notification } from 'electron';
 import path from 'node:path';
 import { Store } from './db';
 import { Chat } from './chat';
@@ -29,7 +29,20 @@ function createWindow() {
   else win.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
 }
 
+// A report or a card that comes while the user is in another window would otherwise wait unseen
+function notify({ text }: { text: string }) {
+  if (!win || win.isFocused() || !Notification.isSupported()) return;
+  const note = new Notification({ title: 'crew · 비서', body: text.length > 200 ? `${text.slice(0, 200)}…` : text });
+  note.on('click', () => {
+    win?.show();
+    win?.focus();
+  });
+  note.show();
+}
+
 app.whenReady().then(() => {
+  // Windows shows an app's notifications only under an app id; the app is run from its folder, not installed
+  if (process.platform === 'win32') app.setAppUserModelId(process.execPath);
   // Tests point CREW_DB at a scratch file so they never touch the real record
   const dbFile = process.env.CREW_DB || path.join(app.getPath('userData'), 'crew.db');
   const store = new Store(dbFile);
@@ -43,7 +56,14 @@ app.whenReady().then(() => {
   const script = process.env.CREW_SCRIPT;
   const scripted = script ? scriptSdk(script) : null;
   const sdk = scripted ? async () => scripted : loadSdk;
-  const chat = new Chat(store, sdk, crew, (channel, payload) => win?.webContents.send(channel, payload), paths);
+  const chat = new Chat(
+    store,
+    sdk,
+    crew,
+    (channel, payload) =>
+      channel === 'notify' ? notify(payload as { text: string }) : win?.webContents.send(channel, payload),
+    paths,
+  );
   // A definition added since the last start joins every project it is missing from
   for (const p of store.listProjects()) chat.members.seed(p.id);
   store.recoverInterrupted();

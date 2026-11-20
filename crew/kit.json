@@ -97,7 +97,7 @@
     "app": {
       "icon": "list",
       "label": "앱 조작",
-      "use": "The crew app itself: everything the user can do in its window for this project, found with app_find_actions and done with app_read or app_act.",
+      "use": "The crew app itself, for 비서: everything the user can do in its window for this project, found with app_find_actions and done with app_read or app_act.",
       "readTools": ["app_find_actions", "app_read"]
     }
   }

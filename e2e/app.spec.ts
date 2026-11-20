@@ -3,10 +3,7 @@ import { launchApp, makeScratch, openProject } from './launch';
 
 const SCRIPT = {
   비서: [
-    { call: { name: 'read_help', input: {} }, text: '{{result}}' },
-    { call: { name: 'ask_helper', input: { request: '편집기 열어줘' } }, text: '{{result}}' },
-  ],
-  도우미: [
+    { call: { name: 'app_read', input: { action: 'help', args: {} } }, text: '{{result}}' },
     {
       call: { name: 'app_act', input: { action: 'open.workflow', args: { kind: 'code' } } },
       text: '편집 화면을 열었습니다.',
@@ -14,13 +11,13 @@ const SCRIPT = {
   ],
 };
 
-test("비서 answers from the help and 도우미 opens this project's workflow editor", async () => {
+test("비서 answers from the help and opens this project's workflow editor", async () => {
   const scratch = makeScratch();
   const app = await launchApp(scratch.db, SCRIPT);
   const page = await openProject(app, scratch.project);
   await page.getByLabel('메시지').fill('워크플로우는 어디서 바꿔?');
   await page.getByLabel('메시지').press('Enter');
-  await expect(page.locator('.messages')).toContainText('워크플로우 탭');
+  await expect(page.locator('.messages')).toContainText('tab on the right edits the steps');
 
   await page.getByLabel('메시지').fill('편집기 열어줘');
   await page.getByLabel('메시지').press('Enter');
@@ -32,11 +29,10 @@ test("비서 answers from the help and 도우미 opens this project's workflow e
   await app.close();
 });
 
-test('a mode 도우미 changes, once the user allows it on the card, shows by the input', async () => {
+test('a mode 비서 changes, once the user allows it on the card, shows by the input', async () => {
   const scratch = makeScratch();
   const app = await launchApp(scratch.db, {
-    비서: [{ call: { name: 'ask_helper', input: { request: '자동으로 바꿔줘' } }, text: '{{result}}' }],
-    도우미: [{ call: { name: 'app_act', input: { action: 'mode.set', args: { mode: 'auto' } } }, text: '{{result}}' }],
+    비서: [{ call: { name: 'app_act', input: { action: 'mode.set', args: { mode: 'auto' } } }, text: '{{result}}' }],
   });
   const page = await openProject(app, scratch.project);
   await expect(page.getByLabel('승인 모드')).toHaveText('묻기');
@@ -45,5 +41,21 @@ test('a mode 도우미 changes, once the user allows it on the card, shows by th
   await page.getByRole('button', { name: '허용' }).click();
   await expect(page.locator('.messages')).toContainText('자동으로 바꿨습니다');
   await expect(page.getByLabel('승인 모드')).toHaveText('자동');
+  await app.close();
+});
+
+test('a reply that comes while the window is in the background shows as a notification', async () => {
+  const scratch = makeScratch();
+  const app = await launchApp(scratch.db, { 비서: [{ text: '업무가 끝났습니다.' }] });
+  const page = await openProject(app, scratch.project);
+  await app.evaluate(({ BrowserWindow }) => {
+    BrowserWindow.getAllWindows()[0].isFocused = () => false;
+  });
+  await page.getByLabel('메시지').fill('끝나면 알려줘');
+  await page.getByLabel('메시지').press('Enter');
+  await expect(page.locator('.messages')).toContainText('업무가 끝났습니다.');
+  expect(await app.evaluate(() => (globalThis as unknown as { shown: string[] }).shown)).toEqual([
+    '업무가 끝났습니다.',
+  ]);
   await app.close();
 });

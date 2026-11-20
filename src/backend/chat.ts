@@ -9,7 +9,7 @@ import { Tasks } from './tasks/engine';
 import { Wiki } from './wiki';
 import { Workflows } from './tasks/workflow';
 
-export type Emit = (channel: 'changed' | 'stream' | 'navigate', payload: unknown) => void;
+export type Emit = (channel: 'changed' | 'stream' | 'navigate' | 'notify', payload: unknown) => void;
 // Where members' own files go, and the files no member may touch
 export type Paths = { output: string; protected: string[] };
 
@@ -69,6 +69,7 @@ export class Chat {
     this.store.addMessage(sessionId, 'secretary', text);
     this.emit('stream', { sessionId, done: true });
     this.emit('changed', 'messages');
+    this.emit('notify', { sessionId, text });
   }
 
   // /clear: a fresh session on the same project and crew; 비서 starts without context and the old session's tasks go on

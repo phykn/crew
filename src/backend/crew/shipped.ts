@@ -17,10 +17,9 @@ const ORDER = [
   'stylist',
   'researcher',
   'images',
-  'helper',
 ];
 // The crew cannot run without these: 비서 takes every request, and only 인사 and 도구 bring in people and tools
-export const KEPT = ['orchestrator', 'hr', 'tools', 'helper'];
+export const KEPT = ['orchestrator', 'hr', 'tools'];
 
 // Each kind of tool a definition can ask for, and the Claude Code tools it opens
 const TOOL_KINDS = {

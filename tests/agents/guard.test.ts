@@ -102,7 +102,7 @@ test('the app record and crew files are protected even from 개발', () => {
   expect(checkCall(policy, 'PowerShell', { command: 'Set-Content -Path C:/elsewhere/x.txt -Value hi' }).kind).toBe(
     'deny',
   );
-  expect(store.listMembers(project.id).length).toBe(11);
+  expect(store.listMembers(project.id).length).toBe(10);
 });
 
 test('auto mode allows a tool outside the role without a card but still denies; bypass checks nothing', async () => {

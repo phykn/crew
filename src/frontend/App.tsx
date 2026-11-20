@@ -33,7 +33,7 @@ export function App() {
     setTab('log');
   }
 
-  // Hires made through 비서 reach the legend and the camp; a session named by its first message shows its name; a mode 도우미 set shows by the input
+  // Hires made through 비서 reach the legend and the camp; a session named by its first message shows its name; a mode 비서 set shows by the input
   useEffect(() => {
     if (!project) return;
     return onChanged(async (t) => {
@@ -51,7 +51,7 @@ export function App() {
     });
   }, [project?.id]);
 
-  // 도우미 moves the window the way the user would by clicking
+  // 비서 moves the window the way the user would by clicking
   useEffect(
     () =>
       onNavigate((ev) => {

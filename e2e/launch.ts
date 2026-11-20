@@ -27,6 +27,14 @@ export async function launchApp(db: string, script?: unknown): Promise<ElectronA
   await app.evaluate(({ BrowserWindow }) =>
     BrowserWindow.getAllWindows().forEach((w) => w.setPosition(-32000, -32000)),
   );
+  // An unfocused test window would pop real notifications; they are kept for the tests to read instead
+  await app.evaluate(({ Notification }) => {
+    const shown: string[] = [];
+    Object.assign(globalThis, { shown });
+    Notification.prototype.show = function (this: Electron.Notification) {
+      shown.push(this.body);
+    };
+  });
   return app;
 }
 

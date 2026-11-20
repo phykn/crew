@@ -1,8 +1,7 @@
-# 업무
+# Tasks
 
-- 비서에게 할 일을 말하면 업무가 열리고 대화창 위에 고정 카드가 생깁니다. 오타나 문구처럼 코드가 아닌 단순한 수정은 비서가 바로 고칩니다. 카드에서 단계, 답변 필요 여부를 보고 **중단**·**재개**·**로그**를 누를 수 있습니다.
-- 답이 필요하면 비서 메시지 아래 답변 카드가 붙습니다. 고른 답은 그 업무에만 적용됩니다.
-- 로그 탭은 시각·역할·행동을 시간순으로 보여주고, 줄을 누르면 변경 파일·검토 의견·테스트 출력이 펼쳐집니다. 위에는 역할·모델별 사용량이 있습니다.
-- 앱을 다시 켜면 하던 업무는 `중단됨`으로 남고, "이어서 해줘"라고 하면 끝나지 않은 단계부터 이어갑니다.
-- 입력창에 `/`를 치면 명령 목록이 뜹니다. 위아래 화살표로 고르고 Tab으로 채우거나 Enter로 바로 실행합니다.
-- `/clear`는 같은 크루로 새 세션을 열고 이전 세션의 업무는 계속됩니다. `/log`, `/memory`, `/workflow`는 그 탭을 엽니다.
+- Telling 비서 what to do opens a task, pinned as a card above the chat. A plain fix that is not code, such as a typo or a wording, 비서 makes at once. The card shows the step under way and whether an answer is needed, with **중단**, **재개**, and **로그**.
+- When an answer is needed, an answer card hangs under 비서's message; the choice applies to that task only.
+- The **로그** tab lists time, role, and action in order; clicking a line opens the changed files, review points, and test output. Usage by role and model is at the top.
+- After the app restarts, unfinished tasks are left **중단됨**; "이어서 해줘" continues from the steps not yet done.
+- Typing `/` in the input lists the commands: arrows pick one, Tab fills it in, Enter runs it. `/clear` opens a new session with the same crew while the old session's tasks go on; `/log`, `/memory`, and `/workflow` open those tabs. **중지** next to the input stops 비서's answer under way.

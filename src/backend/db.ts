@@ -96,6 +96,14 @@ const MIGRATIONS = [
      label TEXT NOT NULL, purpose TEXT NOT NULL, body TEXT NOT NULL, deleted INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL,
      PRIMARY KEY (project_id, name));`,
   `ALTER TABLE projects ADD COLUMN mode TEXT NOT NULL DEFAULT 'manual';`,
+  // 비서 works the app itself now, so the shipped 도우미 goes with its runs; the log keeps its lines
+  `CREATE TEMP TABLE gone AS SELECT id FROM members WHERE key = 'helper' AND definition IS NULL;
+   UPDATE events SET member_id = NULL WHERE member_id IN (SELECT id FROM gone);
+   DELETE FROM requests WHERE from_member IN (SELECT id FROM gone);
+   DELETE FROM assignees WHERE member_id IN (SELECT id FROM gone);
+   DELETE FROM step_runs WHERE member_id IN (SELECT id FROM gone);
+   DELETE FROM members WHERE id IN (SELECT id FROM gone);
+   DROP TABLE gone;`,
 ];
 
 // A project's change to the kit: a skill written over the shipped one or new, or one deleted

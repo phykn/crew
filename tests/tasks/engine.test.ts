@@ -511,11 +511,10 @@ test('a step cut off right after saving resumes from that step and checks the sa
   expect(fresh.calls[0].prompt).toContain('cut off after changing: search.js');
 });
 
-test('비서 names members by key; a member let go while queued does not run, and hiring again keeps them', async () => {
+test('a member let go while queued does not run, and hiring again keeps them', async () => {
   const { store, fake, chat, p, s } = setup({});
-  secretaryTools(fake.sdk, chat, s.id);
   const researcher = store.readMember(p.id, 'researcher');
-  await fake.tools.get('fire')!({ role: 'researcher' });
+  chat.members.fire(researcher.id);
   expect(store.readMemberById(researcher.id).status).toBe('unhired');
   expect((await chat.runs.run(researcher, s.id, null, 'x')).error).toBe(NOT_HIRED);
   expect(fake.calls).toHaveLength(0);

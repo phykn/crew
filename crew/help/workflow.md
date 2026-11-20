@@ -1,12 +1,12 @@
-# 워크플로우
+# Workflows
 
-업무 종류(코드 변경, 조사, 개선 검토)마다 단계와 담당 역할, 단계 사이의 연결이 정해져 있습니다.
+Each kind of task (code change, research, improvement review) has its steps, the role at each, and the links between them.
 
-- 바꾸는 곳: 오른쪽 패널의 **워크플로우** 탭에서 단계를 노드로 고칩니다. 저장하면 새 규칙 버전이 생깁니다.
-- 순서는 연결선으로 정합니다. 단계 아래 점에서 다음 단계 위 점으로 끌어 이으면 앞 단계가 끝난 뒤 시작합니다. 선을 누르면 뜨는 ×로 끊습니다.
-- **되돌리기**로 표시한 단계는 통과 또는 다시 하기를 정합니다. 다시 하기는 이어진 앞쪽의 가장 가까운 만드는 단계(예: 개발)로 돌아가고, **최대 횟수**만큼 되돌려도 통과하지 못하면 업무가 멈춥니다.
-- 코드 변경은 개발 뒤에 코드 리뷰·스타일 검토(표준)·시험을 함께 돌립니다. 큰 변경은 그 앞에 계획과 계획 리뷰를 거치고, 작은 변경과 개발에게 따로 맡긴 일은 바로 개발부터 합니다.
-- 개선 제안은 기획(동작)과 표준(구조)이 나란히 봅니다.
-- 대화로도 바꿀 수 있습니다: 비서에게 "앞으로 시험은 코드 리뷰 뒤에 해줘"처럼 말하세요.
-- 적용 범위: "앞으로"는 다음 새 업무부터, "이번 업무에도"는 진행 중인 업무의 남은 단계까지, "이번에만"은 그 업무에만 적용됩니다.
-- 순환하거나 없는 단계를 가리키는 규칙은 저장되지 않고 마지막 유효 버전이 남습니다.
+- Where to change them: the **워크플로우** tab on the right edits the steps as nodes. Saving makes a new version of the rules.
+- Order is set by links: dragging from the dot under a step to the dot over the next one makes that one start after it. Clicking a link shows an × that cuts it.
+- A step marked **되돌리기** decides pass or redo. Redo goes back to the nearest making step linked before it (such as 개발); after **최대 횟수** redos without a pass, the task stops.
+- A code change runs code review, style review (표준), and test (시험) together after 개발. A large change goes through a plan and a plan review first; a small change, or work given to 개발 alone, starts at 개발.
+- An improvement review has 기획 (behavior) and 표준 (structure) look side by side.
+- It can also be changed by talk: "앞으로 시험은 코드 리뷰 뒤에 해줘".
+- Scope: "앞으로" applies from the next new task, "이번 업무에도" also to the remaining steps of the task under way, and "이번에만" to that task alone.
+- Rules that loop or point to a missing step are not saved, and the last valid version stays.

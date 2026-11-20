@@ -1,6 +1,5 @@
+import type { Emit } from './chat';
 import type { Question, Store } from './db';
-
-type Emit = (channel: 'changed', topic: string) => void;
 
 // Questions 비서 puts to the user as answer cards under its message; a waiting run resumes when the user picks
 export class Questions {
@@ -17,6 +16,7 @@ export class Questions {
     // The waiter is in place before anyone hears of the card, so an instant answer is not lost
     const answered = new Promise<string>((resolve) => this.waiters.set(id, resolve));
     this.emit('changed', 'messages');
+    this.emit('notify', { sessionId: q.sessionId, text: q.prompt });
     return answered;
   }
 

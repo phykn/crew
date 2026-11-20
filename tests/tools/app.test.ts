@@ -7,35 +7,27 @@ import { CREW, fakeCrew, openScratch, reply, type Turn } from '../support';
 
 type Result = { content: { text: string }[] };
 
-test('도우미 finds the stopped test task the user picks, opens its log, and resumes only that one', async () => {
+test('비서 finds the stopped test task the user picks, opens its log, resumes only that one, and renames a member, all without another run', async () => {
   const { store, project, paths } = openScratch();
   const navigated: unknown[] = [];
   let fake: ReturnType<typeof fakeCrew>;
   const tool = async (name: string, a: Record<string, unknown>) =>
     ((await fake.tools.get(name)!(a)) as Result).content[0].text;
-  // The scripted models act on what the tools answer, as real ones would
-  const helperFinds: Turn = async (p, o) => {
+  // The scripted model acts on what the tools answer, as a real one would
+  const finds: Turn = async (p, o) => {
     const [t] = JSON.parse(
       await tool('app_read', { action: 'tasks.find', args: { query: '시험', status: 'stopped' } }),
     );
     await tool('app_act', { action: 'open.log', args: { task_id: t.id } });
-    return reply(`업무 #${t.id}: ${t.stopReasons.join(' / ')}`, 'h')(p, o);
+    return reply(`업무 #${t.id}: ${t.stopReasons.join(' / ')}`, 's')(p, o);
   };
-  const helperResumes: Turn = async (p, o) =>
-    reply(await tool('app_act', { action: 'tasks.resume', args: { task_id: Number(p.match(/#(\d+)/)![1]) } }), 'h')(
-      p,
-      o,
-    );
-  const relay =
-    (request: string): Turn =>
-    async (p, o) =>
-      reply(await tool('ask_helper', { request }), 's')(p, o);
+  const resumes: Turn = async (p, o) => {
+    const done = await tool('app_act', { action: 'tasks.resume', args: { task_id: stopped[1].id } });
+    const named = await tool('app_act', { action: 'crew.update', args: { role: '시험', nickname: '새별' } });
+    return reply(`${done} ${named}`, 's')(p, o);
+  };
   const never: Turn = () => new Promise(() => {});
-  fake = fakeCrew({
-    비서: [relay('지난번 테스트가 왜 멈췄는지 보여줘'), relay('')],
-    도우미: [helperFinds, helperResumes],
-    시험: [never],
-  });
+  fake = fakeCrew({ 비서: [finds, resumes], 시험: [never] });
   const chat = new Chat(
     store,
     async () => fake.sdk,
@@ -67,10 +59,13 @@ test('도우미 finds the stopped test task the user picks, opens its log, and r
   expect(navigated).toEqual([{ sessionId: s.id, view: 'log', taskId: stopped[1].id }]);
   expect(stopped.map((t) => store.readTask(t.id).status)).toEqual(['stopped', 'stopped']);
 
-  await chat.runs.run(store.readMember(p.id, 'helper'), s.id, null, `업무 #${stopped[1].id} 이어서 실행해줘`);
+  await chat.send(s.id, '그거 이어서 하고, 시험 별명은 새별로 바꿔줘');
   expect(stopped.map((t) => store.readTask(t.id).status)).toEqual(['stopped', 'running']);
+  expect(store.readMember(p.id, 'tester').nickname).toBe('새별');
+  // The only other run is the resumed task's own step
+  await vi.waitFor(() => expect(fake.calls.map((c) => c.role)).toEqual(['비서', '비서', '시험']));
 
-  // Another project's task is not there for this helper, and nothing opens
+  // Another project's task is not there for this session, and nothing opens
   const other = store.createSession(store.addProject(`${project}-other`).id);
   appServer(fake.sdk, chat, other.id);
   expect(await tool('app_act', { action: 'open.log', args: { task_id: stopped[0].id } })).toContain('없습니다');
@@ -79,15 +74,54 @@ test('도우미 finds the stopped test task the user picks, opens its log, and r
   // A read goes through app_read only, so a read-only grant cannot be used to act
   expect(await tool('app_act', { action: 'help', args: {} })).toContain('app_read');
 
-  // With read access only, resuming is not the helper's to do
-  const helper = store.readMember(p.id, 'helper');
-  chat.members.setPermissions(helper.id, { mcp: [{ server: 'app', access: 'read' }] });
-  const policy = chat.runs.policy(store.readMemberById(helper.id), p, `session-${s.id}`);
+  // With read access only, resuming is not 비서's to do
+  const secretary = store.readMember(p.id, 'orchestrator');
+  chat.members.setPermissions(secretary.id, { mcp: [{ server: 'app', access: 'read' }] });
+  const policy = chat.runs.policy(store.readMemberById(secretary.id), p, `session-${s.id}`);
   expect(checkCall(policy, 'mcp__app__app_act', { action: 'tasks.resume' }).kind).not.toBe('allow');
   expect(checkCall(policy, 'mcp__app__app_read', { action: 'tasks.find' }).kind).toBe('allow');
 });
 
-test("the helper's catalog covers every call the window makes, or says why not", () => {
+test('a temp whose work is done leaves without a card, and a regular leaves or comes back only once allowed', async () => {
+  const { store, project, paths } = openScratch();
+  const fake = fakeCrew({});
+  const chat = new Chat(
+    store,
+    async () => fake.sdk,
+    CREW,
+    () => {},
+    paths,
+  );
+  const p = store.addProject(project);
+  chat.members.seed(p.id);
+  const s = store.createSession(p.id);
+  appServer(fake.sdk, chat, s.id);
+  const definition = fs.readFileSync('crew/agents/researcher.md', 'utf-8').replace('role: 조사', 'role: 정리');
+  const temp = store.addMember(p.id, { key: 'sorter', nickname: '알바', model: 'haiku', definition, temp: true });
+  const hire = (role: string, hired: boolean) =>
+    fake.tools.get('app_act')!({ action: 'crew.hire', args: { role, hired } }) as Promise<Result>;
+  const card = () => store.listMessages(s.id).at(-1)?.question;
+
+  expect((await hire('정리', false)).content[0].text).toContain('퇴장');
+  expect(store.readMemberById(temp.id).status).toBe('unhired');
+  expect(card()).toBeUndefined();
+
+  // 비서 cannot be let go, so that is refused without asking
+  expect((await hire('비서', false)).content[0].text).toContain('내보낼 수 없습니다');
+  expect(card()).toBeUndefined();
+
+  const researcher = store.readMember(p.id, 'researcher');
+  for (const hired of [false, true]) {
+    const asked = hire('조사', hired);
+    await vi.waitFor(() => expect(card()?.answer).toBeNull());
+    expect(card()!.prompt).toContain(hired ? '조사(누리)를 다시 고용할까요' : '조사(누리)를 내보낼까요');
+    chat.questions.answer(card()!.id, '허용');
+    await asked;
+    expect(store.readMemberById(researcher.id).status).toBe(hired ? 'hired' : 'unhired');
+  }
+});
+
+test("the app's catalog covers every call the window makes, or says why not", () => {
   const { store, project, paths } = openScratch();
   const chat = new Chat(
     store,

@@ -129,13 +129,21 @@ export function kitTools(sdk: Sdk, chat: Chat, sessionId: number) {
           } catch (err) {
             return text(String(err));
           }
+          const now = chat.members.settings(m);
+          const mcp = (list: typeof now.mcp) =>
+            list.map((x) => `${kit.mcp[x.server].label}(${x.access === 'all' ? '전체' : '읽기'})`);
+          // The new list in full, then what it adds and drops, so a long list does not hide the change
+          const line = (name: string, before: string[], after: string[]) => {
+            const delta = [
+              ...after.filter((x) => !before.includes(x)).map((x) => `+${x}`),
+              ...before.filter((x) => !after.includes(x)).map((x) => `-${x}`),
+            ];
+            return `${name}: ${after.join(', ') || '없음'} (${delta.join(', ') || '바뀐 것 없음'})`;
+          };
+          const label = (list: string[]) => list.map((x) => kit.skills[x].label);
           const shown = [
-            ...(a.skills ? [`스킬: ${a.skills.map((s) => kit.skills[s].label).join(', ') || '없음'}`] : []),
-            ...(a.mcp
-              ? [
-                  `MCP: ${a.mcp.map((x) => `${kit.mcp[x.server].label}(${x.access === 'all' ? '전체' : '읽기'})`).join(', ') || '없음'}`,
-                ]
-              : []),
+            ...(a.skills ? [line('스킬', label(now.skills), label(a.skills))] : []),
+            ...(a.mcp ? [line('MCP', mcp(now.mcp), mcp(a.mcp))] : []),
           ];
           if (
             !(await approve(

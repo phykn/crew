@@ -129,7 +129,7 @@ test('인사 names a member who already fits instead of drafting, and a draft wi
   const s = store.createSession(p.id);
   expect(await chat.members.hire(s.id, '버전 조사', false)).toContain('조사(researcher)가 이미 맞습니다');
   expect(await chat.members.hire(s.id, '번역', false)).toContain('정의가 맞지 않습니다');
-  expect(store.listMembers(p.id)).toHaveLength(11);
+  expect(store.listMembers(p.id)).toHaveLength(10);
 });
 
 test('asked to hire a role that was let go, 인사 names it and it comes back instead of a twin', async () => {
@@ -149,7 +149,7 @@ test('asked to hire a role that was let go, 인사 names it and it comes back in
   chat.members.fire(tester.id);
   expect(await chat.members.hire(s.id, '시험 담당 다시', false)).toContain('다시 고용했습니다');
   expect(store.readMemberById(tester.id).status).toBe('hired');
-  expect(store.listMembers(p.id)).toHaveLength(11);
+  expect(store.listMembers(p.id)).toHaveLength(10);
   // 인사 is told who was let go, so it can name them
   expect(fake.calls.find((c) => c.role === '인사')!.prompt).toContain('(tester) [let go]');
 });
@@ -262,11 +262,46 @@ test('skills set before a skill was renamed or split keep it under its new names
   store.writeConfig(coder.id, { skills: ['code', 'tools', 'review', 'report'], tools: ['read'] }, 'test');
   const version = (store.db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
   // The renames rerun after them, so what was added since goes first
-  store.db.exec(`DROP TABLE skills; ALTER TABLE projects DROP COLUMN mode; PRAGMA user_version = ${version - 4}`);
+  store.db.exec(`DROP TABLE skills; ALTER TABLE projects DROP COLUMN mode; PRAGMA user_version = ${version - 5}`);
   expect(new Store(db).readMemberById(coder.id).config).toEqual({
     skills: ['code', 'check', 'plan-review', 'code-review', 'report'],
     tools: ['read'],
   });
+});
+
+test('a record from when 도우미 was shipped opens without it, keeping the log lines and tasks', () => {
+  const { store, project, db } = openScratch();
+  const p = store.addProject(project);
+  const s = store.createSession(p.id);
+  store.seedMembers(p.id, [
+    { key: 'orchestrator', nickname: '하람', model: 'sonnet' },
+    { key: 'helper', nickname: '보람', model: 'haiku' },
+  ]);
+  const helper = store.readMember(p.id, 'helper');
+  store.startRun(store.openAgentSession(s.id, helper.id).id, 'haiku');
+  const task = store.createTask({
+    sessionId: s.id,
+    kind: 'research',
+    title: '조사',
+    request: 'r',
+    workflow: { kind: 'research', label: '조사', use: '', steps: [] } as never,
+  });
+  store.addEvent({
+    sessionId: s.id,
+    taskId: task.id,
+    memberId: helper.id,
+    kind: 'note',
+    text: '도우미가 열었습니다',
+    detail: null,
+  });
+  const version = (store.db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
+  store.db.exec(`PRAGMA user_version = ${version - 1}`);
+
+  const after = new Store(db);
+  expect(after.listMembers(p.id).map((m) => m.key)).toEqual(['orchestrator']);
+  expect(after.db.prepare('SELECT COUNT(*) AS n FROM runs').get()).toEqual({ n: 0 });
+  expect(after.listEvents(s.id).map((e) => [e.text, e.memberId])).toEqual([['도우미가 열었습니다', null]]);
+  expect(after.readTask(task.id).title).toBe('조사');
 });
 
 test('도구 makes, deletes, and resets skills for this project only, each on an approved card in manual mode', async () => {
@@ -318,6 +353,12 @@ test('도구 makes, deletes, and resets skills for this project only, each on an
   await run('reset_skills', { reason: '처음대로' });
   expect(chat.members.kit(p.id).skills.changelog).toBeUndefined();
   expect(chat.members.settings(store.readMember(p.id, 'coder')).skills).toContain('code');
+  // A new list of skills shows on the card with what it adds and drops
+  await run('assign', { member: 'coder', skills: ['code', 'check', 'debug'], reason: '실패를 읽게' });
+  expect(store.listMessages(s.id).at(-1)!.text).toContain(
+    '스킬: 코드 작성, 빠른 점검, 실패 분석 (+실패 분석, -작성 기준)',
+  );
+  expect(chat.members.settings(store.readMember(p.id, 'coder')).skills).toEqual(['code', 'check', 'debug']);
   // Outside manual mode a change applies without a card
   store.setMode(p.id, 'auto');
   const cards = store.listMessages(s.id).length;

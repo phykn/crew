@@ -28,7 +28,7 @@ export function onChanged(fn: (topic: string) => void) {
   return window.crew.on('changed', (p) => fn(p as string));
 }
 
-// 도우미 opening a screen, the way a click would
+// 비서 opening a screen, the way a click would
 type Navigate = { sessionId: number; view: 'log' | 'wiki' | 'workflow'; taskId?: number; kind?: string };
 
 export function onNavigate(fn: (ev: Navigate) => void) {

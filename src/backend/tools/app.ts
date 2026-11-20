@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { type Sdk, text } from '../agents/run';
 import type { Chat } from '../chat';
-import { MODES, type Task } from '../db';
-import { Config, KEPT, MODELS } from '../crew/shipped';
+import { MODES, type Member, type Task } from '../db';
+import { KEPT, MODELS } from '../crew/shipped';
 import { ALLOW } from '../questions';
 import { josa } from '../../korean';
 
@@ -15,21 +15,21 @@ type Action = {
   args: z.ZodObject;
   // The window calls this action does, so a new call in the window shows up as missing here
   ui: string[];
-  // Set for what changes who may do what or deletes something: the user approves it on a card first
-  confirm?: (a: never) => string;
+  // Set for what changes who may do what or deletes something: the user approves it on a card first, unless it returns null
+  confirm?: (a: never) => string | null;
   run: (a: never) => unknown;
 };
 const action = <S extends z.ZodObject>(
   a: Omit<Action, 'args' | 'run' | 'confirm'> & {
     args: S;
-    confirm?: (a: z.infer<S>) => string;
+    confirm?: (a: z.infer<S>) => string | null;
     run: (a: z.infer<S>) => unknown;
   },
 ) => a as unknown as Action;
 
-// Window calls the helper does not get, each with why
+// Window calls 비서 does not get, each with why
 export const OFF_CATALOG: Record<string, string> = {
-  'projects.list': 'the helper sees only its own project',
+  'projects.list': '비서 sees only its own project',
   'projects.open': 'opening a folder needs the native dialog',
   'projects.impact': 'removing the project the crew works in is for the user',
   'projects.remove': 'removing the project the crew works in is for the user',
@@ -37,9 +37,10 @@ export const OFF_CATALOG: Record<string, string> = {
   'sessions.clear': 'a fresh session is the user’s /clear',
   'last.read': 'window state, not an action',
   'last.write': 'window state, not an action',
-  'messages.list': 'the helper speaks through 비서',
-  'messages.send': 'the helper speaks through 비서',
-  'messages.stop': 'the helper speaks through 비서',
+  'messages.list': '비서 is the conversation itself',
+  'messages.send': '비서 is the conversation itself',
+  'messages.stop': '비서 is the conversation itself',
+  'members.setPermissions': 'the tools member changes permissions, skills, and MCP servers, through ask_tools',
   'questions.answer': 'only the user answers cards',
   'camp.state': 'the camp is drawn from the record, not acted on',
   'workflows.save': '비서 saves workflows with change_workflow, filing the reason',
@@ -68,6 +69,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
     if (!m) throw new Error(`${josa(name, '은')} 이 프로젝트 크루에 없습니다.`);
     return m;
   };
+  const named = (m: Member) => `${crew.defOf(m).role}(${m.nickname})`;
   const task = (id: number) => {
     const t = ownTask(id);
     if (!t) throw new Error(`업무 ${josa(`#${id}`, '은')} 이 프로젝트에 없습니다.`);
@@ -329,25 +331,18 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       kind: 'act',
       args: z.object({ role, hired: z.boolean() }),
       ui: ['members.update'],
-      confirm: (a) => `${josa(a.role, '을')} ${a.hired ? '다시 고용할까요?' : '내보낼까요?'}`,
+      // A temp whose work is done is meant to leave, and a kept member is refused, so neither is asked
+      confirm: (a) => {
+        const m = member(a.role);
+        if (!a.hired && (m.temp || KEPT.includes(m.key))) return null;
+        return `${josa(named(m), '을')} ${a.hired ? '다시 고용할까요?' : '내보낼까요?'}`;
+      },
       run: (a) => {
         const m = member(a.role);
-        if (!a.hired && KEPT.includes(m.key)) throw new Error(`${josa(a.role, '은')} 내보낼 수 없습니다.`);
+        if (!a.hired && KEPT.includes(m.key)) throw new Error(`${josa(named(m), '은')} 내보낼 수 없습니다.`);
         if (a.hired) members.rehire(m.id);
         else members.fire(m.id);
-        return `${a.role}(${m.nickname}) ${a.hired ? '고용' : '퇴장'} 처리했습니다.`;
-      },
-    }),
-    action({
-      id: 'crew.setPermissions',
-      label: '담당자 권한 바꾸기',
-      kind: 'act',
-      args: z.object({ role, config: Config }),
-      ui: ['members.setPermissions'],
-      confirm: (a) => `${a.role}의 권한을 이렇게 바꿀까요? ${JSON.stringify(a.config)}`,
-      run: (a) => {
-        members.setPermissions(member(a.role).id, a.config);
-        return `${a.role}의 권한을 바꿨습니다.`;
+        return `${named(m)} ${a.hired ? '고용' : '퇴장'} 처리했습니다.`;
       },
     }),
     action({
@@ -371,8 +366,8 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       ui: ['wiki.write'],
       run: (a) => {
         wiki.write(projectId, a.title, a.body, {
-          memberId: members.find(projectId, 'helper')?.id ?? null,
-          name: '도우미',
+          memberId: members.find(projectId, 'orchestrator')?.id ?? null,
+          name: '비서',
         });
         chat.emit('changed', 'wiki');
         return `위키 문서를 저장했습니다: ${a.title}`;
@@ -388,7 +383,10 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       run: (a) => {
         const doc = wiki.list(projectId).find((d) => d.title === a.title);
         if (!doc) throw new Error(`위키에 "${a.title}" 문서가 없습니다.`);
-        return chat.workflows.removeDoc(doc.id, a.release_rule, { memberId: null, name: '도우미' });
+        return chat.workflows.removeDoc(doc.id, a.release_rule, {
+          memberId: members.find(projectId, 'orchestrator')?.id ?? null,
+          name: '비서',
+        });
       },
     }),
   ];
@@ -409,8 +407,9 @@ export function appServer(sdk: Sdk, chat: Chat, sessionId: number) {
     if (!parsed.success) return text(`인자가 맞지 않습니다: ${parsed.error.message}`);
     try {
       // 전부 checks nothing; otherwise who may do what, and deleting, is the user's call
-      if (a.confirm && store.projectOf(sessionId).mode !== 'bypass') {
-        const answer = await chat.questions.choose(sessionId, a.confirm(parsed.data as never), [ALLOW, '거절']);
+      const prompt = store.projectOf(sessionId).mode === 'bypass' ? null : a.confirm?.(parsed.data as never);
+      if (prompt) {
+        const answer = await chat.questions.choose(sessionId, prompt, [ALLOW, '거절']);
         if (answer !== ALLOW) return text('사용자가 거절해서 하지 않았습니다.');
       }
       const out = await a.run(parsed.data as never);
