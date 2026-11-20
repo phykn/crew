@@ -5,7 +5,19 @@ import { findPath } from './route.js';
 import { CAMP, iso } from './projection.js';
 import { headTop } from './paint/people.js';
 
-const CHAT = ['모닥불 따뜻하네요', '오늘도 수고 많아요', '점심은 뭐 먹을까요?', '잠깐 쉬었다 할게요'];
+// Small talk follows the user's clock, so a camp at midnight does not plan lunch
+const CHAT = {
+  morning: ['아침 잘 먹었어요?', '오늘 할 일이 많네요', '커피 한 잔 할까요?'],
+  day: ['점심은 뭐 먹을까요?', '오늘도 수고 많아요', '잠깐 쉬었다 할게요'],
+  evening: ['저녁은 뭐 먹을까요?', '오늘 하루 길었네요', '모닥불 따뜻하네요'],
+  night: ['이제 좀 쉬어야지.', '밤이 깊었네요', '모닥불 따뜻하네요'],
+};
+export function smallTalk(hour) {
+  if (hour >= 5 && hour < 11) return CHAT.morning;
+  if (hour >= 11 && hour < 17) return CHAT.day;
+  if (hour >= 17 && hour < 22) return CHAT.evening;
+  return CHAT.night;
+}
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
 // People never stop closer than this to someone else, in tiles
 const SPACE = 1.3;
@@ -105,8 +117,9 @@ export function createWalkers() {
     if (roll < 0.55) {
       const q = others(p).find((o) => o.state !== 'working' && !o.path.length && Math.hypot(o.x - p.x, o.y - p.y) < 3);
       if (q) {
-        speak(p, pick(CHAT), 'chat');
-        speak(q, pick(CHAT), 'chat');
+        const talk = smallTalk(new Date().getHours());
+        speak(p, pick(talk), 'chat');
+        speak(q, pick(talk), 'chat');
         return;
       }
     }

@@ -33,11 +33,16 @@ export function App() {
     setTab('log');
   }
 
-  // Hires made through 비서 reach the legend and the camp; a session named by its first message shows its name
+  // Hires made through 비서 reach the legend and the camp; a session named by its first message shows its name; a mode 도우미 set shows by the input
   useEffect(() => {
     if (!project) return;
     return onChanged(async (t) => {
       if (t === 'members') setMembers(await call('members.list', { projectId: project.id }));
+      if (t === 'projects') {
+        const list = await call('projects.list');
+        setProjects(list);
+        setProject((p) => list.find((x) => x.id === p?.id) ?? p);
+      }
       if (t === 'sessions') {
         const list = await call('sessions.list', { projectId: project.id });
         setSessions(list);
@@ -154,7 +159,8 @@ export function App() {
               <Tabs.Trigger value="memory">메모리</Tabs.Trigger>
               <Tabs.Trigger value="workflow">워크플로우</Tabs.Trigger>
             </Tabs.List>
-            <Tabs.Content value="chat" className="tab-body">
+            {/* Kept mounted so a reply streaming in keeps its first words while another tab is open */}
+            <Tabs.Content value="chat" className="tab-body" forceMount>
               {session ? (
                 <Chat
                   session={session}

@@ -48,6 +48,33 @@ test('a closed inbox refuses a line, so 비서 is told it in a new run instead o
   expect(inbox.push('늦은 보고')).toBe(false);
 });
 
+test('a message said while 비서 is answering keeps the chat showing 비서 at work after the first reply', async () => {
+  const { store, project, paths } = openScratch();
+  let release = () => {};
+  const held: Turn = (p, o) => new Promise((r) => (release = () => r(reply('첫 답', 's')(p, o) as never)));
+  const fake = fakeCrew({ 비서: [held, reply('둘째 답', 's')] });
+  const streams: { delta?: string; done?: boolean }[] = [];
+  const chat = new Chat(
+    store,
+    async () => fake.sdk,
+    CREW,
+    (ch, p) => ch === 'stream' && streams.push(p as never),
+    paths,
+  );
+  const p = store.addProject(project);
+  chat.members.seed(p.id);
+  const s = store.createSession(p.id);
+  const first = chat.send(s.id, '하나');
+  await vi.waitFor(() => expect(fake.calls).toHaveLength(1));
+  await chat.send(s.id, '둘');
+  release();
+  await first;
+  const ends = streams.filter((e) => e.done || e.delta === '');
+  // After the first reply the thinking state comes back; after the last one it ends
+  expect(ends.map((e) => (e.done ? 'done' : 'thinking'))).toEqual(['done', 'thinking', 'done']);
+  expect(store.listMessages(s.id).map((m) => m.text)).toEqual(['하나', '둘', '첫 답', '둘째 답']);
+});
+
 test('stopping 비서 mid-answer ends that run and says so in the chat', async () => {
   const { store, project, paths } = openScratch();
   const fake = fakeCrew({ 비서: [() => new Promise(() => {})] });

@@ -8,6 +8,7 @@ test('the legend lists the crew with their models, and its settings keep nicknam
   const roles = ['비서', '인사', '도구', '기획', '개발', '리뷰', '시험', '표준', '조사', '그림', '도우미'];
   await expect(page.locator('.legend-row .role')).toHaveText(roles);
   await expect(page.getByLabel('개발 설정')).toContainText('Sonnet');
+  await expect(page.locator('.legend-head')).toHaveText('크루 · 11명 고용 중');
 
   // Kept roles have no hiring switch
   await page.getByLabel('비서 설정').click();
@@ -33,6 +34,7 @@ test('the legend lists the crew with their models, and its settings keep nicknam
   await page.getByLabel('시험 고용').click();
   await page.getByRole('dialog').getByRole('button', { name: '닫기' }).click();
   await expect(page.getByLabel('시험 설정')).toContainText('미고용');
+  await expect(page.locator('.legend-head')).toHaveText('크루 · 10명 고용 중');
   await app.close();
 
   app = await launchApp(scratch.db);

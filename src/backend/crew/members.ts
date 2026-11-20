@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Chat } from '../chat';
 import type { Member } from '../db';
 import { Config, parseDefinition, type Settings } from './shipped';
+import { particle } from '../../korean';
 
 const Draft = z.object({
   fits: z
@@ -117,7 +118,7 @@ export class Members {
     const prompt = [
       `[Hire] The crew needs: ${need}`,
       `As a ${temp ? 'temp (알바)' : 'regular'}.`,
-      `# Existing members\n${members.map((m) => `- ${crew.defOf(m).role} (${m.key}): ${crew.defOf(m).description}`).join('\n')}`,
+      `# Existing members\n${members.map((m) => `- ${crew.defOf(m).role} (${m.key})${m.status === 'hired' ? '' : ' [let go]'}: ${crew.defOf(m).description}`).join('\n')}`,
       `# Nicknames in use\n${members.map((m) => m.nickname).join(', ')}`,
       `# Kit\nSkills: ${Object.keys(kit.skills).join(', ')}. MCP servers: ${Object.keys(kit.mcp).join(', ')}.`,
     ].join('\n\n');
@@ -128,7 +129,13 @@ export class Members {
     if (!draft.success) return `인사가 정의를 만들지 못했습니다: ${out.error ?? '형식이 맞지 않습니다'}`;
     const { fits, key, nickname } = draft.data;
     const fit = fits && this.find(project.id, fits.key);
-    if (fit) return `새로 뽑지 않았습니다. ${crew.defOf(fit).role}(${fit.key})이 이미 맞습니다: ${fits.reason}`;
+    if (fit && (fit.status !== 'hired' || fit.leaving)) {
+      // One let go who fits comes back with its settings; designing a twin would leave the old one unhired
+      this.rehire(fit.id);
+      return `${crew.defOf(fit).role}(${fit.nickname})${particle(crew.defOf(fit).role, '을')} 다시 고용했습니다.`;
+    }
+    if (fit)
+      return `새로 뽑지 않았습니다. ${crew.defOf(fit).role}(${fit.key})${particle(crew.defOf(fit).role, '이')} 이미 맞습니다: ${fits.reason}`;
     if (!key || !nickname || !draft.data.definition)
       return '인사가 정의를 만들지 못했습니다: 키, 별명, 정의가 모두 있어야 합니다';
     let definition = draft.data.definition;
@@ -139,15 +146,19 @@ export class Members {
     } catch (err) {
       return `인사의 정의가 맞지 않습니다: ${String(err)}`;
     }
-    if (members.some((m) => m.key === key || crew.defOf(m).role === def.role))
-      return `${def.role}(${key})는 이미 있습니다.`;
+    const same = members.find((m) => m.key === key || crew.defOf(m).role === def.role);
+    if (same && same.status !== 'hired' && !same.temp) {
+      this.rehire(same.id);
+      return `${crew.defOf(same).role}(${same.nickname})${particle(crew.defOf(same).role, '을')} 다시 고용했습니다.`;
+    }
+    if (same) return `${def.role}(${key})${particle(def.role, '은')} 이미 있습니다.`;
     // The role line is how a run knows who it is; a draft that left it out still gets it
     if (!def.instructions.includes(`**${def.role}**`))
       definition = definition.replace(/\n---\r?\n/, `\n---\n\nYou are the crew's **${def.role}** (${key}).\n\n`);
     const member = store.addMember(project.id, { key, nickname, model: def.model, definition, temp });
     this.note(member, 'hire', `${def.role}(${nickname}) ${temp ? '알바로' : '정규로'} 고용`);
     this.chat.emit('changed', 'members');
-    return `${def.role}(${nickname})을 ${temp ? '알바로' : '정규로'} 고용했습니다. key: ${key}`;
+    return `${def.role}(${nickname})${particle(def.role, '을')} ${temp ? '알바로' : '정규로'} 고용했습니다. key: ${key}`;
   }
 
   // Letting go is idempotent: a second press while leaving or gone changes nothing
@@ -167,6 +178,7 @@ export class Members {
       store.writeLeaving(memberId, false);
       store.updateMember(memberId, { status: 'hired' });
     });
+    this.chat.emit('changed', 'members');
   }
 
   leave(memberId: number) {

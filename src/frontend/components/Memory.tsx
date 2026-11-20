@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { CrewMember } from '../../backend/crew/shipped';
 import type { Change, Doc, Memory as Note } from '../../backend/wiki';
+import { stamp } from '../time';
 import { call, onChanged } from '../api';
 import { Choice } from './Choice';
 import { WikiGraph } from './WikiGraph';
@@ -247,7 +248,7 @@ function WikiView({
           {changes.map((c) => (
             <li key={c.id}>
               <button className="log-line" aria-expanded={detail?.id === c.id} onClick={() => open(c)}>
-                <time>{c.at.slice(5, 16).replace('T', ' ')}</time>
+                <time>{stamp(c.at)}</time>
                 <span className="wiki-kind" data-kind={c.kind}>
                   {KIND[c.kind]}
                 </span>
@@ -305,7 +306,7 @@ function Notes({
           <span className="log-who">{who(n.memberId)?.role ?? '?'}</span> {n.text}
           <span className="muted">
             {' '}
-            {n.at.slice(5, 16).replace('T', ' ')}
+            {stamp(n.at)}
             {n.taskId ? ` · 업무 #${n.taskId}` : ''}
           </span>
         </li>

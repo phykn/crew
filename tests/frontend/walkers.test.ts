@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'vitest';
 import { SEATS, blocked } from '../../src/frontend/camp/layout.js';
-import { createWalkers } from '../../src/frontend/camp/walkers.js';
+import { createWalkers, smallTalk } from '../../src/frontend/camp/walkers.js';
 
 test('idle members stroll only on open ground and chat among themselves without touching the record', () => {
   vi.useFakeTimers();
@@ -33,4 +33,11 @@ test('idle members stroll only on open ground and chat among themselves without 
   expect(moved).toBeGreaterThan(0);
   expect(chats).toBeGreaterThan(0);
   vi.useRealTimers();
+});
+
+test('small talk follows the hour: breakfast in the morning, no lunch plans at midnight', () => {
+  expect(smallTalk(8)).toContain('아침 잘 먹었어요?');
+  expect(smallTalk(13)).toContain('점심은 뭐 먹을까요?');
+  expect(smallTalk(0)).toContain('이제 좀 쉬어야지.');
+  expect(smallTalk(0).join()).not.toContain('점심');
 });

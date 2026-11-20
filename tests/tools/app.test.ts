@@ -1,6 +1,7 @@
 import { expect, test, vi } from 'vitest';
 import { Chat } from '../../src/backend/chat';
-import { appServer } from '../../src/backend/tools/app';
+import fs from 'node:fs';
+import { OFF_CATALOG, appActions, appServer } from '../../src/backend/tools/app';
 import { checkCall } from '../../src/backend/agents/guard';
 import { CREW, fakeCrew, openScratch, reply, type Turn } from '../support';
 
@@ -14,12 +15,17 @@ test('도우미 finds the stopped test task the user picks, opens its log, and r
     ((await fake.tools.get(name)!(a)) as Result).content[0].text;
   // The scripted models act on what the tools answer, as real ones would
   const helperFinds: Turn = async (p, o) => {
-    const [t] = JSON.parse(await tool('find_tasks', { query: '시험', status: 'stopped' }));
-    await tool('open_log', { task_id: t.id });
+    const [t] = JSON.parse(
+      await tool('app_read', { action: 'tasks.find', args: { query: '시험', status: 'stopped' } }),
+    );
+    await tool('app_act', { action: 'open.log', args: { task_id: t.id } });
     return reply(`업무 #${t.id}: ${t.stopReasons.join(' / ')}`, 'h')(p, o);
   };
   const helperResumes: Turn = async (p, o) =>
-    reply(await tool('resume_task', { task_id: Number(p.match(/#(\d+)/)![1]) }), 'h')(p, o);
+    reply(await tool('app_act', { action: 'tasks.resume', args: { task_id: Number(p.match(/#(\d+)/)![1]) } }), 'h')(
+      p,
+      o,
+    );
   const relay =
     (request: string): Turn =>
     async (p, o) =>
@@ -67,14 +73,65 @@ test('도우미 finds the stopped test task the user picks, opens its log, and r
   // Another project's task is not there for this helper, and nothing opens
   const other = store.createSession(store.addProject(`${project}-other`).id);
   appServer(fake.sdk, chat, other.id);
-  expect(await tool('open_log', { task_id: stopped[0].id })).toContain('없습니다');
+  expect(await tool('app_act', { action: 'open.log', args: { task_id: stopped[0].id } })).toContain('없습니다');
   expect(navigated).toHaveLength(1);
-  await expect(tool('open_workflow_editor', { kind: 'nope' })).rejects.toThrow();
+  expect(await tool('app_act', { action: 'open.workflow', args: { kind: 'nope' } })).toContain('인자가 맞지 않습니다');
+  // A read goes through app_read only, so a read-only grant cannot be used to act
+  expect(await tool('app_act', { action: 'help', args: {} })).toContain('app_read');
 
   // With read access only, resuming is not the helper's to do
   const helper = store.readMember(p.id, 'helper');
   chat.members.setPermissions(helper.id, { mcp: [{ server: 'app', access: 'read' }] });
   const policy = chat.runs.policy(store.readMemberById(helper.id), p, `session-${s.id}`);
-  expect(checkCall(policy, 'mcp__app__resume_task', { task_id: 1 }).kind).not.toBe('allow');
-  expect(checkCall(policy, 'mcp__app__find_tasks', {}).kind).toBe('allow');
+  expect(checkCall(policy, 'mcp__app__app_act', { action: 'tasks.resume' }).kind).not.toBe('allow');
+  expect(checkCall(policy, 'mcp__app__app_read', { action: 'tasks.find' }).kind).toBe('allow');
+});
+
+test("the helper's catalog covers every call the window makes, or says why not", () => {
+  const { store, project, paths } = openScratch();
+  const chat = new Chat(
+    store,
+    async () => fakeCrew({}).sdk,
+    CREW,
+    () => {},
+    paths,
+  );
+  const s = store.createSession(store.addProject(project).id);
+  const covered = appActions(chat, s.id).flatMap((a) => a.ui);
+  const ipc = fs.readFileSync('src/backend/window/ipc.ts', 'utf-8');
+  const window = [...ipc.matchAll(/'([a-z]+\.[a-zA-Z]+)': handle\(/g)].map((m) => m[1]);
+  expect(window.length).toBeGreaterThan(30);
+  expect(window.filter((c) => !covered.includes(c) && !(c in OFF_CATALOG))).toEqual([]);
+  expect(Object.keys(OFF_CATALOG).filter((c) => covered.includes(c) || !window.includes(c))).toEqual([]);
+});
+
+test('changing the approval mode waits for the user, and a refusal leaves it as it was', async () => {
+  const { store, project, paths } = openScratch();
+  const fake = fakeCrew({});
+  const chat = new Chat(
+    store,
+    async () => fake.sdk,
+    CREW,
+    () => {},
+    paths,
+  );
+  const p = store.addProject(project);
+  chat.members.seed(p.id);
+  const s = store.createSession(p.id);
+  appServer(fake.sdk, chat, s.id);
+  const act = async (mode: string) =>
+    ((await fake.tools.get('app_act')!({ action: 'mode.set', args: { mode } })) as Result).content[0].text;
+  const card = () => store.listMessages(s.id).at(-1)!.question!;
+
+  const refused = act('bypass');
+  await vi.waitFor(() => expect(card().prompt).toContain('전부로'));
+  chat.questions.answer(card().id, '거절');
+  expect(await refused).toContain('거절');
+  expect(store.readProject(p.id).mode).toBe('manual');
+
+  const allowed = act('auto');
+  await vi.waitFor(() => expect(card().answer).toBeNull());
+  chat.questions.answer(card().id, '허용');
+  expect(await allowed).toContain('자동으로');
+  expect(store.readProject(p.id).mode).toBe('auto');
 });

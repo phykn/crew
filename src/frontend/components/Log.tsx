@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Event, Handback, Session, Task } from '../../backend/db';
 import type { CrewMember } from '../../backend/crew/shipped';
 import { call, onChanged } from '../api';
+import { clock, duration } from '../time';
 import { Choice } from './Choice';
 
 const ALL = 'all';
@@ -38,6 +39,7 @@ export function Log({
   const who = (id: number | null) => members.find((m) => m.id === id);
   const runs = usage.reduce((n, u) => n + u.runs, 0);
   const cost = usage.reduce((n, u) => n + u.costUsd, 0);
+  const seconds = usage.reduce((n, u) => n + u.seconds, 0);
   return (
     <div className="log">
       <div className="toolbar">
@@ -56,7 +58,7 @@ export function Log({
             aria-expanded={showUsage}
             onClick={() => setShowUsage(!showUsage)}
           >
-            {runs}회 · ${cost.toFixed(3)}
+            {runs}회 · {duration(seconds)} · ${cost.toFixed(3)}
           </button>
         )}
       </div>
@@ -78,7 +80,7 @@ export function Log({
                 <td>{who(u.memberId)?.role ?? '?'}</td>
                 <td>{u.model}</td>
                 <td>{u.runs}</td>
-                <td>{Math.round(u.seconds)}초</td>
+                <td>{duration(u.seconds)}</td>
                 <td>
                   {u.inputTokens.toLocaleString()} / {u.outputTokens.toLocaleString()}
                 </td>
@@ -95,7 +97,7 @@ export function Log({
           const errors = e.kind === 'step' && !hb ? readErrors(e.detail) : null;
           const opens = !!(hb || errors);
           // A minute already shown on the line above is not repeated
-          const minute = e.at.slice(11, 16);
+          const minute = clock(e.at);
           const same = i > 0 && shown[i - 1].at.slice(0, 16) === e.at.slice(0, 16);
           return (
             <li

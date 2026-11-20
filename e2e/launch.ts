@@ -21,8 +21,21 @@ export async function launchApp(db: string, script?: unknown): Promise<ElectronA
   }
   // Set by editors that host Node in Electron; it would start Electron as plain Node
   delete env.ELECTRON_RUN_AS_NODE;
-  return electron.launch({ args: ['.'], env });
+  const app = await electron.launch({ args: ['.', ...OFFSCREEN], env });
+  await app.firstWindow();
+  // Off the screen, so the tests neither cover the user's work nor catch their clicks
+  await app.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows().forEach((w) => w.setPosition(-32000, -32000)),
+  );
+  return app;
 }
+
+// Chromium stops painting a window it thinks nobody can see, which would stall screenshots and animation
+const OFFSCREEN = [
+  '--disable-features=CalculateNativeWinOcclusion',
+  '--disable-backgrounding-occluded-windows',
+  '--disable-renderer-backgrounding',
+];
 
 // The native folder dialog cannot be clicked, so the test answers it from the main process
 export async function answerFolderDialog(app: ElectronApplication, folder: string) {

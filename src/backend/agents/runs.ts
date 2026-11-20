@@ -8,12 +8,13 @@ import { toolsOf } from '../crew/shipped';
 import { guardMember, projectWrites, type Policy } from './guard';
 import { Locks, realPath } from './locks';
 import { appServer } from '../tools/app';
+import { josa } from '../../korean';
 
 type RunOptions = {
   schema?: Record<string, unknown>;
   mcpServers?: Options['mcpServers'];
   onText?: (delta: string) => void;
-  onReply?: (text: string) => void;
+  onReply?: (text: string, more: boolean) => void;
   // False once the run is no longer wanted, such as a step of a stopped task or of a drive since replaced
   alive?: () => boolean;
 };
@@ -180,7 +181,7 @@ export class Runs {
         taskId,
         memberId: null,
         kind: 'waiting',
-        text: `쓰기 예약 대기: 업무 #${holders.join(', #')}가 같은 범위를 쓰는 중`,
+        text: `쓰기 예약 대기: 업무 ${josa(`#${holders.join(', #')}`, '이')} 같은 범위를 쓰는 중`,
         detail: JSON.stringify({ paths }),
       });
       emit('changed', 'tasks');

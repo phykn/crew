@@ -4,6 +4,7 @@ import type { Member, Mode, Store } from '../db';
 import type { Settings } from '../crew/shipped';
 import { ALLOW, type Questions, REFUSE } from '../questions';
 import { inside } from './locks';
+import { josa } from '../../korean';
 
 // What one member may do right now; read fresh on every call so a revoked permission applies at once
 export type Policy = {
@@ -97,7 +98,7 @@ function checkMcp(policy: Policy, tool: string, input: Record<string, unknown>, 
   if (held.readTools && !held.readTools.includes(name)) {
     return {
       kind: 'ask',
-      reason: `${policy.role}은 ${server}를 읽기로만 쓸 수 있어 ${name}을 쓰려면 승인이 필요합니다`,
+      reason: `${josa(policy.role, '은')} ${josa(server, '을')} 읽기로만 쓸 수 있어 ${josa(name, '을')} 쓰려면 승인이 필요합니다`,
     };
   }
   const file = input.filename;

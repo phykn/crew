@@ -22,8 +22,9 @@ import '@xyflow/react/dist/style.css';
 import type { CrewMember } from '../../backend/crew/shipped';
 import type { Project } from '../../backend/db';
 import type { Step } from '../../backend/tasks/workflow';
-import { call } from '../api';
+import { call, onChanged } from '../api';
 import { Choice } from './Choice';
+import { josa } from '../../korean';
 
 type Read = Awaited<ReturnType<typeof call<'workflows.read'>>>;
 type StepNode = Node<{ step: Step; member?: CrewMember; back?: string }, 'step'>;
@@ -69,6 +70,8 @@ export function WorkflowView({
     load();
     setNote(null);
   }, [project.id, kind]);
+  // A version 비서 saves shows at once; unsaved edits stay, and saving them is refused as stale
+  useEffect(() => onChanged((topic) => topic === 'workflows' && !dirty && load()), [project.id, kind, dirty]);
 
   // Nodes carry the step, so edits in the side panel show on the canvas at once
   const shown = useMemo(
@@ -303,7 +306,9 @@ function StepBox({ data }: NodeProps<StepNode>) {
       )}
       <div>{step.label}</div>
       {step.verdict && (
-        <div className="muted">{back ? `안 되면 ${back}로 · 최대 ${step.loops}번` : '앞 단계에 이어 주세요'}</div>
+        <div className="muted">
+          {back ? `안 되면 ${josa(back, '으로')} · 최대 ${step.loops}번` : '앞 단계에 이어 주세요'}
+        </div>
       )}
       <Handle type="source" position={Position.Bottom} />
     </div>

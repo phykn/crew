@@ -1,5 +1,6 @@
 import * as Select from '@radix-ui/react-select';
 import type { Project, Session } from '../../backend/db';
+import { clock } from '../time';
 import { Chevron } from './Icons';
 
 const OPEN = 'open';
@@ -22,7 +23,7 @@ type Props = {
 export function sessionLabel(s: Session) {
   if (s.title) return s.title;
   const d = new Date(s.createdAt);
-  return `새 대화 ${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `새 대화 ${d.getMonth() + 1}/${d.getDate()} ${clock(s.createdAt)}`;
 }
 
 export function ProjectBar(props: Props) {

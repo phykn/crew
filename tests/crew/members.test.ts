@@ -127,9 +127,31 @@ test('인사 names a member who already fits instead of drafting, and a draft wi
   const p = store.addProject(project);
   chat.members.seed(p.id);
   const s = store.createSession(p.id);
-  expect(await chat.members.hire(s.id, '버전 조사', false)).toContain('조사(researcher)이 이미 맞습니다');
+  expect(await chat.members.hire(s.id, '버전 조사', false)).toContain('조사(researcher)가 이미 맞습니다');
   expect(await chat.members.hire(s.id, '번역', false)).toContain('정의가 맞지 않습니다');
   expect(store.listMembers(p.id)).toHaveLength(11);
+});
+
+test('asked to hire a role that was let go, 인사 names it and it comes back instead of a twin', async () => {
+  const { store, project, paths } = openScratch();
+  const fake = fakeCrew({ 인사: [reply('', 'hr', { fits: { key: 'tester', reason: '시험 담당이 있습니다' } })] });
+  const chat = new Chat(
+    store,
+    async () => fake.sdk,
+    CREW,
+    () => {},
+    paths,
+  );
+  const p = store.addProject(project);
+  chat.members.seed(p.id);
+  const s = store.createSession(p.id);
+  const tester = store.readMember(p.id, 'tester');
+  chat.members.fire(tester.id);
+  expect(await chat.members.hire(s.id, '시험 담당 다시', false)).toContain('다시 고용했습니다');
+  expect(store.readMemberById(tester.id).status).toBe('hired');
+  expect(store.listMembers(p.id)).toHaveLength(11);
+  // 인사 is told who was let go, so it can name them
+  expect(fake.calls.find((c) => c.role === '인사')!.prompt).toContain('(tester) [let go]');
 });
 
 function setup(crew = CREW) {

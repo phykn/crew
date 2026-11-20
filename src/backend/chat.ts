@@ -55,7 +55,11 @@ export class Chat {
     const out = await this.runs.run(member, sessionId, null, text, {
       mcpServers: { crew: secretaryTools(sdk, this, sessionId) },
       onText: (delta) => this.emit('stream', { sessionId, delta }),
-      onReply: (reply) => this.post(sessionId, reply),
+      onReply: (reply, more) => {
+        this.post(sessionId, reply);
+        // A message said mid-run is still to be answered, so the chat keeps showing 비서 at it
+        if (more) this.emit('stream', { sessionId, delta: '' });
+      },
     });
     if (out.status !== 'done') this.post(sessionId, failureText(out.status, out.error));
   }

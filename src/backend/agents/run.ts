@@ -33,8 +33,8 @@ type RunInput = {
   // A JSON schema the run's final answer must match; the match comes back as structured
   schema?: Record<string, unknown>;
   onText?: (delta: string) => void;
-  // Called once per answered turn, so a message said mid-run gets its own reply
-  onReply?: (text: string) => void;
+  // Called once per answered turn, so a message said mid-run gets its own reply; more says another is still to be answered
+  onReply?: (text: string, more: boolean) => void;
 };
 
 export type RunOutput = {
@@ -49,12 +49,15 @@ export type RunOutput = {
 // Messages for a running agent: the first prompt, then anything said to it while it works
 export class Inbox implements AsyncIterable<SDKUserMessage> {
   queue: string[] = [];
+  // Every line taken in; the SDK may read ahead, so the queue alone cannot say how many are still to be answered
+  taken = 0;
   wake: (() => void) | null = null;
   closed = false;
 
   // A closed inbox is never read again, so a line pushed then would be lost
   push(text: string) {
     if (this.closed) return false;
+    this.taken++;
     this.queue.push(text);
     this.wake?.();
     return true;
@@ -112,10 +115,12 @@ export class AgentRun {
     });
     let out: RunOutput = { claudeId: input.resume ?? null, text: '', status: 'failed', usage: emptyUsage() };
     try {
+      let answered = 0;
       for await (const msg of this.query) {
         out = this.read(msg, out);
+        if (msg.type === 'result') answered++;
         if (msg.type === 'result' && msg.subtype === 'success' && out.status === 'done')
-          this.input.onReply?.(msg.result);
+          this.input.onReply?.(msg.result, this.inbox.taken > answered);
         // The inbox stays open while the agent works, so more can be said to it; a result with nothing queued ends the run
         if (msg.type === 'result' && this.inbox.queue.length === 0) this.inbox.close();
       }

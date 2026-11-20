@@ -9,6 +9,7 @@ import { ancestors, type Step, type Workflow } from './workflow';
 import { memberTools } from '../tools/member';
 import { changedFiles, snapshot } from './changes';
 import { REFUSE } from '../questions';
+import { josa } from '../../korean';
 
 type TaskEvent = {
   type:
@@ -90,6 +91,8 @@ const HandbackShape = z.object({
 // Claude Code validates --json-schema as draft-7 and refuses the 2020-12 tag zod writes by default
 const HANDBACK_SCHEMA = z.toJSONSchema(HandbackShape, { target: 'draft-7', io: 'input' }) as Record<string, unknown>;
 
+// A task in these states is being driven, so what is added to it is picked up without a new drive
+const ACTIVE: Task['status'][] = ['queued', 'running', 'reviewing', 'fixing', 'waiting'];
 // Transient failures of one step are retried this many times
 const RETRIES = 3;
 const CODE_SCOPE =
@@ -138,7 +141,7 @@ function stuck(w: Workflow, runs: StepRun[], version: number | null) {
   for (const s of w.steps) {
     const done = runs.filter((r) => r.stepId === s.id && r.status === 'done');
     if (!done.length || !sentBack(w, runs, s.id, done.at(-1)!.id)) continue;
-    if (done.length - 1 >= limit(s)) return `${s.label}을 ${limit(s)}번 고쳤지만 검증을 통과하지 못했습니다`;
+    if (done.length - 1 >= limit(s)) return `${josa(s.label, '을')} ${limit(s)}번 고쳤지만 검증을 통과하지 못했습니다`;
   }
   // A redo that left the files as they were and is sent back again would only repeat itself: the user decides
   for (const s of w.steps) {
@@ -150,7 +153,7 @@ function stuck(w: Workflow, runs: StepRun[], version: number | null) {
       done.at(-1)!.versionId === version &&
       sentBack(w, runs, s.id, done.at(-1)!.id)
     )
-      return `${s.label}이 다시 했지만 바뀐 것이 없는데 또 되돌려졌습니다. 지적과 지시가 맞지 않아 사용자 결정이 필요합니다`;
+      return `${josa(s.label, '이')} 다시 했지만 바뀐 것이 없는데 또 되돌려졌습니다. 지적과 지시가 맞지 않아 사용자 결정이 필요합니다`;
   }
   return null;
 }
@@ -214,14 +217,17 @@ export class Tasks {
   }
 
   // The user asks for more on a finished task: same task, earlier report kept, the work goes back to every step that made it
+  // A finished task opens again; one still at work takes the words in, and its making steps redo with them once their turn ends
   reopen(taskId: number, text: string) {
     const { store } = this.chat;
     const task = store.readTask(taskId);
-    if (!this.move(taskId, 'REOPEN', '', `업무 "${task.title}" 다시 진행: ${text}`)) return false;
+    const working = ACTIVE.includes(task.status);
+    if (working) store.writeTaskStatus(taskId, task.status, task.stage, `업무 "${task.title}" 추가 요청: ${text}`);
+    else if (!this.move(taskId, 'REOPEN', '', `업무 "${task.title}" 다시 진행: ${text}`)) return false;
     store.appendRequest(taskId, text);
     for (const target of makers(task.workflow))
       store.addUserRework(taskId, this.memberFor(task, target).id, target.id, text);
-    void this.drive(taskId, true);
+    if (!working) void this.drive(taskId, true);
     return true;
   }
 
@@ -296,7 +302,7 @@ export class Tasks {
     const member = this.memberFor(task, step);
     const role = crew.defOf(member).role;
     // A member let go takes no new step; 비서 hears of it and can hand the step to someone else
-    const absent = `${role}이 고용되어 있지 않아 ${step.label}을 진행할 수 없습니다. 다른 담당자를 붙여야 합니다`;
+    const absent = `${josa(role, '이')} 고용되어 있지 않아 ${josa(step.label, '을')} 진행할 수 없습니다. 다른 담당자를 붙여야 합니다`;
     if (member.status !== 'hired' || member.leaving) return absent;
     let prompt = this.brief(task, step);
     const log = (text: string, detail: unknown = null) =>
@@ -364,7 +370,7 @@ export class Tasks {
       return 'done';
     }
     log(`${role}: ${step.label} 실패 (${RETRIES}번 다시 시도)`, { errors });
-    return `${step.label}이 ${RETRIES}번 다시 시도해도 실패했습니다`;
+    return `${josa(step.label, '이')} ${RETRIES}번 다시 시도해도 실패했습니다`;
   }
 
   // What one member needs to do its step: the request, its step, and every earlier step's handback

@@ -97,8 +97,8 @@
     "app": {
       "icon": "list",
       "label": "앱 조작",
-      "use": "The crew app itself: read its help, find tasks, open screens, and resume work in this project.",
-      "readTools": ["read_help", "find_tasks", "open_log", "open_wiki_history", "open_workflow_editor"]
+      "use": "The crew app itself: everything the user can do in its window for this project, found with app_find_actions and done with app_read or app_act.",
+      "readTools": ["app_find_actions", "app_read"]
     }
   }
 }

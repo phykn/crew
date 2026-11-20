@@ -5,6 +5,7 @@ import type { Task } from '../db';
 import { KEPT } from '../crew/shipped';
 import { kitTools } from './kit';
 import { wikiTools } from './wiki';
+import { josa, particle } from '../../korean';
 
 // The app's own tools for 비서 in one session; a call is how 비서 opens real work for the crew
 export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
@@ -43,7 +44,7 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
         },
         async (a) => {
           const one = a.role ? memberOf(a.role) : null;
-          if (a.role && !one) return text(`${a.role}은 지금 고용되어 있지 않습니다.`);
+          if (a.role && !one) return text(`${josa(a.role, '은')} 지금 고용되어 있지 않습니다.`);
           const task = chat.tasks.start(sessionId, a.kind, a.title, a.request, one ?? undefined, a.size === 'small');
           return text(`업무 #${task.id} "${task.title}"을 시작했습니다.`);
         },
@@ -53,7 +54,7 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
       ),
       sdk.tool(
         'ask_helper',
-        'Hand 도우미 something the user wants done in the app itself: find a task, open a screen, resume work. Its answer comes back as the result.',
+        'Hand 도우미 something the user wants done in the app itself, anything they could do in its window: find a task, open a screen, resume work, rename a session, change a nickname or the approval mode. Its answer comes back as the result.',
         { request: z.string().min(1).describe("The user's request in their words") },
         async (a) => {
           const helper = chat.store.readMember(projectId(), 'helper');
@@ -120,9 +121,10 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
         { role: z.string().describe('The member: its key or Korean role') },
         async (a) => {
           const m = memberOf(a.role);
-          if (!m) return text(`${a.role}은 지금 고용되어 있지 않습니다.`);
-          if (KEPT.includes(m.key)) return text(`${a.role}은 내보낼 수 없습니다.`);
-          if (!chat.members.fire(m.id)) return text(`${a.role}(${m.nickname})은 이미 퇴장 중입니다.`);
+          if (!m) return text(`${josa(a.role, '은')} 지금 고용되어 있지 않습니다.`);
+          if (KEPT.includes(m.key)) return text(`${josa(a.role, '은')} 내보낼 수 없습니다.`);
+          if (!chat.members.fire(m.id))
+            return text(`${a.role}(${m.nickname})${particle(a.role, '은')} 이미 퇴장 중입니다.`);
           return text(`${a.role}(${m.nickname}) 퇴장 처리했습니다.`);
         },
       ),
@@ -136,23 +138,23 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
         },
         async (a) => {
           const to = memberOf(a.to_role);
-          if (!to) return text(`${a.to_role}은 지금 고용되어 있지 않습니다.`);
+          if (!to) return text(`${josa(a.to_role, '은')} 지금 고용되어 있지 않습니다.`);
           // The member who left is no longer hired, so it is looked up among everyone
           const from = chat.members.find(projectId(), a.from_role);
-          if (!from) return text(`${a.from_role}은 크루에 없습니다.`);
+          if (!from) return text(`${josa(a.from_role, '은')} 크루에 없습니다.`);
           const task = chat.store.listTasks(sessionId).find((t) => t.id === a.task_id);
-          if (!task) return text(`업무 #${a.task_id}는 이 세션에 없습니다.`);
+          if (!task) return text(`업무 ${josa(`#${a.task_id}`, '은')} 이 세션에 없습니다.`);
           const moved = chat.tasks.reassign(task, chat.crew.defOf(from).role, to);
           return text(
             moved.length
               ? `${moved.join(', ')} 단계를 ${a.to_role}에게 넘겼습니다.`
-              : `${a.from_role}이 맡은 단계가 없습니다.`,
+              : `${josa(a.from_role, '이')} 맡은 단계가 없습니다.`,
           );
         },
       ),
       sdk.tool(
         'reopen_task',
-        'When the user asks to change the result of a finished task, reopen that same task with what they want changed instead of starting a new one. ' +
+        'When the user asks to change the result of a finished task, or adds to a task still at work ("아 그리고 ..."), reopen that same task with what they want changed instead of starting a new one; a task at work takes it in without stopping. ' +
           'Leave task_id out when the user did not say which task ("그거 다시 해줘"): the app then asks the user with a card. A separate request is a new task.',
         {
           task_id: z.number().int().optional(),
@@ -160,12 +162,15 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
         },
         async (a) => {
           const task = await pickTask(chat, sessionId, a.task_id, a.change);
-          if (!task) return text(a.task_id ? `업무 #${a.task_id}는 이 세션에 없습니다.` : '다시 열 업무가 없습니다.');
+          if (!task)
+            return text(
+              a.task_id ? `업무 ${josa(`#${a.task_id}`, '은')} 이 세션에 없습니다.` : '다시 열 업무가 없습니다.',
+            );
           const ok = chat.tasks.reopen(task.id, a.change);
           return text(
             ok
-              ? `업무 #${task.id}를 다시 진행합니다.`
-              : `업무 #${task.id}는 지금 다시 열 수 없습니다 (${task.status}).`,
+              ? `업무 ${josa(`#${task.id}`, '을')} 다시 진행합니다.`
+              : `업무 ${josa(`#${task.id}`, '은')} 지금 다시 열 수 없습니다 (${task.status}).`,
           );
         },
       ),
@@ -178,12 +183,12 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
           { task_id: z.number().int() },
           async (a) => {
             const task = chat.store.listTasks(sessionId).find((t) => t.id === a.task_id);
-            if (!task) return text(`업무 #${a.task_id}는 이 세션에 없습니다.`);
+            if (!task) return text(`업무 ${josa(`#${a.task_id}`, '은')} 이 세션에 없습니다.`);
             const ok = verb === 'stop' ? chat.tasks.stop(task.id) : chat.tasks.resume(task.id);
             return text(
               ok
                 ? `업무 #${task.id}: ${verb === 'stop' ? '중단' : '재개'}했습니다.`
-                : `업무 #${task.id}는 지금 ${task.status} 상태라 할 수 없습니다.`,
+                : `업무 ${josa(`#${task.id}`, '은')} 지금 ${task.status} 상태라 할 수 없습니다.`,
             );
           },
         ),

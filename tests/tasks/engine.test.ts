@@ -240,7 +240,7 @@ test('a broken step fails after its retries; a stopped task leaves the other run
   await vi.waitFor(() => expect(fresh.calls.map((c) => c.role)).toEqual(['기획', '리뷰']));
 });
 
-test('a refused reopen leaves no trace, and a step queued before a stop is not run again by the resume', async () => {
+test('a step queued before a stop is not run again by the resume', async () => {
   const { store, project, paths } = openScratch();
   let release = () => {};
   const held: Turn = (p, o) => new Promise((r) => (release = () => r(reply('', 'claude-plan')(p, o) as never)));
@@ -260,8 +260,6 @@ test('a refused reopen leaves no trace, and a step queued before a stop is not r
   void chat.runs.run(store.readMember(p.id, 'advisor'), s.id, null, 'hold');
   await vi.waitFor(() => expect(fake.calls).toHaveLength(1));
   const task = chat.tasks.start(s.id, 'code', 't', 'r');
-  expect(chat.tasks.reopen(task.id, 'X')).toBe(false);
-  expect(store.readTask(task.id).request).toBe(task.request);
   expect(store.listStepRuns(task.id).map((r) => r.stepId)).toEqual(['plan']);
 
   chat.tasks.stop(task.id);
@@ -349,6 +347,51 @@ test('each change is a version the verdicts judge, and a follow-up reopens the s
   expect(store.readTask(task.id).request).toContain('추가 요청: 대소문자 무시');
   expect(fake.calls.filter((c) => c.role === '개발')[1].prompt).toContain('대소문자 무시');
   expect(store.listTasks(s.id)).toHaveLength(1);
+});
+
+test('words added while 개발 is at work join the task: 개발 redoes with them and the checks judge the redo', async () => {
+  const { store, project, paths } = openScratch({ 'calc.js': 'v0' });
+  let release = () => {};
+  const edit =
+    (text: string): Turn =>
+    (prompt, options) => {
+      fs.writeFileSync(path.join(project, 'calc.js'), text);
+      return handback('claude-code', { summary: text })(prompt, options);
+    };
+  // The first turn waits, so the words arrive while 개발 is still working
+  const held: Turn = (p, o) => new Promise((r) => (release = () => r(edit('v1')(p, o) as never)));
+  const pass = (sid: string): Turn => handback(sid, { summary: '통과', verdict: 'pass', checks: ['ok'] });
+  const fake = fakeCrew({
+    비서: [reply('보고', 'claude-secretary')],
+    개발: [held, edit('v2')],
+    리뷰: [pass('r'), pass('r')],
+    시험: [pass('t'), pass('t')],
+    표준: [pass('s'), pass('s')],
+  });
+  const chat = new Chat(
+    store,
+    async () => fake.sdk,
+    CREW,
+    () => {},
+    paths,
+  );
+  const p = store.addProject(project);
+  chat.members.seed(p.id);
+  const s = store.createSession(p.id);
+  const task = chat.tasks.start(s.id, 'code', 'sqrt', 'sqrt 추가', undefined, true);
+  await vi.waitFor(() => expect(fake.calls.map((c) => c.role)).toContain('개발'));
+
+  expect(chat.tasks.reopen(task.id, '에러 메시지는 영어로')).toBe(true);
+  release();
+  await vi.waitFor(() => expect(store.readTask(task.id).status).toBe('done'));
+  const coder = fake.calls.filter((c) => c.role === '개발');
+  expect(coder).toHaveLength(2);
+  expect(coder[1].prompt).toContain('에러 메시지는 영어로');
+  expect(store.readTask(task.id).request).toContain('추가 요청: 에러 메시지는 영어로');
+  // Each check's last verdict is on the redo's version
+  const v = store.latestVersion(task.id)!.id;
+  const checks = store.listStepRuns(task.id).filter((r) => ['review', 'test', 'style'].includes(r.stepId));
+  expect(checks.slice(-3).map((r) => r.versionId)).toEqual([v, v, v]);
 });
 
 const CREW_CODE = () => readWorkflows(CREW.dir).find((w) => w.kind === 'code')!;

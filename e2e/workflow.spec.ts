@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
 import { launchApp, makeScratch, openProject } from './launch';
 
 // One task whose 조사 has no scripted answer, so its card stays (failed) while the editor is open and closed
@@ -64,5 +66,29 @@ test('the editor saves review and test in parallel after 개발 as a new version
   await expect(editor.getByLabel('코드 리뷰 → 시험')).toHaveCount(0);
   expect(await where()).toBe(moved);
   await expect(page.getByLabel('세션')).toHaveText('자료 조사해줘');
+  await app.close();
+});
+
+test('a version 비서 saves by talk shows in the editor that was already open', async () => {
+  const scratch = makeScratch();
+  const rules = JSON.parse(fs.readFileSync(path.join('crew', 'workflows', 'code.json'), 'utf-8'));
+  const app = await launchApp(scratch.db, {
+    비서: [
+      {
+        call: { name: 'change_workflow', input: { kind: 'code', base_version: 0, rules, scope: 'future' } },
+        text: '{{result}}',
+      },
+    ],
+  });
+  const page = await openProject(app, scratch.project);
+  await page.getByRole('tab', { name: '워크플로우' }).click();
+  const editor = page.getByLabel('워크플로우 편집');
+  await expect(editor).toContainText('버전 0');
+  await page.getByRole('tab', { name: '대화' }).click();
+  await page.getByLabel('메시지').fill('워크플로우 저장해줘');
+  await page.getByLabel('메시지').press('Enter');
+  await expect(page.getByText('저장했습니다 (버전 1).')).toBeVisible();
+  await page.getByRole('tab', { name: '워크플로우' }).click();
+  await expect(editor).toContainText('버전 1');
   await app.close();
 });

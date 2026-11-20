@@ -27,28 +27,40 @@ const outline = (ctx, x, y, rx, ry, color, width) => {
   ctx.stroke();
 };
 
-// Fronds fan up from one root with paired leaflets; round clumps read as blobs
+// Fronds arch up from one root and droop at the tip, with paired leaflets that shorten toward it; single dots read as noise
 function fern(ctx, d) {
   const b = iso(d.x, d.y);
   shadow(ctx, d.x + 0.15, d.y + 0.15, 14, 4);
-  [-160, -130, -105, -75, -50, -20].forEach((deg, i) => {
+  ctx.lineCap = 'round';
+  [-150, -128, -105, -75, -52, -30].forEach((deg, i) => {
     const a = (deg * Math.PI) / 180,
-      len = 13 - Math.abs(i - 2.5) * 1.6;
-    for (let k = 1; k <= len; k++) {
-      const x = Math.round(b.x + Math.cos(a) * k),
-        y = Math.round(b.y - 2 + Math.sin(a) * k * 0.8 + k * k * 0.03);
-      pixels(ctx, [[x, y, 1, 1]], C.leafDark);
-      if (k % 2 === 0 && k < len - 1)
-        pixels(
-          ctx,
-          [
-            [x - 1, y - 1, 1, 1],
-            [x + 1, y - 1, 1, 1],
-          ],
-          k > len / 2 ? C.mossDark : C.leaf,
-        );
+      len = 16 - Math.abs(i - 2.5) * 1.8,
+      at = (k) => ({ x: b.x + Math.cos(a) * k * 1.1, y: b.y - 1 + Math.sin(a) * k * 1.1 + k * k * 0.06 });
+    ctx.strokeStyle = C.leafDark;
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(b.x, b.y - 1);
+    for (let k = 1; k <= len; k++) ctx.lineTo(at(k).x, at(k).y);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    for (let k = 2; k < len; k += 1.5) {
+      const p = at(k),
+        q = at(k + 0.5),
+        // The frond's own direction here, so leaflets follow the droop rather than the start
+        dir = Math.atan2(q.y - p.y, q.x - p.x),
+        leaf = 3 * (1 - k / len) + 0.7;
+      ctx.strokeStyle = k < len * 0.55 ? C.leaf : C.mossDark;
+      for (const s of [1, -1]) {
+        // Each leaflet leans toward the tip, so the frond reads as a feather, not a comb
+        const side = dir + s * 1.1;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x + Math.cos(side) * leaf, p.y + Math.sin(side) * leaf);
+        ctx.stroke();
+      }
     }
   });
+  ctx.lineCap = 'butt';
 }
 
 // A thick stroke with a lit top, and a cut end ringed with growth lines, reads as a round trunk
@@ -74,20 +86,42 @@ function log(ctx, d) {
   pixels(ctx, [[b.x, b.y, 1, 1]], C.wood);
 }
 
+// The staves bulge at the middle and the foot and hoops follow the round; a flat-cut rectangle reads as a box
 function drum(ctx, d) {
-  const b = iso(d.x, d.y);
+  const b = iso(d.x, d.y),
+    h = 20,
+    rx = 7,
+    ry = 3;
   shadow(ctx, d.x + 0.15, d.y + 0.15, 10, 4);
-  pixels(ctx, [[b.x - 7, b.y - 20, 14, 20]], C.wood);
-  pixels(ctx, [[b.x + 2, b.y - 20, 5, 20]], C.woodDark);
+  ctx.beginPath();
+  ctx.moveTo(b.x - rx, b.y - h);
+  ctx.quadraticCurveTo(b.x - rx - 2, b.y - h / 2, b.x - rx, b.y);
+  ctx.ellipse(b.x, b.y, rx, ry, 0, Math.PI, 0, true);
+  ctx.quadraticCurveTo(b.x + rx + 2, b.y - h / 2, b.x + rx, b.y - h);
+  ctx.closePath();
+  ctx.fillStyle = C.wood;
+  ctx.fill();
+  ctx.save();
+  ctx.clip();
+  pixels(ctx, [[b.x + 2, b.y - h - 1, rx + 2, h + ry + 2]], C.woodDark);
   pixels(
     ctx,
     [
-      [b.x - 7, b.y - 17, 14, 2],
-      [b.x - 7, b.y - 6, 14, 2],
+      [b.x - 4, b.y - h, 1, h + ry],
+      [b.x, b.y - h, 1, h + ry],
     ],
-    C.iron,
+    C.woodDeep,
   );
-  oval(ctx, b.x, b.y - 20, 7, 3, C.woodDeep);
+  ctx.strokeStyle = C.iron;
+  ctx.lineWidth = 2;
+  for (const z of [h - 4, 5]) {
+    ctx.beginPath();
+    ctx.ellipse(b.x, b.y - z, rx + 1, ry, 0, 0, Math.PI);
+    ctx.stroke();
+  }
+  ctx.restore();
+  oval(ctx, b.x, b.y - h, rx, ry, C.woodDeep);
+  oval(ctx, b.x, b.y - h, rx - 1.5, ry - 1, C.woodDark);
 }
 
 function well(ctx, d) {
@@ -95,37 +129,62 @@ function well(ctx, d) {
     rx = 24,
     ry = 12,
     wall = 12;
+  const top = b.y - wall,
+    courses = 3,
+    course = wall / courses;
   shadow(ctx, d.x + 0.3, d.y + 0.3, 30, 13);
-  oval(ctx, b.x, b.y, rx, ry, C.rockDark, Math.PI);
-  ctx.fillRect(b.x - rx, b.y - wall, rx * 2, wall);
-  // Stones follow the curve of the near wall, alternating light and dark
-  for (let k = 0; k < 7; k++) {
-    const t = (k + 0.5) / 7,
-      x = b.x - rx + t * rx * 2,
-      sag = Math.sqrt(1 - (2 * t - 1) ** 2) * ry;
-    pixels(
-      ctx,
-      [
-        [x - 4, b.y - wall + sag - 1, 7, 2],
-        [x, b.y - wall / 2 + sag - 1, 1, wall / 2],
-      ],
-      k % 2 ? C.rock : C.barkDark,
-    );
+  oval(ctx, b.x, b.y, rx, ry, C.rock, Math.PI);
+  ctx.fillRect(b.x - rx, top, rx * 2, wall);
+  // Mortar runs along the wall's curve and the joints stagger by course; square blocks laid flat read as a box
+  ctx.strokeStyle = C.rockDark;
+  ctx.lineWidth = 1;
+  for (let c = 0; c < courses; c++) {
+    const y0 = top + c * course;
+    if (c > 0) {
+      ctx.beginPath();
+      ctx.ellipse(b.x, y0, rx, ry, 0, 0, Math.PI);
+      ctx.stroke();
+    }
+    for (let k = 0; k < 6; k++) {
+      const a = (Math.PI * (k + 0.3 + (c % 2) * 0.5)) / 6;
+      // A joint at either edge would be seen side-on and stand out as a notch
+      if (a < 0.3 || a > Math.PI - 0.3) continue;
+      const x = Math.round(b.x + Math.cos(a) * rx) + 0.5,
+        y = y0 + Math.sin(a) * ry;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x, y + course);
+      ctx.stroke();
+    }
   }
-  oval(ctx, b.x, b.y - wall, rx, ry, C.rock);
-  oval(ctx, b.x, b.y - wall, rx - 6, ry - 3, C.water);
+  // The rim's top is lit, and its inner edge drops into shade before the water
+  oval(ctx, b.x, top, rx, ry, C.rockLight);
+  oval(ctx, b.x, top, rx - 5, ry - 2.5, C.rockDark);
+  oval(ctx, b.x, top + 1, rx - 6.5, ry - 3.5, C.water);
   pixels(
     ctx,
     [
-      [b.x - rx + 2, b.y - wall - 34, 4, 34],
-      [b.x + rx - 6, b.y - wall - 34, 4, 34],
+      [b.x - rx + 2, top - 34, 4, 34],
+      [b.x + rx - 6, top - 34, 4, 34],
     ],
     C.pole,
   );
-  pixels(ctx, [[b.x - rx, b.y - wall - 36, rx * 2, 4]], C.woodDark);
-  pixels(ctx, [[b.x, b.y - wall - 32, 1, 16]], C.muted);
-  pixels(ctx, [[b.x - 4, b.y - wall - 16, 9, 7]], C.woodDeep);
-  pixels(ctx, [[b.x - 4, b.y - wall - 14, 9, 1]], C.iron);
+  pixels(ctx, [[b.x - rx, top - 36, rx * 2, 4]], C.woodDark);
+  pixels(ctx, [[b.x, top - 32, 1, 16]], C.muted);
+  // A bucket tapers to its foot and shows its round mouth
+  const mouth = top - 16;
+  poly(
+    ctx,
+    [
+      { x: b.x - 5, y: mouth },
+      { x: b.x + 6, y: mouth },
+      { x: b.x + 4.5, y: mouth + 8 },
+      { x: b.x - 3.5, y: mouth + 8 },
+    ],
+    C.woodDeep,
+  );
+  pixels(ctx, [[b.x - 4, mouth + 3, 9, 1]], C.iron);
+  oval(ctx, b.x + 0.5, mouth, 5.5, 1.5, C.wood);
 }
 
 function bench(ctx, d) {
@@ -397,12 +456,15 @@ function woodpile(ctx, d) {
     [0.4, 9],
     [0.8, 9],
   ]) {
+    // A cut end is pale wood inside dark bark, with a growth ring; a square centre reads as a bolt
     const p = iso(d.x + 0.25, d.y - 0.6 + t, z);
-    ctx.fillStyle = C.woodDark;
+    oval(ctx, p.x, p.y, 3.2, 3.2, C.barkDark);
+    oval(ctx, p.x, p.y, 2.4, 2.4, C.wood);
+    ctx.strokeStyle = C.woodDark;
+    ctx.lineWidth = 0.8;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 3, 0, TAU);
-    ctx.fill();
-    pixels(ctx, [[p.x - 1, p.y - 1, 2, 2]], C.wood);
+    ctx.arc(p.x, p.y, 1.3, 0, TAU);
+    ctx.stroke();
   }
 }
 
