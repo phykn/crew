@@ -10,7 +10,7 @@ import { Tasks } from './tasks/engine';
 import { Wiki } from './wiki';
 import { Workflows } from './tasks/workflow';
 
-export type Emit = (channel: 'changed' | 'stream' | 'navigate' | 'notify', payload: unknown) => void;
+export type Emit = (channel: 'changed' | 'stream' | 'navigate' | 'notify' | 'busy', payload: unknown) => void;
 // Where members' own files go, and the files no member may touch
 export type Paths = { output: string; protected: string[] };
 

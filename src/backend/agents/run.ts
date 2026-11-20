@@ -18,6 +18,11 @@ export type Sdk = {
 // The error of a run refused because its member was let go while it waited
 export const NOT_HIRED = 'not hired';
 
+// A run that goes round without end stops here, well past what a real step needs
+export const MAX_TURNS = 200;
+export const MAX_BUDGET_USD = 10;
+const CAPS: Record<string, RunOutput['capped']> = { error_max_turns: 'turns', error_max_budget_usd: 'budget' };
+
 // What an in-process tool answers
 export const text = (t: string) => ({ content: [{ type: 'text' as const, text: t }] });
 
@@ -44,6 +49,8 @@ export type RunOutput = {
   usage: Usage;
   structured?: unknown;
   error?: string;
+  // Stopped by MAX_TURNS or MAX_BUDGET_USD, so running it again would only spend as much again
+  capped?: 'turns' | 'budget';
 };
 
 // Messages for a running agent: the first prompt, then anything said to it while it works
@@ -110,6 +117,8 @@ export class AgentRun {
         // The project's own CLAUDE.md and settings apply; the user's personal ones do not leak into the crew
         settingSources: ['project'],
         includePartialMessages: true,
+        maxTurns: MAX_TURNS,
+        maxBudgetUsd: MAX_BUDGET_USD,
         outputFormat: input.schema ? { type: 'json_schema', schema: input.schema } : undefined,
       },
     });
@@ -154,7 +163,8 @@ export class AgentRun {
     if (out.status === 'limit') return { ...out, usage };
     if (msg.subtype === 'success')
       return { ...out, text: msg.result, status: 'done', usage, structured: msg.structured_output };
-    return { ...out, status: 'failed', usage, error: msg.errors.join('\n') || msg.subtype };
+    const capped = CAPS[msg.subtype];
+    return { ...out, status: 'failed', usage, error: msg.errors.join('\n') || msg.subtype, capped };
   }
 
   say(text: string) {

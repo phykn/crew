@@ -392,3 +392,55 @@ test('reopening a task sends the change back to every step that made it', () => 
       .map((r) => r.handback?.target),
   ).toEqual(['advise', 'structure']);
 });
+
+test('a run that meets a passing fault is tried again after a wait; one that hits the turn limit stops at once', async () => {
+  const at: number[] = [];
+  const failed =
+    (subtype: string, errors: string[]): Turn =>
+    (_p, o) => {
+      at.push(Date.now());
+      return [
+        { type: 'system', subtype: 'init', session_id: 'r', model: o.model },
+        { type: 'result', subtype, errors, num_turns: 1, total_cost_usd: 0, modelUsage: {} },
+      ] as never;
+    };
+  const { store, fake, chat, s } = openChat({
+    비서: [reply('보고 1'), reply('보고 2')],
+    조사: [
+      failed('error_during_execution', ['overloaded']),
+      handback('r', { summary: '조사' }),
+      failed('error_max_turns', []),
+    ],
+  });
+  chat.tasks.retryWaits = [50, 50, 50];
+  const first = chat.tasks.start(s.id, 'research', '조사 1', 'r');
+  await vi.waitFor(() => expect(store.readTask(first.id).status).toBe('done'));
+  expect(Date.now() - at[0]).toBeGreaterThanOrEqual(45);
+
+  const second = chat.tasks.start(s.id, 'research', '조사 2', 'r');
+  await vi.waitFor(() => expect(store.readTask(second.id).status).toBe('failed'));
+  expect(store.listStepRuns(second.id).map((r) => r.status)).toEqual(['failed']);
+  await vi.waitFor(() => expect(fake.calls.at(-1)!.prompt).toContain('조사가 한 번 실행에 200턴을 넘겨 멈췄습니다'));
+});
+
+test("a step's files are the ones it wrote, not a file someone else changed meanwhile", async () => {
+  const edit: Turn = async (prompt, options) => {
+    const file = path.join(project, 'search.js');
+    // The write goes through the guard, as the model's Write call would
+    await options.canUseTool!('Write', { file_path: file, content: 'v1' }, {
+      signal: new AbortController().signal,
+    } as never);
+    fs.writeFileSync(file, 'v1');
+    fs.writeFileSync(path.join(project, 'notes.md'), 'the user, in another window');
+    return handback('c', { summary: '수정' })(prompt, options);
+  };
+  const pass = handback('x', { summary: '통과', verdict: 'pass', checks: ['ok'] });
+  const { store, chat, s, project } = openChat(
+    { 비서: [reply('보고')], 개발: [edit], 리뷰: [pass], 시험: [pass], 표준: [pass] },
+    { files: { 'search.js': 'v0', 'notes.md': 'n0' } },
+  );
+  const task = chat.tasks.start(s.id, 'code', '검색', '검색 고쳐줘', undefined, true);
+  await vi.waitFor(() => expect(store.readTask(task.id).status).toBe('done'));
+  expect(store.latestVersion(task.id)!.files).toEqual(['search.js']);
+  expect(store.listStepRuns(task.id).find((r) => r.stepId === 'develop')!.handback!.files).toEqual(['search.js']);
+});

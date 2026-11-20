@@ -10,6 +10,8 @@ export class Locks {
   waiting: Waiter[] = [];
   // What each task last saw of the files it reserves, to catch a change made by someone else while it waited
   seen = new Map<number, Snapshot>();
+  // Every path a task has reserved, kept after release: its writes, told apart from changes by anyone else
+  touched = new Map<number, Set<string>>();
 
   constructor(private root: string) {}
 
@@ -41,6 +43,14 @@ export class Locks {
     const set = this.held.get(taskId) ?? new Set();
     for (const p of paths) set.add(p);
     this.held.set(taskId, set);
+    const all = this.touched.get(taskId) ?? new Set();
+    for (const p of paths) all.add(p);
+    this.touched.set(taskId, all);
+  }
+
+  // Whether a project file, relative to the root, lies under a path the task reserved
+  wrote(taskId: number, file: string) {
+    return [...(this.touched.get(taskId) ?? [])].some((p) => inside(path.join(this.root, file), p));
   }
 
   // Files under these paths that changed since the task last saw them; files under what it already holds are its own changes

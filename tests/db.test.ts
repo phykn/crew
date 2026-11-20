@@ -51,3 +51,28 @@ test('a record from when 도우미 was shipped opens without it, keeping the log
   expect(after.listEvents(s.id).map((e) => [e.text, e.memberId])).toEqual([['도우미가 열었습니다', null]]);
   expect(after.readTask(task.id).title).toBe('조사');
 });
+
+test("a resumed Claude session reports running totals, so usage counts only each run's own share", () => {
+  const { store, project } = openScratch();
+  const p = store.addProject(project);
+  const s = store.createSession(p.id);
+  store.seedMembers(p.id, [{ key: 'coder', nickname: '모루', model: 'sonnet' }]);
+  const agent = store.openAgentSession(s.id, store.readMember(p.id, 'coder').id).id;
+  const run = (model: string, costUsd: number, inputTokens: number) =>
+    store.finishRun(store.startRun(agent, model), {
+      status: 'done',
+      usage: { turns: 1, inputTokens, outputTokens: 0, costUsd },
+    });
+  run('sonnet', 0.01, 10);
+  run('sonnet', 0.03, 30);
+  // Cut before its result: it reported nothing
+  run('sonnet', 0, 0);
+  run('sonnet', 0.06, 60);
+  // A model change starts a fresh session, and coming back starts another
+  run('opus', 0.02, 20);
+  run('sonnet', 0.01, 10);
+  const usage = Object.fromEntries(
+    store.usage(s.id).map((u) => [u.model, [u.runs, u.inputTokens, +u.costUsd.toFixed(4)]]),
+  );
+  expect(usage).toEqual({ sonnet: [5, 70, 0.07], opus: [1, 20, 0.02] });
+});

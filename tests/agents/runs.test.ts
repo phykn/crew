@@ -24,3 +24,13 @@ test('a member let go while queued does not run, and hiring again keeps them', a
   chat.members.rehire(researcher.id);
   expect(store.readMemberById(researcher.id)).toMatchObject({ status: 'hired', leaving: false });
 });
+
+test('the busy feed says when the first run starts and the last one ends, so the computer stays awake in between', async () => {
+  const busy: unknown[] = [];
+  const { chat, s } = openChat(
+    { 비서: [reply('네')] },
+    { emit: (channel, payload) => channel === 'busy' && busy.push(payload) },
+  );
+  await chat.send(s.id, '안녕');
+  expect(busy).toEqual([true, false]);
+});

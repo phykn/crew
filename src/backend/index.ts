@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Notification } from 'electron';
+import { app, BrowserWindow, Notification, powerSaveBlocker } from 'electron';
 import path from 'node:path';
 import { Store } from './db';
 import { Chat } from './chat';
@@ -40,6 +40,16 @@ function notify({ text }: { text: string }) {
   note.show();
 }
 
+// A sleeping computer would cut off the crew mid-step; the screen may still turn off
+let awake: number | null = null;
+function keepAwake(busy: boolean) {
+  if (busy && awake === null) awake = powerSaveBlocker.start('prevent-app-suspension');
+  if (!busy && awake !== null) {
+    powerSaveBlocker.stop(awake);
+    awake = null;
+  }
+}
+
 app.whenReady().then(() => {
   // Windows shows an app's notifications only under an app id; the app is run from its folder, not installed
   if (process.platform === 'win32') app.setAppUserModelId(process.execPath);
@@ -60,8 +70,11 @@ app.whenReady().then(() => {
     store,
     sdk,
     crew,
-    (channel, payload) =>
-      channel === 'notify' ? notify(payload as { text: string }) : win?.webContents.send(channel, payload),
+    (channel, payload) => {
+      if (channel === 'notify') notify(payload as { text: string });
+      else if (channel === 'busy') keepAwake(payload as boolean);
+      else win?.webContents.send(channel, payload);
+    },
     paths,
   );
   // A definition added since the last start joins every project it is missing from

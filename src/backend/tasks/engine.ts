@@ -3,11 +3,11 @@ import path from 'node:path';
 import { getNextSnapshot, setup } from 'xstate';
 import { z } from 'zod';
 import type { Chat } from '../chat';
-import { NOT_HIRED } from '../agents/run';
+import { MAX_BUDGET_USD, MAX_TURNS, NOT_HIRED } from '../agents/run';
 import type { Handback, Member, StepRun, Task, TaskStatus } from '../db';
 import { ancestors, type Step, Workflow } from './workflow';
 import { memberTools } from '../tools/member';
-import { changedFiles, snapshot } from './changes';
+import { changedFiles, snapshot, type Snapshot } from './changes';
 import { REFUSE } from '../questions';
 import { josa } from '../../korean';
 import { ACTIVE } from '../../shared';
@@ -83,6 +83,8 @@ const CODE_SCOPE =
 const LIMIT = 'usage limit';
 const STOPPED = '중단되었습니다';
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 function lastDone(runs: StepRun[], id: string) {
   return runs.filter((r) => r.stepId === id && r.status === 'done').at(-1);
 }
@@ -138,6 +140,8 @@ export class Tasks {
   // Each task's current drive; a loop or a queued step from an earlier drive sees it is no longer current and ends
   driving = new Map<number, number>();
   drives = 0;
+  // How long to wait before each retry of a failed run, so an overloaded server has time to recover
+  retryWaits = [2_000, 10_000, 30_000];
 
   constructor(public chat: Chat) {}
 
@@ -312,17 +316,25 @@ export class Tasks {
         store.finishStepRun(runId, 'stopped', null, out.error ?? out.status);
         return out.status === 'limit' ? LIMIT : STOPPED;
       }
+      if (out.capped) {
+        store.finishStepRun(runId, 'failed', null, out.error ?? out.capped);
+        const cap = out.capped === 'turns' ? `${MAX_TURNS}턴` : `${MAX_BUDGET_USD}달러`;
+        log(`${role}: ${step.label} 실패 — 한 번 실행에 ${josa(cap, '을')} 넘김`, { errors: [out.error] });
+        return `${josa(step.label, '이')} 한 번 실행에 ${josa(cap, '을')} 넘겨 멈췄습니다`;
+      }
       const parsed = out.status === 'done' ? HandbackShape.safeParse(out.structured) : null;
       if (!parsed?.success) {
         const why = out.error ?? 'the result did not match the handback format';
         store.finishStepRun(runId, 'failed', null, why);
         errors.push(why.slice(0, 400));
+        // A run that failed, rather than one that answered in the wrong shape, may have met a passing fault
+        if (out.status === 'failed' && attempt < RETRIES) await sleep(this.retryWaits[attempt]);
         continue;
       }
       const hb: Handback = parsed.data;
       // A making step's files are what really changed since the task began, whatever the handback lists
       const snap = step.verdict ? null : snapshot(project.path);
-      const files = snap ? changedFiles(store.readBaseline(task.id), snap) : [];
+      const files = snap ? this.ownChanges(task, step, snap) : [];
       if (files.length) hb.files = files;
       const missing = step.requires.filter((k) => hb[k].length === 0);
       if (missing.length) {
@@ -345,6 +357,20 @@ export class Tasks {
     }
     log(`${role}: ${step.label} 실패 (${RETRIES}번 다시 시도)`, { errors });
     return `${josa(step.label, '이')} ${RETRIES}번 다시 시도해도 실패했습니다`;
+  }
+
+  // Files changed since the task began that this task wrote: under a path it reserved, or handed back by an earlier step
+  ownChanges(task: Task, step: Step, snap: Snapshot) {
+    const { store, runs } = this.chat;
+    const all = changedFiles(store.readBaseline(task.id), snap);
+    const locks = runs.locksOf(this.projectOf(task));
+    const done = store.listStepRuns(task.id);
+    // Reservations live in memory: with none seen, or a run of this step cut by a restart, nothing tells the task's writes apart
+    const cut = done.some((r) => r.stepId === step.id && r.error === 'app restarted');
+    if (!locks.touched.get(task.id)?.size || cut) return all;
+    const making = new Set(task.workflow.steps.filter((s) => !s.verdict).map((s) => s.id));
+    const earlier = done.flatMap((r) => (making.has(r.stepId) && r.status === 'done' ? (r.handback?.files ?? []) : []));
+    return all.filter((f) => earlier.includes(f) || locks.wrote(task.id, f));
   }
 
   // What one member needs to do its step: the request, its step, and every earlier step's handback

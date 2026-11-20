@@ -240,6 +240,22 @@ type RunResult = {
   error?: string;
 };
 
+type Spend = { inputTokens: number; outputTokens: number; costUsd: number };
+const NO_SPEND: Spend = { inputTokens: 0, outputTokens: 0, costUsd: 0 };
+
+// The SDK reports a resumed session's running totals, so a run's own spend is what grew since the session's last report
+function ownSpend(run: Spend, last: Spend | null): Spend {
+  // Totals that went down mean the session started counting again, as when its transcript kept no totals
+  const grew =
+    last && run.inputTokens >= last.inputTokens && run.outputTokens >= last.outputTokens && run.costUsd >= last.costUsd;
+  if (!grew) return run;
+  return {
+    inputTokens: run.inputTokens - last.inputTokens,
+    outputTokens: run.outputTokens - last.outputTokens,
+    costUsd: run.costUsd - last.costUsd,
+  };
+}
+
 export function now() {
   return new Date().toISOString();
 }
@@ -615,23 +631,34 @@ export class Store {
 
   // Runs per member and model in a session: how many, how long, how many tokens, what it cost
   usage(sessionId: number) {
-    return this.db
+    const rows = this.db
       .prepare(
-        `SELECT a.member_id AS memberId, r.model, COUNT(*) AS runs,
-                COALESCE(SUM((julianday(r.ended_at) - julianday(r.started_at)) * 86400), 0) AS seconds,
-                SUM(r.input_tokens) AS inputTokens, SUM(r.output_tokens) AS outputTokens, SUM(r.cost_usd) AS costUsd
-         FROM runs r JOIN agent_sessions a ON a.id = r.agent_session_id WHERE a.session_id = ?
-         GROUP BY a.member_id, r.model ORDER BY costUsd DESC`,
+        `SELECT a.member_id AS memberId, r.agent_session_id AS agentSessionId, r.model,
+                COALESCE((julianday(r.ended_at) - julianday(r.started_at)) * 86400, 0) AS seconds,
+                r.input_tokens AS inputTokens, r.output_tokens AS outputTokens, r.cost_usd AS costUsd
+         FROM runs r JOIN agent_sessions a ON a.id = r.agent_session_id WHERE a.session_id = ? ORDER BY r.id`,
       )
-      .all(sessionId) as {
-      memberId: number;
-      model: string;
-      runs: number;
-      seconds: number;
-      inputTokens: number;
-      outputTokens: number;
-      costUsd: number;
-    }[];
+      .all(sessionId) as (Spend & { memberId: number; agentSessionId: number; model: string; seconds: number })[];
+    const sums = new Map<string, { memberId: number; model: string; runs: number; seconds: number } & Spend>();
+    // What each Claude session had reported so far; a resumed session's totals start from there
+    const before = new Map<number, { model: string } & Spend>();
+    for (const r of rows) {
+      const last = before.get(r.agentSessionId);
+      const own = ownSpend(r, last && last.model === r.model ? last : null);
+      // A run that never reported (still running, or cut before its result) says nothing about the session's totals
+      if (r.costUsd || r.inputTokens || r.outputTokens) before.set(r.agentSessionId, r);
+      const key = `${r.memberId} ${r.model}`;
+      const sum = sums.get(key) ?? { memberId: r.memberId, model: r.model, runs: 0, seconds: 0, ...NO_SPEND };
+      sums.set(key, {
+        ...sum,
+        runs: sum.runs + 1,
+        seconds: sum.seconds + r.seconds,
+        inputTokens: sum.inputTokens + own.inputTokens,
+        outputTokens: sum.outputTokens + own.outputTokens,
+        costUsd: sum.costUsd + own.costUsd,
+      });
+    }
+    return [...sums.values()].sort((a, b) => b.costUsd - a.costUsd);
   }
 
   createTask(t: { sessionId: number; kind: string; title: string; request: string; workflow: Workflow }): Task {

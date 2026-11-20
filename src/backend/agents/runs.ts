@@ -92,8 +92,12 @@ export class Runs {
     if (opts.alive?.() === false) return skipped('stopped');
     const active = { run, memberId: member.id, sessionId, taskId, secretary: member.key === 'orchestrator' };
     this.active.add(active);
+    if (this.active.size === 1) this.chat.emit('busy', true);
     const runId = store.startRun(agentSession.id, member.model, taskId);
-    const out: RunOutput = await run.run(prompt).finally(() => this.active.delete(active));
+    const out: RunOutput = await run.run(prompt).finally(() => {
+      this.active.delete(active);
+      if (this.active.size === 0) this.chat.emit('busy', false);
+    });
     // A member let go mid-run leaves once this run, its last, has ended
     if (!this.busy(member.id) && store.readMemberById(member.id).leaving) members.leave(member.id);
     if (out.claudeId) store.writeClaudeId(agentSession.id, out.claudeId, member.model);
