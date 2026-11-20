@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -62,8 +62,13 @@ export function WorkflowView({
   useEffect(() => {
     call('workflows.kinds').then(setKinds);
   }, []);
+  // The project and kind last asked for; a reply for an earlier pick is dropped
+  const asked = useRef('');
   async function load() {
+    const key = `${project.id}/${kind}`;
+    asked.current = key;
     const read = await call('workflows.read', { projectId: project.id, kind });
+    if (asked.current !== key) return;
     setW(read);
     setSteps(read.rules.steps);
     setNodes(toNodes(read.rules.steps, (read.layout ?? {}) as Layout));

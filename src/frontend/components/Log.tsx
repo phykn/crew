@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Event, Handback, Session, Task } from '../../backend/db';
 import type { CrewMember } from '../../backend/crew/shipped';
-import { call, onChanged } from '../api';
+import { call, follow } from '../api';
 import { clock, duration } from '../time';
 import { Choice } from './Choice';
 import { MarkIcon } from './Icons';
@@ -32,19 +32,22 @@ export function Log({
   const [showUsage, setShowUsage] = useState(false);
 
   useEffect(() => {
-    const load = async () => {
-      const [e, t, u] = await Promise.all([
-        call('events.list', { sessionId: session.id }),
-        call('tasks.list', { sessionId: session.id }),
-        call('usage.list', { sessionId: session.id }),
-      ]);
-      setEvents(e);
-      setTasks(t);
-      setUsage(u);
-    };
-    load();
     // Crew changes are logged too, such as a hire or a member leaving
-    return onChanged((topic) => ['tasks', 'messages', 'members'].includes(topic) && load(), session.id);
+    return follow(
+      () =>
+        Promise.all([
+          call('events.list', { sessionId: session.id }),
+          call('tasks.list', { sessionId: session.id }),
+          call('usage.list', { sessionId: session.id }),
+        ]),
+      ([e, t, u]) => {
+        setEvents(e);
+        setTasks(t);
+        setUsage(u);
+      },
+      (topic) => ['tasks', 'messages', 'members'].includes(topic),
+      session.id,
+    );
   }, [session.id]);
 
   const shown = events.filter((e) => taskId === null || e.taskId === taskId);

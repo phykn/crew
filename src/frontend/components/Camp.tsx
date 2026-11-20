@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CrewMember } from '../../backend/crew/shipped';
 import type { Session } from '../../backend/db';
-import { call, onChanged } from '../api';
+import { call, follow } from '../api';
 import { CAMP, iso } from '../camp/projection.js';
 import { createWalkers } from '../camp/walkers.js';
 import { paintGround } from '../camp/paint/ground.js';
@@ -34,9 +34,12 @@ export function Camp({
   // The camp follows the session's record: work under way, and new lines to play as scenes
   useEffect(() => {
     if (!session) return setState(null);
-    const load = () => call('camp.state', { sessionId: session.id }).then(setState);
-    load();
-    return onChanged((t) => ['tasks', 'messages', 'members'].includes(t) && load(), session.id);
+    return follow(
+      () => call('camp.state', { sessionId: session.id }),
+      setState,
+      (t) => ['tasks', 'messages', 'members'].includes(t),
+      session.id,
+    );
   }, [session?.id]);
   useEffect(() => {
     if (state) walkers.current!.applyLog(state.log);

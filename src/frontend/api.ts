@@ -32,6 +32,23 @@ export function onChanged(fn: (topic: string) => void, sessionId?: number) {
   });
 }
 
+// Reads now and again on each change `on` picks; a reply that lands after the screen moved on is dropped, so it never shows another session's or project's data
+export function follow<T>(
+  read: () => Promise<T>,
+  use: (v: T) => void,
+  on: (topic: string) => boolean,
+  sessionId?: number,
+) {
+  let live = true;
+  const load = () => read().then((v) => live && use(v));
+  load();
+  const off = onChanged((t) => on(t) && load(), sessionId);
+  return () => {
+    live = false;
+    off();
+  };
+}
+
 // 비서 opening a screen, the way a click would
 type Navigate = { sessionId: number; view: 'log' | 'wiki' | 'workflow'; taskId?: number; kind?: string };
 

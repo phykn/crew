@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Config } from '../../backend/crew/shipped';
-import { call, onChanged } from '../api';
+import { call, follow } from '../api';
 import { stamp } from '../time';
 import { Choice } from './Choice';
 import { KitIcon } from './Icons';
@@ -33,10 +33,13 @@ export function Permissions({ memberId }: { memberId: number }) {
   const [allSkills, setAllSkills] = useState(false);
   const load = () => call('members.permissions', { id: memberId }).then(setData);
   useEffect(() => {
-    load();
     setAllSkills(false);
     // A reset or 도구's change elsewhere shows here too
-    return onChanged((topic) => topic === 'members' && load());
+    return follow(
+      () => call('members.permissions', { id: memberId }),
+      setData,
+      (topic) => topic === 'members',
+    );
   }, [memberId]);
   if (!data) return null;
   const { settings, kit } = data;

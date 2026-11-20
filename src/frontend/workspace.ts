@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ListedProject, Project, Session } from '../backend/db';
 import type { CrewMember } from '../backend/crew/shipped';
 import type { Mode } from '../shared';
@@ -11,6 +11,8 @@ export function useWorkspace() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [session, setSession] = useState<Session | null>(null);
   const [members, setMembers] = useState<CrewMember[]>([]);
+  // The project being shown or switched to; a reply read for any other one arrives too late and is dropped
+  const current = useRef<number | null>(null);
 
   // Whoever changes the record, the window or 비서, the main process says so and the window reads it again
   useEffect(
@@ -26,9 +28,13 @@ export function useWorkspace() {
   useEffect(() => {
     if (!project) return;
     return onChanged(async (t) => {
-      if (t === 'members') setMembers(await call('members.list', { projectId: project.id }));
+      if (t === 'members') {
+        const list = await call('members.list', { projectId: project.id });
+        if (current.current === project.id) setMembers(list);
+      }
       if (t === 'sessions') {
         const list = await call('sessions.list', { projectId: project.id });
+        if (current.current !== project.id) return;
         setSessions(list);
         setSession((s) => list.find((x) => x.id === s?.id) ?? s);
       }
@@ -47,6 +53,7 @@ export function useWorkspace() {
   }, []);
 
   async function selectProject(p: Project, sessionId?: number) {
+    current.current = p.id;
     let list = await call('sessions.list', { projectId: p.id });
     // A project always has a session to talk in
     if (list.length === 0) list = [await call('sessions.create', { projectId: p.id })];
@@ -78,6 +85,7 @@ export function useWorkspace() {
     const still = list.find((p) => p.id === project?.id) ?? list.find((p) => !p.missing);
     if (still) await selectProject(still, session?.id);
     else {
+      current.current = null;
       setProject(null);
       setSessions([]);
       setSession(null);

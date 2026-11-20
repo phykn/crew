@@ -72,8 +72,9 @@ export function Chat({
   const picked = matches[Math.min(pick, matches.length - 1)];
 
   useEffect(() => {
-    const load = () => call('messages.list', { sessionId: session.id }).then(setMessages);
-    const loadTasks = () => call('tasks.list', { sessionId: session.id }).then(setTasks);
+    let current = true;
+    const load = () => call('messages.list', { sessionId: session.id }).then((m) => current && setMessages(m));
+    const loadTasks = () => call('tasks.list', { sessionId: session.id }).then((t) => current && setTasks(t));
     load();
     loadTasks();
     setStreaming(null);
@@ -82,7 +83,6 @@ export function Chat({
     setImages([]);
     setNotice(null);
     stick.current = true;
-    let current = true;
     call('messages.busy', { sessionId: session.id }).then((busy) => {
       if (!current) return;
       if (busy) setStreaming((s) => s ?? '');

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { CrewMember } from '../../backend/crew/shipped';
 import type { Change, Doc, Memory as Note } from '../../backend/wiki';
 import { stamp } from '../time';
-import { call, onChanged } from '../api';
+import { call, follow } from '../api';
 import { Confirm } from './Confirm';
 import { Choice } from './Choice';
 import { PencilIcon, TrashIcon } from './Icons';
@@ -93,13 +93,20 @@ function WikiView({
   const [detail, setDetail] = useState<{ id: number; added: string[]; removed: string[] } | null>(null);
 
   useEffect(() => {
-    const load = async () => {
-      setDocs(await call('wiki.list', { projectId }));
-      setChanges(await call('wiki.timeline', { projectId }));
-      setLinks(await call('wiki.graph', { projectId }));
-    };
-    load();
-    return onChanged((t) => t === 'wiki' && load());
+    return follow(
+      () =>
+        Promise.all([
+          call('wiki.list', { projectId }),
+          call('wiki.timeline', { projectId }),
+          call('wiki.graph', { projectId }),
+        ]),
+      ([d, c, l]) => {
+        setDocs(d);
+        setChanges(c);
+        setLinks(l);
+      },
+      (t) => t === 'wiki',
+    );
   }, [projectId]);
   // The toolbar's + 새 문서 opens an empty draft here
   useEffect(() => {
@@ -297,9 +304,11 @@ function Notes({
 }) {
   const [notes, setNotes] = useState<Note[]>([]);
   useEffect(() => {
-    const load = async () => setNotes(await call('memories.list', { projectId, memberId: memberId ?? undefined }));
-    load();
-    return onChanged((t) => t === 'wiki' && load());
+    return follow(
+      () => call('memories.list', { projectId, memberId: memberId ?? undefined }),
+      setNotes,
+      (t) => t === 'wiki',
+    );
   }, [projectId, memberId]);
   const who = (id: number) => members.find((m) => m.id === id);
   if (!notes.length) return <p className="empty">아직 기억이 없습니다</p>;
