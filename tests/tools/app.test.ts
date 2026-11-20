@@ -33,7 +33,7 @@ test('비서 finds the stopped test task the user picks, opens its log, resumes 
       request: '테스트',
       workflow: { ...research, steps: research.steps.map((x) => ({ ...x, role: 'tester' })) },
     });
-    store.writeTaskStatus(t.id, 'stopped', '', `업무 "${title}" 중단됨: 사유 ${i + 1}`);
+    store.writeTaskStatus(t.id, 'stopped', '', `${title} 업무 중단됨: 사유 ${i + 1}`);
     return t;
   });
 

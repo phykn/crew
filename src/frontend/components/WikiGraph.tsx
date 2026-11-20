@@ -1,13 +1,31 @@
-import { useMemo } from 'react';
-import { ReactFlow, Background, Controls, Handle, Position, type Edge, type Node, type NodeProps } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
-import type { call } from '../api';
+import { useMemo } from "react";
+import {
+  ReactFlow,
+  Background,
+  Controls,
+  Handle,
+  Position,
+  type Edge,
+  type Node,
+  type NodeProps,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+import type { call } from "../api";
 
-export type Graph = Awaited<ReturnType<typeof call<'wiki.graph'>>>;
-type DocNode = Node<{ title: string; missing: boolean }, 'doc'>;
+export type Graph = Awaited<ReturnType<typeof call<"wiki.graph">>>;
+type DocNode = Node<{ title: string; missing: boolean }, "doc">;
 
 // The wiki as a graph: each document a dot, each [[link]] a line; a dashed dot is a topic linked to but not written
-export function WikiGraph({ graph, onOpen }: { graph: Graph; onOpen: (title: string) => void }) {
+// The library's corner link is left out of a canvas the user works in
+export const HIDE_MARK = { hideAttribution: true };
+
+export function WikiGraph({
+  graph,
+  onOpen,
+}: {
+  graph: Graph;
+  onOpen: (title: string) => void;
+}) {
   const nodes = useMemo<DocNode[]>(() => {
     const at = spread(
       graph.nodes.map((n) => n.title),
@@ -15,12 +33,16 @@ export function WikiGraph({ graph, onOpen }: { graph: Graph; onOpen: (title: str
     );
     return graph.nodes.map((n) => ({
       id: n.title,
-      type: 'doc',
+      type: "doc",
       position: at[n.title],
       data: { title: n.title, missing: n.id === null },
     }));
   }, [graph]);
-  const edges: Edge[] = graph.edges.map((e) => ({ id: `${e.from}->${e.to}`, source: e.from, target: e.to }));
+  const edges: Edge[] = graph.edges.map((e) => ({
+    id: `${e.from}->${e.to}`,
+    source: e.from,
+    target: e.to,
+  }));
 
   if (!graph.nodes.length) return <p className="empty">아직 문서가 없습니다</p>;
   return (
@@ -31,13 +53,18 @@ export function WikiGraph({ graph, onOpen }: { graph: Graph; onOpen: (title: str
         nodeTypes={NODE_TYPES}
         onNodeClick={(_, n) => onOpen(n.id)}
         nodesConnectable={false}
-        defaultEdgeOptions={{ type: 'straight' }}
+        defaultEdgeOptions={{ type: "straight" }}
         colorMode="light"
+        proOptions={HIDE_MARK}
         fitView
         fitViewOptions={{ maxZoom: 1, padding: 0.2 }}
       >
         <Background />
-        <Controls showInteractive={false} />
+        <Controls
+          showInteractive={false}
+          orientation="horizontal"
+          position="top-right"
+        />
       </ReactFlow>
     </div>
   );
@@ -45,7 +72,11 @@ export function WikiGraph({ graph, onOpen }: { graph: Graph; onOpen: (title: str
 
 function DocDot({ data }: NodeProps<DocNode>) {
   return (
-    <div className="wiki-dot" data-missing={data.missing || undefined} aria-label={`문서 ${data.title}`}>
+    <div
+      className="wiki-dot"
+      data-missing={data.missing || undefined}
+      aria-label={`문서 ${data.title}`}
+    >
       <Handle type="target" position={Position.Top} className="wiki-dot-end" />
       {data.title}
       <Handle type="source" position={Position.Top} className="wiki-dot-end" />
@@ -56,7 +87,9 @@ const NODE_TYPES = { doc: DocDot };
 
 // A small force layout: linked documents pull together, every pair pushes apart, so clusters and loners show
 function spread(ids: string[], edges: { from: string; to: string }[]) {
-  const gap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--w-node'));
+  const gap = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue("--w-node"),
+  );
   const at: Record<string, { x: number; y: number }> = {};
   // Start on a circle, so the result is the same every time it is drawn
   ids.forEach((id, i) => {
@@ -64,7 +97,9 @@ function spread(ids: string[], edges: { from: string; to: string }[]) {
     at[id] = { x: Math.cos(a) * gap * 2, y: Math.sin(a) * gap * 2 };
   });
   for (let step = 0; step < 200; step++) {
-    const move: Record<string, { x: number; y: number }> = Object.fromEntries(ids.map((id) => [id, { x: 0, y: 0 }]));
+    const move: Record<string, { x: number; y: number }> = Object.fromEntries(
+      ids.map((id) => [id, { x: 0, y: 0 }]),
+    );
     for (const a of ids)
       for (const b of ids) {
         if (a === b) continue;

@@ -136,6 +136,7 @@ code {
 }
 /* Go: the green fill of chosen and primary things */
 .seg button[aria-pressed='true'],
+.button[aria-pressed='true'],
 .button.primary,
 .answer-option.primary,
 .send,
@@ -172,8 +173,8 @@ code {
   cursor: pointer;
   text-align: left;
 }
-/* A quiet remove button in a row: muted until pointed at, then red */
-.tree-delete {
+/* A quiet button in a row or a heading: muted until pointed at; a removal turns red */
+.quiet-action {
   display: inline-grid;
   place-items: center;
   height: var(--h-xs);
@@ -185,17 +186,21 @@ code {
   font-size: var(--fs-xs);
   cursor: pointer;
 }
-.tree-delete:hover,
-.tree-delete:focus-visible {
+.quiet-action:hover,
+.quiet-action:focus-visible {
+  background: var(--butter);
+  color: var(--text);
+}
+.quiet-action.danger:hover,
+.quiet-action.danger:focus-visible {
   background: var(--rose);
   color: var(--danger-dark);
 }
-.tree-delete.icon-only {
+.quiet-action.icon-only {
   width: var(--h-xs);
   padding: 0;
 }
 /* Red is only for failure and delete */
-.button.danger,
 .task-link.danger,
 .task-confirm,
 .log-row[data-bad] .log-text,
@@ -330,6 +335,12 @@ code {
 }
 .menu-item[data-state='checked'] {
   font-weight: var(--fw-bold);
+}
+.menu-hint {
+  display: block;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-normal);
 }
 .menu-item.action {
   color: var(--wood);
@@ -1159,6 +1170,19 @@ code {
   font-size: var(--fs-sm);
   cursor: pointer;
 }
+/* A chip that is switched on is filled; the box inside is for keyboards and screen readers */
+.chip:has(> input) {
+  color: var(--muted);
+}
+.chip:has(> input:checked) {
+  background: var(--accent-soft);
+  border-color: var(--accent-dark);
+  color: var(--text);
+}
+.chip:has(> input:focus-visible) {
+  outline: var(--bw) solid var(--link);
+  outline-offset: var(--bw);
+}
 .chip.more {
   background: none;
   border-style: dashed;
@@ -1203,7 +1227,23 @@ code {
   padding: var(--sp-3);
   font-size: var(--fs-sm);
   line-height: var(--lh-text);
-  white-space: pre-wrap;
+}
+.def-body > :first-child {
+  margin-top: 0;
+}
+.def-body h4 {
+  margin: var(--sp-3) 0 var(--sp-1);
+  color: var(--wood);
+}
+.def-body p,
+.def-body ul {
+  margin: 0 0 var(--sp-2);
+}
+.def-body ul {
+  padding-left: var(--sp-4);
+}
+input[type='checkbox'] {
+  accent-color: var(--accent-dark);
 }
 
 /* Log */
@@ -1382,6 +1422,15 @@ code {
 .wiki-doc h3 {
   margin: 0;
   font-size: var(--fs-lg);
+}
+.wiki-doc-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+.wiki-doc-head h3 {
+  flex: 1;
+  min-width: 0;
 }
 .wiki-doc textarea {
   flex: 1;

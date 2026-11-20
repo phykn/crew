@@ -53,6 +53,7 @@ export function Permissions({ memberId }: { memberId: number }) {
         {Object.entries(TOOL_LABELS).map(([kind, label]) => (
           <label key={kind} className="chip">
             <input
+              className="sr-only"
               type="checkbox"
               checked={settings.tools.includes(kind as never)}
               onChange={() => save({ tools: toggle(settings.tools, kind as never) })}
@@ -75,6 +76,7 @@ export function Permissions({ memberId }: { memberId: number }) {
         {skills.map(([name, item]) => (
           <label key={name} className="chip" title={item.use}>
             <input
+              className="sr-only"
               type="checkbox"
               checked={settings.skills.includes(name)}
               onChange={() => save({ skills: toggle(settings.skills, name) })}

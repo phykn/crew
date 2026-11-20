@@ -1,35 +1,35 @@
-import { useEffect, useState } from 'react';
-import * as Tabs from '@radix-ui/react-tabs';
-import { onNavigate } from './api';
-import { useWorkspace } from './workspace';
-import { TitleBar } from './components/TitleBar';
-import { ProjectBar } from './components/ProjectBar';
-import { Chat } from './components/Chat';
-import { Legend } from './components/Legend';
-import { Log } from './components/Log';
-import { ProjectTree } from './components/ProjectTree';
-import { Memory } from './components/Memory';
-import { WorkflowView } from './components/WorkflowView';
-import { Camp } from './components/Camp';
-import { TabIcon } from './components/Icons';
-import { Changes, type ChangesTarget } from './components/Changes';
+import { useEffect, useState } from "react";
+import * as Tabs from "@radix-ui/react-tabs";
+import { onNavigate } from "./api";
+import { useWorkspace } from "./workspace";
+import { TitleBar } from "./components/TitleBar";
+import { ProjectBar } from "./components/ProjectBar";
+import { Chat } from "./components/Chat";
+import { Legend } from "./components/Legend";
+import { Log } from "./components/Log";
+import { ProjectTree } from "./components/ProjectTree";
+import { Memory } from "./components/Memory";
+import { WorkflowView } from "./components/WorkflowView";
+import { Camp } from "./components/Camp";
+import { TabIcon } from "./components/Icons";
+import { Changes, type ChangesTarget } from "./components/Changes";
 
 const TABS = [
-  ['chat', '대화'],
-  ['log', '로그'],
-  ['memory', '메모리'],
-  ['workflow', '워크플로우'],
+  ["chat", "대화"],
+  ["log", "로그"],
+  ["memory", "메모리"],
+  ["workflow", "워크플로우"],
 ] as const;
 
 export function App() {
   const ws = useWorkspace();
   const { project, session, members } = ws;
-  const [tab, setTab] = useState('chat');
+  const [tab, setTab] = useState("chat");
   const [tree, setTree] = useState(false);
   // The member whose memory the memory tab shows; null shows everyone's
   const [memoryOf, setMemoryOf] = useState<number | null>(null);
   // The workflow kind the workflow tab shows
-  const [kind, setKind] = useState('code');
+  const [kind, setKind] = useState("code");
   // The task the log shows; null shows every task in the session
   const [logTask, setLogTask] = useState<number | null>(null);
   // A card waits for the user's answer, which the chat tab shows while another tab is open
@@ -39,7 +39,7 @@ export function App() {
 
   function openLog(taskId: number | null) {
     setLogTask(taskId);
-    setTab('log');
+    setTab("log");
   }
 
   // 비서 moves the window the way the user would by clicking
@@ -47,11 +47,11 @@ export function App() {
     () =>
       onNavigate((ev) => {
         if (ev.sessionId !== session?.id) return;
-        if (ev.view === 'log') openLog(ev.taskId ?? null);
-        else if (ev.view === 'wiki') setTab('memory');
+        if (ev.view === "log") openLog(ev.taskId ?? null);
+        else if (ev.view === "wiki") setTab("memory");
         else {
-          setKind(ev.kind ?? 'code');
-          setTab('workflow');
+          setKind(ev.kind ?? "code");
+          setTab("workflow");
         }
       }),
     [session?.id],
@@ -60,7 +60,11 @@ export function App() {
   return (
     <div className="app">
       <TitleBar />
-      <ProjectTree open={tree} onClose={() => setTree(false)} onDeleted={ws.afterDelete} />
+      <ProjectTree
+        open={tree}
+        onClose={() => setTree(false)}
+        onDeleted={ws.afterDelete}
+      />
       <main className="body">
         <section className="camp" aria-label="캠프">
           <Camp members={members} session={session} onPick={openLog} />
@@ -69,7 +73,7 @@ export function App() {
               members={members}
               onMemory={(id) => {
                 setMemoryOf(id);
-                setTab('memory');
+                setTab("memory");
               }}
             />
           )}
@@ -91,7 +95,7 @@ export function App() {
             {/* Icons keep the tabs small; each name shows on hover and is what a screen reader says */}
             <Tabs.List className="tab-list">
               {TABS.map(([value, name]) => {
-                const marked = value === 'chat' && waiting && !!session;
+                const marked = value === "chat" && waiting && !!session;
                 return (
                   <Tabs.Trigger
                     key={value}
@@ -114,10 +118,10 @@ export function App() {
                   onMode={ws.setMode}
                   onWaiting={setWaiting}
                   commands={[
-                    { name: 'clear', label: '새 세션', run: ws.newSession },
-                    { name: 'log', label: '로그 열기', run: () => setTab('log') },
-                    { name: 'memory', label: '메모리 열기', run: () => setTab('memory') },
-                    { name: 'workflow', label: '워크플로우 열기', run: () => setTab('workflow') },
+                    { name: "clear", label: "새 세션", run: ws.newSession },
+                    { name: "log", run: () => setTab("log") },
+                    { name: "memory", run: () => setTab("memory") },
+                    { name: "workflow", run: () => setTab("workflow") },
                   ]}
                   onLog={openLog}
                 />
@@ -127,12 +131,23 @@ export function App() {
             </Tabs.Content>
             <Tabs.Content value="log" className="tab-body">
               {session && (
-                <Log session={session} members={members} taskId={logTask} onTask={setLogTask} onChanges={setChanges} />
+                <Log
+                  session={session}
+                  members={members}
+                  taskId={logTask}
+                  onTask={setLogTask}
+                  onChanges={setChanges}
+                />
               )}
             </Tabs.Content>
             <Tabs.Content value="memory" className="tab-body">
               {project && (
-                <Memory projectId={project.id} members={members} memberId={memoryOf} onMember={setMemoryOf} />
+                <Memory
+                  projectId={project.id}
+                  members={members}
+                  memberId={memoryOf}
+                  onMember={setMemoryOf}
+                />
               )}
             </Tabs.Content>
             {/* Kept mounted so unsaved edits survive a look at another tab */}
@@ -143,7 +158,7 @@ export function App() {
                   members={members}
                   kind={kind}
                   onKind={setKind}
-                  active={tab === 'workflow'}
+                  active={tab === "workflow"}
                 />
               )}
             </Tabs.Content>
@@ -156,7 +171,7 @@ export function App() {
         onClose={() => setChanges(null)}
         onChat={() => {
           setChanges(null);
-          setTab('chat');
+          setTab("chat");
         }}
       />
     </div>

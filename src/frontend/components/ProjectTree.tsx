@@ -70,7 +70,7 @@ export function ProjectTree({
                   </div>
                   {project.missing && <span className="badge missing">폴더 없음</span>}
                   <button
-                    className="tree-delete icon-only"
+                    className="quiet-action danger icon-only"
                     onClick={() => ask({ kind: 'project', id: project.id, name: project.name })}
                     aria-label={`${project.name} 삭제`}
                     title="삭제"
@@ -85,7 +85,7 @@ export function ProjectTree({
                         <div className="tree-session-head">
                           <span className="tree-session-name">{sessionLabel(session)}</span>
                           <button
-                            className="tree-delete icon-only"
+                            className="quiet-action danger icon-only"
                             onClick={() => ask({ kind: 'session', id: session.id, name: sessionLabel(session) })}
                             aria-label={`${sessionLabel(session)} 삭제`}
                             title="삭제"

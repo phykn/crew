@@ -63,7 +63,7 @@ test('the record plays in the camp: assignment, work, request, waiting, failure,
   await vi.waitFor(() => expect(campState(chat, s.id).log.some((l) => l.text === '수정 요청')).toBe(true));
   feed(w);
   expect(said(w, 'reviewer')).toBe('수정 요청');
-  store.writeTaskStatus(1, 'done', '', '업무 "검색" 완료');
+  store.writeTaskStatus(1, 'done', '', '검색 업무 완료');
   feed(w);
   expect(said(w, 'orchestrator')).toBe('완료 보고');
 

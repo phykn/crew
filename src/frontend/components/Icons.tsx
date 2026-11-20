@@ -146,3 +146,11 @@ export function TrashIcon() {
     </svg>
   );
 }
+
+export function PencilIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="icon" aria-hidden="true">
+      <path d="M4 16l1-4 8-8 3 3-8 8zM11 6l3 3" fill="none" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}

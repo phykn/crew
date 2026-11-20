@@ -22,7 +22,7 @@ test("비서 answers from the help and opens this project's workflow editor", as
   await page.getByLabel('메시지').fill('편집기 열어줘');
   await page.getByLabel('메시지').press('Enter');
   const editor = page.getByLabel('워크플로우 편집');
-  await expect(editor).toContainText('버전 0');
+  await expect(editor.getByRole('button', { name: '저장' })).toHaveAttribute('title', '버전 0');
   await expect(editor.getByLabel('단계 코드 리뷰')).toContainText('리뷰');
   await page.getByRole('tab', { name: '대화' }).click();
   await expect(page.locator('.messages')).toContainText('편집 화면을 열었습니다.');

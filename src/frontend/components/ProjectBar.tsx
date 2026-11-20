@@ -1,11 +1,11 @@
-import * as Select from '@radix-ui/react-select';
-import type { ListedProject, Project, Session } from '../../backend/db';
-import { clock } from '../time';
-import { Chevron, FolderIcon } from './Icons';
+import * as Select from "@radix-ui/react-select";
+import type { ListedProject, Project, Session } from "../../backend/db";
+import { clock } from "../time";
+import { Chevron, FolderIcon } from "./Icons";
 
-const OPEN = 'open';
-const NEW = 'new';
-const EXPLORER = 'explorer';
+const OPEN = "open";
+const NEW = "new";
+const EXPLORER = "explorer";
 
 type Props = {
   projects: ListedProject[];
@@ -29,29 +29,43 @@ export function sessionLabel(s: Session) {
 
 export function ProjectBar(props: Props) {
   const { projects, project, sessions, session } = props;
+  const others = sessions.filter((s) => s.id !== session?.id);
   return (
     <div className="project-bar">
       <Select.Root
-        value={project ? String(project.id) : ''}
+        value={project ? String(project.id) : ""}
         onOpenChange={(o) => o && props.onOpenList()}
         onValueChange={(v) =>
-          v === OPEN ? props.onOpenFolder() : props.onProject(projects.find((p) => String(p.id) === v)!)
+          v === OPEN
+            ? props.onOpenFolder()
+            : props.onProject(projects.find((p) => String(p.id) === v)!)
         }
       >
         <Select.Trigger className="picker project-picker" aria-label="프로젝트">
           <FolderIcon />
-          <span className="picker-value">{project?.name ?? '폴더 열기'}</span>
+          <span className="picker-value">{project?.name ?? "폴더 열기"}</span>
           <Chevron />
         </Select.Trigger>
         <Select.Portal>
           <Select.Content className="menu" position="popper" sideOffset={4}>
             <Select.Viewport>
-              {projects.map((p) => (
-                <Select.Item key={p.id} value={String(p.id)} className="menu-item" title={p.path} disabled={p.missing}>
-                  <Select.ItemText>{p.name}</Select.ItemText>
-                  {p.missing && <span className="badge missing">폴더 없음</span>}
-                </Select.Item>
-              ))}
+              {/* The open one is already on the button, so the menu lists only where else to go */}
+              {projects
+                .filter((p) => p.id !== project?.id)
+                .map((p) => (
+                  <Select.Item
+                    key={p.id}
+                    value={String(p.id)}
+                    className="menu-item"
+                    title={p.path}
+                    disabled={p.missing}
+                  >
+                    <Select.ItemText>{p.name}</Select.ItemText>
+                    {p.missing && (
+                      <span className="badge missing">폴더 없음</span>
+                    )}
+                  </Select.Item>
+                ))}
               <Select.Item value={OPEN} className="menu-item action">
                 <Select.ItemText>폴더 열기…</Select.ItemText>
               </Select.Item>
@@ -60,7 +74,7 @@ export function ProjectBar(props: Props) {
         </Select.Portal>
       </Select.Root>
       <Select.Root
-        value={session ? String(session.id) : ''}
+        value={session ? String(session.id) : ""}
         disabled={!project}
         onValueChange={(v) =>
           v === NEW
@@ -71,18 +85,31 @@ export function ProjectBar(props: Props) {
         }
       >
         <Select.Trigger className="picker session-picker" aria-label="세션">
-          <span className="picker-value">{session ? sessionLabel(session) : '세션'}</span>
+          <span className="picker-value">
+            {session ? sessionLabel(session) : "세션"}
+          </span>
           <Chevron />
         </Select.Trigger>
         <Select.Portal>
-          <Select.Content className="menu" position="popper" sideOffset={4} align="end">
+          <Select.Content
+            className="menu"
+            position="popper"
+            sideOffset={4}
+            align="end"
+          >
             <Select.Viewport>
-              {sessions.map((s) => (
-                <Select.Item key={s.id} value={String(s.id)} className="menu-item">
+              {others.map((s) => (
+                <Select.Item
+                  key={s.id}
+                  value={String(s.id)}
+                  className="menu-item"
+                >
                   <Select.ItemText>{sessionLabel(s)}</Select.ItemText>
                 </Select.Item>
               ))}
-              <Select.Separator className="menu-separator" />
+              {others.length > 0 && (
+                <Select.Separator className="menu-separator" />
+              )}
               <Select.Item value={NEW} className="menu-item action">
                 <Select.ItemText>새 세션</Select.ItemText>
               </Select.Item>

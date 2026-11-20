@@ -1,7 +1,8 @@
-import * as Select from '@radix-ui/react-select';
-import { Chevron } from './Icons';
+import * as Select from "@radix-ui/react-select";
+import { Chevron } from "./Icons";
 
-type Option = { value: string; label: string };
+// A hint shows only in the open menu, so the closed control stays one word
+type Option = { value: string; label: string; hint?: string };
 
 // Every pick-one control looks the same, instead of the system's own dropdown in some places
 export function Choice({
@@ -9,7 +10,7 @@ export function Choice({
   options,
   onChange,
   label,
-  className = '',
+  className = "",
 }: {
   value: string;
   options: Option[];
@@ -31,6 +32,7 @@ export function Choice({
             {options.map((o) => (
               <Select.Item key={o.value} value={o.value} className="menu-item">
                 <Select.ItemText>{o.label}</Select.ItemText>
+                {o.hint && <span className="menu-hint">{o.hint}</span>}
               </Select.Item>
             ))}
           </Select.Viewport>

@@ -60,7 +60,7 @@ test('the editor saves review and test in parallel after 개발 as a new version
   await expect(page.getByLabel('업무 자료 조사')).toBeVisible();
 
   await open();
-  await expect(editor).toContainText('버전 2');
+  await expect(editor.getByRole('button', { name: '저장' })).toHaveAttribute('title', '버전 2');
   await expect(editor.locator('.react-flow__edge')).toHaveCount(5);
   await expect(editor.getByLabel('개발 → 시험')).toHaveCount(1);
   await expect(editor.getByLabel('코드 리뷰 → 시험')).toHaveCount(0);
@@ -83,13 +83,13 @@ test('a version 비서 saves by talk shows in the editor that was already open',
   const page = await openProject(app, scratch.project);
   await page.getByRole('tab', { name: '워크플로우' }).click();
   const editor = page.getByLabel('워크플로우 편집');
-  await expect(editor).toContainText('버전 0');
+  await expect(editor.getByRole('button', { name: '저장' })).toHaveAttribute('title', '버전 0');
   await page.getByRole('tab', { name: '대화' }).click();
   await page.getByLabel('메시지').fill('워크플로우 저장해줘');
   await page.getByLabel('메시지').press('Enter');
   await expect(page.getByText('저장했습니다 (버전 1).')).toBeVisible();
   await page.getByRole('tab', { name: '워크플로우' }).click();
-  await expect(editor).toContainText('버전 1');
+  await expect(editor.getByRole('button', { name: '저장' })).toHaveAttribute('title', '버전 1');
   await app.close();
 });
 
