@@ -104,6 +104,9 @@ export class Workflows {
     // A broken edit is refused whole, so the last valid version stays in force
     if (problems.length) return { ok: false as const, problems };
     if (o.scope !== 'future' && !o.taskId) return { ok: false as const, problems: ['적용할 업무가 없습니다'] };
+    // A rule for one task applies only to a task of this project and kind
+    if (o.scope !== 'future' && !this.ownTask(o.projectId, o.kind, o.taskId!))
+      return { ok: false as const, problems: [`이 프로젝트에 ${o.kind} 업무 #${o.taskId}이 없습니다`] };
     if (o.scope !== 'once') {
       const version = store.addWorkflowVersion(o.projectId, o.kind, o.base, rules, o.layout, o.by.name);
       if (version === null)
@@ -119,6 +122,13 @@ export class Workflows {
     if (o.taskId && o.scope !== 'future') store.writeTaskWorkflow(o.taskId, rules);
     emit('changed', { topic: 'workflows' });
     return { ok: true as const, version: this.current(o.projectId, o.kind).version };
+  }
+
+  ownTask(projectId: number, kind: string, taskId: number) {
+    const { store } = this.chat;
+    return store
+      .listSessions(projectId)
+      .some((s) => store.listTasks(s.id).some((t) => t.id === taskId && t.kind === kind));
   }
 
   // Deleting a document tied to a rule either leaves the rule in force or puts back the rule from before it

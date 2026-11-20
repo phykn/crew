@@ -203,7 +203,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
         change_id: z.number().int().optional().describe('One change, to read what it added and removed'),
       }),
       ui: ['wiki.timeline', 'wiki.change'],
-      run: (a) => (a.change_id ? wiki.change(a.change_id) : wiki.timeline(projectId)),
+      run: (a) => (a.change_id ? wiki.change(a.change_id, projectId) : wiki.timeline(projectId)),
     }),
     action({
       id: 'memories',

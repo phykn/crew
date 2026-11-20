@@ -42,3 +42,14 @@ test('the wiki graph draws each [[link]] once and shows a linked title with no d
     ],
   });
 });
+
+test("a document written again after its deletion keeps the old one's history on the timeline", () => {
+  const { chat, p } = openChat();
+  const user = { memberId: null, name: '사용자' };
+  const doc = chat.wiki.write(p.id, 'A', '1', user);
+  chat.wiki.write(p.id, 'A', '2', user);
+  chat.wiki.remove(doc.id, user);
+  chat.wiki.write(p.id, 'A', '3', user);
+  expect(chat.wiki.timeline(p.id).map((c) => c.kind)).toEqual(['create', 'delete', 'edit', 'create']);
+  expect(chat.wiki.find(p.id, 'A')!.body).toBe('3');
+});

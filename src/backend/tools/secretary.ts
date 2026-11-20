@@ -100,6 +100,9 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
           reason: z.string().optional().describe("Why, in Korean; kept as the rule's decision document in the wiki"),
         },
         async (a) => {
+          // Only a task of this conversation, as with reopen_task
+          if (a.task_id && !chat.store.listTasks(sessionId).some((t) => t.id === a.task_id))
+            return text(`저장하지 않았습니다: 이 대화에 업무 #${a.task_id}이 없습니다.`);
           const r = chat.workflows.save({
             projectId: projectId(),
             kind: a.kind,

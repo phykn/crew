@@ -156,3 +156,12 @@ test('each change to the record is announced by the part that made it, whether t
   expect(said(() => chat.members.setPermissions(coder.id, { tools: ['read'] }))).toEqual(['members']);
   expect(said(() => chat.removeProject(p.id))).toEqual(['sessions', 'projects']);
 });
+
+test('a session deleted while 비서 answers takes no failure message, and the send settles quietly', async () => {
+  const { store, chat, s } = openChat({ 비서: [never] });
+  const sent = chat.send(s.id, '안녕');
+  await vi.waitFor(() => expect(chat.runs.live(s.id)).toBeTruthy());
+  chat.deleteSession(s.id);
+  await expect(sent).resolves.toBeUndefined();
+  expect(store.hasSession(s.id)).toBe(false);
+});

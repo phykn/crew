@@ -127,3 +127,15 @@ test('changing the approval mode waits for the user, and a refusal leaves it as 
   expect(await allowed).toContain('자동으로');
   expect(store.readProject(p.id).mode).toBe('auto');
 });
+
+test('a wiki change of another project reads as missing, as does one that never was', async () => {
+  const { store, fake, chat, s, project } = openChat();
+  const q = store.addProject(`${project}-other`);
+  chat.wiki.write(q.id, '비밀', 'TOP SECRET', { memberId: null, name: '사용자' });
+  const [change] = chat.wiki.timeline(q.id);
+  appServer(fake.sdk, chat, s.id);
+  const read = (change_id: number) => toolText(fake, 'app_read', { action: 'wiki.timeline', args: { change_id } });
+  expect(await read(change.id)).not.toContain('TOP SECRET');
+  expect(await read(change.id)).toContain('없습니다');
+  expect(await read(9999)).toContain('없습니다');
+});

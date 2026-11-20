@@ -177,7 +177,7 @@ export function Chat({
             key={m.id}
             author={m.author}
             text={m.text}
-            pictures={Array.from({ length: m.imageCount }, (_, n) => imageUrl(m.id, n))}
+            pictures={Array.from({ length: m.imageCount }, (_, n) => imageUrl(m.id, n, m.createdAt))}
             question={m.question}
           />
         ))}

@@ -352,6 +352,10 @@ export class Store {
     return this.readProject(this.readSession(sessionId).projectId);
   }
 
+  hasSession(id: number) {
+    return !!this.db.prepare('SELECT 1 FROM sessions WHERE id = ?').get(id);
+  }
+
   readSession(id: number): Session {
     const row = this.db
       .prepare('SELECT id, project_id AS projectId, number, created_at AS createdAt, title FROM sessions WHERE id = ?')

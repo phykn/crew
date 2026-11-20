@@ -10,7 +10,9 @@ export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'
 export type Image = { mediaType: (typeof IMAGE_TYPES)[number]; data: string };
 // A sent picture's address; the window loads it only when shown, so the message list stays small
 export const IMAGE_SCHEME = 'crew-image';
-export const imageUrl = (messageId: number, n: number) => `${IMAGE_SCHEME}://message/${messageId}/${n}`;
+// The send time keeps the address unique: a deleted message's id can be given again, and the window caches by address
+export const imageUrl = (messageId: number, n: number, sentAt: string) =>
+  `${IMAGE_SCHEME}://message/${messageId}/${n}?at=${encodeURIComponent(sentAt)}`;
 
 export const MODELS = ['haiku', 'sonnet', 'opus'] as const;
 

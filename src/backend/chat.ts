@@ -69,6 +69,8 @@ export class Chat {
 
   // 비서's words in the chat: the message, the end of its stream, and a refresh
   post(sessionId: number, text: string) {
+    // A session deleted while 비서 was answering has nowhere to take the words
+    if (!this.store.hasSession(sessionId)) return;
     this.store.addMessage(sessionId, 'secretary', text);
     this.emit('stream', { sessionId, done: true });
     this.emit('changed', { topic: 'messages', sessionId });

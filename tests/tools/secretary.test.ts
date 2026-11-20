@@ -56,3 +56,28 @@ test('a question to a member at work is answered by a copy of its session, which
   expect(fake.calls.filter((c) => c.prompt.includes('지금 뭐 해?'))).toHaveLength(1);
   expect(recordedAgents(store, s.id).find((a) => a.key === 'coder')!.claudeId).toBe('claude-dev');
 });
+
+test("change_workflow for one task takes only a task of this conversation and kind, never another project's", async () => {
+  const { store, fake, chat, s, project } = openChat();
+  const code = chat.workflows.shipped.find((w) => w.kind === 'code')!;
+  const elsewhere = store.createSession(store.addProject(`${project}-other`).id);
+  const foreign = store.createTask({
+    sessionId: elsewhere.id,
+    kind: 'code',
+    title: '남의 업무',
+    request: 'r',
+    workflow: code,
+  });
+  secretaryTools(fake.sdk, chat, s.id);
+  const change = (task_id: number) =>
+    toolText(fake, 'change_workflow', {
+      kind: 'code',
+      base_version: 0,
+      rules: { ...code, label: '바뀜' },
+      scope: 'once',
+      task_id,
+    });
+  expect(await change(foreign.id)).toContain('저장하지 않았습니다');
+  expect(await change(999)).toContain('저장하지 않았습니다');
+  expect(store.readTask(foreign.id).workflow.label).toBe(code.label);
+});

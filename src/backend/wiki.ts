@@ -75,10 +75,7 @@ export class Wiki {
         this.db.prepare('UPDATE wiki_docs SET body = ?, updated_at = ? WHERE id = ?').run(body, now(), old.id);
         id = old.id;
       } else {
-        // A deleted document of the same title comes back as a new one, with its own history
-        this.db
-          .prepare('DELETE FROM wiki_docs WHERE project_id = ? AND title = ? AND deleted = 1')
-          .run(projectId, title);
+        // A deleted document of the same title stays, with its history; this one starts its own
         id = Number(
           this.db
             .prepare('INSERT INTO wiki_docs (project_id, title, body, updated_at) VALUES (?, ?, ?, ?)')
@@ -156,12 +153,13 @@ export class Wiki {
     return rows.map((r) => ({ ...r, files: JSON.parse(r.files) }));
   }
 
-  // The lines a change added and removed, for the timeline's detail
-  change(id: number) {
-    const row = this.db.prepare('SELECT before, after FROM wiki_changes WHERE id = ?').get(id) as {
-      before: string;
-      after: string;
-    };
+  // The lines a change added and removed, for the timeline's detail; another project's change is as missing as none
+  change(id: number, projectId?: number) {
+    const row = this.db
+      .prepare('SELECT before, after, project_id AS projectId FROM wiki_changes WHERE id = ?')
+      .get(id) as { before: string; after: string; projectId: number } | undefined;
+    if (!row || (projectId !== undefined && row.projectId !== projectId))
+      throw new Error(`변경 기록 #${id}이 없습니다`);
     const parts = diffLines(row.before, row.after);
     const lines = (p: (typeof parts)[number]) => p.value.split('\n').filter(Boolean);
     return {
