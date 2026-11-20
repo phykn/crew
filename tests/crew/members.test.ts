@@ -140,3 +140,10 @@ test('a permission change is recorded by name, never with the server settings it
   expect(change.change).toBe('스킬 -report, MCP +browser(읽기), MCP -browser(전체)');
   expect(JSON.stringify(store.listPermissionChanges(reviewer.id))).not.toContain('secret-123');
 });
+
+test("a crew change is logged in the project's latest session, where the user is looking", () => {
+  const { store, chat, p, s } = openChat();
+  const latest = chat.createSession(p.id);
+  chat.members.fire(store.readMember(p.id, 'tester').id);
+  expect([store.listEvents(s.id), store.listEvents(latest.id).map((e) => e.text)]).toEqual([[], ['시험(솔잎) 퇴장']]);
+});

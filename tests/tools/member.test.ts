@@ -33,6 +33,19 @@ test('a peer request asked back stays one thread, a resent line runs once, and a
   expect(second).toContain('searchItems가 맞습니다');
   expect(again).toBe(second);
   expect(store.readRequest(id).thread.map((l) => l.from)).toEqual(['개발', '표준', '개발', '표준']);
+  // The log says who each line went to, so the camp can walk it over without reading the words
+  const stylist = store.readMember(p.id, 'stylist');
+  expect(
+    store
+      .listEvents(s.id)
+      .filter((e) => e.kind === 'request')
+      .map((e) => JSON.parse(e.detail!)),
+  ).toEqual([
+    { requestId: id, to: stylist.id },
+    { requestId: id, to: coder.id, answer: true },
+    { requestId: id, to: stylist.id },
+    { requestId: id, to: coder.id, answer: true },
+  ]);
 
   const test = task.workflow.steps.find((x) => x.id === 'test')!;
   await expect(chat.tasks.runStep(task, test, () => true)).resolves.toBe('done');

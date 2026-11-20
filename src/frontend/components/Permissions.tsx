@@ -26,7 +26,7 @@ const ACCESS = [
 ];
 
 // One member's tools, write scope, skills, and MCP access; each change saves at once and applies to the next tool call
-export function Permissions({ memberId, onChange }: { memberId: number; onChange: () => void }) {
+export function Permissions({ memberId }: { memberId: number }) {
   const [data, setData] = useState<Data | null>(null);
   // Only the skills a member holds show until the full list is asked for
   const [allSkills, setAllSkills] = useState(false);
@@ -41,7 +41,6 @@ export function Permissions({ memberId, onChange }: { memberId: number; onChange
   async function save(config: Config) {
     await call('members.setPermissions', { id: memberId, config });
     await load();
-    onChange();
   }
   const toggle = <T,>(list: T[], item: T) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
   const skills = Object.entries(kit.skills).filter(([name]) => allSkills || settings.skills.includes(name));

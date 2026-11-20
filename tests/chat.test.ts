@@ -113,3 +113,24 @@ test('/clear starts an empty 비서 on the same crew while the old session works
   chat.removeProject(p.id);
   expect(store.listProjects()).toEqual([]);
 });
+
+test('each change to the record is announced by the part that made it, whether the window or 비서 asked', () => {
+  const changed: unknown[] = [];
+  const { store, chat, p, s } = openChat(
+    {},
+    { emit: (channel, topic) => channel === 'changed' && changed.push(topic) },
+  );
+  const said = (act: () => unknown) => {
+    changed.length = 0;
+    act();
+    return [...new Set(changed)];
+  };
+  const coder = store.readMember(p.id, 'coder');
+  expect(said(() => chat.setMode(p.id, 'auto'))).toEqual(['projects']);
+  const next = chat.createSession(p.id);
+  expect(said(() => chat.renameSession(next.id, '이름'))).toEqual(['sessions']);
+  expect(said(() => chat.deleteSession(s.id))).toEqual(['sessions']);
+  expect(said(() => chat.members.update(coder.id, { nickname: '망치' }))).toEqual(['members']);
+  expect(said(() => chat.members.setPermissions(coder.id, { tools: ['read'] }))).toEqual(['members']);
+  expect(said(() => chat.removeProject(p.id))).toEqual(['sessions', 'projects']);
+});

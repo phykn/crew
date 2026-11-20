@@ -55,6 +55,11 @@ export class Members {
   }
 
   setPermissions(memberId: number, config: Config) {
+    this.writePermissions(memberId, config);
+    this.chat.emit('changed', 'members');
+  }
+
+  writePermissions(memberId: number, config: Config) {
     const { store, crew } = this.chat;
     const member = store.readMemberById(memberId);
     crew.checkConfig(config, this.kit(member.projectId));
@@ -79,7 +84,7 @@ export class Members {
       store.removeSkill(projectId, name);
       for (const m of store.listMembers(projectId)) {
         const skills = this.settings(m).skills;
-        if (skills.includes(name)) this.setPermissions(m.id, { skills: skills.filter((s) => s !== name) });
+        if (skills.includes(name)) this.writePermissions(m.id, { skills: skills.filter((s) => s !== name) });
       }
     });
     this.chat.emit('changed', 'members');
@@ -103,7 +108,7 @@ export class Members {
               ...(shipped.includes(name) && !held.includes(name) ? [name] : []),
             ]
           : shipped;
-        if (next.join() !== held.join()) this.setPermissions(m.id, { skills: next });
+        if (next.join() !== held.join()) this.writePermissions(m.id, { skills: next });
       }
     });
     this.chat.emit('changed', 'members');
@@ -172,7 +177,9 @@ export class Members {
     }
     if (change.status === 'unhired') this.fire(memberId);
     if (change.status === 'hired') this.rehire(memberId);
+    if (change.nickname === undefined && change.model === undefined) return;
     store.updateMember(memberId, { nickname: change.nickname, model: change.model });
+    this.chat.emit('changed', 'members');
   }
 
   // Letting go is idempotent: a second press while leaving or gone changes nothing
@@ -182,6 +189,7 @@ export class Members {
     if (this.chat.runs.busy(memberId)) {
       this.chat.store.writeLeaving(memberId, true);
       this.note(m, 'leave', `${this.chat.crew.defOf(m).role}(${m.nickname}) 퇴장 예정: 맡은 단계를 마치고 나갑니다`);
+      this.chat.emit('changed', 'members');
     } else this.leave(memberId);
   }
 
@@ -207,7 +215,7 @@ export class Members {
 
   // A crew change is logged in the project's latest session, where the user is looking
   note(m: Member, kind: string, text: string) {
-    const session = this.chat.store.listSessions(m.projectId).at(-1);
+    const [session] = this.chat.store.listSessions(m.projectId);
     if (session)
       this.chat.store.addEvent({ sessionId: session.id, taskId: null, memberId: m.id, kind, text, detail: null });
   }

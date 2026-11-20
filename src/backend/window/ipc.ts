@@ -23,12 +23,10 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
         ? await dialog.showOpenDialog(w, { properties: ['openDirectory'] })
         : await dialog.showOpenDialog({ properties: ['openDirectory'] });
       if (picked.canceled || !picked.filePaths[0]) return null;
-      const project = store.addProject(picked.filePaths[0]);
-      members.seed(project.id);
-      return project;
+      return chat.addProject(picked.filePaths[0]);
     }),
     'projects.setMode': handle(z.object({ projectId: id, mode: z.enum(MODES) }), (a) =>
-      store.setMode(a.projectId, a.mode),
+      chat.setMode(a.projectId, a.mode),
     ),
     'projects.impact': handle(z.object({ projectId: id }), (a) => store.impact(a)),
     'projects.remove': handle(z.object({ projectId: id }), (a) => chat.removeProject(a.projectId)),
@@ -46,7 +44,7 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
       })),
     ),
     'sessions.list': handle(z.object({ projectId: id }), (a) => store.listSessions(a.projectId)),
-    'sessions.create': handle(z.object({ projectId: id }), (a) => store.createSession(a.projectId)),
+    'sessions.create': handle(z.object({ projectId: id }), (a) => chat.createSession(a.projectId)),
     'sessions.clear': handle(z.object({ sessionId: id }), (a) => chat.clear(a.sessionId)),
     'sessions.impact': handle(z.object({ sessionId: id }), (a) => store.impact(a)),
     'sessions.delete': handle(z.object({ sessionId: id }), (a) => chat.deleteSession(a.sessionId)),

@@ -1,4 +1,5 @@
 import { expect, test, vi } from 'vitest';
+import fs from 'node:fs';
 import { campState } from '../../src/backend/window/camp';
 import { createWalkers } from '../../src/frontend/camp/walkers.js';
 import { handback, openChat, reply, type Turn } from '../support';
@@ -52,7 +53,7 @@ test('the record plays in the camp: assignment, work, request, waiting, failure,
     memberId: store.readMember(p.id, 'advisor').id,
     kind: 'request',
     text: '기획 → 표준: 이름?',
-    detail: null,
+    detail: JSON.stringify({ requestId: 1, to: store.readMember(p.id, 'stylist').id }),
   });
   feed(w);
   expect(w.people.get('advisor')!.path.at(-1)?.say?.text).toBe('요청 메모');
@@ -80,4 +81,35 @@ test('the record plays in the camp: assignment, work, request, waiting, failure,
   expect([...late.people.values()].every((x) => !x.bubble && !x.path.some((q2: { say?: unknown }) => q2.say))).toBe(
     true,
   );
+});
+
+test('scenes come from what a line records, not its words: a passing step that mentions 실패 plays nothing, a request to a spaced role plays', () => {
+  const { store, chat, p, s } = openChat();
+  const definition = fs.readFileSync('crew/agents/researcher.md', 'utf-8').replace('role: 조사', 'role: 번역 담당');
+  const translator = store.addMember(p.id, {
+    key: 'translator',
+    nickname: '라온',
+    model: 'haiku',
+    definition,
+    temp: false,
+  });
+  const advisor = store.readMember(p.id, 'advisor');
+  const hb = { summary: '실패 케이스 시험 추가', body: '', verdict: 'pass', points: [], files: [], checks: [] };
+  store.addEvent({
+    sessionId: s.id,
+    taskId: null,
+    memberId: advisor.id,
+    kind: 'step',
+    text: '기획: 계획 완료 — 실패 케이스 시험 추가',
+    detail: JSON.stringify(hb),
+  });
+  store.addEvent({
+    sessionId: s.id,
+    taskId: null,
+    memberId: advisor.id,
+    kind: 'request',
+    text: '기획 → 번역 담당: 용어집 있나요?',
+    detail: JSON.stringify({ requestId: 1, to: translator.id }),
+  });
+  expect(campState(chat, s.id).log.map((l) => [l.who, l.to, l.text])).toEqual([['advisor', 'translator', '요청 메모']]);
 });

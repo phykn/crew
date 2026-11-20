@@ -54,7 +54,6 @@ export function App() {
           {project && (
             <Legend
               members={members}
-              onChange={ws.reloadMembers}
               onMemory={(id) => {
                 setMemoryOf(id);
                 setTab('memory');

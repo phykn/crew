@@ -19,7 +19,8 @@ const SCRIPT = {
     {
       tool: { name: 'WebFetch', input: { url: 'https://example.com/docs' } },
       write: { file: 'search.js', text: 'v1' },
-      ...hb('검색 수정'),
+      // A summary that mentions failure is still a step that passed
+      ...hb('실패하던 빈 검색 수정'),
     },
   ],
   시험: [hb('시험 통과', { verdict: 'pass', checks: ['npm test → 3 passed'] })],
@@ -42,6 +43,7 @@ test('a message opens a pinned task card, the answer card lets it go on, and the
   await expect(card).toHaveCount(0);
 
   await page.getByRole('tab', { name: '로그' }).click();
+  await expect(page.locator('.log-row', { hasText: '개발 완료' })).not.toHaveAttribute('data-bad', 'true');
   await page.getByRole('button', { name: /개발 완료/ }).click();
   await expect(page.getByLabel('업무 로그')).toContainText('search.js');
   await page.getByRole('button', { name: /시험 완료/ }).click();

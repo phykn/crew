@@ -14,22 +14,13 @@ const MODEL_OPTIONS = [...MODELS].reverse().map((m) => ({ value: m, label: model
 type Definition = Awaited<ReturnType<typeof call<'members.definition'>>> & { id: number };
 
 // What matters at a glance (who, which model, hired or not) shows in the row; everything else opens from it
-export function Legend({
-  members,
-  onChange,
-  onMemory,
-}: {
-  members: CrewMember[];
-  onChange: () => void;
-  onMemory: (memberId: number) => void;
-}) {
+export function Legend({ members, onMemory }: { members: CrewMember[]; onMemory: (memberId: number) => void }) {
   const [open, setOpen] = useState(true);
   const [shown, setShown] = useState<Definition | null>(null);
   const current = members.find((m) => m.id === shown?.id);
 
-  async function update(m: CrewMember, change: Omit<Args<'members.update'>, 'id'>) {
-    await call('members.update', { id: m.id, ...change });
-    onChange();
+  function update(m: CrewMember, change: Omit<Args<'members.update'>, 'id'>) {
+    call('members.update', { id: m.id, ...change });
   }
 
   return (
@@ -89,7 +80,7 @@ export function Legend({
                 )}
               </div>
             )}
-            {shown && <Permissions memberId={shown.id} onChange={onChange} />}
+            {shown && <Permissions memberId={shown.id} />}
             {/* The instructions are the model's own prompt, kept in English; few people need to read them */}
             <details className="def-fold">
               <summary>지시문</summary>

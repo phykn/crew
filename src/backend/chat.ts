@@ -1,6 +1,7 @@
 import type { Sdk } from './agents/run';
 import type { Store } from './db';
 import type { Crew } from './crew/shipped';
+import type { Mode } from '../shared';
 import { Questions } from './questions';
 import { secretaryTools } from './tools/secretary';
 import { Members } from './crew/members';
@@ -72,10 +73,34 @@ export class Chat {
     this.emit('notify', { sessionId, text });
   }
 
+  // A folder becomes a project with its own crew
+  addProject(dir: string) {
+    const project = this.store.addProject(dir);
+    this.members.seed(project.id);
+    this.emit('changed', 'projects');
+    return project;
+  }
+
+  setMode(projectId: number, mode: Mode) {
+    this.store.setMode(projectId, mode);
+    this.emit('changed', 'projects');
+  }
+
+  createSession(projectId: number) {
+    const session = this.store.createSession(projectId);
+    this.emit('changed', 'sessions');
+    return session;
+  }
+
+  renameSession(sessionId: number, title: string) {
+    this.store.renameSession(sessionId, title);
+    this.emit('changed', 'sessions');
+  }
+
   // /clear: a fresh session on the same project and crew; 비서 starts without context and the old session's tasks go on
   clear(sessionId: number) {
     const { store } = this;
-    const next = store.createSession(store.readSession(sessionId).projectId);
+    const next = this.createSession(store.readSession(sessionId).projectId);
     store.addEvent({
       sessionId,
       taskId: null,
@@ -92,11 +117,13 @@ export class Chat {
     for (const t of this.store.listTasks(sessionId)) this.tasks.drop(t.id);
     this.runs.live(sessionId)?.stop();
     this.store.deleteSession(sessionId);
+    this.emit('changed', 'sessions');
   }
 
   removeProject(projectId: number) {
     for (const s of this.store.listSessions(projectId)) this.deleteSession(s.id);
     this.store.removeProject(projectId);
+    this.emit('changed', 'projects');
   }
 }
 

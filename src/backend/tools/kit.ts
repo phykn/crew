@@ -152,7 +152,6 @@ export function kitTools(sdk: Sdk, chat: Chat, sessionId: number) {
           )
             return cancelled;
           chat.members.setPermissions(m.id, config);
-          chat.emit('changed', 'members');
           return text(`Applied to ${m.key}.`);
         },
       ),

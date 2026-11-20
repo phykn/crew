@@ -32,7 +32,8 @@ export function Log({
       setUsage(await call('usage.list', { sessionId: session.id }));
     };
     load();
-    return onChanged((topic) => ['tasks', 'messages'].includes(topic) && load());
+    // Crew changes are logged too, such as a hire or a member leaving
+    return onChanged((topic) => ['tasks', 'messages', 'members'].includes(topic) && load());
   }, [session.id]);
 
   const shown = events.filter((e) => taskId === null || e.taskId === taskId);
@@ -96,16 +97,13 @@ export function Log({
           const hb = e.kind === 'step' ? readHandback(e.detail) : null;
           const errors = e.kind === 'step' && !hb ? readErrors(e.detail) : null;
           const opens = !!(hb || errors);
+          // A refusal, a failed task, or a step that failed every retry, read from the record rather than the wording
+          const bad = e.kind === 'denied' || (e.kind === 'status' && e.detail === 'failed') || !!errors;
           // A minute already shown on the line above is not repeated
           const minute = clock(e.at);
           const same = i > 0 && shown[i - 1].at.slice(0, 16) === e.at.slice(0, 16);
           return (
-            <li
-              key={e.id}
-              className="log-row"
-              data-kind={e.kind}
-              data-bad={/실패|거부|denied/.test(e.text) || undefined}
-            >
+            <li key={e.id} className="log-row" data-kind={e.kind} data-bad={bad || undefined}>
               <button
                 className="log-line"
                 disabled={!opens}

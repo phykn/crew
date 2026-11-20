@@ -76,7 +76,7 @@ export async function askPeer(
     memberId: member.id,
     kind: 'request',
     text: `${from} → ${to}: ${a.message}`,
-    detail: JSON.stringify({ requestId: id }),
+    detail: JSON.stringify({ requestId: id, to: peer.id }),
   });
   const prompt = [
     `[Request #${id} in task #${task.id} "${task.title}"] ${from} asks you during the step ${step.label}.`,
@@ -101,7 +101,7 @@ export async function askPeer(
     memberId: peer.id,
     kind: 'request',
     text: `${to} → ${from}: ${line.text}`,
-    detail: JSON.stringify({ requestId: id }),
+    detail: JSON.stringify({ requestId: id, to: member.id, answer: true }),
   });
   return reply(id, line);
 }

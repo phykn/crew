@@ -291,8 +291,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       run: (a) => {
         if (!ownSession(a.session_id))
           throw new Error(`세션 ${josa(`#${a.session_id}`, '은')} 이 프로젝트에 없습니다.`);
-        store.renameSession(a.session_id, a.title);
-        chat.emit('changed', 'sessions');
+        chat.renameSession(a.session_id, a.title);
         return `세션 이름을 바꿨습니다: ${a.title}`;
       },
     }),
@@ -323,7 +322,6 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       run: (a) => {
         const m = member(a.role);
         members.update(m.id, { nickname: a.nickname, model: a.model });
-        chat.emit('changed', 'members');
         return `${a.role}: ${[a.nickname && `별명 ${a.nickname}`, a.model && `모델 ${a.model}`].filter(Boolean).join(', ') || '바뀐 것 없음'}`;
       },
     }),
@@ -353,8 +351,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       ui: ['projects.setMode'],
       confirm: (a) => `승인 모드를 ${josa(MODE_LABELS[a.mode], '으로')} 바꿀까요?`,
       run: (a) => {
-        store.setMode(projectId, a.mode);
-        chat.emit('changed', 'projects');
+        chat.setMode(projectId, a.mode);
         return `승인 모드를 ${josa(MODE_LABELS[a.mode], '으로')} 바꿨습니다.`;
       },
     }),

@@ -12,16 +12,21 @@ export function useWorkspace() {
   const [session, setSession] = useState<Session | null>(null);
   const [members, setMembers] = useState<CrewMember[]>([]);
 
-  // Hires made through 비서 reach the legend and the camp; a session named by its first message shows its name; a mode 비서 set shows by the input
+  // Whoever changes the record, the window or 비서, the main process says so and the window reads it again
+  useEffect(
+    () =>
+      onChanged(async (t) => {
+        if (t !== 'projects') return;
+        const list = await call('projects.list');
+        setProjects(list);
+        setProject((p) => list.find((x) => x.id === p?.id) ?? p);
+      }),
+    [],
+  );
   useEffect(() => {
     if (!project) return;
     return onChanged(async (t) => {
       if (t === 'members') setMembers(await call('members.list', { projectId: project.id }));
-      if (t === 'projects') {
-        const list = await call('projects.list');
-        setProjects(list);
-        setProject((p) => list.find((x) => x.id === p?.id) ?? p);
-      }
       if (t === 'sessions') {
         const list = await call('sessions.list', { projectId: project.id });
         setSessions(list);
@@ -56,9 +61,7 @@ export function useWorkspace() {
 
   async function openFolder() {
     const p = await call('projects.open');
-    if (!p) return;
-    setProjects(await call('projects.list'));
-    await selectProject(p);
+    if (p) await selectProject(p);
   }
 
   // After a removal the window falls back to what is left, or to an empty start
@@ -76,25 +79,15 @@ export function useWorkspace() {
   }
 
   async function clearSession() {
-    const s = await call('sessions.clear', { sessionId: session!.id });
-    setSessions(await call('sessions.list', { projectId: project!.id }));
-    selectSession(s);
+    selectSession(await call('sessions.clear', { sessionId: session!.id }));
   }
 
   async function newSession() {
-    const s = await call('sessions.create', { projectId: project!.id });
-    setSessions(await call('sessions.list', { projectId: project!.id }));
-    selectSession(s);
+    selectSession(await call('sessions.create', { projectId: project!.id }));
   }
 
-  async function setMode(mode: Mode) {
-    await call('projects.setMode', { projectId: project!.id, mode });
-    setProject({ ...project!, mode });
-    setProjects(await call('projects.list'));
-  }
-
-  async function reloadMembers() {
-    setMembers(await call('members.list', { projectId: project!.id }));
+  function setMode(mode: Mode) {
+    call('projects.setMode', { projectId: project!.id, mode });
   }
 
   return {
@@ -110,6 +103,5 @@ export function useWorkspace() {
     clearSession,
     newSession,
     setMode,
-    reloadMembers,
   };
 }
