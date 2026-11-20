@@ -57,6 +57,9 @@ test('기획 → 리뷰 (sent back once) → 기획 → 리뷰 → 개발 → �
     ['test', 'pass'],
     ['style', 'pass'],
   ]);
+  // Every step must say what it kept in the wiki, or why nothing, before it can hand back
+  const format = fake.calls.find((c) => c.role === '개발')!.options.outputFormat!;
+  expect(format.schema.required).toContain('wiki');
   // The fix round gets the reviewer's point, and the second plan run resumes the first one's session
   const plans = fake.calls.filter((c) => c.role === '기획');
   expect(plans[1].prompt).toContain('빈 검색어 경우가 없습니다');

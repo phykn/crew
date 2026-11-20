@@ -8,20 +8,28 @@ export function wikiTools(sdk: Sdk, chat: Chat, member: Member, sessionId: numbe
   const { store, wiki } = chat;
   const projectId = store.projectOf(sessionId).id;
   const by = () => ({ memberId: member.id, name: chat.crew.defOf(store.readMemberById(member.id)).role, taskId });
+  // In the prompt from the first turn: a tool found only by searching is passed over for the files at hand
+  const loaded = { alwaysLoad: true };
   return [
-    sdk.tool('wiki_read', 'Read one project wiki document by its title.', { title: z.string() }, async (a) => {
-      const doc = wiki.find(projectId, a.title);
-      return text(
-        doc
-          ? `# ${doc.title}\n\n${doc.body}`
-          : `"${a.title}" is not in the wiki. Documents: ${
-              wiki
-                .list(projectId)
-                .map((d) => d.title)
-                .join(', ') || 'none'
-            }`,
-      );
-    }),
+    sdk.tool(
+      'wiki_read',
+      'Read one project wiki document by its title.',
+      { title: z.string() },
+      async (a) => {
+        const doc = wiki.find(projectId, a.title);
+        return text(
+          doc
+            ? `# ${doc.title}\n\n${doc.body}`
+            : `"${a.title}" is not in the wiki. Documents: ${
+                wiki
+                  .list(projectId)
+                  .map((d) => d.title)
+                  .join(', ') || 'none'
+              }`,
+        );
+      },
+      loaded,
+    ),
     sdk.tool(
       'wiki_write',
       'Create or replace a project wiki document on one topic, its first line saying what it covers; point to related documents with [[title]]. Read it first and keep what is still right.',
@@ -36,6 +44,7 @@ export function wikiTools(sdk: Sdk, chat: Chat, member: Member, sessionId: numbe
         chat.emit('changed', { topic: 'wiki' });
         return text(`${old ? '수정' : '작성'}: ${a.title}`);
       },
+      loaded,
     ),
     sdk.tool(
       'remember',
@@ -46,6 +55,7 @@ export function wikiTools(sdk: Sdk, chat: Chat, member: Member, sessionId: numbe
         chat.emit('changed', { topic: 'wiki' });
         return text('기억했습니다.');
       },
+      loaded,
     ),
   ];
 }

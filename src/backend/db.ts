@@ -231,6 +231,8 @@ export type Handback = {
   points: string[];
   files: string[];
   checks: string[];
+  // What the step kept in the wiki, or why nothing; empty on handbacks from before it was asked
+  wiki?: string;
   // Set on a rework the user asked for: the step it sends back to
   target?: string;
 };

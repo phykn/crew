@@ -71,9 +71,18 @@ const HandbackShape = z.object({
   points: z.array(z.string()).default([]).describe('For rework: each point to fix, with file and line'),
   files: z.array(z.string()).default([]).describe('Project files you changed, relative to the project folder'),
   checks: z.array(z.string()).default([]).describe('Commands you ran, each with its result'),
+  // Required, so no step ends without deciding what the next task should not have to rediscover
+  wiki: z
+    .string()
+    .min(1)
+    .describe(
+      'In Korean: the wiki documents you wrote or updated with wiki_write before handing back, or why this step found nothing later work needs',
+    ),
 });
 // Claude Code validates --json-schema as draft-7 and refuses the 2020-12 tag zod writes by default
 const HANDBACK_SCHEMA = z.toJSONSchema(HandbackShape, { target: 'draft-7', io: 'input' }) as Record<string, unknown>;
+// Claude must fill the wiki field; handbacks scripted before it existed still read
+const ReadHandback = HandbackShape.extend({ wiki: z.string().default('') });
 
 // Transient failures of one step are retried this many times
 const RETRIES = 3;
@@ -324,7 +333,7 @@ export class Tasks {
         store.finishStepRun(runId, 'stopped', null, out.error ?? out.status);
         return out.status === 'limit' ? LIMIT : STOPPED;
       }
-      const parsed = out.status === 'done' ? HandbackShape.safeParse(out.structured) : null;
+      const parsed = out.status === 'done' ? ReadHandback.safeParse(out.structured) : null;
       if (!parsed?.success) {
         const why = out.error ?? 'the result did not match the handback format';
         store.finishStepRun(runId, 'failed', null, why);
@@ -552,6 +561,7 @@ function section(title: string, hb: Handback) {
     hb.points.length ? `Points:\n${hb.points.map((p) => `- ${p}`).join('\n')}` : '',
     hb.files.length ? `Files: ${hb.files.join(', ')}` : '',
     hb.checks.length ? `Checks:\n${hb.checks.map((c) => `- ${c}`).join('\n')}` : '',
+    hb.wiki ? `Wiki: ${hb.wiki}` : '',
   ]
     .filter(Boolean)
     .join('\n');
