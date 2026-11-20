@@ -11,7 +11,7 @@ function pill(t: Task, asking: boolean): { text: string; tone: 'work' | 'wait' |
   if (t.status === 'failed') return { text: '실패', tone: 'stop' };
   if (t.status === 'queued') return { text: '대기', tone: 'work' };
   if (t.status === 'fixing') return { text: '수정 중', tone: 'work' };
-  return { text: t.stage ? `${t.stage.split('·')[0]} 중` : '진행 중', tone: 'work' };
+  return { text: t.stage ? `${t.stage.split(', ')[0]} 중` : '진행 중', tone: 'work' };
 }
 
 // Research tasks look things up; the rest change the project, which shows on a screen

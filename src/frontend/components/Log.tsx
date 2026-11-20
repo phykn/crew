@@ -65,7 +65,9 @@ export function Log({
             aria-expanded={showUsage}
             onClick={() => setShowUsage(!showUsage)}
           >
-            {runs}회 · {duration(seconds)} · ${cost.toFixed(3)}
+            <span>{runs}회</span>
+            <span>{duration(seconds)}</span>
+            <span>${cost.toFixed(3)}</span>
           </button>
         )}
       </div>

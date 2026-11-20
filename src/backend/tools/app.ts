@@ -315,7 +315,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
     }),
     action({
       id: 'crew.update',
-      label: '담당자 별명·모델 바꾸기',
+      label: '담당자 별명과 모델 바꾸기',
       kind: 'act',
       args: z.object({ role, nickname: z.string().trim().min(1).max(12).optional(), model: z.enum(MODELS).optional() }),
       ui: ['members.update'],
@@ -327,7 +327,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
     }),
     action({
       id: 'crew.hire',
-      label: '담당자 고용·내보내기',
+      label: '담당자 고용과 내보내기',
       kind: 'act',
       args: z.object({ role, hired: z.boolean() }),
       ui: ['members.update'],

@@ -270,7 +270,7 @@ export class Tasks {
       if (stuckWhy) return this.fail(task, stuckWhy);
       const ready = w.steps.filter((s) => !holds(s.id) && s.after.every(holds));
       const fixing = ready.some((s) => lastDone(runs, s.id) && sentBack(w, runs, s.id, lastDone(runs, s.id)!.id));
-      const stage = ready.map((s) => s.label).join('·');
+      const stage = ready.map((s) => s.label).join(', ');
       this.move(taskId, fixing ? 'REWORK' : ready.every((s) => s.verdict) ? 'REVIEW' : 'WORK', stage, `${stage} 진행`);
       const results = await Promise.all(ready.map((s) => this.runStep(task, s, current)));
       if (!current()) return;

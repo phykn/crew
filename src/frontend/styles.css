@@ -1084,9 +1084,17 @@ code {
 .log {
   overflow-y: auto;
 }
+/* Runs, time, and cost sit apart by space alone, without separators */
 .usage-toggle {
+  display: inline-flex;
+  gap: var(--sp-3);
   color: var(--muted);
   font-size: var(--fs-xs);
+}
+.legend-head .badge,
+.note .badge,
+.tree-agent .badge {
+  margin-left: var(--sp-1);
 }
 .usage {
   width: 100%;

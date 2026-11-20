@@ -304,11 +304,8 @@ function Notes({
       {notes.map((n) => (
         <li key={n.id} className="note">
           <span className="log-who">{who(n.memberId)?.role ?? '?'}</span> {n.text}
-          <span className="muted">
-            {' '}
-            {stamp(n.at)}
-            {n.taskId ? ` · 업무 #${n.taskId}` : ''}
-          </span>
+          <span className="muted"> {stamp(n.at)}</span>
+          {n.taskId && <span className="badge">업무 #{n.taskId}</span>}
         </li>
       ))}
     </ul>

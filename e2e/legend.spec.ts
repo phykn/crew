@@ -8,7 +8,7 @@ test('the legend lists the crew with their models, and its settings change nickn
   const roles = ['비서', '인사', '도구', '기획', '개발', '리뷰', '시험', '표준', '조사', '그림'];
   await expect(page.locator('.legend-row .role')).toHaveText(roles);
   await expect(page.getByLabel('개발 설정')).toContainText('Sonnet');
-  await expect(page.locator('.legend-head')).toHaveText('크루 · 10명 고용 중');
+  await expect(page.locator('.legend-head')).toHaveText('크루 10명 고용');
 
   // Kept roles have no hiring switch
   await page.getByLabel('비서 설정').click();
@@ -34,14 +34,14 @@ test('the legend lists the crew with their models, and its settings change nickn
   await page.getByLabel('시험 고용').click();
   await page.getByRole('dialog').getByRole('button', { name: '닫기' }).click();
   await expect(page.getByLabel('시험 설정')).toContainText('미고용');
-  await expect(page.locator('.legend-head')).toHaveText('크루 · 9명 고용 중');
+  await expect(page.locator('.legend-head')).toHaveText('크루 9명 고용');
 
   // A member let go comes back through the same switch
   await page.getByLabel('시험 설정').click();
   await page.getByLabel('시험 고용').click();
   await expect(page.getByLabel('시험 고용')).toBeChecked();
   await page.getByRole('dialog').getByRole('button', { name: '닫기' }).click();
-  await expect(page.locator('.legend-head')).toHaveText('크루 · 10명 고용 중');
+  await expect(page.locator('.legend-head')).toHaveText('크루 10명 고용');
   await app.close();
 });
 

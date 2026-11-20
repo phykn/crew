@@ -324,7 +324,7 @@ function StepBox({ data }: NodeProps<StepNode>) {
       <div>{step.label}</div>
       {step.verdict && (
         <div className="muted">
-          {back ? `안 되면 ${josa(back, '으로')} · 최대 ${step.loops}번` : '앞 단계에 이어 주세요'}
+          {back ? `안 되면 ${josa(back, '으로')} (최대 ${step.loops}번)` : '앞 단계에 이어 주세요'}
         </div>
       )}
       <Handle type="source" position={Position.Bottom} />

@@ -28,7 +28,7 @@ export function Legend({ members, onMemory }: { members: CrewMember[]; onMemory:
   return (
     <div className="legend" data-open={open || undefined}>
       <button className="legend-head" onClick={() => setOpen(!open)} aria-expanded={open}>
-        크루 · {members.filter((m) => m.status === 'hired').length}명 고용 중
+        크루 <span className="badge">{members.filter((m) => m.status === 'hired').length}명 고용</span>
         <svg viewBox="0 0 20 20" className="icon legend-chevron" aria-hidden="true">
           <path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2.2" />
         </svg>
