@@ -90,7 +90,7 @@ test('a temp whose work is done leaves without a card, and a regular leaves or c
   for (const hired of [false, true]) {
     const asked = hire('시험', hired);
     await vi.waitFor(() => expect(card()?.answer).toBeNull());
-    expect(card()!.prompt).toContain(hired ? '시험(솔잎)을 다시 고용할까요' : '시험(솔잎)을 내보낼까요');
+    expect(card()!.prompt).toContain(hired ? '시험(시우)을 다시 고용할까요' : '시험(시우)을 내보낼까요');
     chat.questions.answer(card()!.id, '허용');
     await asked;
     expect(store.readMemberById(tester.id).status).toBe(hired ? 'hired' : 'unhired');

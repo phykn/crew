@@ -145,5 +145,5 @@ test("a crew change is logged in the project's latest session, where the user is
   const { store, chat, p, s } = openChat();
   const latest = chat.createSession(p.id);
   chat.members.fire(store.readMember(p.id, 'tester').id);
-  expect([store.listEvents(s.id), store.listEvents(latest.id).map((e) => e.text)]).toEqual([[], ['시험(솔잎) 퇴장']]);
+  expect([store.listEvents(s.id), store.listEvents(latest.id).map((e) => e.text)]).toEqual([[], ['시험(시우) 퇴장']]);
 });
