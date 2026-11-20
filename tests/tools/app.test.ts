@@ -1,18 +1,12 @@
 import { expect, test, vi } from 'vitest';
-import { Chat } from '../../src/backend/chat';
 import fs from 'node:fs';
 import { OFF_CATALOG, appActions, appServer } from '../../src/backend/tools/app';
 import { checkCall } from '../../src/backend/agents/guard';
-import { CREW, fakeCrew, openScratch, reply, type Turn } from '../support';
-
-type Result = { content: { text: string }[] };
+import { never, openChat, reply, toolText, type Turn } from '../support';
 
 test('비서 finds the stopped test task the user picks, opens its log, resumes only that one, and renames a member, all without another run', async () => {
-  const { store, project, paths } = openScratch();
   const navigated: unknown[] = [];
-  let fake: ReturnType<typeof fakeCrew>;
-  const tool = async (name: string, a: Record<string, unknown>) =>
-    ((await fake.tools.get(name)!(a)) as Result).content[0].text;
+  const tool = (name: string, a: Record<string, unknown>) => toolText(fake, name, a);
   // The scripted model acts on what the tools answer, as a real one would
   const finds: Turn = async (p, o) => {
     const [t] = JSON.parse(
@@ -26,18 +20,10 @@ test('비서 finds the stopped test task the user picks, opens its log, resumes 
     const named = await tool('app_act', { action: 'crew.update', args: { role: '시험', nickname: '새별' } });
     return reply(`${done} ${named}`, 's')(p, o);
   };
-  const never: Turn = () => new Promise(() => {});
-  fake = fakeCrew({ 비서: [finds, resumes], 시험: [never] });
-  const chat = new Chat(
-    store,
-    async () => fake.sdk,
-    CREW,
-    (ch, p) => ch === 'navigate' && navigated.push(p),
-    paths,
+  const { store, fake, chat, p, s, project } = openChat(
+    { 비서: [finds, resumes], 시험: [never] },
+    { emit: (ch, payload) => ch === 'navigate' && navigated.push(payload) },
   );
-  const p = store.addProject(project);
-  chat.members.seed(p.id);
-  const s = store.createSession(p.id);
   const research = chat.workflows.shipped.find((w) => w.kind === 'research')!;
   const stopped = ['시험 A', '시험 B'].map((title, i) => {
     const t = store.createTask({
@@ -83,31 +69,20 @@ test('비서 finds the stopped test task the user picks, opens its log, resumes 
 });
 
 test('a temp whose work is done leaves without a card, and a regular leaves or comes back only once allowed', async () => {
-  const { store, project, paths } = openScratch();
-  const fake = fakeCrew({});
-  const chat = new Chat(
-    store,
-    async () => fake.sdk,
-    CREW,
-    () => {},
-    paths,
-  );
-  const p = store.addProject(project);
-  chat.members.seed(p.id);
-  const s = store.createSession(p.id);
+  const { store, fake, chat, p, s } = openChat();
   appServer(fake.sdk, chat, s.id);
   const definition = fs.readFileSync('crew/agents/researcher.md', 'utf-8').replace('role: 조사', 'role: 정리');
   const temp = store.addMember(p.id, { key: 'sorter', nickname: '알바', model: 'haiku', definition, temp: true });
   const hire = (role: string, hired: boolean) =>
-    fake.tools.get('app_act')!({ action: 'crew.hire', args: { role, hired } }) as Promise<Result>;
+    toolText(fake, 'app_act', { action: 'crew.hire', args: { role, hired } });
   const card = () => store.listMessages(s.id).at(-1)?.question;
 
-  expect((await hire('정리', false)).content[0].text).toContain('퇴장');
+  expect(await hire('정리', false)).toContain('퇴장');
   expect(store.readMemberById(temp.id).status).toBe('unhired');
   expect(card()).toBeUndefined();
 
   // 비서 cannot be let go, so that is refused without asking
-  expect((await hire('비서', false)).content[0].text).toContain('내보낼 수 없습니다');
+  expect(await hire('비서', false)).toContain('내보낼 수 없습니다');
   expect(card()).toBeUndefined();
 
   // 시험 ends in a consonant, so the card shows whether its particle follows the role and not the bracket
@@ -123,15 +98,7 @@ test('a temp whose work is done leaves without a card, and a regular leaves or c
 });
 
 test("the app's catalog covers every call the window makes, or says why not", () => {
-  const { store, project, paths } = openScratch();
-  const chat = new Chat(
-    store,
-    async () => fakeCrew({}).sdk,
-    CREW,
-    () => {},
-    paths,
-  );
-  const s = store.createSession(store.addProject(project).id);
+  const { chat, s } = openChat();
   const covered = appActions(chat, s.id).flatMap((a) => a.ui);
   const ipc = fs.readFileSync('src/backend/window/ipc.ts', 'utf-8');
   const window = [...ipc.matchAll(/'([a-z]+\.[a-zA-Z]+)': handle\(/g)].map((m) => m[1]);
@@ -141,21 +108,9 @@ test("the app's catalog covers every call the window makes, or says why not", ()
 });
 
 test('changing the approval mode waits for the user, and a refusal leaves it as it was', async () => {
-  const { store, project, paths } = openScratch();
-  const fake = fakeCrew({});
-  const chat = new Chat(
-    store,
-    async () => fake.sdk,
-    CREW,
-    () => {},
-    paths,
-  );
-  const p = store.addProject(project);
-  chat.members.seed(p.id);
-  const s = store.createSession(p.id);
+  const { store, fake, chat, p, s } = openChat();
   appServer(fake.sdk, chat, s.id);
-  const act = async (mode: string) =>
-    ((await fake.tools.get('app_act')!({ action: 'mode.set', args: { mode } })) as Result).content[0].text;
+  const act = (mode: string) => toolText(fake, 'app_act', { action: 'mode.set', args: { mode } });
   const card = () => store.listMessages(s.id).at(-1)!.question!;
 
   const refused = act('bypass');

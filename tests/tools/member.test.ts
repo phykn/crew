@@ -1,11 +1,9 @@
 import { expect, test, vi } from 'vitest';
-import { Chat } from '../../src/backend/chat';
 import { askPeer } from '../../src/backend/tools/member';
-import { CREW, fakeCrew, handback, openScratch, reply } from '../support';
+import { handback, openChat, reply } from '../support';
 
 test('a peer request asked back stays one thread, a resent line runs once, and a test handback without checks is sent back', async () => {
-  const { store, project, paths } = openScratch();
-  const fake = fakeCrew({
+  const { store, fake, chat, p, s } = openChat({
     표준: [
       reply('', 'claude-style', { answer: '', ask_back: '어느 파일인가요?' }),
       reply('', 'claude-style', { answer: 'searchItems가 맞습니다' }),
@@ -15,16 +13,6 @@ test('a peer request asked back stays one thread, a resent line runs once, and a
       handback('claude-test', { summary: '통과', verdict: 'pass', checks: ['npm test: 3 passed'] }),
     ],
   });
-  const chat = new Chat(
-    store,
-    async () => fake.sdk,
-    CREW,
-    () => {},
-    paths,
-  );
-  const p = store.addProject(project);
-  chat.members.seed(p.id);
-  const s = store.createSession(p.id);
   const task = store.createTask({
     sessionId: s.id,
     kind: 'code',

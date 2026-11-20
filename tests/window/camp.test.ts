@@ -1,8 +1,7 @@
 import { expect, test, vi } from 'vitest';
-import { Chat } from '../../src/backend/chat';
 import { campState } from '../../src/backend/window/camp';
 import { createWalkers } from '../../src/frontend/camp/walkers.js';
-import { CREW, fakeCrew, handback, openScratch, reply, type Turn } from '../support';
+import { handback, openChat, reply, type Turn } from '../support';
 
 const staff = (keys: string[], working: Record<string, string>) =>
   keys.map((k) => ({
@@ -15,25 +14,14 @@ const staff = (keys: string[], working: Record<string, string>) =>
 const said = (w: ReturnType<typeof createWalkers>, key: string) => w.people.get(key)?.bubble?.text ?? null;
 
 test('the record plays in the camp: assignment, work, request, waiting, failure, report, hire and leave; a late camp replays nothing', async () => {
-  const { store, project, paths } = openScratch();
   let release = () => {};
   const held: Turn = (p, o) =>
     new Promise((r) => (release = () => r(handback('c', { summary: '계획' })(p, o) as never)));
-  const fake = fakeCrew({
+  const { store, fake, chat, p, s } = openChat({
     기획: [held],
     리뷰: [handback('r', { summary: '반려', verdict: 'rework', points: ['x'] })],
     비서: [reply('보고')],
   });
-  const chat = new Chat(
-    store,
-    async () => fake.sdk,
-    CREW,
-    () => {},
-    paths,
-  );
-  const p = store.addProject(project);
-  chat.members.seed(p.id);
-  const s = store.createSession(p.id);
   const keys = ['orchestrator', 'advisor', 'reviewer', 'stylist'];
   const w = createWalkers();
   const late = createWalkers();

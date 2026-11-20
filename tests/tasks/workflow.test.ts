@@ -1,20 +1,8 @@
 import { expect, test } from 'vitest';
-import { Chat } from '../../src/backend/chat';
-import { CREW, fakeCrew, openScratch, type Turn } from '../support';
+import { never, openChat } from '../support';
 
 test('rule versions: broken or stale saves are refused, and each scope reaches only its tasks', () => {
-  const { store, project, paths } = openScratch();
-  const never: Turn = () => new Promise(() => {});
-  const chat = new Chat(
-    store,
-    async () => fakeCrew({ 기획: [never, never, never] }).sdk,
-    CREW,
-    () => {},
-    paths,
-  );
-  const p = store.addProject(project);
-  chat.members.seed(p.id);
-  const s = store.createSession(p.id);
+  const { store, chat, p, s } = openChat({ 기획: [never, never, never] });
   const base = chat.workflows.current(p.id, 'code');
   const save = (rules: unknown, o: { base?: number; scope?: 'future' | 'current' | 'once'; taskId?: number } = {}) =>
     chat.workflows.save({
@@ -76,4 +64,26 @@ test('rule versions: broken or stale saves are refused, and each scope reaches o
   expect(chat.workflows.current(p.id, 'code').version).toBe(1);
   expect(save(base.rules, { scope: 'current', taskId: running.id })).toEqual({ ok: true, version: 2 });
   expect(ids(running.id)).toContain('plan_review');
+});
+
+test('a document tied to a rule deletes alone, or with its rule put back as it was before', () => {
+  const { chat, p } = openChat();
+  const user = { memberId: null, name: '사용자' };
+  const code = chat.workflows.current(p.id, 'code').rules;
+  const lean = { ...code, steps: code.steps.filter((s) => s.id !== 'test') };
+  const link = (version: number) =>
+    chat.wiki.write(p.id, `워크플로우 ${version}`, '이유', user, { kind: 'code', version });
+  chat.workflows.save({
+    projectId: p.id,
+    kind: 'code',
+    base: 0,
+    rules: lean,
+    by: { memberId: null, name: '비서' },
+    scope: 'future',
+  });
+  chat.workflows.removeDoc(link(1).id, false, user);
+  expect(chat.workflows.current(p.id, 'code')).toMatchObject({ version: 1, rules: { steps: lean.steps } });
+  chat.workflows.removeDoc(link(1).id, true, user);
+  expect(chat.workflows.current(p.id, 'code').version).toBe(2);
+  expect(chat.workflows.current(p.id, 'code').rules.steps.map((s) => s.id)).toContain('test');
 });

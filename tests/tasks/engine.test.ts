@@ -1,45 +1,46 @@
 import { expect, test, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { Chat } from '../../src/backend/chat';
 import { nextStatus, satisfied } from '../../src/backend/tasks/engine';
-import { CREW, fakeCrew, handback, openScratch, recordedAgents, reply, type Turn } from '../support';
-import { Store } from '../../src/backend/db';
+import {
+  CREW,
+  type fakeCrew,
+  handback,
+  never,
+  openChat,
+  recordedAgents,
+  reopenChat,
+  reply,
+  type Turn,
+} from '../support';
 import { Workflow } from '../../src/backend/tasks/workflow';
-import { NOT_HIRED } from '../../src/backend/agents/run';
 import { snapshot } from '../../src/backend/tasks/changes';
-import { secretaryTools } from '../../src/backend/tools/secretary';
 
-test('기획 → 리뷰 (sent back once) → 기획 → 리뷰 → 개발 → 리뷰·시험, each role in its own Claude session', async () => {
-  const { store, project, paths } = openScratch({ 'search.js': 'export const search = () => []' });
-  let fake: ReturnType<typeof fakeCrew>;
-  // 비서 opens the task the way the model would: by calling its start_task tool mid-turn
-  const opens: Turn = (prompt, options) => {
-    void fake.tools.get('start_task')!({ kind: 'code', title: '검색 개선', request: prompt });
+// 비서 opens the task the way the model would: by calling its start_task tool mid-turn
+const opening = (fake: () => ReturnType<typeof fakeCrew>, input: Record<string, unknown>): Turn => {
+  return (prompt, options) => {
+    void fake().tools.get('start_task')!({ request: prompt, ...input });
     return reply('업무를 시작했습니다.', 'claude-secretary')(prompt, options);
   };
-  fake = fakeCrew({
-    비서: [opens, reply('검색을 고쳤고 리뷰와 시험을 통과했습니다.', 'claude-secretary')],
-    기획: [handback('claude-plan', { summary: '계획 v1' }), handback('claude-plan', { summary: '계획 v2' })],
-    리뷰: [
-      handback('claude-review', { summary: '범위 누락', verdict: 'rework', points: ['빈 검색어 경우가 없습니다'] }),
-      handback('claude-review', { summary: '계획 통과', verdict: 'pass' }),
-      handback('claude-review', { summary: '코드 통과', verdict: 'pass' }),
-    ],
-    개발: [handback('claude-code', { summary: '검색 수정', files: ['search.js'] })],
-    시험: [handback('claude-test', { summary: '시험 통과', verdict: 'pass', checks: ['npm test: 3 passed'] })],
-    표준: [handback('claude-style', { summary: '스타일 통과', verdict: 'pass' })],
-  });
-  const chat = new Chat(
-    store,
-    async () => fake.sdk,
-    CREW,
-    () => {},
-    paths,
+};
+
+test('기획 → 리뷰 (sent back once) → 기획 → 리뷰 → 개발 → 리뷰·시험, each role in its own Claude session', async () => {
+  const opens = opening(() => fake, { kind: 'code', title: '검색 개선' });
+  const { store, fake, chat, s } = openChat(
+    {
+      비서: [opens, reply('검색을 고쳤고 리뷰와 시험을 통과했습니다.', 'claude-secretary')],
+      기획: [handback('claude-plan', { summary: '계획 v1' }), handback('claude-plan', { summary: '계획 v2' })],
+      리뷰: [
+        handback('claude-review', { summary: '범위 누락', verdict: 'rework', points: ['빈 검색어 경우가 없습니다'] }),
+        handback('claude-review', { summary: '계획 통과', verdict: 'pass' }),
+        handback('claude-review', { summary: '코드 통과', verdict: 'pass' }),
+      ],
+      개발: [handback('claude-code', { summary: '검색 수정', files: ['search.js'] })],
+      시험: [handback('claude-test', { summary: '시험 통과', verdict: 'pass', checks: ['npm test: 3 passed'] })],
+      표준: [handback('claude-style', { summary: '스타일 통과', verdict: 'pass' })],
+    },
+    { files: { 'search.js': 'export const search = () => []' } },
   );
-  const p = store.addProject(project);
-  chat.members.seed(p.id);
-  const s = store.createSession(p.id);
 
   await chat.send(s.id, '빈 검색어는 전체 목록을 보여주게 바꿔줘');
   await vi.waitFor(() => expect(store.listMessages(s.id).at(-1)!.text).toContain('통과했습니다'), { timeout: 3000 });
@@ -82,18 +83,7 @@ test('기획 → 리뷰 (sent back once) → 기획 → 리뷰 → 개발 → �
 });
 
 test('a small change and one given to a member who writes the project skip the plan and keep every check; others work alone', () => {
-  const { store, project, paths } = openScratch();
-  const never: Turn = () => new Promise(() => {});
-  const chat = new Chat(
-    store,
-    async () => fakeCrew({ 개발: [never], 조사: [never] }).sdk,
-    CREW,
-    () => {},
-    paths,
-  );
-  const p = store.addProject(project);
-  chat.members.seed(p.id);
-  const s = store.createSession(p.id);
+  const { store, chat, p, s } = openChat({ 개발: [never], 조사: [never] });
   const ids = (t: { workflow: { steps: { id: string }[] } }) => t.workflow.steps.map((x) => x.id);
   const checked = ['develop', 'review', 'test', 'style'];
   expect(ids(chat.tasks.start(s.id, 'code', 'small', 'r', undefined, true))).toEqual(checked);
@@ -113,28 +103,13 @@ test('the status machine refuses moves a task cannot make', () => {
 });
 
 test('a check with one loop stops the task when its second look still sends the work back', async () => {
-  const { store, project, paths } = openScratch();
-  let fake: ReturnType<typeof fakeCrew>;
-  const opens: Turn = (prompt, options) => {
-    void fake.tools.get('start_task')!({ kind: 'code', title: '검색 개선', request: prompt });
-    return reply('업무를 시작했습니다.', 'claude-secretary')(prompt, options);
-  };
+  const opens = opening(() => fake, { kind: 'code', title: '검색 개선' });
   const again = handback('claude-review', { summary: '범위 누락', verdict: 'rework', points: ['빈 검색어'] });
-  fake = fakeCrew({
+  const { store, fake, chat, p, s } = openChat({
     비서: [opens, reply('멈췄습니다.', 'claude-secretary')],
     기획: [handback('claude-plan', { summary: '계획 v1' }), handback('claude-plan', { summary: '계획 v2' })],
     리뷰: [again, again],
   });
-  const chat = new Chat(
-    store,
-    async () => fake.sdk,
-    CREW,
-    () => {},
-    paths,
-  );
-  const p = store.addProject(project);
-  chat.members.seed(p.id);
-  const s = store.createSession(p.id);
   const base = chat.workflows.current(p.id, 'code');
   const steps = base.rules.steps.map((st) => (st.id === 'plan_review' ? { ...st, loops: 1 } : st));
   chat.workflows.save({
@@ -152,35 +127,23 @@ test('a check with one loop stops the task when its second look still sends the 
 });
 
 test('a redo that changes no file and is sent back again stops the task for the user instead of looping', async () => {
-  const { store, project, paths } = openScratch({ 'a.js': 'a' });
-  let fake: ReturnType<typeof fakeCrew>;
-  const opens: Turn = (prompt, options) => {
-    void fake.tools.get('start_task')!({ kind: 'code', title: '수정', request: prompt, size: 'small' });
-    return reply('업무를 시작했습니다.', 'claude-secretary')(prompt, options);
-  };
+  const opens = opening(() => fake, { kind: 'code', title: '수정', size: 'small' });
   const edits: Turn = (prompt, options) => {
     fs.writeFileSync(path.join(project, 'a.js'), 'b');
     return handback('claude-code', { summary: '고침', files: ['a.js'] })(prompt, options);
   };
   const no = handback('claude-review', { summary: '범위 밖', verdict: 'rework', points: ['범위 밖'] });
   const pass = (id: string) => handback(id, { summary: '통과', verdict: 'pass', checks: ['ok'] });
-  fake = fakeCrew({
-    비서: [opens, reply('멈췄습니다.', 'claude-secretary')],
-    개발: [edits, handback('claude-code', { summary: '그대로 둠' })],
-    리뷰: [no, no],
-    시험: [pass('t'), pass('t')],
-    표준: [pass('s'), pass('s')],
-  });
-  const chat = new Chat(
-    store,
-    async () => fake.sdk,
-    CREW,
-    () => {},
-    paths,
+  const { store, fake, chat, s, project } = openChat(
+    {
+      비서: [opens, reply('멈췄습니다.', 'claude-secretary')],
+      개발: [edits, handback('claude-code', { summary: '그대로 둠' })],
+      리뷰: [no, no],
+      시험: [pass('t'), pass('t')],
+      표준: [pass('s'), pass('s')],
+    },
+    { files: { 'a.js': 'a' } },
   );
-  const p = store.addProject(project);
-  chat.members.seed(p.id);
-  const s = store.createSession(p.id);
 
   await chat.send(s.id, '고쳐줘');
   await vi.waitFor(() => expect(store.listTasks(s.id)[0].status).toBe('failed'), { timeout: 3000 });
@@ -189,27 +152,18 @@ test('a redo that changes no file and is sent back again stops the task for the 
 });
 
 test('a broken step fails after its retries; a stopped task leaves the other running; a restart is resumed', async () => {
-  const { store, project, paths, db } = openScratch({ 'a.js': 'a' });
   let release = () => {};
   // Answers only when released, like a long real step
   const held: Turn = (p, o) => new Promise((r) => (release = () => r(reply('', 'claude-research')(p, o) as never)));
-  const never: Turn = () => new Promise(() => {});
   const broken = reply('형식 없음', 'claude-research');
-  const fake = fakeCrew({
-    비서: [reply('실패 보고', 'claude-secretary')],
-    조사: [broken, broken, broken, broken, held],
-    기획: [never],
-  });
-  const chat = new Chat(
-    store,
-    async () => fake.sdk,
-    CREW,
-    () => {},
-    paths,
+  const { store, fake, chat, s, db, paths } = openChat(
+    {
+      비서: [reply('실패 보고', 'claude-secretary')],
+      조사: [broken, broken, broken, broken, held],
+      기획: [never],
+    },
+    { files: { 'a.js': 'a' } },
   );
-  const p = store.addProject(project);
-  chat.members.seed(p.id);
-  const s = store.createSession(p.id);
 
   const one = chat.tasks.start(s.id, 'research', '조사 1', 'r');
   await vi.waitFor(() => expect(store.readTask(one.id).status).toBe('failed'));
@@ -226,38 +180,24 @@ test('a broken step fails after its retries; a stopped task leaves the other run
   expect(store.readTask(three.id).status).toBe('running');
 
   // A restart cuts off what was running; the user's word resumes it from the unfinished step
-  const after = new Store(db);
-  after.recoverInterrupted();
+  const {
+    store: after,
+    fake: fresh,
+    chat: again,
+  } = reopenChat({ db, paths }, { 기획: [handback('p', { summary: '계획' }), never], 리뷰: [never] });
   const recovered = after.listEvents(s.id).filter((e) => e.text === '앱이 다시 시작되어 업무가 멈췄습니다');
   expect([recovered.map((e) => e.taskId), after.readTask(three.id).status]).toEqual([[three.id], 'stopped']);
-  const fresh = fakeCrew({ 기획: [handback('p', { summary: '계획' }), never], 리뷰: [never] });
-  const again = new Chat(
-    after,
-    async () => fresh.sdk,
-    CREW,
-    () => {},
-    paths,
-  );
   expect(again.tasks.resume(three.id)).toBe(true);
   await vi.waitFor(() => expect(fresh.calls.map((c) => c.role)).toEqual(['기획', '리뷰']));
 });
 
 test('a step queued before a stop is not run again by the resume', async () => {
-  const { store, project, paths } = openScratch();
   let release = () => {};
   const held: Turn = (p, o) => new Promise((r) => (release = () => r(reply('', 'claude-plan')(p, o) as never)));
-  const never: Turn = () => new Promise(() => {});
-  const fake = fakeCrew({ 기획: [held, handback('claude-plan', { summary: '계획' })], 리뷰: [never] });
-  const chat = new Chat(
-    store,
-    async () => fake.sdk,
-    CREW,
-    () => {},
-    paths,
-  );
-  const p = store.addProject(project);
-  chat.members.seed(p.id);
-  const s = store.createSession(p.id);
+  const { store, fake, chat, p, s } = openChat({
+    기획: [held, handback('claude-plan', { summary: '계획' })],
+    리뷰: [never],
+  });
   // 기획's lane is busy, so the task's plan step waits behind it
   void chat.runs.run(store.readMember(p.id, 'advisor'), s.id, null, 'hold');
   await vi.waitFor(() => expect(fake.calls).toHaveLength(1));
@@ -272,26 +212,15 @@ test('a step queued before a stop is not run again by the resume', async () => {
 });
 
 test('a usage limit pauses the task and 비서 reports what is done and left; usage adds up per role and model', async () => {
-  const { store, project, paths } = openScratch();
   const limited: Turn = (p, o) => [
     { type: 'rate_limit_event', rate_limit_info: { status: 'rejected' } } as never,
     ...(reply('', 'r')(p, o) as never[]),
   ];
-  const fake = fakeCrew({
+  const { store, fake, chat, s } = openChat({
     기획: [handback('p', { summary: '계획 완료' })],
     리뷰: [limited],
     비서: [reply('한도 보고')],
   });
-  const chat = new Chat(
-    store,
-    async () => fake.sdk,
-    CREW,
-    () => {},
-    paths,
-  );
-  const p = store.addProject(project);
-  chat.members.seed(p.id);
-  const s = store.createSession(p.id);
   const task = chat.tasks.start(s.id, 'code', '검색', 'r');
   await vi.waitFor(() => expect(fake.calls.at(-1)!.role).toBe('비서'));
   expect(store.readTask(task.id).status).toBe('stopped');
@@ -309,7 +238,6 @@ test('a usage limit pauses the task and 비서 reports what is done and left; us
 });
 
 test('each change is a version the verdicts judge, and a follow-up reopens the same task', async () => {
-  const { store, project, paths } = openScratch({ 'search.js': 'v0', 'old.txt': 'before the task' });
   // 개발 really edits the project, so the version comes from the files, not from what the handback claims
   const edit =
     (text: string): Turn =>
@@ -318,24 +246,17 @@ test('each change is a version the verdicts judge, and a follow-up reopens the s
       return handback('claude-code', { summary: text, files: ['wrong.js'] })(prompt, options);
     };
   const pass = (sid: string): Turn => handback(sid, { summary: '통과', verdict: 'pass', checks: ['ok'] });
-  const fake = fakeCrew({
-    비서: [reply('보고 1', 'claude-secretary'), reply('보고 2', 'claude-secretary')],
-    기획: [handback('claude-plan', { summary: '계획' })],
-    리뷰: [pass('claude-review'), pass('claude-review'), pass('claude-review')],
-    개발: [edit('v1'), edit('v2')],
-    시험: [pass('claude-test'), pass('claude-test')],
-    표준: [pass('claude-style'), pass('claude-style')],
-  });
-  const chat = new Chat(
-    store,
-    async () => fake.sdk,
-    CREW,
-    () => {},
-    paths,
+  const { store, fake, chat, s, project } = openChat(
+    {
+      비서: [reply('보고 1', 'claude-secretary'), reply('보고 2', 'claude-secretary')],
+      기획: [handback('claude-plan', { summary: '계획' })],
+      리뷰: [pass('claude-review'), pass('claude-review'), pass('claude-review')],
+      개발: [edit('v1'), edit('v2')],
+      시험: [pass('claude-test'), pass('claude-test')],
+      표준: [pass('claude-style'), pass('claude-style')],
+    },
+    { files: { 'search.js': 'v0', 'old.txt': 'before the task' } },
   );
-  const p = store.addProject(project);
-  chat.members.seed(p.id);
-  const s = store.createSession(p.id);
 
   const task = chat.tasks.start(s.id, 'code', '검색', '검색 고쳐줘');
   await vi.waitFor(() => expect(store.readTask(task.id).status).toBe('done'));
@@ -352,7 +273,6 @@ test('each change is a version the verdicts judge, and a follow-up reopens the s
 });
 
 test('words added while 개발 is at work join the task: 개발 redoes with them and the checks judge the redo', async () => {
-  const { store, project, paths } = openScratch({ 'calc.js': 'v0' });
   let release = () => {};
   const edit =
     (text: string): Turn =>
@@ -363,23 +283,16 @@ test('words added while 개발 is at work join the task: 개발 redoes with them
   // The first turn waits, so the words arrive while 개발 is still working
   const held: Turn = (p, o) => new Promise((r) => (release = () => r(edit('v1')(p, o) as never)));
   const pass = (sid: string): Turn => handback(sid, { summary: '통과', verdict: 'pass', checks: ['ok'] });
-  const fake = fakeCrew({
-    비서: [reply('보고', 'claude-secretary')],
-    개발: [held, edit('v2')],
-    리뷰: [pass('r'), pass('r')],
-    시험: [pass('t'), pass('t')],
-    표준: [pass('s'), pass('s')],
-  });
-  const chat = new Chat(
-    store,
-    async () => fake.sdk,
-    CREW,
-    () => {},
-    paths,
+  const { store, fake, chat, s, project } = openChat(
+    {
+      비서: [reply('보고', 'claude-secretary')],
+      개발: [held, edit('v2')],
+      리뷰: [pass('r'), pass('r')],
+      시험: [pass('t'), pass('t')],
+      표준: [pass('s'), pass('s')],
+    },
+    { files: { 'calc.js': 'v0' } },
   );
-  const p = store.addProject(project);
-  chat.members.seed(p.id);
-  const s = store.createSession(p.id);
   const task = chat.tasks.start(s.id, 'code', 'sqrt', 'sqrt 추가', undefined, true);
   await vi.waitFor(() => expect(fake.calls.map((c) => c.role)).toContain('개발'));
 
@@ -396,11 +309,8 @@ test('words added while 개발 is at work join the task: 개발 redoes with them
   expect(checks.slice(-3).map((r) => r.versionId)).toEqual([v, v, v]);
 });
 
-const CREW_CODE = () =>
-  Workflow.parse(JSON.parse(fs.readFileSync(path.join(CREW.dir, 'workflows', 'code.json'), 'utf-8')));
-
 test('a review of an older version that arrives late does not satisfy the newer one', () => {
-  const w = CREW_CODE();
+  const w = Workflow.parse(JSON.parse(fs.readFileSync(path.join(CREW.dir, 'workflows', 'code.json'), 'utf-8')));
   const run = (id: number, stepId: string, verdict: 'pass' | 'rework' | null = null) =>
     ({
       id,
@@ -425,52 +335,8 @@ test('a review of an older version that arrives late does not satisfy the newer 
   expect(satisfied(w, runs, 'review')).toBe(false);
 });
 
-function setup(scripts: Record<string, Turn[]>, files?: Record<string, string>) {
-  const scratch = openScratch(files);
-  const fake = fakeCrew(scripts);
-  const chat = new Chat(
-    scratch.store,
-    async () => fake.sdk,
-    CREW,
-    () => {},
-    scratch.paths,
-  );
-  const p = scratch.store.addProject(scratch.project);
-  chat.members.seed(p.id);
-  return { ...scratch, fake, chat, p, s: scratch.store.createSession(p.id) };
-}
-const never: Turn = () => new Promise(() => {});
-
-test('"그거 다시 해줘" with two finished tasks waits on a card, then reopens the one picked', async () => {
-  const { store, fake, chat, s } = setup({ 개발: [never] });
-  const code = chat.workflows.shipped.find((w) => w.kind === 'code')!;
-  const [one, two] = ['검색', '정렬'].map((title) =>
-    store.createTask({ sessionId: s.id, kind: 'code', title, request: 'r', workflow: code }),
-  );
-  for (const t of [one, two]) store.writeTaskStatus(t.id, 'done', '', 'done');
-  secretaryTools(fake.sdk, chat, s.id);
-  const reopened = fake.tools.get('reopen_task')!({ change: '그거 다시 해줘' });
-  await vi.waitFor(() =>
-    expect(store.listMessages(s.id).at(-1)!.question!.options).toEqual([`#${one.id} 검색`, `#${two.id} 정렬`]),
-  );
-  expect([store.readTask(one.id).status, store.readTask(two.id).status]).toEqual(['done', 'done']);
-  chat.questions.answer(store.listMessages(s.id).at(-1)!.question!.id, `#${two.id} 정렬`);
-  await reopened;
-  expect([store.readTask(one.id).status, store.readTask(two.id).status]).toEqual(['done', 'running']);
-});
-
-test('a model change starts a fresh Claude session that is handed the conversation', async () => {
-  const { store, fake, chat, p, s } = setup({ 비서: [reply('안녕하세요', 'claude-a'), reply('네', 'claude-b')] });
-  await chat.send(s.id, '첫 질문');
-  store.updateMember(store.readMember(p.id, 'orchestrator').id, { model: 'opus' });
-  await chat.send(s.id, '두 번째');
-  expect(fake.calls.map((c) => c.options.resume)).toEqual([undefined, undefined]);
-  expect(fake.calls[1].prompt).toContain('[Handoff]');
-  expect(fake.calls[1].prompt).toContain('User: 첫 질문');
-});
-
 test('a step cut off right after saving resumes from that step and checks the saved file', async () => {
-  const { store, chat, p, s, db, project, paths } = setup({}, { 'search.js': 'v0' });
+  const { store, chat, p, s, db, project, paths } = openChat({}, { files: { 'search.js': 'v0' } });
   const task = store.createTask({
     sessionId: s.id,
     kind: 'code',
@@ -499,36 +365,14 @@ test('a step cut off right after saving resumes from that step and checks the sa
   store.writeTaskStatus(task.id, 'running', '개발', '개발 진행');
   fs.writeFileSync(path.join(project, 'search.js'), 'v1');
 
-  const after = new Store(db);
-  after.recoverInterrupted();
-  const fresh = fakeCrew({ 개발: [never] });
-  const again = new Chat(
-    after,
-    async () => fresh.sdk,
-    CREW,
-    () => {},
-    paths,
-  );
+  const { fake: fresh, chat: again } = reopenChat({ db, paths }, { 개발: [never] });
   expect(again.tasks.resume(task.id)).toBe(true);
   await vi.waitFor(() => expect(fresh.calls.map((c) => c.role)).toEqual(['개발']));
   expect(fresh.calls[0].prompt).toContain('cut off after changing: search.js');
 });
 
-test('a member let go while queued does not run, and hiring again keeps them', async () => {
-  const { store, fake, chat, p, s } = setup({});
-  const researcher = store.readMember(p.id, 'researcher');
-  chat.members.fire(researcher.id);
-  expect(store.readMemberById(researcher.id).status).toBe('unhired');
-  expect((await chat.runs.run(researcher, s.id, null, 'x')).error).toBe(NOT_HIRED);
-  expect(fake.calls).toHaveLength(0);
-
-  store.writeLeaving(researcher.id, true);
-  chat.members.rehire(researcher.id);
-  expect(store.readMemberById(researcher.id)).toMatchObject({ status: 'hired', leaving: false });
-});
-
 test('reopening a task sends the change back to every step that made it', () => {
-  const { store, chat, s } = setup({ 기획: [never], 표준: [never] });
+  const { store, chat, s } = openChat({ 기획: [never], 표준: [never] });
   const task = store.createTask({
     sessionId: s.id,
     kind: 'improve',

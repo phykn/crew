@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import type { Options, SDKMessage, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
 import type { QueryFn, Sdk } from '../src/backend/agents/run';
+import { Chat, type Emit, type Paths } from '../src/backend/chat';
 import { Crew } from '../src/backend/crew/shipped';
 import { Store } from '../src/backend/db';
 
@@ -25,6 +26,37 @@ export function makeScratch(files: Record<string, string> = {}) {
 export function openScratch(files?: Record<string, string>) {
   const scratch = makeScratch(files);
   return { ...scratch, store: new Store(scratch.db) };
+}
+
+// A chat on a scratch record with one project, its crew, and a session, its members answering from the scripts
+export function openChat(
+  scripts: Record<string, Turn[]> = {},
+  o: { files?: Record<string, string>; emit?: Emit; crew?: Crew } = {},
+) {
+  const scratch = openScratch(o.files);
+  const fake = fakeCrew(scripts);
+  const chat = new Chat(scratch.store, async () => fake.sdk, o.crew ?? CREW, o.emit ?? (() => {}), scratch.paths);
+  const p = scratch.store.addProject(scratch.project);
+  chat.members.seed(p.id);
+  return { ...scratch, fake, chat, p, s: scratch.store.createSession(p.id) };
+}
+
+// The same record opened again after a restart, as the app starts: work cut off is stopped for the user to resume
+export function reopenChat(scratch: { db: string; paths: Paths }, scripts: Record<string, Turn[]> = {}) {
+  const store = new Store(scratch.db);
+  store.recoverInterrupted();
+  const fake = fakeCrew(scripts);
+  return {
+    store,
+    fake,
+    chat: new Chat(
+      store,
+      async () => fake.sdk,
+      CREW,
+      () => {},
+      scratch.paths,
+    ),
+  };
 }
 
 // A session's runs and agent sessions as the record holds them; the app itself reads them only as totals
@@ -49,25 +81,32 @@ export function recordedAgents(store: Store, sessionId: number) {
 // A turn may hold its answer back, as a long real step does
 export type Turn = (prompt: string, options: Options) => SDKMessage[] | Promise<SDKMessage[]>;
 
-// Stands in for the SDK: each prompt the agent receives is answered by the next scripted turn
-export function fakeQuery(turns: Turn[]) {
-  const calls: Options[] = [];
-  const fn: QueryFn = ({ prompt, options }) => {
-    calls.push(options);
+// A turn that never answers, for a member that should stay at work
+export const never: Turn = () => new Promise(() => {});
+
+// Stands in for the SDK with one script per role, picked by the role named in the system prompt
+export function fakeCrew(scripts: Record<string, Turn[]>) {
+  const calls: { role: string; prompt: string; options: Options }[] = [];
+  const query: QueryFn = ({ prompt, options }) => {
+    const role = String(options.systemPrompt).match(/You are the crew's \*\*(.+?)\*\*/)?.[1] ?? '?';
+    // An interrupt ends the turn under way, as the real SDK does
+    let cut = () => {};
+    const cutOff = new Promise<SDKMessage[]>((resolve) => (cut = () => resolve([])));
     async function* run() {
       for await (const msg of prompt as AsyncIterable<SDKUserMessage>) {
-        const turn = turns.shift();
-        if (!turn) throw new Error('fake query ran out of turns');
-        yield* await turn(String(msg.message.content), options);
+        const text = String(msg.message.content);
+        calls.push({ role, prompt: text, options });
+        const turn = scripts[role]?.shift();
+        if (!turn) throw new Error(`no scripted turn left for ${role}`);
+        yield* await Promise.race([turn(text, options), cutOff]);
       }
     }
-    const gen = run();
-    return Object.assign(gen, { interrupt: async () => undefined }) as unknown as ReturnType<QueryFn>;
+    return Object.assign(run(), { interrupt: async () => cut() }) as unknown as ReturnType<QueryFn>;
   };
   // The app's own tools are kept by name so a scripted turn can call them as the model would
   const tools = new Map<string, (args: Record<string, unknown>) => Promise<unknown>>();
   const sdk = {
-    query: fn,
+    query,
     tool: (
       name: string,
       _d: string,
@@ -79,7 +118,7 @@ export function fakeQuery(turns: Turn[]) {
     },
     createSdkMcpServer: (o: { name: string }) => ({ type: 'sdk', name: o.name }),
   } as unknown as Sdk;
-  return { fn, calls, sdk, tools };
+  return { calls, sdk, tools };
 }
 
 export function reply(text: string, sessionId = 'claude-1', structured?: unknown): Turn {
@@ -105,29 +144,12 @@ export function reply(text: string, sessionId = 'claude-1', structured?: unknown
     ] as unknown as SDKMessage[];
 }
 
-// Stands in for the SDK with one script per role, picked by the role named in the system prompt
-export function fakeCrew(scripts: Record<string, Turn[]>) {
-  const fake = fakeQuery([]);
-  const calls: { role: string; prompt: string; options: Options }[] = [];
-  fake.sdk.query = ({ prompt, options }) => {
-    const role = String(options.systemPrompt).match(/You are the crew's \*\*(.+?)\*\*/)?.[1] ?? '?';
-    // An interrupt ends the turn under way, as the real SDK does
-    let cut = () => {};
-    const cutOff = new Promise<SDKMessage[]>((resolve) => (cut = () => resolve([])));
-    async function* run() {
-      for await (const msg of prompt as AsyncIterable<SDKUserMessage>) {
-        const text = String(msg.message.content);
-        calls.push({ role, prompt: text, options });
-        const turn = scripts[role]?.shift();
-        if (!turn) throw new Error(`no scripted turn left for ${role}`);
-        yield* await Promise.race([turn(text, options), cutOff]);
-      }
-    }
-    return Object.assign(run(), { interrupt: async () => cut() }) as unknown as ReturnType<QueryFn>;
-  };
-  return { ...fake, calls };
-}
-
 export function handback(sessionId: string, hb: Record<string, unknown>): Turn {
   return reply(String(hb.summary), sessionId, { body: '', points: [], files: [], checks: [], ...hb });
+}
+
+// The text of an in-process tool's answer
+export async function toolText(fake: ReturnType<typeof fakeCrew>, name: string, args: Record<string, unknown>) {
+  const out = (await fake.tools.get(name)!(args)) as { content: { text: string }[] };
+  return out.content[0].text;
 }

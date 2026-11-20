@@ -1,23 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test } from 'vitest';
-import { Chat } from '../../src/backend/chat';
 import { snapshot } from '../../src/backend/tasks/changes';
-import { CREW, fakeCrew, openScratch } from '../support';
+import { openChat } from '../support';
 
 test('overlapping writes go in turn and re-read what changed; others run at once', async () => {
-  const { store, project, paths } = openScratch({ 'a.js': 'a', 'b.js': 'b', 'old.js': 'o' });
+  const { store, chat, p, s, project } = openChat({}, { files: { 'a.js': 'a', 'b.js': 'b', 'old.js': 'o' } });
   fs.mkdirSync(path.join(project, 'src'));
-  const chat = new Chat(
-    store,
-    async () => fakeCrew({}).sdk,
-    CREW,
-    () => {},
-    paths,
-  );
-  const p = store.addProject(project);
-  chat.members.seed(p.id);
-  const s = store.createSession(p.id);
   const coder = store.readMember(p.id, 'coder');
   const open = () => {
     const t = store.createTask({

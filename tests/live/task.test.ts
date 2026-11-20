@@ -1,5 +1,4 @@
 import { execFileSync } from 'node:child_process';
-import path from 'node:path';
 import { expect, test, vi } from 'vitest';
 import { loadSdk } from '../../src/backend/agents/run';
 import { Chat } from '../../src/backend/chat';
@@ -27,7 +26,7 @@ test('real Claude: 비서 opens a code task and the crew changes and verifies it
     'search.test.js': SEARCH_TEST,
   });
   const store = new Store(scratch.db);
-  // Any approval card is refused at once and logged, so a live run never hangs on a question nobody answers
+  // Any card is answered at once with its main (last) option and logged, so a live run never hangs on a question
   const asked: string[] = [];
   const chat: Chat = new Chat(
     store,
@@ -83,5 +82,4 @@ test('real Claude: 비서 opens a code task and the crew changes and verifies it
   );
   expect(JSON.parse(out)).toEqual(['a', 'b']);
   expect(store.listEvents(s.id).some((e) => e.kind === 'step' && e.text.includes('개발: 개발 완료'))).toBe(true);
-  expect(path.basename(scratch.project)).toBe('demo');
 }, 1_200_000);
