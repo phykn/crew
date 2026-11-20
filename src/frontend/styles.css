@@ -666,6 +666,13 @@ code {
 .composer textarea::placeholder {
   color: var(--muted);
 }
+.composer-notice {
+  flex-basis: 100%;
+  margin: 0;
+  padding: var(--sp-1) var(--sp-2) 0;
+  color: var(--bad-text);
+  font-size: var(--fs-sm);
+}
 /* Pictures waiting to go sit on their own row above the box */
 .attachments {
   display: flex;

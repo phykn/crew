@@ -36,7 +36,7 @@ export function Camp({
     if (!session) return setState(null);
     const load = () => call('camp.state', { sessionId: session.id }).then(setState);
     load();
-    return onChanged((t) => ['tasks', 'messages', 'members'].includes(t) && load());
+    return onChanged((t) => ['tasks', 'messages', 'members'].includes(t) && load(), session.id);
   }, [session?.id]);
   useEffect(() => {
     if (state) walkers.current!.applyLog(state.log);

@@ -15,7 +15,7 @@ export class Questions {
     this.store.addMessage(q.sessionId, 'secretary', q.prompt, id);
     // The waiter is in place before anyone hears of the card, so an instant answer is not lost
     const answered = new Promise<string>((resolve) => this.waiters.set(id, resolve));
-    this.emit('changed', 'messages');
+    this.emit('changed', { topic: 'messages', sessionId: q.sessionId });
     this.emit('notify', { sessionId: q.sessionId, text: q.prompt });
     return answered;
   }
@@ -30,7 +30,7 @@ export class Questions {
     if (q.answer !== null) throw new Error('this question was already answered');
     if (!q.options.includes(choice)) throw new Error(`"${choice}" is not one of the options`);
     this.store.answerQuestion(id, choice);
-    this.emit('changed', 'messages');
+    this.emit('changed', { topic: 'messages', sessionId: q.sessionId });
     this.waiters.get(id)?.(choice);
     this.waiters.delete(id);
   }

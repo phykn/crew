@@ -92,7 +92,7 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
       z.object({ projectId: id, title: z.string().trim().min(1).max(60), body: z.string() }),
       (a) => {
         wiki.write(a.projectId, a.title, a.body, USER);
-        chat.emit('changed', 'wiki');
+        chat.emit('changed', { topic: 'wiki' });
       },
     ),
     'wiki.remove': handle(z.object({ id, releaseRule: z.boolean() }), (a) =>

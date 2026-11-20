@@ -24,8 +24,12 @@ export function call<K extends keyof Handlers>(
 
 type StreamEvent = { sessionId: number; delta?: string; done?: boolean };
 
-export function onChanged(fn: (topic: string) => void) {
-  return window.crew.on('changed', (p) => fn(p as string));
+// A change to messages or tasks names its session; a listener given its own session skips the others'
+export function onChanged(fn: (topic: string) => void, sessionId?: number) {
+  return window.crew.on('changed', (p) => {
+    const c = p as { topic: string; sessionId?: number };
+    if (sessionId === undefined || c.sessionId === undefined || c.sessionId === sessionId) fn(c.topic);
+  });
 }
 
 // 비서 opening a screen, the way a click would

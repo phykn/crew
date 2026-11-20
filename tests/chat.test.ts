@@ -134,20 +134,23 @@ test('a new session (/clear) starts an empty 비서 on the same crew while the o
 });
 
 test('each change to the record is announced by the part that made it, whether the window or 비서 asked', () => {
-  const changed: unknown[] = [];
+  const changed: { topic: string; sessionId?: number }[] = [];
   const { store, chat, p, s } = openChat(
     {},
-    { emit: (channel, topic) => channel === 'changed' && changed.push(topic) },
+    { emit: (channel, change) => channel === 'changed' && changed.push(change as (typeof changed)[number]) },
   );
   const said = (act: () => unknown) => {
     changed.length = 0;
     act();
-    return [...new Set(changed)];
+    return [...new Set(changed.map((c) => c.topic))];
   };
   const coder = store.readMember(p.id, 'coder');
   expect(said(() => chat.setMode(p.id, 'auto'))).toEqual(['projects']);
   const next = chat.createSession(p.id);
   expect(said(() => chat.renameSession(next.id, '이름'))).toEqual(['sessions']);
+  // A message names its session, so a window showing another one leaves its list alone
+  expect(said(() => chat.post(next.id, '네'))).toEqual(['messages']);
+  expect(changed).toEqual([{ topic: 'messages', sessionId: next.id }]);
   expect(said(() => chat.deleteSession(s.id))).toEqual(['sessions']);
   expect(said(() => chat.members.update(coder.id, { nickname: '망치' }))).toEqual(['members']);
   expect(said(() => chat.members.setPermissions(coder.id, { tools: ['read'] }))).toEqual(['members']);

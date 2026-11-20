@@ -364,7 +364,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       ui: ['wiki.write'],
       run: (a) => {
         wiki.write(projectId, a.title, a.body, secretary);
-        chat.emit('changed', 'wiki');
+        chat.emit('changed', { topic: 'wiki' });
         return `위키 문서를 저장했습니다: ${a.title}`;
       },
     }),

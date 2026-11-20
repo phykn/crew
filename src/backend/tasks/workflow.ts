@@ -113,11 +113,11 @@ export class Workflows {
         };
       if (o.reason) {
         wiki.write(o.projectId, `워크플로우: ${o.kind}`, o.reason, o.by, { kind: o.kind, version });
-        emit('changed', 'wiki');
+        emit('changed', { topic: 'wiki' });
       }
     }
     if (o.taskId && o.scope !== 'future') store.writeTaskWorkflow(o.taskId, rules);
-    emit('changed', 'workflows');
+    emit('changed', { topic: 'workflows' });
     return { ok: true as const, version: this.current(o.projectId, o.kind).version };
   }
 
@@ -147,7 +147,7 @@ export class Workflows {
       if (!r.ok) return r;
     }
     wiki.remove(docId, by);
-    emit('changed', 'wiki');
+    emit('changed', { topic: 'wiki' });
     return { ok: true as const };
   }
 }

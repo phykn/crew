@@ -56,7 +56,7 @@ export class Members {
 
   setPermissions(memberId: number, config: Config) {
     this.writePermissions(memberId, config);
-    this.chat.emit('changed', 'members');
+    this.chat.emit('changed', { topic: 'members' });
   }
 
   writePermissions(memberId: number, config: Config) {
@@ -74,7 +74,7 @@ export class Members {
 
   writeSkill(projectId: number, skill: { name: string; label: string; use: string; body: string }) {
     this.chat.store.writeSkill(projectId, skill);
-    this.chat.emit('changed', 'members');
+    this.chat.emit('changed', { topic: 'members' });
   }
 
   // A deleted skill leaves every member who held it, so no run asks for a skill that is gone
@@ -87,7 +87,7 @@ export class Members {
         if (skills.includes(name)) this.writePermissions(m.id, { skills: skills.filter((s) => s !== name) });
       }
     });
-    this.chat.emit('changed', 'members');
+    this.chat.emit('changed', { topic: 'members' });
   }
 
   // Back to the shipped kit for one skill or all: what the project made goes, and members hold the shipped skills again
@@ -111,7 +111,7 @@ export class Members {
         if (next.join() !== held.join()) this.writePermissions(m.id, { skills: next });
       }
     });
-    this.chat.emit('changed', 'members');
+    this.chat.emit('changed', { topic: 'members' });
   }
 
   // 인사 designs the missing member; the app checks the definition and adds it as a regular or a temp
@@ -162,7 +162,7 @@ export class Members {
       definition = definition.replace(/\n---\r?\n/, `\n---\n\nYou are the crew's **${def.role}** (${key}).\n\n`);
     const member = store.addMember(project.id, { key, nickname, model: def.model, definition, temp });
     this.note(member, 'hire', `${def.role}(${nickname}) ${temp ? '알바로' : '정규로'} 고용`);
-    this.chat.emit('changed', 'members');
+    this.chat.emit('changed', { topic: 'members' });
     return `${def.role}(${nickname})${particle(def.role, '을')} ${temp ? '알바로' : '정규로'} 고용했습니다. key: ${key}`;
   }
 
@@ -179,7 +179,7 @@ export class Members {
     if (change.status === 'hired') this.rehire(memberId);
     if (change.nickname === undefined && change.model === undefined) return;
     store.updateMember(memberId, { nickname: change.nickname, model: change.model });
-    this.chat.emit('changed', 'members');
+    this.chat.emit('changed', { topic: 'members' });
   }
 
   // Letting go is idempotent: a second press while leaving or gone changes nothing
@@ -189,7 +189,7 @@ export class Members {
     if (this.chat.runs.busy(memberId)) {
       this.chat.store.writeLeaving(memberId, true);
       this.note(m, 'leave', `${this.chat.crew.defOf(m).role}(${m.nickname}) 퇴장 예정: 맡은 단계를 마치고 나갑니다`);
-      this.chat.emit('changed', 'members');
+      this.chat.emit('changed', { topic: 'members' });
     } else this.leave(memberId);
   }
 
@@ -199,7 +199,7 @@ export class Members {
       store.writeLeaving(memberId, false);
       store.updateMember(memberId, { status: 'hired' });
     });
-    this.chat.emit('changed', 'members');
+    this.chat.emit('changed', { topic: 'members' });
   }
 
   leave(memberId: number) {
@@ -210,7 +210,7 @@ export class Members {
       store.updateMember(memberId, { status: 'unhired' });
     });
     this.note(m, 'leave', `${this.chat.crew.defOf(m).role}(${m.nickname}) 퇴장`);
-    this.chat.emit('changed', 'members');
+    this.chat.emit('changed', { topic: 'members' });
   }
 
   // A crew change is logged in the project's latest session, where the user is looking

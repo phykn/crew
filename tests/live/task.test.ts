@@ -33,7 +33,7 @@ test('real Claude: 비서 opens a code task and the crew changes and verifies it
     loadSdk,
     CREW,
     (channel, topic) => {
-      if (channel !== 'changed' || topic !== 'messages') return;
+      if (channel !== 'changed' || (topic as { topic: string }).topic !== 'messages') return;
       for (const m of store.listMessages(s.id)) {
         if (m.question && m.question.answer === null) {
           asked.push(m.question.prompt);

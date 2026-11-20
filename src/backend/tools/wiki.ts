@@ -33,7 +33,7 @@ export function wikiTools(sdk: Sdk, chat: Chat, member: Member, sessionId: numbe
       async (a) => {
         const old = wiki.find(projectId, a.title);
         wiki.write(projectId, a.title, a.body, { ...by(), files: a.files });
-        chat.emit('changed', 'wiki');
+        chat.emit('changed', { topic: 'wiki' });
         return text(`${old ? '수정' : '작성'}: ${a.title}`);
       },
     ),
@@ -43,7 +43,7 @@ export function wikiTools(sdk: Sdk, chat: Chat, member: Member, sessionId: numbe
       { text: z.string().min(1) },
       async (a) => {
         wiki.remember(projectId, member.id, a.text, { taskId, sessionId });
-        chat.emit('changed', 'wiki');
+        chat.emit('changed', { topic: 'wiki' });
         return text('기억했습니다.');
       },
     ),

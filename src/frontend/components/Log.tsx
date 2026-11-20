@@ -33,13 +33,18 @@ export function Log({
 
   useEffect(() => {
     const load = async () => {
-      setEvents(await call('events.list', { sessionId: session.id }));
-      setTasks(await call('tasks.list', { sessionId: session.id }));
-      setUsage(await call('usage.list', { sessionId: session.id }));
+      const [e, t, u] = await Promise.all([
+        call('events.list', { sessionId: session.id }),
+        call('tasks.list', { sessionId: session.id }),
+        call('usage.list', { sessionId: session.id }),
+      ]);
+      setEvents(e);
+      setTasks(t);
+      setUsage(u);
     };
     load();
     // Crew changes are logged too, such as a hire or a member leaving
-    return onChanged((topic) => ['tasks', 'messages', 'members'].includes(topic) && load());
+    return onChanged((topic) => ['tasks', 'messages', 'members'].includes(topic) && load(), session.id);
   }, [session.id]);
 
   const shown = events.filter((e) => taskId === null || e.taskId === taskId);

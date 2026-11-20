@@ -225,7 +225,7 @@ export class Runs {
         text: `쓰기 예약 대기: 업무 ${josa(`#${holders.join(', #')}`, '이')} 같은 범위를 쓰는 중`,
         detail: JSON.stringify({ paths }),
       });
-      emit('changed', 'tasks');
+      emit('changed', { topic: 'tasks', sessionId: task.sessionId });
     });
     if (got === 'deadlock')
       return `Blocked by the crew guard: another task is waiting on files you hold. Finish your step without ${paths.join(', ')} and say so in your handback.`;

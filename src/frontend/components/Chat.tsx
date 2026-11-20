@@ -13,6 +13,8 @@ type Queued = { id: number; sessionId: number; text: string; images: Image[] };
 // Claude takes up to five pictures of about 5MB each in one message
 const MAX_IMAGES = 5;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+// How near the bottom still counts as at it, so a line's worth of rounding does not unstick the list
+const STICK_PX = 24;
 
 function readImage(file: File): Promise<Image | null> {
   const type = IMAGE_TYPES.find((t) => t === file.type);
@@ -50,7 +52,11 @@ export function Chat({
   const [draft, setDraft] = useState('');
   const [images, setImages] = useState<Image[]>([]);
   const [queued, setQueued] = useState<Queued[]>([]);
+  // Why the last pictures were left out, or that a message did not go
+  const [notice, setNotice] = useState<string | null>(null);
   const nextId = useRef(0);
+  // The list follows new words only while the user is at its bottom, so reading back is not pulled away
+  const stick = useRef(true);
   const picker = useRef<HTMLInputElement>(null);
   const end = useRef<HTMLDivElement>(null);
   const [pick, setPick] = useState(0);
@@ -64,13 +70,21 @@ export function Chat({
     load();
     loadTasks();
     setStreaming(null);
+    // A draft belongs to the session it was written in
+    setDraft('');
+    setImages([]);
+    setNotice(null);
+    stick.current = true;
     let current = true;
     call('messages.busy', { sessionId: session.id }).then((busy) => {
       if (!current) return;
       if (busy) setStreaming((s) => s ?? '');
       setKnown(session.id);
     });
-    const offChanged = onChanged((topic) => (topic === 'messages' ? load() : topic === 'tasks' && loadTasks()));
+    const offChanged = onChanged(
+      (topic) => (topic === 'messages' ? load() : topic === 'tasks' && loadTasks()),
+      session.id,
+    );
     const offStream = onStream((ev) => {
       if (ev.sessionId !== session.id) return;
       setStreaming((s) => (ev.done ? null : (s ?? '') + (ev.delta ?? '')));
@@ -84,7 +98,7 @@ export function Chat({
 
   // Braces matter: scrollIntoView returns a promise in current Chromium, which React would take for a cleanup
   useEffect(() => {
-    end.current?.scrollIntoView({ block: 'end' });
+    if (stick.current) end.current?.scrollIntoView({ block: 'end' });
   }, [messages, streaming, queued, images.length]);
 
   const waiting = messages.some((m) => m.question && m.question.answer === null);
@@ -99,7 +113,11 @@ export function Chat({
   function dispatch(text: string, pictures: Image[]) {
     // Shows the thinking state at once; the first streamed words replace it
     setStreaming((s) => s ?? '');
-    call('messages.send', { sessionId: session.id, text, images: pictures });
+    // A refused send never ends its stream, so the thinking state is cleared here
+    call('messages.send', { sessionId: session.id, text, images: pictures }).catch(() => {
+      setStreaming(null);
+      setNotice('보내지 못했습니다. 다시 보내 주세요.');
+    });
   }
 
   function sendQueued(q: Queued) {
@@ -113,22 +131,40 @@ export function Chat({
     if (!text && !images.length) return;
     setDraft('');
     setImages([]);
+    setNotice(null);
     const command = !images.length && commands.find((c) => `/${c.name}` === text);
     if (command) return command.run();
+    // What the user just said is shown, even if they had scrolled back to read
+    stick.current = true;
     if (later && streaming !== null)
       return setQueued((qs) => [...qs, { id: nextId.current++, sessionId: session.id, text, images }]);
     dispatch(text, images);
   }
 
   async function attach(files: Iterable<File>) {
-    const read = (await Promise.all([...files].map(readImage))).filter((i): i is Image => i !== null);
-    setImages((have) => [...have, ...read].slice(0, MAX_IMAGES));
+    const list = [...files];
+    const read = (await Promise.all(list.map(readImage))).filter((i): i is Image => i !== null);
+    const kept = read.slice(0, MAX_IMAGES - images.length);
+    setImages([...images, ...kept]);
+    const left = list.length - kept.length;
+    setNotice(
+      left
+        ? `그림 ${left}장은 넣지 못했습니다. PNG·JPEG·GIF·WEBP, ${MAX_IMAGE_BYTES / 1024 / 1024}MB 이하, ${MAX_IMAGES}장까지 넣을 수 있습니다.`
+        : null,
+    );
   }
 
   return (
     <div className="chat">
       <TaskCards tasks={tasks} messages={messages} onLog={onLog} />
-      <div className="messages" aria-label="대화">
+      <div
+        className="messages"
+        aria-label="대화"
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < STICK_PX;
+        }}
+      >
         {messages.map((m) => (
           <Bubble
             key={m.id}
@@ -166,6 +202,11 @@ export function Chat({
           void attach(e.dataTransfer.files);
         }}
       >
+        {notice && (
+          <p className="composer-notice" role="status">
+            {notice}
+          </p>
+        )}
         {images.length > 0 && (
           <ul className="attachments" aria-label="첨부한 그림">
             {images.map((img, n) => (
@@ -228,7 +269,7 @@ export function Chat({
         />
         <textarea
           value={draft}
-          placeholder="Ctrl+Enter 키로 대기열에 추가하기"
+          placeholder="Enter 보내기 · Ctrl+Enter 답변 뒤에 보내기"
           aria-label="메시지"
           rows={1}
           onChange={(e) => {
@@ -352,7 +393,8 @@ function AnswerCard({ question }: { question: Question }) {
               className={`answer-option${i === question.options.length - 1 ? ' primary' : ''}`}
               onClick={() => {
                 setPicked(o);
-                call('questions.answer', { id: question.id, choice: o });
+                // A pick the record refused shows the options again
+                call('questions.answer', { id: question.id, choice: o }).catch(() => setPicked(null));
               }}
             >
               {o}

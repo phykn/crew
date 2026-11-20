@@ -43,8 +43,8 @@ export class Chat {
     this.store.addMessage(sessionId, 'user', text, null, images);
     const name = text.replace(/\s+/g, ' ').trim();
     if (name) this.store.nameSession(sessionId, name.length > 18 ? `${name.slice(0, 18)}…` : name);
-    this.emit('changed', 'sessions');
-    this.emit('changed', 'messages');
+    this.emit('changed', { topic: 'sessions' });
+    this.emit('changed', { topic: 'messages', sessionId });
     await this.tell(sessionId, text, images);
   }
 
@@ -71,7 +71,7 @@ export class Chat {
   post(sessionId: number, text: string) {
     this.store.addMessage(sessionId, 'secretary', text);
     this.emit('stream', { sessionId, done: true });
-    this.emit('changed', 'messages');
+    this.emit('changed', { topic: 'messages', sessionId });
     this.emit('notify', { sessionId, text });
   }
 
@@ -79,25 +79,25 @@ export class Chat {
   addProject(dir: string) {
     const project = this.store.addProject(dir);
     this.members.seed(project.id);
-    this.emit('changed', 'projects');
+    this.emit('changed', { topic: 'projects' });
     return project;
   }
 
   setMode(projectId: number, mode: Mode) {
     this.store.setMode(projectId, mode);
-    this.emit('changed', 'projects');
+    this.emit('changed', { topic: 'projects' });
   }
 
   // A fresh session on the same project and crew (새 세션, /clear): 비서 starts without context and older sessions' tasks go on
   createSession(projectId: number) {
     const session = this.store.createSession(projectId);
-    this.emit('changed', 'sessions');
+    this.emit('changed', { topic: 'sessions' });
     return session;
   }
 
   renameSession(sessionId: number, title: string) {
     this.store.renameSession(sessionId, title);
-    this.emit('changed', 'sessions');
+    this.emit('changed', { topic: 'sessions' });
   }
 
   // A deleted session's work stops first, so nothing keeps writing for a record that is gone
@@ -110,13 +110,13 @@ export class Chat {
     );
     this.runs.live(sessionId)?.stop();
     this.store.deleteSession(sessionId);
-    this.emit('changed', 'sessions');
+    this.emit('changed', { topic: 'sessions' });
   }
 
   removeProject(projectId: number) {
     for (const s of this.store.listSessions(projectId)) this.deleteSession(s.id);
     this.store.removeProject(projectId);
-    this.emit('changed', 'projects');
+    this.emit('changed', { topic: 'projects' });
   }
 }
 

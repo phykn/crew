@@ -171,7 +171,7 @@ export class Tasks {
     // In a git repository the starting point is also kept as a commit, so each version's diff can be shown
     const base = mark(folder, taskRef(task.id, 'base')).finally(() => this.starting.delete(task.id));
     this.starting.set(task.id, base);
-    this.chat.emit('changed', 'tasks');
+    this.chat.emit('changed', { topic: 'tasks', sessionId: task.sessionId });
     void this.drive(task.id);
     return task;
   }
@@ -244,10 +244,11 @@ export class Tasks {
 
   move(taskId: number, type: TaskEvent['type'], stage: string, log: string) {
     const { store } = this.chat;
-    const next = nextStatus(store.readTask(taskId).status, type);
+    const task = store.readTask(taskId);
+    const next = nextStatus(task.status, type);
     if (!next) return false;
     store.writeTaskStatus(taskId, next, stage, log);
-    this.chat.emit('changed', 'tasks');
+    this.chat.emit('changed', { topic: 'tasks', sessionId: task.sessionId });
     return true;
   }
 
@@ -303,7 +304,7 @@ export class Tasks {
     const errors: string[] = [];
     for (let attempt = 0; attempt <= RETRIES; attempt++) {
       const runId = store.startStepRun(task.id, step.id, member.id, store.latestVersion(task.id)?.id ?? null);
-      this.chat.emit('changed', 'tasks');
+      this.chat.emit('changed', { topic: 'tasks', sessionId: task.sessionId });
       await this.starting.get(task.id);
       const out = await this.chat.runs
         .run(member, task.sessionId, task.id, prompt, {
@@ -358,7 +359,7 @@ export class Tasks {
         `${role}: ${step.label} ${hb.verdict === 'rework' ? '수정 요청' : '완료'} — ${hb.summary}`,
         kept ? { ...hb, version } : hb,
       );
-      this.chat.emit('changed', 'tasks');
+      this.chat.emit('changed', { topic: 'tasks', sessionId: task.sessionId });
       return 'done';
     }
     log(`${role}: ${step.label} 실패 (${RETRIES}번 다시 시도)`, { errors });
