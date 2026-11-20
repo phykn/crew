@@ -60,6 +60,8 @@
   /* Shadows and veils */
   --veil: rgba(60, 34, 14, 0.45);
   --frame-shadow: rgba(40, 22, 8, 0.45);
+  /* What floats over the window casts a soft shadow, never a solid one that would read as a thicker edge */
+  --shadow-float: 0 var(--sp-1) var(--sp-3) var(--frame-shadow);
 
   /* Type */
   --font-ui: Galmuri11, 'Malgun Gothic', sans-serif;

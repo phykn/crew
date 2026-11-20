@@ -78,9 +78,9 @@ code {
   border-radius: var(--r);
   box-shadow:
     0 0 0 var(--bw-frame) var(--wood-dark),
-    0 var(--bw-wood) 0 var(--bw-frame) var(--frame-shadow);
+    var(--shadow-float);
 }
-/* Controls: one height, one border, one lift */
+/* Controls: one height, one border, even on every side */
 .picker,
 .seg button,
 .button,
@@ -98,12 +98,6 @@ code {
 .send {
   border-radius: var(--r);
 }
-/* Pressable things sit on a lip; a picker is a field, so its outline is even all round */
-.button,
-.answer-option,
-.send {
-  box-shadow: 0 var(--bw) 0 var(--line-hi);
-}
 .seg button,
 .button,
 .choice {
@@ -117,11 +111,6 @@ code {
 .button,
 .answer-option {
   font-weight: var(--fw-bold);
-}
-.button:active,
-.answer-option:not(:disabled):active {
-  box-shadow: none;
-  transform: translateY(var(--bw));
 }
 /* Fields people type in */
 .nickname,
@@ -154,11 +143,6 @@ code {
   background: var(--accent);
   border-color: var(--accent-dark);
   color: var(--on-accent);
-}
-.button.primary,
-.answer-option.primary,
-.send {
-  box-shadow: 0 var(--bw) 0 var(--accent-dark);
 }
 /* Hover and the picked row share the butter highlight */
 .picker:hover,
@@ -315,7 +299,7 @@ code {
   background: var(--card);
   border: var(--bw) solid var(--wood-dark);
   border-radius: var(--r);
-  box-shadow: 0 var(--bw-frame) 0 var(--wood-dark);
+  box-shadow: var(--shadow-float);
 }
 .menu-item {
   padding: var(--sp-2) var(--sp-3);
@@ -794,12 +778,10 @@ code {
 .send.stop {
   background: var(--danger);
   border-color: var(--danger-dark);
-  box-shadow: 0 var(--bw) 0 var(--danger-dark);
 }
 .send:disabled {
   background: var(--disabled-bg);
   border-color: var(--disabled-line);
-  box-shadow: 0 var(--bw) 0 var(--disabled-line);
   cursor: default;
 }
 
@@ -1508,7 +1490,6 @@ code {
   background: var(--card);
   border: var(--bw) solid var(--line-hi);
   border-radius: var(--r);
-  box-shadow: 0 var(--bw) 0 var(--wood-dark);
   color: var(--text);
   font-size: var(--fs-sm);
 }
