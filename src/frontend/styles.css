@@ -97,6 +97,11 @@ code {
 .answer-option,
 .send {
   border-radius: var(--r);
+}
+/* Pressable things sit on a lip; a picker is a field, so its outline is even all round */
+.button,
+.answer-option,
+.send {
   box-shadow: 0 var(--bw) 0 var(--line-hi);
 }
 .seg button,
@@ -381,7 +386,13 @@ code {
   opacity: 0.5;
   cursor: default;
 }
+/* The folder lines up with the four tabs below it; the session, named after what was asked, takes the rest */
 .project-picker {
+  flex: none;
+  width: calc(4 * var(--w-tab) + 3 * var(--sp-1));
+  min-width: 0;
+}
+.session-picker {
   flex: 1;
   min-width: 0;
 }
@@ -416,14 +427,14 @@ code {
   margin-bottom: calc(-1 * var(--bw-frame));
   background: var(--card-hi);
   border: var(--bw-frame) solid var(--line-hi);
-  border-bottom: none;
   border-radius: var(--r) var(--r) 0 0;
   color: var(--muted);
   cursor: pointer;
 }
+/* A tab hangs over the frame line: a closed one draws that line itself, the open one leaves it out so its sides run into the frame unbroken */
 .tab-list button[data-state='active'] {
   background: var(--card);
-  border-bottom: var(--bw-frame) solid var(--card);
+  border-bottom: none;
 }
 .tab-icon,
 .tab-icon svg {
