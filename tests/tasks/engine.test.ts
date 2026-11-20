@@ -393,7 +393,7 @@ test('reopening a task sends the change back to every step that made it', () => 
   ).toEqual(['advise', 'structure']);
 });
 
-test('a run that meets a passing fault is tried again after a wait; one that hits the turn limit stops at once', async () => {
+test('a run that meets a passing fault is tried again after a wait', async () => {
   const at: number[] = [];
   const failed =
     (subtype: string, errors: string[]): Turn =>
@@ -404,23 +404,14 @@ test('a run that meets a passing fault is tried again after a wait; one that hit
         { type: 'result', subtype, errors, num_turns: 1, total_cost_usd: 0, modelUsage: {} },
       ] as never;
     };
-  const { store, fake, chat, s } = openChat({
-    비서: [reply('보고 1'), reply('보고 2')],
-    조사: [
-      failed('error_during_execution', ['overloaded']),
-      handback('r', { summary: '조사' }),
-      failed('error_max_turns', []),
-    ],
+  const { store, chat, s } = openChat({
+    비서: [reply('보고 1')],
+    조사: [failed('error_during_execution', ['overloaded']), handback('r', { summary: '조사' })],
   });
   chat.tasks.retryWaits = [50, 50, 50];
   const first = chat.tasks.start(s.id, 'research', '조사 1', 'r');
   await vi.waitFor(() => expect(store.readTask(first.id).status).toBe('done'));
   expect(Date.now() - at[0]).toBeGreaterThanOrEqual(45);
-
-  const second = chat.tasks.start(s.id, 'research', '조사 2', 'r');
-  await vi.waitFor(() => expect(store.readTask(second.id).status).toBe('failed'));
-  expect(store.listStepRuns(second.id).map((r) => r.status)).toEqual(['failed']);
-  await vi.waitFor(() => expect(fake.calls.at(-1)!.prompt).toContain('조사가 한 번 실행에 200턴을 넘겨 멈췄습니다'));
 });
 
 test("a step's files are the ones it wrote, not a file someone else changed meanwhile", async () => {

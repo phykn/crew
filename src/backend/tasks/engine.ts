@@ -3,7 +3,7 @@ import path from 'node:path';
 import { getNextSnapshot, setup } from 'xstate';
 import { z } from 'zod';
 import type { Chat } from '../chat';
-import { MAX_BUDGET_USD, MAX_TURNS, NOT_HIRED } from '../agents/run';
+import { NOT_HIRED } from '../agents/run';
 import type { Handback, Member, StepRun, Task, TaskStatus } from '../db';
 import { ancestors, type Step, Workflow } from './workflow';
 import { memberTools } from '../tools/member';
@@ -315,12 +315,6 @@ export class Tasks {
       if (out.status === 'limit' || out.status === 'stopped') {
         store.finishStepRun(runId, 'stopped', null, out.error ?? out.status);
         return out.status === 'limit' ? LIMIT : STOPPED;
-      }
-      if (out.capped) {
-        store.finishStepRun(runId, 'failed', null, out.error ?? out.capped);
-        const cap = out.capped === 'turns' ? `${MAX_TURNS}턴` : `${MAX_BUDGET_USD}달러`;
-        log(`${role}: ${step.label} 실패 — 한 번 실행에 ${josa(cap, '을')} 넘김`, { errors: [out.error] });
-        return `${josa(step.label, '이')} 한 번 실행에 ${josa(cap, '을')} 넘겨 멈췄습니다`;
       }
       const parsed = out.status === 'done' ? HandbackShape.safeParse(out.structured) : null;
       if (!parsed?.success) {
