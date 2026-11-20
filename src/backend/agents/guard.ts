@@ -267,7 +267,8 @@ export function guardMember({ store, questions, policy, sessionId, taskId, membe
       sessionId,
       taskId,
       kind: 'approval',
-      prompt: `권한 요청: ${policy().role}(${member.nickname}) — ${reason}.${what ? `\n${what}` : ''}`,
+      // The card itself says it asks, so it names only who and why
+      prompt: `${policy().role} ${member.nickname}: ${reason}.${what ? `\n${what}` : ''}`,
       // The last option is the card's main button, so allowing is the one that stands out
       options: [REFUSE, ALLOW],
       payload: { memberId: member.id, tool },

@@ -176,6 +176,6 @@ async function pickTask(chat: Chat, sessionId: number, id: number | undefined, c
   if (done.length <= 1) return done[0] ?? null;
   const label = (t: Task) => `#${t.id} ${t.title}`;
   // Held until the user answers: reopening the wrong task would redo finished work
-  const choice = await chat.questions.choose(sessionId, `"${change}" — 어느 업무를 다시 할까요?`, done.map(label));
+  const choice = await chat.questions.choose(sessionId, `어느 업무를 다시 할까요?\n${change}`, done.map(label));
   return done.find((t) => label(t) === choice) ?? null;
 }
