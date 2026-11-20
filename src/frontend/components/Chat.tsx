@@ -156,7 +156,7 @@ export function Chat({
     const left = list.length - kept.length;
     setNotice(
       left
-        ? `그림 ${left}장은 넣지 못했습니다. PNG, JPEG, GIF, WEBP 형식에${MAX_IMAGE_BYTES / 1024 / 1024}MB 이하, ${MAX_IMAGES}장까지 넣을 수 있습니다.`
+        ? `그림 ${left}장은 넣지 못했습니다. PNG, JPEG, GIF, WEBP 형식에 ${MAX_IMAGE_BYTES / 1024 / 1024}MB 이하, ${MAX_IMAGES}장까지 넣을 수 있습니다.`
         : null,
     );
   }

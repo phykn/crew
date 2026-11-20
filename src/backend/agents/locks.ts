@@ -108,7 +108,8 @@ function overlaps(a: string, b: string) {
 
 export function inside(file: string, dir: string) {
   const rel = path.relative(path.resolve(dir), path.resolve(file));
-  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+  // A name that merely starts with dots, such as ..env, is still inside
+  return rel === '' || (rel !== '..' && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel));
 }
 
 // The path as the disk resolves it, so a link or a different spelling still meets the same reservation

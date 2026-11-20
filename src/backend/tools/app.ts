@@ -64,7 +64,20 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       return null;
     }
   };
-  const ownSession = (id: number) => store.listSessions(projectId).find((s) => s.id === id) ?? null;
+  const ownSession = (id: number) => {
+    if (!store.listSessions(projectId).some((s) => s.id === id))
+      throw new Error(`세션 ${josa(`#${id}`, '은')} 이 프로젝트에 없습니다.`);
+  };
+  // Checked before the card too, so the user is never asked about a session that cannot go
+  const deletable = (id: number) => {
+    ownSession(id);
+    if (id === sessionId) throw new Error('지금 대화 중인 세션은 지울 수 없습니다.');
+  };
+  const doc = (title: string) => {
+    const d = wiki.find(projectId, title);
+    if (!d) throw new Error(`위키에 "${title}" 문서가 없습니다.`);
+    return d;
+  };
   const member = (name: string) => {
     const m = members.find(projectId, name);
     if (!m) throw new Error(`${josa(name, '은')} 이 프로젝트 크루에 없습니다.`);
@@ -291,8 +304,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       args: z.object({ session_id: z.number().int(), title: z.string().trim().min(1).max(30) }),
       ui: [],
       run: (a) => {
-        if (!ownSession(a.session_id))
-          throw new Error(`세션 ${josa(`#${a.session_id}`, '은')} 이 프로젝트에 없습니다.`);
+        ownSession(a.session_id);
         chat.renameSession(a.session_id, a.title);
         return `세션 이름을 바꿨습니다: ${a.title}`;
       },
@@ -304,13 +316,12 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       args: z.object({ session_id: z.number().int() }),
       ui: ['sessions.delete', 'sessions.impact'],
       confirm: (a) => {
+        deletable(a.session_id);
         const n = store.impact({ sessionId: a.session_id });
         return `세션 ${josa(`#${a.session_id}`, '을')} 지울까요? 업무 ${n.tasks}개와 기록 ${n.events}줄이 함께 지워집니다.`;
       },
       run: (a) => {
-        if (!ownSession(a.session_id))
-          throw new Error(`세션 ${josa(`#${a.session_id}`, '은')} 이 프로젝트에 없습니다.`);
-        if (a.session_id === sessionId) throw new Error('지금 대화 중인 세션은 지울 수 없습니다.');
+        deletable(a.session_id);
         chat.deleteSession(a.session_id);
         return `세션 ${josa(`#${a.session_id}`, '을')} 지웠습니다.`;
       },
@@ -375,12 +386,11 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       kind: 'act',
       args: z.object({ title: z.string(), release_rule: z.boolean().default(false) }),
       ui: ['wiki.remove'],
-      confirm: (a) => `위키 문서를 지울까요? ${a.title}.${a.release_rule ? ' 이 문서가 만든 규칙도 함께 풉니다.' : ''}`,
-      run: (a) => {
-        const doc = wiki.list(projectId).find((d) => d.title === a.title);
-        if (!doc) throw new Error(`위키에 "${a.title}" 문서가 없습니다.`);
-        return chat.workflows.removeDoc(doc.id, a.release_rule, secretary);
+      confirm: (a) => {
+        doc(a.title);
+        return `위키 문서를 지울까요? ${a.title}.${a.release_rule ? ' 이 문서가 만든 규칙도 함께 풉니다.' : ''}`;
       },
+      run: (a) => chat.workflows.removeDoc(doc(a.title).id, a.release_rule, secretary),
     }),
   ];
   return actions;

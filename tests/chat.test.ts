@@ -86,13 +86,29 @@ test('a message said while 비서 is answering keeps the chat showing 비서 at 
   expect(store.listMessages(s.id).map((m) => m.text)).toEqual(['하나', '둘', '첫 답', '둘째 답']);
 });
 
-test('stopping 비서 mid-answer ends that run and says so in the chat', async () => {
+test('stopping 비서 mid-answer ends that run, closes the card it left open, and says so in the chat', async () => {
   const { store, chat, s } = openChat({ 비서: [never] });
   const answering = chat.send(s.id, '길게 설명해줘');
   await vi.waitFor(() => expect(chat.runs.live(s.id)).toBeDefined());
+  const picked = chat.questions.choose(s.id, '어느 업무를 다시 할까요?', ['#1', '#2']);
   await chat.runs.live(s.id)!.stop();
   await answering;
-  expect(store.listMessages(s.id).at(-1)!.text).toBe('답변을 멈췄습니다.');
+  expect(await picked).toBe('취소');
+  expect(
+    store
+      .listMessages(s.id)
+      .map((m) => m.question?.answer ?? m.text)
+      .slice(-2),
+  ).toEqual(['취소', '답변을 멈췄습니다.']);
+});
+
+test('an error before 비서 can run is said in the chat instead of leaving 비서 answering', async () => {
+  const { store, chat, s } = openChat();
+  chat.sdk = async () => {
+    throw new Error('SDK를 불러오지 못함');
+  };
+  await chat.send(s.id, '안녕');
+  expect(store.listMessages(s.id).at(-1)!.text).toBe('답하는 중 오류가 났습니다: SDK를 불러오지 못함');
 });
 
 test('a new session (/clear) starts an empty 비서 on the same crew while the old session works on; deleting counts what goes', async () => {

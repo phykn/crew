@@ -23,7 +23,13 @@ export function Changes({
 
   useEffect(() => {
     setChange(null);
-    if (target) void call('changes.file', target).then(setChange);
+    if (!target) return;
+    // A diff read for the file opened before this one is dropped
+    let live = true;
+    void call('changes.file', target).then((c) => live && setChange(c));
+    return () => {
+      live = false;
+    };
   }, [target]);
 
   const d = change?.diff;

@@ -600,9 +600,12 @@ export class Store {
     return { ...row, options: JSON.parse(row.options), payload: JSON.parse(row.payload) };
   }
 
-  openQuestionIds(taskId: number): number[] {
+  // A task's open cards, or with no task those of the session's own conversation
+  openQuestionIds(sessionId: number, taskId: number | null): number[] {
     return (
-      this.db.prepare('SELECT id FROM questions WHERE task_id = ? AND answer IS NULL').all(taskId) as { id: number }[]
+      this.db
+        .prepare('SELECT id FROM questions WHERE session_id = ? AND task_id IS ? AND answer IS NULL')
+        .all(sessionId, taskId) as { id: number }[]
     ).map((r) => r.id);
   }
 

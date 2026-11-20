@@ -29,12 +29,22 @@ export class Questions {
     const q = this.store.readQuestion(id);
     if (q.answer !== null) throw new Error('this question was already answered');
     if (!q.options.includes(choice)) throw new Error(`"${choice}" is not one of the options`);
-    this.store.answerQuestion(id, choice);
-    this.emit('changed', { topic: 'messages', sessionId: q.sessionId });
-    this.waiters.get(id)?.(choice);
+    this.settle(id, q.sessionId, choice);
+  }
+
+  // A card whose asker is gone, such as 비서's stopped answer: closed, so the chat no longer waits on it
+  cancel(id: number) {
+    this.settle(id, this.store.readQuestion(id).sessionId, CANCEL);
+  }
+
+  settle(id: number, sessionId: number, answer: string) {
+    this.store.answerQuestion(id, answer);
+    this.emit('changed', { topic: 'messages', sessionId });
+    this.waiters.get(id)?.(answer);
     this.waiters.delete(id);
   }
 }
 
 export const ALLOW = '허용';
 export const REFUSE = '거절';
+export const CANCEL = '취소';

@@ -57,9 +57,12 @@ export function useWorkspace() {
     let list = await call('sessions.list', { projectId: p.id });
     // A project always has a session to talk in
     if (list.length === 0) list = [await call('sessions.create', { projectId: p.id })];
+    const crew = await call('members.list', { projectId: p.id });
+    // Picked again in the meantime, as with two quick clicks: only the last pick shows
+    if (current.current !== p.id) return;
     setProject(p);
     setSessions(list);
-    setMembers(await call('members.list', { projectId: p.id }));
+    setMembers(crew);
     selectSession(list.find((s) => s.id === sessionId) ?? list[0], p);
   }
 

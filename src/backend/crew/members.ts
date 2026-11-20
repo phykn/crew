@@ -133,12 +133,14 @@ export class Members {
     const draft = Draft.safeParse(out.structured);
     if (!draft.success) return `인사가 정의를 만들지 못했습니다: ${out.error ?? '형식이 맞지 않습니다'}`;
     const { fits, key, nickname } = draft.data;
+    // One let go comes back with its settings; designing a twin would leave the old one unhired
+    const gone = (m: Member) => m.status !== 'hired' || m.leaving;
+    const back = (m: Member) => {
+      this.rehire(m.id);
+      return `${crew.defOf(m).role}(${m.nickname})${particle(crew.defOf(m).role, '을')} 다시 고용했습니다.`;
+    };
     const fit = fits && this.find(project.id, fits.key);
-    if (fit && (fit.status !== 'hired' || fit.leaving)) {
-      // One let go who fits comes back with its settings; designing a twin would leave the old one unhired
-      this.rehire(fit.id);
-      return `${crew.defOf(fit).role}(${fit.nickname})${particle(crew.defOf(fit).role, '을')} 다시 고용했습니다.`;
-    }
+    if (fit && gone(fit)) return back(fit);
     if (fit)
       return `새로 뽑지 않았습니다. ${crew.defOf(fit).role}(${fit.key})${particle(crew.defOf(fit).role, '이')} 이미 맞습니다: ${fits.reason}`;
     if (!key || !nickname || !draft.data.definition)
@@ -152,10 +154,8 @@ export class Members {
       return `인사의 정의가 맞지 않습니다: ${String(err)}`;
     }
     const same = members.find((m) => m.key === key || crew.defOf(m).role === def.role);
-    if (same && same.status !== 'hired' && !same.temp) {
-      this.rehire(same.id);
-      return `${crew.defOf(same).role}(${same.nickname})${particle(crew.defOf(same).role, '을')} 다시 고용했습니다.`;
-    }
+    // A temp who left keeps its key, so the same design brings that temp back rather than being refused
+    if (same && gone(same)) return back(same);
     if (same) return `${def.role}(${key})${particle(def.role, '은')} 이미 있습니다.`;
     // The role line is how a run knows who it is; a draft that left it out still gets it
     if (!def.instructions.includes(`**${def.role}**`))

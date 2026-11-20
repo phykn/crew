@@ -11,6 +11,8 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
   const projectId = () => chat.store.projectOf(sessionId).id;
   const secretary = chat.store.readMember(projectId(), 'orchestrator');
   const kinds = chat.workflows.shipped.map((w) => w.kind) as [string, ...string[]];
+  // Only a task of this conversation can be reached, whatever id is given
+  const ownTask = (id: number) => chat.store.listTasks(sessionId).find((t) => t.id === id) ?? null;
   const memberOf = (name: string) => {
     const m = chat.members.find(projectId(), name);
     return m?.status === 'hired' ? m : null;
@@ -100,8 +102,7 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
           reason: z.string().optional().describe("Why, in Korean; kept as the rule's decision document in the wiki"),
         },
         async (a) => {
-          // Only a task of this conversation, as with reopen_task
-          if (a.task_id && !chat.store.listTasks(sessionId).some((t) => t.id === a.task_id))
+          if (a.task_id && !ownTask(a.task_id))
             return text(`저장하지 않았습니다: 이 대화에 업무 #${a.task_id}이 없습니다.`);
           const r = chat.workflows.save({
             projectId: projectId(),
@@ -136,7 +137,7 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
           // The member who left is no longer hired, so it is looked up among everyone
           const from = chat.members.find(projectId(), a.from_role);
           if (!from) return text(`${josa(a.from_role, '은')} 크루에 없습니다.`);
-          const task = chat.store.listTasks(sessionId).find((t) => t.id === a.task_id);
+          const task = ownTask(a.task_id);
           if (!task) return text(`업무 ${josa(`#${a.task_id}`, '은')} 이 세션에 없습니다.`);
           const moved = chat.tasks.reassign(task, chat.crew.defOf(from).role, to);
           return text(

@@ -67,3 +67,17 @@ test('the crew the app opens with walks in from out of sight on every side, even
   w.applyStaff([...crew, { ...crew[0], team: 'e', name: 'e' }]);
   expect(w.people.get('e')!.path.length).toBeGreaterThan(0);
 });
+
+test("another session's log is a fresh baseline: none of its history plays as a scene", () => {
+  const w = createWalkers();
+  w.applyStaff([{ team: 'a', name: 'a', color: '#fff', look: ['hair', 'vest', 'boots'], state: 'idle' }]);
+  w.applyLog([{ id: 1, who: 'a', text: '완료', kind: 'work' }]);
+  w.applyLog([{ id: 9, who: 'a', text: '수정 요청', kind: 'rework' }], true);
+  expect(w.people.get('a')!.bubble).toBeFalsy();
+  // Lines that come after the switch still play
+  w.applyLog([
+    { id: 9, who: 'a', text: '수정 요청', kind: 'rework' },
+    { id: 10, who: 'a', text: '실패', kind: 'rework' },
+  ]);
+  expect(w.people.get('a')!.bubble?.text).toBe('실패');
+});

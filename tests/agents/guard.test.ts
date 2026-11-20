@@ -138,6 +138,9 @@ test('the app record and crew files are protected even from 개발', () => {
   const policy = chat.runs.policy(store.readMember(p.id, 'coder'), p, 'task-1');
   expect(checkCall(policy, 'Write', { file_path: paths.protected[0] }).kind).toBe('deny');
   expect(checkCall(policy, 'Write', { file_path: path.join(p.path, 'src', 'a.ts') }).kind).toBe('allow');
+  // A name that starts with two dots is still inside the project; only a real parent folder is outside
+  expect(checkCall(policy, 'Write', { file_path: path.join(p.path, '..env') }).kind).toBe('allow');
+  expect(checkCall(policy, 'Write', { file_path: path.join(p.path, '..', 'x.ts') }).kind).toBe('deny');
   expect(checkCall(policy, 'Bash', { command: 'npm install -g left-pad' }).kind).toBe('deny');
   expect(checkCall(policy, 'Bash', { command: 'pip install requests' }).kind).toBe('deny');
   expect(checkCall(policy, 'Bash', { command: '.venv/Scripts/pip install requests' }).kind).toBe('allow');

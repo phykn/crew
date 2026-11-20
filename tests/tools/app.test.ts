@@ -128,6 +128,17 @@ test('changing the approval mode waits for the user, and a refusal leaves it as 
   expect(store.readProject(p.id).mode).toBe('auto');
 });
 
+test('deleting a session or document that cannot go is refused before any card', async () => {
+  const { store, fake, chat, s, project } = openChat();
+  const other = chat.createSession(store.addProject(`${project}-other`).id);
+  appServer(fake.sdk, chat, s.id);
+  const act = (action: string, args: Record<string, unknown>) => toolText(fake, 'app_act', { action, args });
+  expect(await act('sessions.delete', { session_id: other.id })).toContain('이 프로젝트에 없습니다');
+  expect(await act('sessions.delete', { session_id: s.id })).toContain('지울 수 없습니다');
+  expect(await act('wiki.remove', { title: '없는 문서' })).toContain('문서가 없습니다');
+  expect(store.listMessages(s.id).filter((m) => m.question)).toEqual([]);
+});
+
 test('a wiki change of another project reads as missing, as does one that never was', async () => {
   const { store, fake, chat, s, project } = openChat();
   const q = store.addProject(`${project}-other`);

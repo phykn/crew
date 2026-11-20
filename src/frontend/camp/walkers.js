@@ -266,8 +266,13 @@ export function createWalkers() {
       for (const p of people.values()) p.doing = now[p.room.team];
     },
 
-    // Only lines newer than the first call act, so a camp opened late replays nothing
-    applyLog(log) {
+    // Only lines newer than the first call act, so a camp opened late replays nothing; a fresh log, such as another session's, starts over
+    applyLog(log, fresh = false) {
+      if (fresh) {
+        shown = null;
+        // Who works there now is where it starts, not news to hand out; nobody already here walks in again
+        before = null;
+      }
       if (shown !== null)
         for (const line of log.filter((l) => l.id > shown)) {
           if (line.to) handOff(line.who, line.to, line.text, line.kind);

@@ -233,7 +233,7 @@ export class Tasks {
     for (const run of this.chat.runs.ofTask(taskId)) void run.stop();
     // A write waiting its turn is answered now, so the stopped run can end
     this.chat.runs.locksOf(this.projectOf(task)).cancel(taskId);
-    for (const id of store.openQuestionIds(taskId)) this.chat.questions.answer(id, REFUSE);
+    for (const id of store.openQuestionIds(task.sessionId, taskId)) this.chat.questions.answer(id, REFUSE);
     // A task with nothing running reaches stopped at once; otherwise drive does when its runs end
     if (!this.chat.runs.ofTask(taskId).length) this.move(taskId, 'STOPPED', '', `${task.title} 업무 중단됨`);
     return true;

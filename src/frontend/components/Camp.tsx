@@ -30,9 +30,12 @@ export function Camp({
   const [box, setBox] = useState<Box | null>(null);
   const [state, setState] = useState<Awaited<ReturnType<typeof call<'camp.state'>>> | null>(null);
   const working = state?.working ?? NONE;
+  // The first state read for a session is only a baseline, so switching sessions replays none of its history
+  const fresh = useRef(true);
 
   // The camp follows the session's record: work under way, and new lines to play as scenes
   useEffect(() => {
+    fresh.current = true;
     if (!session) return setState(null);
     return follow(
       () => call('camp.state', { sessionId: session.id }),
@@ -42,7 +45,9 @@ export function Camp({
     );
   }, [session?.id]);
   useEffect(() => {
-    if (state) walkers.current!.applyLog(state.log);
+    if (!state) return;
+    walkers.current!.applyLog(state.log, fresh.current);
+    fresh.current = false;
   }, [state]);
   walkers.current ??= createWalkers();
 

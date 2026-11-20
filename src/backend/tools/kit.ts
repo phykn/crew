@@ -2,6 +2,7 @@ import { diffLines } from 'diff';
 import { z } from 'zod';
 import { type Sdk, text } from '../agents/run';
 import type { Chat } from '../chat';
+import { CANCEL } from '../questions';
 
 // The tools member's view of this project's kit, and its changes to it: each one a proposal the user approves on a card
 export function kitTools(sdk: Sdk, chat: Chat, sessionId: number) {
@@ -11,7 +12,7 @@ export function kitTools(sdk: Sdk, chat: Chat, sessionId: number) {
   // Outside manual mode a kit change applies without a card, like any other call
   const approve = async (prompt: string) =>
     store.readProject(projectId).mode !== 'manual' ||
-    (await chat.questions.choose(sessionId, prompt, ['취소', '적용'])) === '적용';
+    (await chat.questions.choose(sessionId, prompt, [CANCEL, '적용'])) === '적용';
   const cancelled = text('The user cancelled this change; do not propose it again.');
   return sdk.createSdkMcpServer({
     name: 'crew',

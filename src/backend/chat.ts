@@ -52,19 +52,26 @@ export class Chat {
   async tell(sessionId: number, text: string, images: Image[] = []) {
     if (this.runs.live(sessionId)?.say(text, images)) return;
     const { store } = this;
-    const member = store.readMember(store.projectOf(sessionId).id, 'orchestrator');
-    const sdk = await this.sdk();
-    const out = await this.runs.run(member, sessionId, null, text, {
-      images,
-      mcpServers: { crew: secretaryTools(sdk, this, sessionId) },
-      onText: (delta) => this.emit('stream', { sessionId, delta }),
-      onReply: (reply, more) => {
-        this.post(sessionId, reply);
-        // A message said mid-run is still to be answered, so the chat keeps showing 비서 at it
-        if (more) this.emit('stream', { sessionId, delta: '' });
-      },
-    });
-    if (out.status !== 'done') this.post(sessionId, failureText(out.status, out.error));
+    try {
+      const member = store.readMember(store.projectOf(sessionId).id, 'orchestrator');
+      const sdk = await this.sdk();
+      const out = await this.runs.run(member, sessionId, null, text, {
+        images,
+        mcpServers: { crew: secretaryTools(sdk, this, sessionId) },
+        onText: (delta) => this.emit('stream', { sessionId, delta }),
+        onReply: (reply, more) => {
+          this.post(sessionId, reply);
+          // A message said mid-run is still to be answered, so the chat keeps showing 비서 at it
+          if (more) this.emit('stream', { sessionId, delta: '' });
+        },
+      });
+      if (out.status !== 'done') this.post(sessionId, failureText(out.status, out.error));
+    } catch (err) {
+      // Without a message the chat would show 비서 answering forever
+      this.post(sessionId, failureText('failed', err instanceof Error ? err.message : String(err)));
+    }
+    // A card 비서 left open, as when its answer was stopped, has no one waiting for it any more
+    for (const id of store.openQuestionIds(sessionId, null)) this.questions.cancel(id);
   }
 
   // 비서's words in the chat: the message, the end of its stream, and a refresh

@@ -121,6 +121,16 @@ test('asked to hire a role that was let go, 인사 names it and it comes back in
   expect(fake.calls.find((c) => c.role === '인사')!.prompt).toContain('(tester) [let go]');
 });
 
+test('a temp who left comes back when 인사 drafts the same key again, instead of being refused as a duplicate', async () => {
+  const draft = reply('', 'hr', { key: 'translator', nickname: '라온', definition: md('번역') });
+  const { store, chat, p, s } = openChat({ 인사: [draft, draft] });
+  await chat.members.hire(s.id, '번역', true);
+  const temp = store.readMember(p.id, 'translator');
+  chat.members.fire(temp.id);
+  expect(await chat.members.hire(s.id, '번역 또', true)).toContain('다시 고용했습니다');
+  expect(store.readMemberById(temp.id).status).toBe('hired');
+});
+
 test('a permission change is recorded by name, never with the server settings it touches', () => {
   // A crew copy whose browser server carries a token in its environment
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crew-copy-'));
