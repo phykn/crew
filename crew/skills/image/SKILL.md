@@ -1,8 +1,3 @@
----
-name: image
-description: Put an image into words for a reader who cannot see it: the answer first, every piece of text, and what each kind of image shows.
----
-
 # Image
 
 Your reader cannot see the image; what you write is all it gets.

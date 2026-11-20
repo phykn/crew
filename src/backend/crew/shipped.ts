@@ -138,13 +138,12 @@ export class Crew {
     if (unnamed.length) throw new Error(`nicknames.json has no nickname for: ${unnamed.join(', ')}`);
     this.kit = Kit.parse(JSON.parse(fs.readFileSync(path.join(dir, 'kit.json'), 'utf-8')));
     this.servers = McpFile.parse(JSON.parse(fs.readFileSync(path.join(dir, 'mcp.json'), 'utf-8'))).mcpServers;
-    // A skill with a SKILL.md gives its whole procedure; one without gives its one-line use
+    // kit.json names each skill; its procedure is the whole of skills/<name>/SKILL.md
     this.skillTexts = Object.fromEntries(
-      Object.entries(this.kit.skills).map(([name, item]) => {
-        const file = path.join(dir, 'skills', name, 'SKILL.md');
-        const body = fs.existsSync(file) ? fs.readFileSync(file, 'utf-8').replace(/^---[\s\S]*?---\s*/, '') : item.use;
-        return [name, body.trim()];
-      }),
+      Object.keys(this.kit.skills).map((name) => [
+        name,
+        fs.readFileSync(path.join(dir, 'skills', name, 'SKILL.md'), 'utf-8').trim(),
+      ]),
     );
     // The app's own server runs inside the app, so it has no command in mcp.json
     const unserved = Object.keys(this.kit.mcp).filter((name) => !this.servers[name] && name !== 'app');

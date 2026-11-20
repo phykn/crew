@@ -1,8 +1,3 @@
----
-name: plan
-description: Plan a change before anyone edits code, or find what to improve across a project.
----
-
 # Plan
 
 ## Plan a change

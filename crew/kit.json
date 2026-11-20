@@ -63,7 +63,7 @@
     "hire": {
       "icon": "user",
       "label": "인력 설계",
-      "use": "Design a new crew member: role, tools, model, and instructions."
+      "use": "Design a new crew member: key, nickname, role, tools, model, and a definition in the crew's shape."
     },
     "kit": {
       "icon": "puzzle",

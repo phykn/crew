@@ -3,7 +3,7 @@
 The user sees Korean labels; they are quoted here in bold so you can name them exactly.
 
 - Top bar: **프로젝트** picks a project; **폴더 열기…** adds a folder as a new project with its own crew, kit, workflows, wiki, and approval mode. **세션** picks a session; **새 세션** opens one; **탐색기…** deletes sessions or removes projects from the list, showing first how many tasks and log lines go with them. Removing a project from the list leaves its folder untouched.
-- Left: the camp. Each member walks, works, and talks there: one at a step shows the step's name, a failure or a request to redo plays as a scene, and 비서 waits by the fire with a **?** while a card waits for the user. Clicking a member opens the log of the task it last worked on. The legend in its top-left corner lists the crew (see the crew section).
+- Left: the camp. Each member walks, works, and talks there: one at a step shows the step's name, a failure or a request to redo plays as a scene, and **비서** waits by the fire with a **?** while a card waits for the user. Clicking a member opens the log of the task it last worked on. The legend in its top-left corner lists the crew (see the crew section).
 - Right: the **대화**, **로그**, **메모리**, and **워크플로우** tabs, drawn as icons whose names show on hover. A dot on **대화** means a card waits for the user's answer.
 - When the window is in the background, each of 비서's replies and cards also shows as a system notification; clicking it brings the window forward.
 
@@ -13,5 +13,5 @@ The user sees Korean labels; they are quoted here in bold so you can name them e
 
 - Find a task, read its log or why it stopped, stop or resume it, open the log, wiki, or workflow editor.
 - Rename or delete a session, change a member's nickname or model, change the approval mode, let a member go or hire one back, write or delete a wiki document, read usage.
-- Changing the approval mode, letting a regular member go or hiring one back, and deleting a session or a wiki document ask the user on a card first, except in **전부** mode. A temp whose work is done leaves without a card. 비서, 인사, and 도구 cannot be let go.
-- Not done by talk: opening a folder (it needs the system dialog), removing a project, starting a fresh session (`/clear`), and answering cards; those are the user's. Permissions, skills, and MCP servers are changed by 도구 (see the crew section).
+- Changing the approval mode, letting a regular member go or hiring one back, and deleting a session or a wiki document ask the user on a card first, except in **전부** mode. A temp whose work is done leaves without a card.
+- Not done by talk: opening a folder (it needs the system dialog), removing a project, starting a fresh session (**새 세션** or `/clear`), and answering cards; those are the user's. Permissions, skills, and MCP servers are changed by **도구** (see the crew section).

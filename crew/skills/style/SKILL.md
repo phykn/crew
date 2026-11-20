@@ -1,8 +1,3 @@
----
-name: style
-description: Judge a change, or a folder's structure, against the standard in your conventions skill.
----
-
 # Style
 
 The standard is your conventions skill. Which part you do depends on your step.
@@ -15,7 +10,7 @@ When your step follows a step that makes changes:
 2. Check the change against the standard: structure, names, comments, deletion, dependencies, and errors.
 3. When the plan, or the brief when there is no plan, names the change a refactor, also check that compatibility code, old formats, and stale aliases went with their tests, that text which moved (help, messages) is identical to the character, and that changes made on purpose are reported apart from the kept behavior.
 4. Every point names its source, which file and which rule, and the exact fix. Skip anything the sources do not support.
-5. Judge how the change is written, not what it covers: never send it back for the files it touches, such as tests or documents it adds.
+5. Judge how the change is written, not what it covers: never send it back for which files it touches.
 
 ## Structure review
 

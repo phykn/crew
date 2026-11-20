@@ -1,8 +1,3 @@
----
-name: code
-description: Make a code change the way the project works: cause first, only what is used, every place a name appears, then cut and confirm.
----
-
 # Code
 
 1. Read the project's `CLAUDE.md`, README, and the code around the change, and write to your conventions skill.

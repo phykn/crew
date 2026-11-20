@@ -1,8 +1,3 @@
----
-name: conventions
-description: The standard code is written and judged to: the project's own conventions first, then structure, names, comments, deletion, and errors.
----
-
 # Conventions
 
 An earlier source wins wherever they disagree:

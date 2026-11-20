@@ -1,8 +1,3 @@
----
-name: research
-description: Find facts in official sources, checked against the source itself and against what the project uses.
----
-
 # Research
 
 1. When the question touches the project, such as a dependency's version, read what the project uses first and state each finding against it.

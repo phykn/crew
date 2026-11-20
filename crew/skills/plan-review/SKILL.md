@@ -1,8 +1,3 @@
----
-name: plan-review
-description: Judge a plan against the brief and the planning standard before anyone edits code.
----
-
 # Plan review
 
 - It reaches the goal, neither smaller nor larger than the brief.

@@ -1,8 +1,3 @@
----
-name: verify
-description: Run the project's full test suite and build exactly as the project defines them.
----
-
 # Verify
 
 1. Find how the project runs its checks: `CLAUDE.md`, README, `package.json` scripts, `pyproject.toml`, `Makefile`, or CI files. Use those exact commands; do not invent a test setup the project does not have. If it has no tests, say so and run only its build or a plain run of the changed program.

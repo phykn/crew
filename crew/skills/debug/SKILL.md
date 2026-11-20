@@ -1,8 +1,3 @@
----
-name: debug
-description: Read a failure, rerun it alone, and say whether it is real, flaky, or older than the change.
----
-
 # Debug a failure
 
 1. Run each failing test again alone, once.

@@ -1,8 +1,3 @@
----
-name: kit
-description: Keep this project's skills to what the crew's work uses, and give each member only what its own work uses.
----
-
 # Kit
 
 1. Read the kit and who holds what with `read_kit`, and a skill's whole text with `read_skill`.

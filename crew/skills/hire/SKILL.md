@@ -1,8 +1,3 @@
----
-name: hire
-description: Design a new crew member: key, nickname, role, tools, model, and a definition in the crew's shape.
----
-
 # Hire
 
 1. Read the existing members you are given. If one already fits the work, stop and name it.
