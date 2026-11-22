@@ -1,10 +1,13 @@
 import { FIRE } from '../layout.js';
 import { iso } from '../projection.js';
 import { COLOR as C } from '../tokens.js';
+import { shadow } from './shapes.js';
 
 export function drawTorch(ctx, t, i, now) {
   const p = iso(t.x, t.y),
     h = 6 + Math.sin(now / 90 + i * 1.3) * 2;
+  // A thin pole still stands in the firelight, so it casts a long thin shadow
+  shadow(ctx, t.x, t.y, 5, 2, 30);
   ctx.fillStyle = C.pole;
   ctx.fillRect(p.x - 1.5, p.y - 30, 3, 30);
   ctx.fillStyle = C.iron;

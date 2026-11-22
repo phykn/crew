@@ -71,7 +71,8 @@ export const SEATS = DECOR.flatMap((d) => (d.seats || []).map((s) => Object.assi
 
 const SOLID = [
   { ...FIRE, r: 1.7 },
-  ...TORCHES.map((t) => ({ ...t, r: 0.3 })),
+  // Wide enough that nobody stands with the pole through their body
+  ...TORCHES.map((t) => ({ ...t, r: 0.6 })),
   ...DECOR.map((d) => ({ x: d.x + (d.w || 0) / 2, y: d.y + (d.h || 0) / 2, r: d.r })),
 ];
 export const blocked = (x, y) =>

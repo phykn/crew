@@ -68,7 +68,7 @@ export function Camp({
   }, [members, working]);
 
   useEffect(() => {
-    const ro = new ResizeObserver(() => {
+    const measure = () => {
       const w = wrap.current!.clientWidth,
         h = wrap.current!.clientHeight;
       const scale = Math.max(0.4, Math.min(w / CAMP.w, h / CAMP.h));
@@ -79,9 +79,24 @@ export function Camp({
         ox: (w - CAMP.w * scale) / 2 - CAMP.x * scale,
         oy: (h - CAMP.h * scale) / 2 - CAMP.y * scale,
       });
-    });
+    };
+    const ro = new ResizeObserver(measure);
     ro.observe(wrap.current!);
-    return () => ro.disconnect();
+    // A window moved to a screen of another scale keeps its size, so only the pixel ratio says to paint again
+    let ratio: MediaQueryList;
+    const watch = () => {
+      ratio = matchMedia(`(resolution: ${devicePixelRatio}dppx)`);
+      ratio.addEventListener('change', rescale, { once: true });
+    };
+    const rescale = () => {
+      measure();
+      watch();
+    };
+    watch();
+    return () => {
+      ro.disconnect();
+      ratio.removeEventListener('change', rescale);
+    };
   }, []);
 
   useEffect(() => {

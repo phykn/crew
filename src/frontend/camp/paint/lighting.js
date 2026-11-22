@@ -1,10 +1,10 @@
 import { FIRE, LANTERNS, TORCHES } from '../layout.js';
 import { iso, TW, TH } from '../projection.js';
 import { SPRITE_H } from './sprites.js';
-import { isCasting } from './people.js';
+import { BIG, isCasting } from './people.js';
 import { blot } from './shapes.js';
 
-// Light is all soft gradients and soft shadows, so half the screen resolution looks the same and costs far less
+// Light and shade are all soft gradients, so half the screen resolution looks the same and costs far less
 export const LIGHT_SCALE = 0.5;
 // What the night leaves lit with no fire at all
 const NIGHT = 'rgb(38, 42, 66)';
@@ -16,8 +16,8 @@ const LIGHTS = [
   ...TORCHES.map((t) => ({ ...t, z: 30, reach: 170, rgb: '255, 170, 100', blocks: true })),
   ...LANTERNS.map((l) => ({ ...l, z: 13, reach: 100, rgb: '255, 176, 105', blocks: false })),
 ];
-// A person blocks light like a post as tall as their sprite
-const PERSON = { r: 0.3, h: 2 * SPRITE_H };
+// A person blocks light like a post as tall as their sprite is drawn
+const PERSON = { r: 0.3, h: BIG * SPRITE_H };
 
 // Burning light sways a little, each flame on its own beat; random changes every frame made the screen flash
 const flicker = (now, i) => 1 + 0.05 * Math.sin(now / 470 + i * 1.9) + 0.025 * Math.sin(now / 190 + i * 0.7);
@@ -39,74 +39,93 @@ function pool(d, p, reach, rgb, strength = 1) {
 }
 
 // Where a caster keeps this light off the ground: a shade lying flat, pointing away from the light, longer the farther
-// the caster stands and the lower the light burns, darkest at the caster's feet
-function cut(d, light, c) {
+// the caster stands and the lower the light burns, darkest at the caster's feet; sway turns it as the flame moves
+function cut(d, light, c, sway) {
   const dx = c.x - light.x,
     dy = c.y - light.y,
     dist = Math.hypot(dx, dy);
   // Right at the light, such as the stones round the fire, nothing stands between it and the ground
   if (dist < 0.6 || dist > light.reach / TW) return;
-  const length = Math.min(4, Math.max(0.5, (dist * c.h) / (light.z * 1.8))),
+  const length = Math.min(4, Math.max(0.5, (dist * c.h) / (light.z * 1.8))) * (1 + sway),
     base = iso(c.x, c.y);
   d.save();
   d.transform(TW / 2, TH / 2, -TW / 2, TH / 2, base.x, base.y);
-  d.rotate(Math.atan2(dy, dx));
+  d.rotate(Math.atan2(dy, dx) + sway);
   blot(d, length * 0.45, 0, length * 0.6, c.r * 1.3, 0.9, 0.35);
   d.restore();
 }
 
-// One layer per light, made once per view: its pool with the shadows of everything that never moves cut out
-function paintLights(width, height, m, casters) {
-  return LIGHTS.map((light) => {
-    const layer = Object.assign(document.createElement('canvas'), { width, height });
-    const d = layer.getContext('2d');
+// One canvas per light, made once per view: its pool in color, and the same pool in black as how strongly it lights
+function paintLights(width, height, m) {
+  const layer = (light, rgb) => {
+    const c = Object.assign(document.createElement('canvas'), { width, height }),
+      d = c.getContext('2d');
     d.setTransform(m);
-    pool(d, iso(light.x, light.y), light.reach, light.rgb);
-    if (light.blocks) {
-      d.globalCompositeOperation = 'destination-out';
-      for (const c of casters) cut(d, light, c);
-    }
-    return layer;
-  });
+    pool(d, iso(light.x, light.y), light.reach, rgb);
+    return c;
+  };
+  return LIGHTS.map((light) => ({ color: layer(light, light.rgb), mask: light.blocks && layer(light, '0, 0, 0') }));
 }
 
-// Light over the scene: the night everywhere, every light added on top, then the scene multiplied by it,
-// so a shadow is simply where one light does not reach and another may still
+// Light in two passes. The shade goes on the ground before anything stands on it: for each light, the shadows of what
+// blocks it, as dark as that light is strong there, so a shadow lies under a bench and never across it. The light goes
+// over everything after: the night everywhere, each light added on top, and the scene multiplied by it
 export function createLighting(map, casters) {
-  const d = map.getContext('2d'),
-    scratch = Object.assign(document.createElement('canvas'), { width: map.width, height: map.height }),
-    s = scratch.getContext('2d');
+  const canvas = () => Object.assign(document.createElement('canvas'), { width: map.width, height: map.height }),
+    shade = canvas(),
+    scratch = canvas();
   let layers = null;
-
-  return function drawLight(ctx, people, now) {
+  // The light canvases follow the view's transform, which is known once the first frame sets it
+  const frame = (ctx) => {
     const k = LIGHT_SCALE,
       t = ctx.getTransform(),
       m = new DOMMatrix([t.a * k, 0, 0, t.d * k, t.e * k, t.f * k]);
-    layers ??= paintLights(map.width, map.height, m, casters);
-    const walkers = [...people.values()].map((p) => ({ x: p.x, y: p.y, ...PERSON }));
+    layers ??= paintLights(map.width, map.height, m);
+    return m;
+  };
+  // Lays the finished canvas over the scene at full size
+  const lay = (ctx, c, op) => {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = op;
+    ctx.drawImage(c, 0, 0, c.width / LIGHT_SCALE, c.height / LIGHT_SCALE);
+    ctx.restore();
+  };
+
+  function drawShade(ctx, people, now) {
+    const m = frame(ctx),
+      d = shade.getContext('2d'),
+      s = scratch.getContext('2d'),
+      all = [...casters, ...[...people.values()].map((p) => ({ x: p.x, y: p.y, ...PERSON }))];
+    d.setTransform(1, 0, 0, 1, 0, 0);
+    d.clearRect(0, 0, shade.width, shade.height);
+    LIGHTS.forEach((light, i) => {
+      if (!light.blocks) return;
+      s.setTransform(1, 0, 0, 1, 0, 0);
+      s.globalCompositeOperation = 'source-over';
+      s.clearRect(0, 0, scratch.width, scratch.height);
+      s.setTransform(m);
+      const sway = (flicker(now, i) - 1) * 0.6;
+      for (const c of all) cut(s, light, c, sway);
+      s.setTransform(1, 0, 0, 1, 0, 0);
+      s.globalCompositeOperation = 'destination-in';
+      s.drawImage(layers[i].mask, 0, 0);
+      d.drawImage(scratch, 0, 0);
+    });
+    lay(ctx, shade, 'source-over');
+  }
+
+  function drawLight(ctx, people, now) {
+    const m = frame(ctx),
+      d = map.getContext('2d');
     d.setTransform(1, 0, 0, 1, 0, 0);
     d.globalCompositeOperation = 'source-over';
-    d.globalAlpha = 1;
     d.fillStyle = NIGHT;
     d.fillRect(0, 0, map.width, map.height);
     d.globalCompositeOperation = 'lighter';
     LIGHTS.forEach((light, i) => {
-      let layer = layers[i];
-      // People move, so their shadows are cut from a copy of the light each frame, only for lights near them
-      const near = light.blocks
-        ? walkers.filter((c) => Math.hypot(c.x - light.x, c.y - light.y) < light.reach / TW)
-        : [];
-      if (near.length) {
-        s.setTransform(1, 0, 0, 1, 0, 0);
-        s.globalCompositeOperation = 'copy';
-        s.drawImage(layer, 0, 0);
-        s.globalCompositeOperation = 'destination-out';
-        s.setTransform(m);
-        for (const c of near) cut(s, light, c);
-        layer = scratch;
-      }
       d.globalAlpha = Math.min(1, flicker(now, i));
-      d.drawImage(layer, 0, 0);
+      d.drawImage(layers[i].color, 0, 0);
     });
     d.globalAlpha = 1;
     d.setTransform(m);
@@ -116,12 +135,10 @@ export function createLighting(map, casters) {
       // The rune ring under a caster lights the ground in cold blue, breathing with the spell
       if (isCasting(p)) pool(d, iso(p.x, p.y), 90, '120, 150, 255', 0.55 + 0.15 * Math.sin(now / 180));
     }
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.globalCompositeOperation = 'multiply';
-    ctx.drawImage(map, 0, 0, map.width / k, map.height / k);
-    ctx.restore();
-  };
+    lay(ctx, map, 'multiply');
+  }
+
+  return { drawShade, drawLight };
 }
 
 // The warm haze of each flame, added after the scene so it glows instead of only tinting

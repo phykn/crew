@@ -1,10 +1,11 @@
+import { FIRE } from '../layout.js';
 import { iso } from '../projection.js';
 import { COLOR as C } from '../tokens.js';
 import { TAU, shadow } from './shapes.js';
 import { SEAT_Z } from './decor.js';
 import { SEALS, SPRITE_W, SPRITE_H, spriteFor } from './sprites.js';
 
-const BIG = 1.6;
+export const BIG = 1.6;
 // Feet pass each other between steps, so each leg gets its own frame
 const STRIDE = ['stand', 'walkL', 'stand', 'walkR'];
 // The sitting pose is the upper body only, resting on the plank
@@ -28,9 +29,38 @@ export function drawPerson(ctx, p, now) {
   // Someone with nothing to do fades a little, so the eye finds who is at work
   ctx.globalAlpha = p.state === 'idle' ? 0.85 : 1;
   ctx.translate(Math.round(f.x), Math.round(headTop(p)));
-  if (p.facing < 0) ctx.scale(-1, 1);
-  ctx.drawImage(spriteFor(p.room, poseOf(p, now)), (-SPRITE_W * BIG) / 2, 0, SPRITE_W * BIG, SPRITE_H * BIG);
+  ctx.drawImage(
+    firelit(p, f, spriteFor(p.room, poseOf(p, now))),
+    (-SPRITE_W * BIG) / 2,
+    0,
+    SPRITE_W * BIG,
+    SPRITE_H * BIG,
+  );
   ctx.restore();
+}
+
+let lit = null;
+// The side of a person turned to the fire takes its warm light and the other side falls into shade, pixel column by
+// pixel column, fading with distance from the fire; the facing flip is done here, so the light stays on the fire's side
+function firelit(p, f, sprite) {
+  lit ??= Object.assign(document.createElement('canvas'), { width: SPRITE_W, height: SPRITE_H });
+  const d = lit.getContext('2d'),
+    toward = Math.sign(iso(FIRE.x, FIRE.y).x - f.x) || 1,
+    strength = Math.max(0, 1 - Math.hypot(p.x - FIRE.x, p.y - FIRE.y) / 10);
+  d.setTransform(1, 0, 0, 1, 0, 0);
+  d.globalCompositeOperation = 'copy';
+  if (p.facing < 0) d.setTransform(-1, 0, 0, 1, SPRITE_W, 0);
+  d.drawImage(sprite, 0, 0);
+  d.setTransform(1, 0, 0, 1, 0, 0);
+  d.globalCompositeOperation = 'source-atop';
+  const g = d.createLinearGradient(toward > 0 ? SPRITE_W : 0, 0, toward > 0 ? 0 : SPRITE_W, 0);
+  g.addColorStop(0, `rgba(255, 170, 95, ${0.45 * strength})`);
+  g.addColorStop(0.45, 'rgba(255, 170, 95, 0)');
+  g.addColorStop(0.6, 'rgba(0, 0, 0, 0)');
+  g.addColorStop(1, `rgba(0, 0, 0, ${0.3 * strength})`);
+  d.fillStyle = g;
+  d.fillRect(0, 0, SPRITE_W, SPRITE_H);
+  return lit;
 }
 
 // Work is a spell cast on the ground: a rune ring turns at the feet, sends out a pulse every two seconds,

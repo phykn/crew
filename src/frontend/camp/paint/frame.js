@@ -18,10 +18,12 @@ export function createPainter(ground, light, view) {
   const probe = document.createElement('canvas').getContext('2d');
   probe.casters = [];
   for (const d of pieces) drawDecor(probe, d);
-  const drawLight = createLighting(light, probe.casters);
+  TORCHES.forEach((t, i) => drawTorch(probe, t, i, 0));
+  const { drawShade, drawLight } = createLighting(light, probe.casters);
 
   return function drawFrame(ctx, people, now) {
     ctx.drawImage(ground, view.x, view.y, view.w, view.h);
+    drawShade(ctx, people, now);
     // Painter's order by depth (x + y) keeps everyone behind what stands in front of them
     const items = [
       ...TORCHES.map((t, i) => ({ depth: t.x + t.y, draw: () => drawTorch(ctx, t, i, now) })),
