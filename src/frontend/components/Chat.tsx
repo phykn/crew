@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import type { Message, Question, Session, Task } from '../../backend/db';
 import { IMAGE_TYPES, type Image, imageUrl, MODE_LABELS, type Mode } from '../../shared';
 import { call, onChanged, onStream } from '../api';
-import { Choice } from './Choice';
+import { Button } from '../ui/Button';
+import { Choice } from '../ui/Choice';
+import { FileInput, TextArea } from '../ui/Field';
+import { ListMenu, ListOption } from '../ui/Menu';
 import { TaskCards } from './TaskCards';
 
 // The window's own commands: typed after a slash, they act here and never reach 비서
@@ -190,9 +193,9 @@ export function Chat({
                 <Pictures srcs={q.images.map(src)} />
                 {q.text}
               </div>
-              <button type="button" className="send-now" onClick={() => sendQueued(q)}>
+              <Button variant="link" className="send-now" onClick={() => sendQueued(q)}>
                 지금 보내기
-              </button>
+              </Button>
             </div>
           ))}
         <div ref={end} />
@@ -219,40 +222,39 @@ export function Chat({
             {images.map((img, n) => (
               <li key={n}>
                 <img src={src(img)} alt={`그림 ${n + 1}`} />
-                <button
-                  type="button"
+                <Button
+                  size="sm"
+                  iconOnly
+                  className="attachment-remove"
                   aria-label={`그림 ${n + 1} 빼기`}
                   onClick={() => setImages((have) => have.filter((_, k) => k !== n))}
                 >
                   ×
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
         )}
         {picked && (
-          <ul className="menu slash-menu" role="listbox" aria-label="명령">
+          <ListMenu label="명령" className="slash-menu">
             {matches.map((m) => (
-              <li
+              <ListOption
                 key={m.name}
-                role="option"
-                aria-selected={m === picked}
-                className="menu-item"
-                data-highlighted={m === picked || undefined}
-                onMouseDown={(e) => {
-                  e.preventDefault();
+                selected={m === picked}
+                onPick={() => {
                   setDraft('');
                   m.run();
                 }}
               >
                 <b>/{m.name}</b> {m.label && <span className="muted">{m.label}</span>}
-              </li>
+              </ListOption>
             ))}
-          </ul>
+          </ListMenu>
         )}
-        <button
-          type="button"
-          className="attach"
+        <Button
+          variant="quiet"
+          size="lg"
+          iconOnly
           aria-label="그림 첨부"
           title="그림 첨부"
           disabled={images.length >= MAX_IMAGES}
@@ -261,20 +263,20 @@ export function Chat({
           <svg viewBox="0 0 20 20" aria-hidden="true">
             <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
-        </button>
-        <input
+        </Button>
+        <FileInput
           ref={picker}
-          type="file"
           accept={IMAGE_TYPES.join(',')}
           multiple
-          hidden
           aria-label="그림 파일"
           onChange={(e) => {
             void attach(e.target.files ?? []);
             e.target.value = '';
           }}
         />
-        <textarea
+        <TextArea
+          bare
+          className="composer-text"
           value={draft}
           placeholder="Ctrl+Enter 키로 대기열에 추가하기"
           aria-label="메시지"
@@ -314,7 +316,7 @@ export function Chat({
         />
         <Choice
           label="승인 모드"
-          className="small"
+          size="lg"
           value={mode}
           options={Object.entries(MODE_LABELS).map(([value, label]) => ({
             value,
@@ -324,22 +326,31 @@ export function Chat({
           onChange={(m) => onMode(m as Mode)}
         />
         {streaming !== null ? (
-          <button
-            type="button"
-            className="send stop"
+          <Button
+            variant="primary"
+            tone="danger"
+            size="lg"
+            iconOnly
             aria-label="중지"
             onClick={() => call('messages.stop', { sessionId: session.id })}
           >
             <svg viewBox="0 0 20 20" aria-hidden="true">
               <rect x="5" y="5" width="10" height="10" rx="1.5" fill="currentColor" />
             </svg>
-          </button>
+          </Button>
         ) : (
-          <button type="submit" className="send" aria-label="보내기" disabled={!draft.trim() && !images.length}>
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            iconOnly
+            aria-label="보내기"
+            disabled={!draft.trim() && !images.length}
+          >
             <svg viewBox="0 0 20 20" aria-hidden="true">
               <path d="M3 3l15 7-15 7 2.5-7z" fill="currentColor" />
             </svg>
-          </button>
+          </Button>
         )}
       </form>
     </div>
@@ -399,9 +410,11 @@ function AnswerCard({ question }: { question: Question }) {
       ) : (
         <div className="answer-options">
           {question.options.map((o, i) => (
-            <button
+            <Button
               key={o}
-              className={`answer-option${i === question.options.length - 1 ? ' primary' : ''}`}
+              size="lg"
+              className="answer-option"
+              variant={i === question.options.length - 1 ? 'primary' : 'secondary'}
               onClick={() => {
                 setPicked(o);
                 // A pick the record refused shows the options again
@@ -409,7 +422,7 @@ function AnswerCard({ question }: { question: Question }) {
               }}
             >
               {o}
-            </button>
+            </Button>
           ))}
         </div>
       )}

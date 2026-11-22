@@ -3,8 +3,14 @@ import type { CrewMember } from '../../backend/crew/shipped';
 import type { Change, Doc, Memory as Note } from '../../backend/wiki';
 import { stamp } from '../time';
 import { call, follow } from '../api';
-import { Confirm } from './Confirm';
-import { Choice } from './Choice';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { Choice } from '../ui/Choice';
+import { Confirm } from '../ui/Confirm';
+import { Empty } from '../ui/Empty';
+import { Input, TextArea } from '../ui/Field';
+import { Segmented } from '../ui/Segmented';
+import { Toolbar, ToolbarEnd } from '../ui/Toolbar';
 import { PencilIcon, TrashIcon } from './Icons';
 import { type Graph, WikiGraph } from './WikiGraph';
 
@@ -31,24 +37,23 @@ export function Memory({
   }, [memberId]);
   return (
     <div className="memory">
-      <div className="toolbar">
-        <div className="seg" role="group" aria-label="메모리 종류">
-          <button aria-pressed={view === 'wiki'} onClick={() => setView('wiki')}>
-            위키
-          </button>
-          <button aria-pressed={view === 'agents'} onClick={() => setView('agents')}>
-            기억
-          </button>
-        </div>
-        <span className="toolbar-end">
+      <Toolbar>
+        <Segmented
+          label="메모리 종류"
+          value={view}
+          options={[
+            { value: 'wiki', label: '위키' },
+            { value: 'agents', label: '기억' },
+          ]}
+          onChange={setView}
+        />
+        <ToolbarEnd>
           {view === 'wiki' ? (
             <>
-              <button className="button" aria-pressed={graph} onClick={() => setGraph(!graph)}>
+              <Button pressed={graph} onClick={() => setGraph(!graph)}>
                 그래프
-              </button>
-              <button className="button" onClick={() => setWriting((n) => n + 1)}>
-                + 새 문서
-              </button>
+              </Button>
+              <Button onClick={() => setWriting((n) => n + 1)}>+ 새 문서</Button>
             </>
           ) : (
             <Choice
@@ -61,8 +66,8 @@ export function Memory({
               onChange={(v) => onMember(v === ALL ? null : Number(v))}
             />
           )}
-        </span>
-      </div>
+        </ToolbarEnd>
+      </Toolbar>
       {view === 'wiki' ? (
         <WikiView projectId={projectId} writing={writing} graph={graph} onList={() => setGraph(false)} />
       ) : (
@@ -156,7 +161,9 @@ function WikiView({
           <ul className="wiki-toc" aria-label="위키 목차">
             {docs.map((d) => (
               <li key={d.id}>
-                <button
+                <Button
+                  variant="row"
+                  className="wiki-toc-item"
                   aria-current={d.id === doc?.id || undefined}
                   onClick={() => {
                     setPicked(d.id);
@@ -165,7 +172,7 @@ function WikiView({
                   }}
                 >
                   {d.title}
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
@@ -173,60 +180,63 @@ function WikiView({
         <div className="wiki-doc" aria-label="위키 본문">
           {draft ? (
             <>
-              <input
+              <Input
                 aria-label="문서 제목"
                 placeholder="제목"
                 value={draft.title}
                 disabled={!!doc}
                 onChange={(e) => setDraft({ ...draft, title: e.target.value })}
               />
-              <textarea
+              <TextArea
+                className="wiki-text"
                 aria-label="문서 본문"
                 value={draft.body}
                 onChange={(e) => setDraft({ ...draft, body: e.target.value })}
               />
               <div className="wiki-actions">
-                <button className="button" onClick={() => setDraft(null)}>
-                  취소
-                </button>
-                <button className="button primary" onClick={save}>
+                <Button onClick={() => setDraft(null)}>취소</Button>
+                <Button variant="primary" onClick={save}>
                   저장
-                </button>
+                </Button>
               </div>
             </>
           ) : doc ? (
             <>
               <header className="wiki-doc-head">
                 <h3>{doc.title}</h3>
-                <button
-                  className="quiet-action icon-only"
+                <Button
+                  variant="quiet"
+                  iconOnly
                   aria-label={`${doc.title} 편집`}
                   title="편집"
                   onClick={() => setDraft({ title: doc.title, body: doc.body })}
                 >
                   <PencilIcon />
-                </button>
-                <button
-                  className="quiet-action danger icon-only"
+                </Button>
+                <Button
+                  variant="quiet"
+                  tone="danger"
+                  iconOnly
                   aria-label={`${doc.title} 삭제`}
                   title="삭제"
                   onClick={() => (doc.workflowKind ? (setRefusal(null), setAsking(true)) : remove(false))}
                 >
                   <TrashIcon />
-                </button>
+                </Button>
               </header>
               <pre className="wiki-body">
                 {doc.body.split(/(\[\[[^\]\n]+\]\])/).map((part, i) => {
                   const title = part.match(/^\[\[(.+)\]\]$/)?.[1].trim();
                   return title ? (
-                    <button
+                    <Button
                       key={i}
+                      variant="link"
                       className="wiki-link"
                       data-missing={!docs.some((d) => d.title === title) || undefined}
                       onClick={() => openTitle(title)}
                     >
                       {title}
-                    </button>
+                    </Button>
                   ) : (
                     part
                   );
@@ -239,9 +249,9 @@ function WikiView({
                   {links.edges
                     .filter((e) => e.to === doc.title)
                     .map((e) => (
-                      <button key={e.from} className="wiki-link" onClick={() => openTitle(e.from)}>
+                      <Button key={e.from} variant="link" className="wiki-link" onClick={() => openTitle(e.from)}>
                         {e.from}
-                      </button>
+                      </Button>
                     ))}
                 </p>
               )}
@@ -258,7 +268,7 @@ function WikiView({
               )}
             </>
           ) : (
-            <p className="empty">아직 문서가 없습니다</p>
+            <Empty>아직 문서가 없습니다</Empty>
           )}
         </div>
       </div>
@@ -266,7 +276,7 @@ function WikiView({
         <ol className="wiki-timeline" aria-label="변경 타임라인">
           {changes.map((c) => (
             <li key={c.id}>
-              <button className="log-line" aria-expanded={detail?.id === c.id} onClick={() => open(c)}>
+              <Button variant="row" className="log-line" aria-expanded={detail?.id === c.id} onClick={() => open(c)}>
                 <time>{stamp(c.at)}</time>
                 <span className="wiki-kind" data-kind={c.kind}>
                   {KIND[c.kind]}
@@ -274,7 +284,7 @@ function WikiView({
                 <span className="log-text">
                   {c.title} <span className="muted">{c.author}</span>
                 </span>
-              </button>
+              </Button>
               {detail?.id === c.id && (
                 <div className="log-detail">
                   {detail.added.length > 0 && (
@@ -319,14 +329,14 @@ function Notes({
     );
   }, [projectId, memberId]);
   const who = (id: number) => members.find((m) => m.id === id);
-  if (!notes.length) return <p className="empty">아직 기억이 없습니다</p>;
+  if (!notes.length) return <Empty>아직 기억이 없습니다</Empty>;
   return (
     <ul className="notes" aria-label="에이전트 기억">
       {notes.map((n) => (
         <li key={n.id} className="note">
           <span className="log-who">{who(n.memberId)?.role ?? '?'}</span> {n.text}
-          <span className="muted"> {stamp(n.at)}</span>
-          {n.taskId && <span className="badge">업무 #{n.taskId}</span>}
+          <span className="muted"> {stamp(n.at)} </span>
+          {n.taskId && <Badge>업무 #{n.taskId}</Badge>}
         </li>
       ))}
     </ul>

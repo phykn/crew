@@ -1,0 +1,8 @@
+.ui-sr-only {
+  position: absolute;
+  width: var(--bw-thin);
+  height: var(--bw-thin);
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

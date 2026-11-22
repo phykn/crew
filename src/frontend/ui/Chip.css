@@ -1,0 +1,36 @@
+.ui-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  height: var(--h-md);
+  padding: 0 var(--sp-2);
+  background: var(--surface-field);
+  border: var(--bw) solid var(--border-subtle);
+  border-radius: var(--r);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+}
+.ui-chip--toggle,
+.ui-chip--more {
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.ui-chip--toggle:hover,
+.ui-chip--more:hover {
+  background: var(--highlight);
+}
+.ui-chip--toggle:has(> input:checked) {
+  background: var(--status-ok-bg);
+  border-color: var(--action-primary-edge);
+  color: var(--text);
+}
+.ui-chip--toggle:has(> input:focus-visible),
+.ui-chip--more:focus-visible {
+  outline: var(--bw) solid var(--focus-ring);
+  outline-offset: var(--bw);
+}
+.ui-chip--more {
+  background: none;
+  border-style: dashed;
+}

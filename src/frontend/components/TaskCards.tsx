@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Message, Task } from '../../backend/db';
 import { ACTIVE } from '../../shared';
 import { call } from '../api';
+import { Button } from '../ui/Button';
 
 // The pill says where the task is, in the words of its current stage while it works
 function pill(t: Task, asking: boolean): { text: string; tone: 'work' | 'wait' | 'stop' } {
@@ -27,6 +28,10 @@ function KindIcon({ kind }: { kind: string }) {
       <path d="M9 20.5h6M12 16.5v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
+}
+
+function TaskLink(props: Parameters<typeof Button>[0]) {
+  return <Button variant="link" className="task-link" {...props} />;
 }
 
 // One pinned row per task still open; a finished task's row goes and its report stays in the chat
@@ -56,36 +61,26 @@ export function TaskCards({
             <span className="task-pill" data-tone={p.tone}>
               {p.text}
             </span>
-            {stoppable && stopping !== t.id && (
-              <button className="task-link" onClick={() => setStopping(t.id)}>
-                중단
-              </button>
-            )}
+            {stoppable && stopping !== t.id && <TaskLink onClick={() => setStopping(t.id)}>중단</TaskLink>}
             {stoppable && stopping === t.id && (
               <span className="task-confirm" role="group" aria-label="중단 확인">
                 중단할까요?
-                <button
-                  className="task-link danger"
+                <TaskLink
+                  tone="danger"
                   onClick={() => {
                     setStopping(null);
                     call('tasks.stop', { id: t.id });
                   }}
                 >
                   중단
-                </button>
-                <button className="task-link" onClick={() => setStopping(null)}>
-                  취소
-                </button>
+                </TaskLink>
+                <TaskLink onClick={() => setStopping(null)}>취소</TaskLink>
               </span>
             )}
             {['stopped', 'failed'].includes(t.status) && (
-              <button className="task-link" onClick={() => call('tasks.resume', { id: t.id })}>
-                재개
-              </button>
+              <TaskLink onClick={() => call('tasks.resume', { id: t.id })}>재개</TaskLink>
             )}
-            <button className="task-link" onClick={() => onLog(t.id)}>
-              로그
-            </button>
+            <TaskLink onClick={() => onLog(t.id)}>로그</TaskLink>
           </div>
         );
       })}

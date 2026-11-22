@@ -54,7 +54,7 @@ test('in a git project a file named in the log opens its diff in a popup', async
   await page.getByRole('button', { name: 'search.js' }).click();
   const popup = page.getByRole('dialog');
   await expect(popup.getByRole('heading')).toHaveText('search.js');
-  await expect(popup.locator('.badge')).toHaveText(['수정', 'v1']);
+  await expect(popup.locator('.ui-badge')).toHaveText(['수정', 'v1']);
   await expect(popup).toContainText('검색 개선');
   await expect(popup.locator('.diff-line[data-kind="del"]')).toHaveText('-v0');
   await expect(popup.locator('.diff-line[data-kind="add"]')).toHaveText('+v1 고침');

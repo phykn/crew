@@ -1,0 +1,59 @@
+/* Fields people type in: long Korean text reads easier in the plain face */
+.ui-field {
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--surface-field);
+  border: var(--bw) solid var(--border-control);
+  border-radius: var(--r);
+  color: var(--text);
+  font: inherit;
+  font-family: var(--font-text);
+}
+.ui-field--sm {
+  font-size: var(--fs-sm);
+}
+.ui-field--md {
+  height: var(--h-md);
+  font-size: var(--fs-md);
+}
+textarea.ui-field {
+  height: auto;
+  resize: vertical;
+}
+.ui-field:focus {
+  border-color: var(--emphasis);
+  outline: none;
+}
+.ui-field:disabled {
+  background: var(--disabled-bg);
+  color: var(--text-muted);
+}
+.ui-field--bare {
+  padding: var(--sp-2) 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  color: var(--text);
+  font: inherit;
+  font-family: var(--font-text);
+  font-size: var(--fs-md);
+}
+.ui-field--bare::placeholder,
+.ui-field::placeholder {
+  color: var(--text-muted);
+}
+
+.ui-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  cursor: pointer;
+}
+.ui-check input {
+  margin: 0;
+  accent-color: var(--action-primary-edge);
+}
+.ui-check input:focus-visible {
+  outline: var(--bw) solid var(--focus-ring);
+  outline-offset: var(--bw);
+}

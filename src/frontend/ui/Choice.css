@@ -1,0 +1,54 @@
+.ui-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  max-width: 100%;
+  min-width: var(--w-field);
+  padding: 0 var(--sp-2) 0 var(--sp-3);
+  background: var(--surface-field);
+  border: var(--bw) solid var(--border-control);
+  border-radius: var(--r);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.ui-choice:hover:not(:disabled) {
+  background: var(--highlight);
+}
+.ui-choice:focus-visible {
+  outline: var(--bw) solid var(--focus-ring);
+  outline-offset: var(--bw);
+}
+.ui-choice:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.ui-choice .chevron {
+  flex: none;
+  margin-left: auto;
+}
+.ui-choice--sm {
+  min-width: var(--w-field-sm);
+  height: var(--h-sm);
+  padding-left: var(--sp-2);
+  font-size: var(--fs-sm);
+}
+.ui-choice--md {
+  height: var(--h-md);
+  font-size: var(--fs-md);
+}
+.ui-choice--lg {
+  height: var(--h-lg);
+  font-size: var(--fs-md);
+}
+.ui-choice--wide {
+  width: 100%;
+}
+.ui-choice-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

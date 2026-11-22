@@ -23,8 +23,12 @@ import type { CrewMember } from '../../backend/crew/shipped';
 import type { Project } from '../../backend/db';
 import type { Step } from '../../backend/tasks/workflow';
 import { call, onChanged } from '../api';
-import { Confirm } from './Confirm';
-import { Choice } from './Choice';
+import { Button } from '../ui/Button';
+import { Choice } from '../ui/Choice';
+import { Confirm } from '../ui/Confirm';
+import { Checkbox, Input, TextArea } from '../ui/Field';
+import { Segmented } from '../ui/Segmented';
+import { Toolbar, ToolbarEnd } from '../ui/Toolbar';
 import { HIDE_MARK } from './WikiGraph';
 import { josa } from '../../korean';
 
@@ -188,35 +192,26 @@ export function WorkflowView({
   }, [!!step]);
   return (
     <section className="workflow-view" aria-label="워크플로우 편집">
-      <header className="toolbar">
-        <div className="seg" role="group" aria-label="업무 종류">
-          {kinds.map((k) => (
-            <button
-              key={k.kind}
-              aria-pressed={k.kind === kind}
-              onClick={() => (dirty && k.kind !== kind ? setLeaveFor(k.kind) : onKind(k.kind))}
-            >
-              {k.label}
-            </button>
-          ))}
-        </div>
-        <span className="toolbar-end">
-          <button className="button" onClick={tidy}>
-            정렬
-          </button>
-          <button className="button" onClick={addStep}>
-            단계 추가
-          </button>
-          <button
-            className="button primary"
-            data-dirty={dirty || undefined}
+      <Toolbar>
+        <Segmented
+          label="업무 종류"
+          value={kind}
+          options={kinds.map((k) => ({ value: k.kind, label: k.label }))}
+          onChange={(k) => (dirty && k !== kind ? setLeaveFor(k) : onKind(k))}
+        />
+        <ToolbarEnd>
+          <Button onClick={tidy}>정렬</Button>
+          <Button onClick={addStep}>단계 추가</Button>
+          <Button
+            variant="primary"
+            dirty={dirty}
             title={dirty ? '저장 안 한 변경이 있습니다' : `버전 ${w?.version ?? 0}`}
             onClick={save}
           >
             저장
-          </button>
-        </span>
-      </header>
+          </Button>
+        </ToolbarEnd>
+      </Toolbar>
       {leaveFor && (
         <Confirm
           label="저장 안 한 변경"
@@ -269,7 +264,8 @@ export function WorkflowView({
           <aside className="workflow-side" aria-label="단계 설정">
             <label>
               이름
-              <input
+              <Input
+                size="md"
                 aria-label="단계 이름"
                 value={step.label}
                 onChange={(e) => edit(step.id, { label: e.target.value })}
@@ -279,6 +275,7 @@ export function WorkflowView({
               담당
               <Choice
                 label="담당 역할"
+                wide
                 value={step.role}
                 options={members
                   .filter((m) => m.status === 'hired')
@@ -288,24 +285,21 @@ export function WorkflowView({
             </label>
             <label>
               할 일
-              <textarea
+              <TextArea
+                className="side-text"
                 aria-label="할 일"
                 value={step.does}
                 onChange={(e) => edit(step.id, { does: e.target.value })}
               />
             </label>
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={step.verdict}
-                onChange={(e) => edit(step.id, { verdict: e.target.checked })}
-              />
+            <Checkbox checked={step.verdict} onChange={(e) => edit(step.id, { verdict: e.target.checked })}>
               되돌리기
-            </label>
+            </Checkbox>
             {step.verdict && (
               <label>
                 최대 횟수
-                <input
+                <Input
+                  size="md"
                   type="number"
                   aria-label="최대 횟수"
                   min={1}
@@ -363,14 +357,18 @@ function LinkLine({
       <BaseEdge id={id} path={line} />
       {selected && (
         <EdgeLabelRenderer>
-          <button
+          <Button
+            variant="primary"
+            tone="danger"
+            size="sm"
+            iconOnly
             className="workflow-unlink nodrag nopan"
             style={{ transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }}
             aria-label="연결 끊기"
             onClick={data?.remove}
           >
             ×
-          </button>
+          </Button>
         </EdgeLabelRenderer>
       )}
     </>
@@ -381,7 +379,7 @@ const EDGE_TYPES = { link: LinkLine };
 // The nearest step before this one that makes something rather than checks it
 function reworkOf(id: string, steps: Step[]): string | undefined {
   const queue = [...(steps.find((s) => s.id === id)?.after ?? [])];
-  for (const seen = new Set<string>(); queue.length;) {
+  for (const seen = new Set<string>(); queue.length; ) {
     const at = queue.shift()!;
     if (seen.has(at)) continue;
     seen.add(at);

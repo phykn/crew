@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { ReactFlow, Background, Controls, Handle, Position, type Edge, type Node, type NodeProps } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import type { call } from '../api';
+import { Empty } from '../ui/Empty';
 
 export type Graph = Awaited<ReturnType<typeof call<'wiki.graph'>>>;
 type DocNode = Node<{ title: string; missing: boolean }, 'doc'>;
@@ -25,7 +26,7 @@ export function WikiGraph({ graph, onOpen }: { graph: Graph; onOpen: (title: str
   }, [graph]);
   const edges: Edge[] = graph.edges.map((e) => ({ id: `${e.from}->${e.to}`, source: e.from, target: e.to }));
 
-  if (!graph.nodes.length) return <p className="empty">아직 문서가 없습니다</p>;
+  if (!graph.nodes.length) return <Empty>아직 문서가 없습니다</Empty>;
   return (
     <div className="wiki-graph" aria-label="위키 그래프">
       <ReactFlow

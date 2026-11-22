@@ -24,15 +24,17 @@ function createWindow() {
     title: 'crew',
     // The title bar is drawn by the window itself, like the concept image; the OS keeps only its buttons
     titleBarStyle: 'hidden',
-    // --panel and --wood-dark from tokens.css; the main process cannot read CSS
+    // --surface-frame and --text-heading from tokens.css; the main process cannot read CSS
     titleBarOverlay: { color: '#fbe7bd', symbolColor: '#5c3213', height: 46 },
     webPreferences: { preload: path.join(__dirname, 'preload.cjs') },
   });
   win.on('closed', () => (win = null));
   // A file dropped anywhere but the chat input would otherwise replace the app with that file
   win.webContents.on('will-navigate', (e) => e.preventDefault());
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) win.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
-  else win.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
+  // The parts gallery opens only when started for it; the window has no way to get there itself
+  const hash = process.env.CREW_GALLERY === '1' ? 'gallery' : '';
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) win.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}${hash && `#${hash}`}`);
+  else win.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`), { hash });
 }
 
 // A report or a card that comes while the user is in another window would otherwise wait unseen

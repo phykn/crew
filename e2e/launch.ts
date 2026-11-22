@@ -13,8 +13,12 @@ export function makeScratch(files: Record<string, string> = {}) {
 }
 
 // A script makes the crew answer from it instead of Claude
-export async function launchApp(db: string, script?: unknown): Promise<ElectronApplication> {
-  const env = { ...process.env, CREW_DB: db } as Record<string, string>;
+export async function launchApp(
+  db: string,
+  script?: unknown,
+  more: Record<string, string> = {},
+): Promise<ElectronApplication> {
+  const env = { ...process.env, CREW_DB: db, ...more } as Record<string, string>;
   if (script) {
     env.CREW_SCRIPT = path.join(path.dirname(db), 'script.json');
     fs.writeFileSync(env.CREW_SCRIPT, JSON.stringify(script));

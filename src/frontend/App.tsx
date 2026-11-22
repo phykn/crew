@@ -13,7 +13,8 @@ import { WorkflowView } from './components/WorkflowView';
 import { Camp } from './components/Camp';
 import { TabIcon } from './components/Icons';
 import { Changes, type ChangesTarget } from './components/Changes';
-import { Confirm } from './components/Confirm';
+import { Confirm } from './ui/Confirm';
+import { Empty } from './ui/Empty';
 
 const TABS = [
   ['chat', '대화'],
@@ -131,7 +132,7 @@ export function App() {
                   onLog={openLog}
                 />
               ) : (
-                <p className="empty">폴더를 열어 프로젝트를 시작하세요.</p>
+                <Empty>폴더를 열어 프로젝트를 시작하세요.</Empty>
               )}
             </Tabs.Content>
             <Tabs.Content value="log" className="tab-body">

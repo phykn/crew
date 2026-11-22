@@ -14,7 +14,7 @@ body,
 }
 body {
   overflow: hidden;
-  background: var(--bg);
+  background: var(--surface-app);
   color: var(--text);
   font-family: var(--font-ui);
   font-size: var(--fs-md);
@@ -22,36 +22,24 @@ body {
   word-break: keep-all;
   overflow-wrap: anywhere;
 }
-button {
-  font: inherit;
-  color: inherit;
-}
+
 /* The pixel face suits labels and headings; long Korean text reads easier in a plain face */
 .bubble,
 .answer-prompt,
-.composer textarea,
 .wiki-body,
-.wiki-doc textarea,
-.wiki-doc input,
 .def-body,
 .log-text,
 .log-detail,
-.note,
-.workflow-side textarea,
-.workflow-side input {
+.note {
   font-family: var(--font-text);
 }
 code {
   font-family: var(--font-code);
 }
 .muted {
-  color: var(--muted);
+  color: var(--text-muted);
 }
-.empty {
-  margin: var(--sp-8) 0 0;
-  color: var(--muted);
-  text-align: center;
-}
+
 .icon {
   flex: none;
   width: var(--icon);
@@ -69,194 +57,60 @@ code {
 .wiki-toc,
 .wiki-doc,
 .def-body {
-  background: var(--paper);
-  border: var(--bw) solid var(--line);
+  background: var(--surface-sheet);
+  border: var(--bw) solid var(--border-subtle);
   border-radius: var(--r);
 }
 /* Wood frames: the outermost boards, 3px wood with a dark rim */
-.legend,
-.dialog {
-  background: var(--panel);
-  border: var(--bw-frame) solid var(--wood-light);
+.legend {
+  background: var(--surface-frame);
+  border: var(--bw-frame) solid var(--frame);
   border-radius: var(--r);
   box-shadow:
-    0 0 0 var(--bw-frame) var(--wood-dark),
+    0 0 0 var(--bw-frame) var(--frame-rim),
     var(--shadow-float);
 }
-/* Controls: one height, one border, even on every side */
-.picker,
-.seg button,
-.button,
-.choice,
-.answer-option {
-  background: var(--card-hi);
-  border: var(--bw) solid var(--line-hi);
-  color: var(--text);
-  font-size: var(--fs-md);
-  cursor: pointer;
-}
-.picker,
-.button,
-.answer-option,
-.send {
-  border-radius: var(--r);
-}
-.seg button,
-.button,
-.choice {
-  height: var(--h-control);
-  padding: 0 var(--sp-3);
-}
-.picker,
-.choice {
-  background: var(--card);
-}
-.button,
-.answer-option {
-  font-weight: var(--fw-bold);
-}
-/* Fields people type in */
-.nickname,
-.wiki-doc input,
-.wiki-doc textarea,
-.workflow-side input:not([type]),
-.workflow-side input[type='number'],
-.workflow-side textarea {
-  padding: var(--sp-1) var(--sp-2);
-  background: var(--card);
-  border: var(--bw) solid var(--line);
-  border-radius: var(--r-sm);
-  color: var(--text);
-  font: inherit;
-  font-size: var(--fs-sm);
-}
-.nickname:focus,
-.wiki-doc input:focus,
-.wiki-doc textarea:focus,
+
 .composer:focus-within {
-  border-color: var(--wood);
+  border-color: var(--emphasis);
   outline: none;
 }
-/* Go: the green fill of chosen and primary things */
-.seg button[aria-pressed='true'],
-.button[aria-pressed='true'],
-.button.primary,
-.answer-option.primary,
-.send,
-.switch[data-state='checked'] {
-  background: var(--accent);
-  border-color: var(--accent-dark);
-  color: var(--on-accent);
-}
+
 /* Hover and the picked row share the butter highlight */
-.picker:hover,
-.choice:hover,
-.button:hover,
-.seg button:hover:not([aria-pressed='true']),
-.tab-list button:hover:not([data-state='active']),
-.menu-item[data-highlighted],
-.legend-row:hover,
-.log-line:not(:disabled):hover,
-.log-line[aria-expanded='true'],
-.wiki-toc button[aria-current='true'] {
-  background: var(--butter);
+.tab-list button:hover:not([data-state='active']) {
+  background: var(--highlight);
 }
-.button.primary:hover {
-  background: var(--accent-hover);
-}
-/* Plain text buttons */
-.task-link,
-.usage-toggle,
-.legend-head,
-.legend-row,
-.log-line,
-.wiki-toc button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-}
-/* A quiet button in a row or a heading: muted until pointed at; a removal turns red */
-.quiet-action {
-  display: inline-grid;
-  place-items: center;
-  height: var(--h-xs);
-  padding: 0 var(--sp-2);
-  background: none;
-  border: none;
-  border-radius: var(--r-sm);
-  color: var(--muted);
-  font-size: var(--fs-xs);
-  cursor: pointer;
-}
-.quiet-action:hover,
-.quiet-action:focus-visible {
-  background: var(--butter);
-  color: var(--text);
-}
-.quiet-action.danger:hover,
-.quiet-action.danger:focus-visible {
-  background: var(--rose);
-  color: var(--danger-dark);
-}
-.quiet-action.icon-only {
-  width: var(--h-xs);
-  padding: 0;
-}
+
 /* Red is only for failure and delete */
-.task-link.danger,
 .task-confirm,
 .log-row[data-bad] .log-text,
 .workflow-note.bad,
 .log-detail .removed {
-  color: var(--danger);
+  color: var(--status-bad);
 }
-.button.fill-danger {
-  background: var(--danger);
-  border-color: var(--danger-dark);
-  color: var(--on-accent);
-}
-/* A project whose folder was deleted outside the app */
-.badge.missing {
-  margin-left: var(--sp-2);
-  background: var(--rose);
-  color: var(--danger-dark);
-}
-.menu-item[data-disabled] {
-  color: var(--muted);
-  cursor: default;
-}
+
 /* Headings */
 .legend-head,
-.dialog h2,
-.dialog-title,
 .wiki-doc h3,
 .tree-name,
 .tab-list button[data-state='active'] {
-  color: var(--wood-dark);
+  color: var(--text-heading);
   font-weight: var(--fw-bold);
 }
 /* Tags: small colored labels */
 .task-pill,
 .model-tag,
-.wiki-kind,
-.badge {
+.wiki-kind {
   padding: 0 var(--sp-1);
-  border-radius: var(--r-xs);
+  border-radius: var(--r-sm);
   font-size: var(--fs-xs);
 }
 /* Rows split by a dashed line */
 .task-card + .task-card,
 .note {
-  border-top: var(--bw) dashed var(--line);
+  border-top: var(--bw) dashed var(--border-subtle);
 }
-.picker:focus-visible,
-.choice:focus-visible,
-.button:focus-visible,
-.legend-row:focus-visible {
-  outline: var(--bw) solid var(--link);
-  outline-offset: var(--bw);
-}
+
 /* Lists without bullets */
 .legend-list,
 .log-list,
@@ -287,8 +141,8 @@ code {
   gap: var(--sp-2);
   height: var(--h-title);
   padding: 0 var(--sp-4);
-  background: var(--panel);
-  color: var(--wood-dark);
+  background: var(--surface-frame);
+  color: var(--text-heading);
   -webkit-app-region: drag;
 }
 .titlebar .logo {
@@ -296,13 +150,13 @@ code {
   height: var(--icon-logo);
 }
 .titlebar .logo .flame {
-  fill: var(--flame);
+  fill: var(--logo-flame);
 }
 .titlebar .logo .flame-core {
-  fill: var(--flame-core);
+  fill: var(--logo-flame-core);
 }
 .titlebar .logo .logs {
-  stroke: var(--wood);
+  stroke: var(--text-emphasis);
 }
 /* The version sits on the title's baseline, not centered beside it */
 .titlebar .name {
@@ -311,47 +165,12 @@ code {
   gap: var(--sp-2);
 }
 .titlebar .title {
-  font-size: var(--fs-title);
+  font-size: var(--fs-xl);
   font-weight: var(--fw-bold);
 }
 .titlebar .version {
-  color: var(--wood);
+  color: var(--text-emphasis);
   font-size: var(--fs-xs);
-}
-
-/* Menus */
-.menu {
-  z-index: var(--z-menu);
-  min-width: max(var(--radix-select-trigger-width, 0px), var(--w-field));
-  padding: var(--sp-1);
-  background: var(--card);
-  border: var(--bw) solid var(--wood-dark);
-  border-radius: var(--r);
-  box-shadow: var(--shadow-float);
-}
-.menu-item {
-  padding: var(--sp-2) var(--sp-3);
-  border-radius: var(--r-sm);
-  color: var(--text);
-  cursor: pointer;
-  outline: none;
-}
-.menu-item[data-state='checked'] {
-  font-weight: var(--fw-bold);
-}
-.menu-hint {
-  display: block;
-  color: var(--muted);
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-normal);
-}
-.menu-item.action {
-  color: var(--wood);
-}
-.menu-separator {
-  height: var(--bw);
-  margin: var(--sp-1) var(--sp-2);
-  background: var(--line);
 }
 
 /* Layout */
@@ -359,14 +178,14 @@ code {
   flex: 1;
   display: flex;
   min-height: 0;
-  background: var(--wood);
+  background: var(--emphasis);
 }
 .camp {
   position: relative;
   flex: 0 0 var(--camp-share);
   overflow: hidden;
-  background: var(--camp-bg);
-  border-right: var(--bw-wood) solid var(--wood-dark);
+  background: var(--surface-camp);
+  border-right: var(--bw-wood) solid var(--frame-rim);
 }
 .camp-canvas {
   position: absolute;
@@ -385,25 +204,15 @@ code {
   gap: var(--sp-3);
   min-width: var(--w-panel-min);
   padding: var(--sp-4);
-  background: var(--panel);
-  border-left: var(--bw-frame) solid var(--wood-light);
+  background: var(--surface-frame);
+  border-left: var(--bw-frame) solid var(--frame);
 }
 
 .project-bar {
   display: flex;
   gap: var(--sp-2);
 }
-.picker {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  height: var(--h-picker);
-  padding: 0 var(--sp-3);
-}
-.picker:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
+
 /* The folder lines up with the four tabs below it; the session, named after what was asked, takes the rest */
 .project-picker {
   flex: none;
@@ -413,22 +222,6 @@ code {
 .session-picker {
   flex: 1;
   min-width: 0;
-}
-/* A square of the pickers' height: the explorer covers both of them */
-.explorer-button {
-  flex: none;
-  justify-content: center;
-  width: var(--h-picker);
-  padding: 0;
-}
-.picker-value {
-  overflow: hidden;
-  font-weight: var(--fw-bold);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.picker .chevron {
-  margin-left: auto;
 }
 
 /* Tabs and their frame: the one 3px frame in the panel */
@@ -441,24 +234,24 @@ code {
 .tab-list {
   display: flex;
   gap: var(--sp-1);
-  border-bottom: var(--bw-frame) solid var(--line-hi);
+  border-bottom: var(--bw-frame) solid var(--border-control);
 }
 .tab-list button {
   position: relative;
   display: grid;
   place-items: center;
   width: var(--w-tab);
-  height: var(--h-picker);
-  background: var(--card-hi);
-  border: var(--bw-frame) solid var(--line-hi);
+  height: var(--h-lg);
+  background: var(--surface-control);
+  border: var(--bw-frame) solid var(--border-control);
   border-bottom: none;
   border-radius: var(--r) var(--r) 0 0;
-  color: var(--muted);
+  color: var(--text-muted);
   cursor: pointer;
 }
 /* Only the row draws the frame line and every tab stands on it, so the line cannot step */
 .tab-list button[data-state='active'] {
-  background: var(--card);
+  background: var(--surface-field);
 }
 /* The open tab hides the line between its sides; a strip longer than the drawn line falls on the frame's own colour */
 .tab-list button[data-state='active']::before {
@@ -468,7 +261,7 @@ code {
   left: 0;
   right: 0;
   height: var(--bw-frame);
-  background: var(--card);
+  background: var(--surface-field);
 }
 .tab-icon,
 .tab-icon svg {
@@ -484,7 +277,7 @@ code {
   right: var(--sp-1);
   width: var(--mark);
   height: var(--mark);
-  background: var(--wait-line);
+  background: var(--status-wait-edge);
   border-radius: 50%;
 }
 .tab-body {
@@ -492,8 +285,8 @@ code {
   min-height: 0;
   overflow: auto;
   padding: var(--sp-3);
-  background: var(--card);
-  border: var(--bw-frame) solid var(--line-hi);
+  background: var(--surface-field);
+  border: var(--bw-frame) solid var(--border-control);
   border-top: none;
   border-radius: 0 0 var(--r) var(--r);
 }
@@ -518,78 +311,6 @@ code {
   flex-direction: column;
   gap: var(--sp-3);
   min-height: 0;
-}
-
-/* One toolbar shape for every tab: views on the left, actions on the right */
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2);
-  min-height: var(--h-control);
-}
-.toolbar-end {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  margin-left: auto;
-}
-.seg {
-  display: flex;
-}
-.seg button {
-  border-left-width: 0;
-}
-.seg button:first-child {
-  border-left-width: var(--bw);
-  border-radius: var(--r) 0 0 var(--r);
-}
-.seg button:last-child {
-  border-radius: 0 var(--r) var(--r) 0;
-}
-.seg button[aria-pressed='true'] {
-  font-weight: var(--fw-bold);
-}
-.seg button[aria-pressed='true'] + button {
-  border-left-color: var(--accent-dark);
-}
-/* Unsaved changes: a dot on the save button */
-.button[data-dirty]::after {
-  content: '';
-  display: inline-block;
-  width: var(--mark-sm);
-  height: var(--mark-sm);
-  margin-left: var(--sp-2);
-  vertical-align: var(--bw);
-  background: var(--butter);
-  border: var(--bw-thin) solid var(--wood-dark);
-}
-.badge {
-  border: var(--bw) solid var(--line);
-  color: var(--muted);
-}
-.choice {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
-  max-width: 100%;
-  min-width: var(--w-field);
-  padding-right: var(--sp-2);
-  border-radius: var(--r);
-}
-.choice-value {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.choice.small {
-  min-width: var(--w-field-sm);
-  height: var(--h-xs);
-  padding: 0 var(--sp-1) 0 var(--sp-2);
-  font-size: var(--fs-sm);
 }
 
 /* Chat: me on the right, 비서 on the left, bubbles only */
@@ -621,30 +342,30 @@ code {
   white-space: pre-wrap;
 }
 .message.user .bubble {
-  background: var(--sky);
-  border-color: var(--sky-line);
+  background: var(--status-info-bg);
+  border-color: var(--status-info-edge);
   border-radius: var(--r-lg) var(--bw) var(--r-lg) var(--r-lg);
 }
 .bubble code {
   padding: var(--bw-thin) var(--sp-1);
-  background: var(--butter);
-  border-radius: var(--r-xs);
-  color: var(--wood-dark);
+  background: var(--highlight);
+  border-radius: var(--r-sm);
+  color: var(--text-heading);
   font-size: var(--fs-sm);
 }
 .typing {
-  color: var(--muted);
+  color: var(--text-muted);
   letter-spacing: var(--bw-frame);
 }
 .answer-card {
   min-width: var(--w-answer);
   overflow: hidden;
-  border-color: var(--line-hi);
+  border-color: var(--border-control);
   border-radius: var(--r-lg);
 }
 .answer-prompt {
   padding: var(--sp-3);
-  border-bottom: var(--bw) dashed var(--line);
+  border-bottom: var(--bw) dashed var(--border-subtle);
   line-height: var(--lh-text);
   white-space: pre-wrap;
 }
@@ -657,13 +378,11 @@ code {
 .answer-option {
   flex: 1;
   min-width: var(--w-field);
-  height: var(--h-touch);
-  background: var(--card);
 }
 .answer-result {
   margin: 0;
   padding: var(--sp-2) var(--sp-3);
-  color: var(--accent-dark);
+  color: var(--action-primary-edge);
   font-weight: var(--fw-bold);
 }
 /* The send button stays at the bottom while the box grows upward */
@@ -674,21 +393,14 @@ code {
   align-items: flex-end;
   gap: var(--sp-2);
   padding: var(--sp-1);
-  border-color: var(--line-hi);
+  border-color: var(--border-control);
   border-radius: var(--r-lg);
 }
 /* Grows with wrapped and broken lines, up to the cap, then scrolls */
-.composer textarea {
+.composer-text {
   flex: 1;
   field-sizing: content;
   max-height: var(--h-compose-max);
-  padding: var(--sp-2) 0;
-  background: transparent;
-  border: none;
-  outline: none;
-  resize: none;
-  color: var(--text);
-  font-size: var(--fs-md);
 }
 /* The command list opens upward from the box, over the conversation */
 .slash-menu {
@@ -699,17 +411,12 @@ code {
   margin: 0;
   list-style: none;
 }
-.composer .choice {
-  height: var(--h-touch);
-}
-.composer textarea::placeholder {
-  color: var(--muted);
-}
+
 .composer-notice {
   flex-basis: 100%;
   margin: 0;
   padding: var(--sp-1) var(--sp-2) 0;
-  color: var(--bad-text);
+  color: var(--status-bad-text);
   font-size: var(--fs-sm);
 }
 /* Pictures waiting to go sit on their own row above the box */
@@ -725,10 +432,16 @@ code {
 .attachments li {
   position: relative;
 }
+/* The remove button sits on the picture's corner */
+.attachment-remove {
+  position: absolute;
+  top: calc(-1 * var(--sp-1));
+  right: calc(-1 * var(--sp-1));
+}
 .attachments img,
 .pictures img {
   display: block;
-  border: var(--bw) solid var(--line);
+  border: var(--bw) solid var(--border-subtle);
   border-radius: var(--r);
   object-fit: cover;
 }
@@ -736,22 +449,7 @@ code {
   width: var(--w-thumb);
   height: var(--w-thumb);
 }
-.attachments button {
-  position: absolute;
-  top: calc(-1 * var(--sp-1));
-  right: calc(-1 * var(--sp-1));
-  display: grid;
-  place-items: center;
-  width: var(--icon-lg);
-  height: var(--icon-lg);
-  padding: 0;
-  background: var(--paper);
-  border: var(--bw) solid var(--line-hi);
-  border-radius: 50%;
-  color: var(--text);
-  line-height: 1;
-  cursor: pointer;
-}
+
 .pictures {
   display: flex;
   flex-wrap: wrap;
@@ -762,30 +460,7 @@ code {
   max-width: var(--w-picture);
   max-height: var(--w-picture);
 }
-.attach {
-  display: grid;
-  place-items: center;
-  width: var(--h-touch);
-  height: var(--h-touch);
-  padding: 0;
-  background: transparent;
-  border: none;
-  border-radius: var(--r);
-  color: var(--muted);
-  cursor: pointer;
-}
-.attach:hover:not(:disabled) {
-  background: var(--butter);
-  color: var(--text);
-}
-.attach:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-.attach svg {
-  width: var(--icon-md);
-  height: var(--icon-md);
-}
+
 /* A held message looks unsent until it goes */
 .message.queued {
   flex-direction: column;
@@ -798,37 +473,8 @@ code {
 }
 .send-now {
   padding: 0 var(--sp-1);
-  background: none;
-  border: none;
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: var(--fs-sm);
-  cursor: pointer;
-}
-.send-now:hover {
-  color: var(--text);
-  text-decoration: underline;
-}
-.send {
-  display: grid;
-  place-items: center;
-  width: var(--h-touch);
-  height: var(--h-touch);
-  border: var(--bw) solid var(--accent-dark);
-  cursor: pointer;
-}
-.send svg {
-  width: var(--icon-md);
-  height: var(--icon-md);
-}
-/* While 비서 answers, the same spot stops it */
-.send.stop {
-  background: var(--danger);
-  border-color: var(--danger-dark);
-}
-.send:disabled {
-  background: var(--disabled-bg);
-  border-color: var(--disabled-line);
-  cursor: default;
 }
 
 /* Pinned tasks: a notice strip, rows split by lines instead of boxed */
@@ -837,8 +483,8 @@ code {
   flex-direction: column;
   margin: 0 0 var(--sp-2);
   padding: var(--sp-1) var(--sp-3);
-  background: var(--butter);
-  border: var(--bw) solid var(--line-hi);
+  background: var(--highlight);
+  border: var(--bw) solid var(--border-control);
   border-radius: var(--r);
 }
 .task-card {
@@ -851,7 +497,7 @@ code {
   flex: none;
   width: var(--icon-md);
   height: var(--icon-md);
-  color: var(--wood);
+  color: var(--text-emphasis);
 }
 .task-title {
   flex: 1;
@@ -864,20 +510,20 @@ code {
 .task-pill {
   flex: none;
   padding: var(--bw) var(--sp-2);
-  background: var(--accent-soft);
-  border: var(--bw) solid var(--accent-dark);
-  color: var(--ok-text);
+  background: var(--status-ok-bg);
+  border: var(--bw) solid var(--action-primary-edge);
+  color: var(--status-ok-text);
   font-weight: var(--fw-bold);
 }
 .task-pill[data-tone='wait'] {
-  background: var(--wait-bg);
-  border-color: var(--wait-line);
-  color: var(--wait-text);
+  background: var(--status-wait-bg);
+  border-color: var(--status-wait-edge);
+  color: var(--status-wait-text);
 }
 .task-pill[data-tone='stop'] {
-  background: var(--rose);
-  border-color: var(--danger);
-  color: var(--bad-text);
+  background: var(--status-bad-bg);
+  border-color: var(--status-bad);
+  color: var(--status-bad-text);
 }
 .task-pill[data-tone='work']::before {
   content: '';
@@ -886,7 +532,7 @@ code {
   height: var(--mark-sm);
   margin-right: var(--sp-1);
   vertical-align: var(--bw-thin);
-  background: var(--accent-dark);
+  background: var(--action-primary-edge);
   animation: blink var(--t-blink) steps(2) infinite;
 }
 @keyframes blink {
@@ -897,11 +543,10 @@ code {
 .task-link {
   flex: none;
   padding: var(--bw) var(--sp-1);
-  color: var(--wood);
+  color: var(--text-emphasis);
   font-size: var(--fs-sm);
   font-weight: var(--fw-bold);
 }
-.task-link:hover,
 .usage-toggle:hover {
   text-decoration: underline;
 }
@@ -926,7 +571,7 @@ code {
 .legend-head {
   display: inline-flex;
   align-items: center;
-  gap: var(--bw);
+  gap: var(--sp-1);
   padding: 0 var(--sp-1) var(--sp-1);
   font-size: var(--fs-lg);
 }
@@ -956,84 +601,43 @@ code {
   font-weight: var(--fw-bold);
 }
 .legend-row[data-unhired] {
-  color: var(--muted);
+  color: var(--text-muted);
 }
 .hired-dot {
   width: var(--mark);
   height: var(--mark);
-  background: var(--accent);
-  border: var(--bw-thin) solid var(--accent-dark);
+  background: var(--action-primary-bg);
+  border: var(--bw-thin) solid var(--action-primary-edge);
 }
 .legend-row[data-unhired] .hired-dot {
   background: transparent;
-  border-color: var(--muted);
+  border-color: var(--text-muted);
 }
 .model-tag {
   justify-self: start;
-  background: var(--card-hi);
-  color: var(--muted);
+  background: var(--surface-control);
+  color: var(--text-muted);
 }
 .legend-row[data-unhired] .model-tag {
   background: none;
 }
 
-/* Dialogs: a parchment sheet in a wood frame */
-.overlay {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-overlay);
-  background: var(--veil);
-}
-.dialog {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  z-index: var(--z-dialog);
-  width: min(var(--w-dialog), var(--w-dialog-max));
-  max-height: var(--h-dialog-max);
-  overflow: auto;
-  padding: var(--sp-4);
-  color: var(--text);
-  transform: translate(-50%, -50%);
-}
-.dialog h2,
-.dialog-title {
-  margin: 0 0 var(--sp-3);
-  font-size: var(--fs-xl);
-}
 /* Sized like every dialog and as tall as its diff; a long diff scrolls inside */
-.dialog.changes {
+.changes {
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
-.changes-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2);
-  margin-bottom: var(--sp-3);
-}
-.changes-head .dialog-title {
-  margin: 0;
-}
-.changes-waiting,
+
 .file-link {
   cursor: pointer;
 }
 /* A file name that opens its diff reads as a link */
 .file-link {
-  padding: 0;
-  background: none;
-  border: none;
-  color: var(--link);
+  color: var(--text-link);
   text-decoration: underline;
 }
-.changes-waiting {
-  background: var(--wait-bg);
-  border-color: var(--wait-line);
-  color: var(--wait-text);
-}
+
 /* The file name and where it comes from share one line */
 .changes-name {
   display: flex;
@@ -1042,31 +646,7 @@ code {
   align-items: center;
   min-width: 0;
 }
-.changes-name .dialog-title {
-  flex: none;
-  max-width: 60%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.changes-name .badge {
-  flex: none;
-}
-.changes-name .badge[data-status='added'] {
-  background: var(--accent-soft);
-  border-color: var(--ok);
-  color: var(--ok-text);
-}
-.changes-name .badge[data-status='deleted'] {
-  background: var(--rose);
-  border-color: var(--danger);
-  color: var(--bad-text);
-}
-.changes-name .badge[data-status='changed'] {
-  background: var(--butter);
-  border-color: var(--wait-line);
-  color: var(--wait-text);
-}
+
 .changes-task {
   overflow: hidden;
   font-size: var(--fs-sm);
@@ -1076,8 +656,8 @@ code {
 .diff {
   min-height: 0;
   overflow: auto;
-  background: var(--paper);
-  border: var(--bw) solid var(--line);
+  background: var(--surface-sheet);
+  border: var(--bw) solid var(--border-subtle);
   border-radius: var(--r);
   font-family: var(--font-code);
   font-size: var(--fs-sm);
@@ -1087,25 +667,17 @@ code {
   white-space: pre;
 }
 .diff-line[data-kind='add'] {
-  background: var(--accent-soft);
-  color: var(--ok-text);
+  background: var(--status-ok-bg);
+  color: var(--status-ok-text);
 }
 .diff-line[data-kind='del'] {
-  background: var(--rose);
-  color: var(--bad-text);
+  background: var(--status-bad-bg);
+  color: var(--status-bad-text);
 }
 .diff-line[data-kind='hunk'] {
-  color: var(--muted);
+  color: var(--text-muted);
 }
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--sp-2);
-}
-/* An undo-everything button stands apart from the ones that close */
-.dialog-actions .start {
-  margin-right: auto;
-}
+
 .member-basics {
   display: flex;
   flex-wrap: wrap;
@@ -1115,40 +687,17 @@ code {
 }
 .nickname {
   width: var(--w-field);
-  height: var(--h-control);
-  border-color: var(--line-hi);
-  border-radius: var(--r);
-  font-size: var(--fs-md);
+}
+/* Undoing everything stands apart from the buttons that close */
+.member-reset {
+  margin-right: auto;
 }
 .hire {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
   margin-left: auto;
-  color: var(--muted);
-}
-.switch {
-  position: relative;
-  width: var(--w-col);
-  height: var(--switch-h);
-  padding: 0;
-  background: var(--off);
-  border: var(--bw) solid var(--line-hi);
-  border-radius: var(--r-sm);
-  cursor: pointer;
-}
-.switch-thumb {
-  display: block;
-  width: var(--switch-thumb);
-  height: var(--switch-thumb);
-  background: var(--paper);
-  border-radius: var(--bw);
-  transform: translateX(var(--bw));
-  transition: transform var(--t-fast);
-}
-/* The thumb travels the inside width of the switch */
-.switch[data-state='checked'] .switch-thumb {
-  transform: translateX(calc(var(--w-col) - var(--switch-thumb) - 3 * var(--bw)));
+  color: var(--text-muted);
 }
 
 /* Permissions: labels in one column, their items wrap in the other */
@@ -1161,7 +710,7 @@ code {
 }
 .perm-label {
   padding-top: var(--mark-sm);
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: var(--fs-sm);
 }
 .perm-items {
@@ -1170,44 +719,15 @@ code {
   align-items: center;
   gap: var(--sp-1);
 }
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-  height: var(--h-chip);
-  padding: 0 var(--sp-2);
-  background: var(--card);
-  border: var(--bw) solid var(--line);
-  border-radius: var(--r);
-  font-size: var(--fs-sm);
-  cursor: pointer;
-}
-/* A chip that is switched on is filled; the box inside is for keyboards and screen readers */
-.chip:has(> input) {
-  color: var(--muted);
-}
-.chip:has(> input:checked) {
-  background: var(--accent-soft);
-  border-color: var(--accent-dark);
-  color: var(--text);
-}
-.chip:has(> input:focus-visible) {
-  outline: var(--bw) solid var(--link);
-  outline-offset: var(--bw);
-}
-.chip.more {
-  background: none;
-  border-style: dashed;
-  color: var(--muted);
-}
+
 .kit-icon {
   display: inline-grid;
   place-items: center;
   width: var(--icon-lg);
   height: var(--icon-lg);
-  background: var(--wood);
+  background: var(--emphasis);
   border-radius: var(--r-sm);
-  color: var(--on-wood);
+  color: var(--text-on-wood);
   vertical-align: middle;
 }
 .kit-icon svg {
@@ -1218,7 +738,7 @@ code {
   grid-column: 1 / -1;
   margin: 0;
   padding-left: var(--sp-4);
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: var(--fs-xs);
 }
 .perm-changes time {
@@ -1228,7 +748,7 @@ code {
   margin: 0 0 var(--sp-3);
 }
 .def-fold summary {
-  color: var(--wood);
+  color: var(--text-emphasis);
   font-weight: var(--fw-bold);
   cursor: pointer;
 }
@@ -1245,7 +765,7 @@ code {
 }
 .def-body h4 {
   margin: var(--sp-3) 0 var(--sp-1);
-  color: var(--wood);
+  color: var(--text-emphasis);
 }
 .def-body p,
 .def-body ul {
@@ -1253,9 +773,6 @@ code {
 }
 .def-body ul {
   padding-left: var(--sp-4);
-}
-input[type='checkbox'] {
-  accent-color: var(--accent-dark);
 }
 
 /* Log */
@@ -1266,14 +783,10 @@ input[type='checkbox'] {
 .usage-toggle {
   display: inline-flex;
   gap: var(--sp-3);
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: var(--fs-xs);
 }
-.legend-head .badge,
-.note .badge,
-.tree-agent .badge {
-  margin-left: var(--sp-1);
-}
+
 .usage {
   width: 100%;
   border-collapse: separate;
@@ -1286,8 +799,8 @@ input[type='checkbox'] {
   text-align: left;
 }
 .usage th {
-  border-bottom: var(--bw) solid var(--line);
-  color: var(--muted);
+  border-bottom: var(--bw) solid var(--border-subtle);
+  color: var(--text-muted);
   font-weight: normal;
 }
 .usage td,
@@ -1297,6 +810,10 @@ input[type='checkbox'] {
 .log-list {
   display: flex;
   flex-direction: column;
+}
+/* An opened line stays marked while its detail shows under it */
+.log-line[aria-expanded='true'] {
+  background: var(--highlight);
 }
 /* Time first, then what became of the line, then who did what */
 .log-line {
@@ -1311,9 +828,7 @@ input[type='checkbox'] {
   color: var(--text);
   font-size: var(--fs-sm);
 }
-.log-line:disabled {
-  cursor: default;
-}
+
 /* Green is done, red is failure, butter is waiting or sent back, wood is at work */
 .log-mark {
   display: grid;
@@ -1321,37 +836,37 @@ input[type='checkbox'] {
   width: var(--icon-md);
   height: var(--icon-md);
   margin-top: calc((1lh - var(--icon-md)) / 2);
-  background: var(--card-hi);
-  border: var(--bw) solid var(--line-hi);
-  border-radius: var(--r-xs);
-  color: var(--muted);
+  background: var(--surface-control);
+  border: var(--bw) solid var(--border-control);
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
 }
 .log-mark svg {
   width: var(--icon-sm);
   height: var(--icon-sm);
 }
 .log-mark[data-state='ok'] {
-  background: var(--accent-soft);
-  border-color: var(--ok);
-  color: var(--ok-text);
+  background: var(--status-ok-bg);
+  border-color: var(--status-ok-edge);
+  color: var(--status-ok-text);
 }
 .log-mark[data-state='bad'] {
-  background: var(--rose);
-  border-color: var(--danger);
-  color: var(--bad-text);
+  background: var(--status-bad-bg);
+  border-color: var(--status-bad);
+  color: var(--status-bad-text);
 }
 .log-mark[data-state='wait'] {
-  background: var(--wait-bg);
-  border-color: var(--wait-line);
-  color: var(--wait-text);
+  background: var(--status-wait-bg);
+  border-color: var(--status-wait-edge);
+  color: var(--status-wait-text);
 }
 .log-mark[data-state='work'] {
-  background: var(--wood-light);
-  border-color: var(--wood-dark);
-  color: var(--on-wood);
+  background: var(--frame);
+  border-color: var(--frame-rim);
+  color: var(--text-on-wood);
 }
 .log-line time {
-  color: var(--muted);
+  color: var(--text-muted);
 }
 .log-who,
 .log-row[data-kind='status'] .log-text {
@@ -1364,7 +879,7 @@ input[type='checkbox'] {
 }
 .log-detail h4 {
   margin: var(--sp-2) 0 var(--sp-1);
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: var(--fs-xs);
   font-weight: normal;
 }
@@ -1375,7 +890,7 @@ input[type='checkbox'] {
 .log-detail pre {
   margin: 0;
   padding: var(--sp-2);
-  background: var(--card-hi);
+  background: var(--surface-control);
   border-radius: var(--r-sm);
   font-size: var(--fs-xs);
   white-space: pre-wrap;
@@ -1384,11 +899,11 @@ input[type='checkbox'] {
   font-size: var(--fs-xs);
 }
 .log-detail .added {
-  color: var(--ok);
+  color: var(--status-ok-edge);
 }
 .log-body {
   margin: var(--sp-2) 0 0;
-  color: var(--muted);
+  color: var(--text-muted);
   white-space: pre-wrap;
 }
 
@@ -1410,17 +925,15 @@ input[type='checkbox'] {
   overflow-y: auto;
   padding: var(--sp-1);
 }
-.wiki-toc button {
+.wiki-toc-item {
   width: 100%;
   padding: var(--sp-1) var(--sp-2);
   border-radius: var(--r-sm);
   color: var(--text);
   font-size: var(--fs-sm);
 }
-.wiki-toc button:hover:not([aria-current='true']) {
-  background: var(--card-hi);
-}
-.wiki-toc button[aria-current='true'] {
+
+.wiki-toc-item[aria-current='true'] {
   font-weight: var(--fw-bold);
 }
 .wiki-doc {
@@ -1444,7 +957,7 @@ input[type='checkbox'] {
   flex: 1;
   min-width: 0;
 }
-.wiki-doc textarea {
+.wiki-text {
   flex: 1;
   min-height: var(--h-textarea);
   resize: vertical;
@@ -1453,8 +966,8 @@ input[type='checkbox'] {
 .wiki-dot {
   max-width: var(--w-node);
   padding: var(--sp-1) var(--sp-3);
-  background: var(--card);
-  border: var(--bw) solid var(--line-hi);
+  background: var(--surface-field);
+  border: var(--bw) solid var(--border-control);
   border-radius: var(--r-lg);
   color: var(--text);
   font-size: var(--fs-sm);
@@ -1463,7 +976,7 @@ input[type='checkbox'] {
 }
 .wiki-dot[data-missing] {
   border-style: dashed;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 /* Lines meet at the dot's middle, and there is nothing to drag from */
 .wiki-dot .wiki-dot-end {
@@ -1479,16 +992,11 @@ input[type='checkbox'] {
   font-size: var(--fs-sm);
 }
 .wiki-link {
-  padding: 0;
-  background: none;
-  border: none;
-  color: var(--accent-dark);
-  font: inherit;
+  color: var(--action-primary-edge);
   text-decoration: underline;
-  cursor: pointer;
 }
 .wiki-link[data-missing] {
-  color: var(--muted);
+  color: var(--text-muted);
   text-decoration-style: dashed;
 }
 .wiki-body {
@@ -1512,17 +1020,17 @@ input[type='checkbox'] {
   grid-template-columns: var(--w-wiki-time) var(--w-col) 1fr;
 }
 .wiki-kind {
-  background: var(--butter);
-  color: var(--wood-dark);
+  background: var(--highlight);
+  color: var(--text-heading);
   text-align: center;
 }
 .wiki-kind[data-kind='create'] {
-  background: var(--accent-soft);
-  color: var(--ok-text);
+  background: var(--status-ok-bg);
+  color: var(--status-ok-text);
 }
 .wiki-kind[data-kind='delete'] {
-  background: var(--rose);
-  color: var(--bad-text);
+  background: var(--status-bad-bg);
+  color: var(--status-bad-text);
 }
 .notes {
   flex: 1;
@@ -1539,11 +1047,11 @@ input[type='checkbox'] {
 /* Workflow tab */
 .workflow-view {
   gap: var(--sp-2);
-  background: var(--card);
+  background: var(--surface-field);
 }
 .workflow-note {
   margin: 0;
-  color: var(--ok);
+  color: var(--status-ok-edge);
   font-size: var(--fs-sm);
 }
 /* The step's settings sit under the flow, since the panel is too narrow to share across */
@@ -1553,7 +1061,7 @@ input[type='checkbox'] {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  border: var(--bw) solid var(--line);
+  border: var(--bw) solid var(--border-subtle);
   border-radius: var(--r);
 }
 .workflow-canvas {
@@ -1561,19 +1069,19 @@ input[type='checkbox'] {
 }
 .wiki-graph {
   flex: 1;
-  border: var(--bw) solid var(--line);
+  border: var(--bw) solid var(--border-subtle);
   border-radius: var(--r);
 }
 .workflow-canvas .react-flow,
 .wiki-graph .react-flow {
-  --xy-background-color: var(--paper);
-  --xy-background-pattern-color: var(--line);
+  --xy-background-color: var(--surface-sheet);
+  --xy-background-pattern-color: var(--border-subtle);
 }
 .workflow-node {
   width: var(--w-node);
   padding: var(--sp-2) var(--sp-3);
-  background: var(--card);
-  border: var(--bw) solid var(--line-hi);
+  background: var(--surface-field);
+  border: var(--bw) solid var(--border-control);
   border-radius: var(--r);
   color: var(--text);
   font-size: var(--fs-sm);
@@ -1582,29 +1090,18 @@ input[type='checkbox'] {
 .workflow-node .react-flow__handle {
   width: var(--sp-3);
   height: var(--sp-3);
-  background: var(--wood-light);
-  border: var(--bw) solid var(--wood-dark);
+  background: var(--frame);
+  border: var(--bw) solid var(--frame-rim);
 }
 .workflow-canvas .react-flow__edgelabel-renderer {
   z-index: var(--z-unlink);
 }
 .workflow-unlink {
   position: absolute;
-  display: grid;
-  place-items: center;
-  width: var(--icon);
-  height: var(--icon);
-  padding: 0;
-  background: var(--danger);
-  border: var(--bw) solid var(--danger-dark);
-  border-radius: 50%;
-  color: var(--on-accent);
-  font-size: var(--fs-xs);
-  line-height: 1;
   pointer-events: all;
 }
 .workflow-role {
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: var(--fs-xs);
 }
 .workflow-side {
@@ -1615,8 +1112,8 @@ input[type='checkbox'] {
   max-height: var(--h-workflow-side);
   overflow-y: auto;
   padding: var(--sp-3);
-  background: var(--panel);
-  border-top: var(--bw) solid var(--line);
+  background: var(--surface-frame);
+  border-top: var(--bw) solid var(--border-subtle);
   font-size: var(--fs-sm);
 }
 /* Name and owner share the first row; what follows takes the full width */
@@ -1628,44 +1125,23 @@ input[type='checkbox'] {
   flex-direction: column;
   gap: var(--sp-1);
 }
-.workflow-side label.check {
-  flex-direction: row;
-  align-items: center;
-  gap: var(--sp-2);
-}
-.workflow-side textarea {
+
+.side-text {
   min-height: var(--h-side-textarea);
   resize: vertical;
-}
-/* Fields in one row stand as tall as the owner picker beside them */
-.workflow-side input:not([type]),
-.workflow-side input[type='number'] {
-  height: var(--h-control);
-}
-.workflow-side .choice {
-  width: 100%;
 }
 
 /* Explorer: one card per project, its sessions as rows inside */
 .tree-dialog {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
   width: var(--w-tree);
 }
-.tree-head,
 .tree-project-head,
 .tree-session-head {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
 }
-.tree-head {
-  justify-content: space-between;
-}
-.tree-head .dialog-title {
-  margin: 0;
-}
+
 .tree {
   display: flex;
   flex-direction: column;
@@ -1673,8 +1149,8 @@ input[type='checkbox'] {
 }
 .tree-project {
   overflow: hidden;
-  background: var(--card);
-  border: var(--bw) solid var(--line);
+  background: var(--surface-field);
+  border: var(--bw) solid var(--border-subtle);
   border-radius: var(--r);
 }
 .tree-project[data-missing] {
@@ -1682,8 +1158,8 @@ input[type='checkbox'] {
 }
 .tree-project-head {
   padding: var(--sp-2) var(--sp-3);
-  background: var(--card-hi);
-  color: var(--wood-dark);
+  background: var(--surface-control);
+  color: var(--text-heading);
 }
 .tree-title {
   display: flex;
@@ -1692,23 +1168,23 @@ input[type='checkbox'] {
   min-width: 0;
 }
 .tree-project[data-missing] .tree-name {
-  color: var(--muted);
+  color: var(--text-muted);
 }
 .tree-path {
   overflow: hidden;
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: var(--fs-xs);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .tree-sessions {
-  border-top: var(--bw) solid var(--line);
+  border-top: var(--bw) solid var(--border-subtle);
 }
 .tree-session {
   padding: var(--sp-2) var(--sp-3);
 }
 .tree-session + .tree-session {
-  border-top: var(--bw) dashed var(--line);
+  border-top: var(--bw) dashed var(--border-subtle);
 }
 .tree-session-name {
   flex: 1;
@@ -1724,27 +1200,81 @@ input[type='checkbox'] {
   margin-top: var(--sp-1);
   font-size: var(--fs-sm);
 }
-/* Read by screen readers, not drawn */
-.sr-only {
-  position: absolute;
-  width: var(--bw-thin);
-  height: var(--bw-thin);
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
+
+/* Parts gallery: every part on one scrolling sheet, opened only with CREW_GALLERY=1 */
+.gallery {
+  height: 100%;
+  overflow-y: auto;
+  padding: var(--sp-4);
 }
-/* A question before a removal: a small modal of its own */
-.dialog.confirm {
-  width: min(var(--w-confirm), var(--w-dialog-max));
+.gallery-section {
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface-sheet);
+  border: var(--bw) solid var(--border-subtle);
+  border-radius: var(--r);
 }
-.confirm p {
-  margin: 0 0 var(--sp-4);
-  line-height: var(--lh-text);
+.gallery-section h2 {
+  margin: 0 0 var(--sp-3);
+  color: var(--text-heading);
+  font-size: var(--fs-lg);
 }
-.confirm-actions {
+.gallery-line {
+  display: grid;
+  grid-template-columns: var(--w-field) 1fr;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+}
+.gallery-label {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+.gallery-items {
   display: flex;
-  justify-content: flex-end;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--sp-2);
+}
+.gallery-row,
+.gallery-wide {
+  width: var(--w-answer);
+  padding: var(--sp-1) var(--sp-2);
+}
+.gallery-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--w-answer), 1fr));
+  gap: var(--sp-2);
+  font-size: var(--fs-xs);
+}
+.gallery-swatch {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.gallery-swatch span {
+  flex: none;
+  width: var(--h-md);
+  height: var(--h-md);
+  border: var(--bw-thin) solid var(--border-control);
+  border-radius: var(--r-sm);
+}
+.gallery-space {
+  height: var(--sp-4);
+  background: var(--highlight);
+  border: var(--bw-thin) solid var(--border-control);
+}
+.gallery-corner,
+.gallery-height {
+  display: inline-grid;
+  place-items: center;
+  padding: 0 var(--sp-2);
+  background: var(--surface-control);
+  border: var(--bw) solid var(--border-control);
+  font-size: var(--fs-xs);
+}
+.gallery-corner {
+  height: var(--h-lg);
 }
 
 /* Narrow windows stack like a phone: the camp on top, the panel under it (media queries cannot read tokens) */
@@ -1755,13 +1285,13 @@ input[type='checkbox'] {
   .camp {
     flex: 0 0 var(--camp-share-stacked);
     border-right: none;
-    border-bottom: var(--bw-wood) solid var(--wood-dark);
+    border-bottom: var(--bw-wood) solid var(--frame-rim);
   }
   .panel {
     min-width: 0;
     min-height: 0;
     border-left: none;
-    border-top: var(--bw-frame) solid var(--wood-light);
+    border-top: var(--bw-frame) solid var(--frame);
   }
   .legend {
     top: var(--sp-2);

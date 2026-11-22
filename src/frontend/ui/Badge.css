@@ -1,0 +1,24 @@
+.ui-badge {
+  flex: none;
+  padding: 0 var(--sp-1);
+  border: var(--bw) solid var(--border-subtle);
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+.ui-badge--ok {
+  background: var(--status-ok-bg);
+  border-color: var(--status-ok-edge);
+  color: var(--status-ok-text);
+}
+.ui-badge--wait {
+  background: var(--status-wait-bg);
+  border-color: var(--status-wait-edge);
+  color: var(--status-wait-text);
+}
+.ui-badge--bad {
+  background: var(--status-bad-bg);
+  border-color: var(--status-bad);
+  color: var(--status-bad-text);
+}

@@ -1,0 +1,36 @@
+.ui-switch {
+  position: relative;
+  flex: none;
+  width: var(--w-col);
+  height: var(--switch-h);
+  padding: 0;
+  background: var(--control-off);
+  border: var(--bw) solid var(--border-control);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+.ui-switch[data-state='checked'] {
+  background: var(--action-primary-bg);
+  border-color: var(--action-primary-edge);
+}
+.ui-switch:focus-visible {
+  outline: var(--bw) solid var(--focus-ring);
+  outline-offset: var(--bw);
+}
+.ui-switch:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.ui-switch-thumb {
+  display: block;
+  width: var(--switch-thumb);
+  height: var(--switch-thumb);
+  background: var(--surface-sheet);
+  border-radius: var(--bw);
+  transform: translateX(var(--bw));
+  transition: transform var(--t-fast);
+}
+/* The thumb travels the inside width of the switch */
+.ui-switch[data-state='checked'] .ui-switch-thumb {
+  transform: translateX(calc(var(--w-col) - var(--switch-thumb) - 3 * var(--bw)));
+}

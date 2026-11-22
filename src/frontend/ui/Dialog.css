@@ -1,0 +1,60 @@
+.ui-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  background: var(--surface-veil);
+}
+/* Wood frame: 3px wood with a dark rim */
+.ui-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: var(--z-dialog);
+  max-height: var(--h-dialog-max);
+  overflow: auto;
+  padding: var(--sp-4);
+  background: var(--surface-frame);
+  border: var(--bw-frame) solid var(--frame);
+  border-radius: var(--r);
+  box-shadow:
+    0 0 0 var(--bw-frame) var(--frame-rim),
+    var(--shadow-float);
+  color: var(--text);
+  transform: translate(-50%, -50%);
+}
+.ui-dialog--md {
+  width: min(var(--w-dialog), var(--w-dialog-max));
+}
+.ui-dialog--sm {
+  width: min(var(--w-confirm), var(--w-dialog-max));
+}
+.ui-dialog--sm p {
+  margin: 0 0 var(--sp-4);
+  line-height: var(--lh-text);
+}
+.ui-dialog-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+.ui-dialog-title {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-heading);
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+}
+/* What follows the title, such as a close button, keeps to the right edge */
+.ui-dialog-head > :last-child:not(:first-child) {
+  margin-left: auto;
+}
+.ui-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+}

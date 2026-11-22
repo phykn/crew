@@ -50,6 +50,7 @@ When your work makes or changes anything the user sees on screen, it follows the
 
 - Every word earns its place: no title, label, or explanation the context already says, such as a "삭제 확인" title on a confirm window or "세션 삭제" in a session row. A row's action is an icon with its name kept for screen readers. Labels are short Korean words, and words that sit side by side are of even length.
 - Nothing jumps: sizes, colors, and spacing come from the project's tokens or one rule, never a one-off pixel value, and no control moves or changes size when its state, its text, or the data under it changes.
+- Build from the project's own design system when it has one: role tokens rather than raw palette steps, and its shared components rather than a hand-styled button or field. A look no component has yet is added to the shared component first, then used.
 - Lines are drawn once and look the same on every side; no seams, double borders, or solid offset shadows.
 - Plain and tidy over decorated: no library's default look, watermark, or browser-default control left showing, and no separator dots between words.
 - Change only what was asked or what shares its problem; a redesign nobody asked for is out of scope.

@@ -13,55 +13,99 @@
 :root {
   color-scheme: light;
 
-  /* Parchment and wood */
-  --bg: #f3d9a4;
-  --panel: #fbe7bd;
-  --card: #fff5dc;
-  --card-hi: #fdebc6;
-  --paper: #fff9e8;
-  --line: #e2bb85;
-  --line-hi: #b8763b;
-  --wood: #8a4f22;
-  --wood-dark: #5c3213;
-  --wood-light: #c98a4b;
-  --on-wood: #fff1d6;
+  /* ---- Palette: raw colors by hue and step (lighter is lower). Only the role colors below use these ---- */
+  --parchment-50: #fff9e8;
+  --parchment-100: #fff5dc;
+  --parchment-150: #fff1d6;
+  --parchment-200: #fdebc6;
+  --parchment-300: #fbe7bd;
+  --parchment-400: #f3d9a4;
+  --parchment-500: #e2bb85;
+  --sand-200: #d9ccae;
+  --sand-300: #d8c49c;
+  --sand-500: #b3a283;
+  --wood-400: #c98a4b;
+  --wood-500: #b8763b;
+  --wood-600: #94683f;
+  --wood-700: #8a4f22;
+  --wood-800: #5c3213;
+  --wood-900: #4a2a12;
+  --green-100: #c9ebbb;
+  --green-300: #86c477;
+  --green-400: #79b86a;
+  --green-600: #4f8a44;
+  --green-700: #3e7a33;
+  --green-800: #2f5a28;
+  --butter-100: #fff0b8;
+  --butter-200: #fbe39a;
+  --butter-600: #b8861f;
+  --butter-800: #6b4a0a;
+  --red-200: #f4b9a8;
+  --red-600: #b8432f;
+  --red-700: #8f3424;
+  --red-800: #7a2416;
+  --blue-100: #bfe1f2;
+  --blue-400: #7fa9c4;
+  --blue-600: #3f78a8;
   /* The campfire logo; the app icon in assets/icon.ico uses the same colors */
-  --flame: #f59e0b;
-  --flame-core: #fde68a;
-  --camp-bg: #2b3a2a;
+  --flame-200: #fde68a;
+  --flame-500: #f59e0b;
+  --forest-900: #2b3a2a;
+  --white-0: #ffffff;
+  --wood-shade-45: rgba(40, 22, 8, 0.45);
+  --wood-veil-45: rgba(60, 34, 14, 0.45);
 
+  /* ---- Roles: what each color is for. Styles use only these ---- */
+  /* Surfaces, from the window back to what floats over it */
+  --surface-app: var(--parchment-400);
+  --surface-frame: var(--parchment-300);
+  --surface-field: var(--parchment-100);
+  --surface-control: var(--parchment-200);
+  --surface-sheet: var(--parchment-50);
+  --surface-camp: var(--forest-900);
+  --surface-veil: var(--wood-veil-45);
+  /* Wood frames round the panel, the legend, and dialogs */
+  --frame: var(--wood-400);
+  --frame-rim: var(--wood-800);
+  --emphasis: var(--wood-700);
+  /* Lines */
+  --border-subtle: var(--parchment-500);
+  --border-control: var(--wood-500);
+  --focus-ring: var(--blue-600);
   /* Text */
-  --text: #4a2a12;
-  --muted: #94683f;
-  --link: #3f78a8;
-  --on-accent: #ffffff;
-
-  /* States: green is go, butter is waiting or highlight, red is only failure and delete */
-  --accent: #79b86a;
-  --accent-hover: #86c477;
-  --accent-dark: #4f8a44;
-  --accent-soft: #c9ebbb;
-  --ok-text: #2f5a28;
-  --ok: #3e7a33;
-  --butter: #fbe39a;
-  --wait-bg: #fff0b8;
-  --wait-line: #b8861f;
-  --wait-text: #6b4a0a;
-  --rose: #f4b9a8;
-  --danger: #b8432f;
-  --danger-dark: #8f3424;
-  --bad-text: #7a2416;
-  --sky: #bfe1f2;
-  --sky-line: #7fa9c4;
-  --off: #d8c49c;
-  --disabled-bg: #d9ccae;
-  --disabled-line: #b3a283;
-
-  /* Shadows and veils */
-  --veil: rgba(60, 34, 14, 0.45);
-  --frame-shadow: rgba(40, 22, 8, 0.45);
+  --text: var(--wood-900);
+  --text-heading: var(--wood-800);
+  --text-emphasis: var(--wood-700);
+  --text-muted: var(--wood-600);
+  --text-link: var(--blue-600);
+  --text-on-accent: var(--white-0);
+  --text-on-wood: var(--parchment-150);
+  --logo-flame: var(--flame-500);
+  --logo-flame-core: var(--flame-200);
+  /* Actions: green is go */
+  --action-primary-bg: var(--green-400);
+  --action-primary-bg-hover: var(--green-300);
+  --action-primary-edge: var(--green-600);
+  /* Pointing at something, and the picked row */
+  --highlight: var(--butter-200);
+  --control-off: var(--sand-300);
+  --disabled-bg: var(--sand-200);
+  --disabled-edge: var(--sand-500);
+  /* States: ok is done, wait is waiting or sent back, bad is only failure and delete, info is neutral news */
+  --status-ok-bg: var(--green-100);
+  --status-ok-edge: var(--green-700);
+  --status-ok-text: var(--green-800);
+  --status-wait-bg: var(--butter-100);
+  --status-wait-edge: var(--butter-600);
+  --status-wait-text: var(--butter-800);
+  --status-bad-bg: var(--red-200);
+  --status-bad: var(--red-600);
+  --status-bad-edge: var(--red-700);
+  --status-bad-text: var(--red-800);
+  --status-info-bg: var(--blue-100);
+  --status-info-edge: var(--blue-400);
   /* What floats over the window casts a soft shadow, never a solid one that would read as a thicker edge */
-  --shadow-float: 0 var(--sp-1) var(--sp-3) var(--frame-shadow);
+  --shadow-float: 0 var(--sp-1) var(--sp-3) var(--wood-shade-45);
 
   /* Type */
   --font-ui: Galmuri11, 'Malgun Gothic', sans-serif;
@@ -72,7 +116,6 @@
   --fs-md: 14px;
   --fs-lg: 16px;
   --fs-xl: 18px;
-  --fs-title: 20px;
   --fw-normal: 400;
   --fw-bold: 700;
   --lh-text: 1.6;
@@ -90,17 +133,15 @@
   --bw: 2px;
   --bw-frame: 3px;
   --bw-wood: 6px;
-  --r-xs: 3px;
   --r-sm: 4px;
   --r: 6px;
   --r-lg: 8px;
 
   /* Heights */
-  --h-xs: 26px;
-  --h-chip: 30px;
-  --h-control: 32px;
-  --h-touch: 36px;
-  --h-picker: 40px;
+  /* Controls come in three heights: small in rows, the usual one, and the large ones over the tabs and in the chat box */
+  --h-sm: 26px;
+  --h-md: 32px;
+  --h-lg: 40px;
   --h-title: 46px;
 
   /* Icons and marks */

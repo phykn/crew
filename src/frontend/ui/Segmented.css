@@ -1,0 +1,18 @@
+/* Joined buttons: one shared border between neighbours */
+.ui-seg {
+  display: flex;
+}
+.ui-seg > .ui-button {
+  border-left-width: 0;
+  border-radius: 0;
+}
+.ui-seg > .ui-button:first-child {
+  border-left-width: var(--bw);
+  border-radius: var(--r) 0 0 var(--r);
+}
+.ui-seg > .ui-button:last-child {
+  border-radius: 0 var(--r) var(--r) 0;
+}
+.ui-seg > .ui-button[aria-pressed='true'] + .ui-button {
+  border-left-color: var(--action-primary-edge);
+}

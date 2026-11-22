@@ -1,0 +1,5 @@
+.ui-empty {
+  margin: var(--sp-8) 0 0;
+  color: var(--text-muted);
+  text-align: center;
+}

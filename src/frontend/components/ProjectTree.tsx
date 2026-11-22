@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
-import * as Dialog from '@radix-ui/react-dialog';
 import { josa } from '../../korean';
 import { call } from '../api';
-import { Confirm } from './Confirm';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { Confirm } from '../ui/Confirm';
+import { Dialog, DialogClose, DialogHead, DialogTitle } from '../ui/Dialog';
+import { Empty } from '../ui/Empty';
 import { FolderIcon, TrashIcon } from './Icons';
 import { sessionLabel } from './ProjectBar';
 
@@ -48,84 +51,82 @@ export function ProjectTree({
   }
 
   return (
-    <Dialog.Root open={open} onOpenChange={(o) => !o && onClose()}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="overlay" />
-        <Dialog.Content className="dialog tree-dialog" aria-describedby={undefined}>
-          <header className="tree-head">
-            <Dialog.Title className="dialog-title">탐색기</Dialog.Title>
-            <Dialog.Close className="button">닫기</Dialog.Close>
-          </header>
-          {tree.length === 0 && <p className="empty">열어 둔 프로젝트가 없습니다.</p>}
-          <ul className="tree" aria-label="프로젝트 목록">
-            {tree.map(({ project, sessions }) => (
-              <li key={project.id} className="tree-project" data-missing={project.missing || undefined}>
-                <div className="tree-project-head">
-                  <FolderIcon />
-                  <div className="tree-title">
-                    <span className="tree-name">{project.name}</span>
-                    <span className="tree-path" title={project.path}>
-                      {project.path}
-                    </span>
-                  </div>
-                  {project.missing && <span className="badge missing">폴더 없음</span>}
-                  <button
-                    className="quiet-action danger icon-only"
-                    onClick={() => ask({ kind: 'project', id: project.id, name: project.name })}
-                    aria-label={`${project.name} 삭제`}
-                    title="삭제"
-                  >
-                    <TrashIcon />
-                  </button>
-                </div>
-                {sessions.length > 0 && (
-                  <ul className="tree-sessions">
-                    {sessions.map(({ session, agents }) => (
-                      <li key={session.id} className="tree-session">
-                        <div className="tree-session-head">
-                          <span className="tree-session-name">{sessionLabel(session)}</span>
-                          <button
-                            className="quiet-action danger icon-only"
-                            onClick={() => ask({ kind: 'session', id: session.id, name: sessionLabel(session) })}
-                            aria-label={`${sessionLabel(session)} 삭제`}
-                            title="삭제"
-                          >
-                            <TrashIcon />
-                          </button>
-                        </div>
-                        {agents.length > 0 && (
-                          <ul className="tree-agents">
-                            {agents.map((a) => (
-                              <li key={a.id} className="tree-agent">
-                                <b>{a.role}</b> <span className="muted">{a.nickname}</span>{' '}
-                                <span className="badge">실행 {a.runs}회</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
-          </ul>
-          {target && impact && (
-            <Confirm
-              label="삭제 확인"
-              text={
-                <>
-                  {josa(target.name, '을')} 삭제합니다. {target.kind === 'project' && `세션 ${impact.sessions}개, `}
-                  업무 {impact.tasks}건, 로그 {impact.events}건, 메시지 {impact.messages}건이 지워집니다.
-                  {target.kind === 'project' && ' 폴더의 파일은 그대로 둡니다.'}
-                </>
-              }
-              actions={[{ label: '삭제', danger: true, run: confirm }]}
-              onCancel={() => setTarget(null)}
-            />
-          )}
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <Dialog open={open} onClose={onClose} className="tree-dialog">
+      <DialogHead>
+        <DialogTitle>탐색기</DialogTitle>
+        <DialogClose />
+      </DialogHead>
+      {tree.length === 0 && <Empty>열어 둔 프로젝트가 없습니다.</Empty>}
+      <ul className="tree" aria-label="프로젝트 목록">
+        {tree.map(({ project, sessions }) => (
+          <li key={project.id} className="tree-project" data-missing={project.missing || undefined}>
+            <div className="tree-project-head">
+              <FolderIcon />
+              <div className="tree-title">
+                <span className="tree-name">{project.name}</span>
+                <span className="tree-path" title={project.path}>
+                  {project.path}
+                </span>
+              </div>
+              {project.missing && <Badge tone="bad">폴더 없음</Badge>}
+              <Button
+                variant="quiet"
+                tone="danger"
+                iconOnly
+                onClick={() => ask({ kind: 'project', id: project.id, name: project.name })}
+                aria-label={`${project.name} 삭제`}
+                title="삭제"
+              >
+                <TrashIcon />
+              </Button>
+            </div>
+            {sessions.length > 0 && (
+              <ul className="tree-sessions">
+                {sessions.map(({ session, agents }) => (
+                  <li key={session.id} className="tree-session">
+                    <div className="tree-session-head">
+                      <span className="tree-session-name">{sessionLabel(session)}</span>
+                      <Button
+                        variant="quiet"
+                        tone="danger"
+                        iconOnly
+                        onClick={() => ask({ kind: 'session', id: session.id, name: sessionLabel(session) })}
+                        aria-label={`${sessionLabel(session)} 삭제`}
+                        title="삭제"
+                      >
+                        <TrashIcon />
+                      </Button>
+                    </div>
+                    {agents.length > 0 && (
+                      <ul className="tree-agents">
+                        {agents.map((a) => (
+                          <li key={a.id} className="tree-agent">
+                            <b>{a.role}</b> <span className="muted">{a.nickname}</span> <Badge>실행 {a.runs}회</Badge>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ul>
+      {target && impact && (
+        <Confirm
+          label="삭제 확인"
+          text={
+            <>
+              {josa(target.name, '을')} 삭제합니다. {target.kind === 'project' && `세션 ${impact.sessions}개, `}
+              업무 {impact.tasks}건, 로그 {impact.events}건, 메시지 {impact.messages}건이 지워집니다.
+              {target.kind === 'project' && ' 폴더의 파일은 그대로 둡니다.'}
+            </>
+          }
+          actions={[{ label: '삭제', danger: true, run: confirm }]}
+          onCancel={() => setTarget(null)}
+        />
+      )}
+    </Dialog>
   );
 }

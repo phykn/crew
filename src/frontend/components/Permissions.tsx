@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import type { Config } from '../../backend/crew/shipped';
 import { call, follow } from '../api';
 import { stamp } from '../time';
-import { Choice } from './Choice';
+import { Choice } from '../ui/Choice';
+import { Chip, ChipButton, ToggleChip } from '../ui/Chip';
 import { KitIcon } from './Icons';
 
 type Data = Awaited<ReturnType<typeof call<'members.permissions'>>>;
@@ -56,15 +57,13 @@ export function Permissions({ memberId }: { memberId: number }) {
       <span className="perm-label">도구</span>
       <div className="perm-items">
         {Object.entries(TOOL_LABELS).map(([kind, label]) => (
-          <label key={kind} className="chip">
-            <input
-              className="sr-only"
-              type="checkbox"
-              checked={settings.tools.includes(kind as never)}
-              onChange={() => save({ tools: toggle(settings.tools, kind as never) })}
-            />
+          <ToggleChip
+            key={kind}
+            checked={settings.tools.includes(kind as never)}
+            onChange={() => save({ tools: toggle(settings.tools, kind as never) })}
+          >
             {label}
-          </label>
+          </ToggleChip>
         ))}
       </div>
       <span className="perm-label">쓰기</span>
@@ -79,32 +78,29 @@ export function Permissions({ memberId }: { memberId: number }) {
       <span className="perm-label">스킬</span>
       <div className="perm-items">
         {skills.map(([name, item]) => (
-          <label key={name} className="chip" title={item.use}>
-            <input
-              className="sr-only"
-              type="checkbox"
-              checked={settings.skills.includes(name)}
-              onChange={() => save({ skills: toggle(settings.skills, name) })}
-            />
+          <ToggleChip
+            key={name}
+            title={item.use}
+            checked={settings.skills.includes(name)}
+            onChange={() => save({ skills: toggle(settings.skills, name) })}
+          >
             <KitIcon icon={item.icon} label={item.label} />
             {item.label}
-          </label>
+          </ToggleChip>
         ))}
-        <button className="chip more" onClick={() => setAllSkills(!allSkills)}>
-          {allSkills ? '접기' : '+ 스킬'}
-        </button>
+        <ChipButton onClick={() => setAllSkills(!allSkills)}>{allSkills ? '접기' : '+ 스킬'}</ChipButton>
       </div>
       <span className="perm-label">MCP</span>
       <div className="perm-items">
         {Object.entries(kit.mcp).map(([server, item]) => {
           const held = settings.mcp.find((m) => m.server === server);
           return (
-            <span key={server} className="chip" title={item.use}>
+            <Chip key={server} title={item.use}>
               <KitIcon icon={item.icon} label={item.label} />
               {item.label}
               <Choice
                 label={`${item.label} 접근`}
-                className="small"
+                size="sm"
                 value={held?.access ?? 'none'}
                 options={ACCESS}
                 onChange={(v) => {
@@ -112,7 +108,7 @@ export function Permissions({ memberId }: { memberId: number }) {
                   save({ mcp: v === 'none' ? rest : [...rest, { server, access: v as 'all' | 'read' }] });
                 }}
               />
-            </span>
+            </Chip>
           );
         })}
       </div>

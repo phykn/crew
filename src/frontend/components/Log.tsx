@@ -3,7 +3,9 @@ import type { Event, Handback, Session, Task } from '../../backend/db';
 import type { CrewMember } from '../../backend/crew/shipped';
 import { call, follow } from '../api';
 import { clock, duration } from '../time';
-import { Choice } from './Choice';
+import { Button } from '../ui/Button';
+import { Choice } from '../ui/Choice';
+import { Toolbar, ToolbarEnd } from '../ui/Toolbar';
 import { MarkIcon } from './Icons';
 import type { ChangesTarget } from './Changes';
 
@@ -57,7 +59,7 @@ export function Log({
   const seconds = usage.reduce((n, u) => n + u.seconds, 0);
   return (
     <div className="log">
-      <div className="toolbar">
+      <Toolbar>
         <Choice
           label="업무 선택"
           value={taskId ? String(taskId) : ALL}
@@ -68,18 +70,21 @@ export function Log({
           onChange={(v) => onTask(v === ALL ? null : Number(v))}
         />
         {runs > 0 && (
-          <button
-            className="toolbar-end usage-toggle"
-            aria-expanded={showUsage}
-            title="사용량"
-            onClick={() => setShowUsage(!showUsage)}
-          >
-            <span>{runs}회 실행</span>
-            <span>{duration(seconds)}</span>
-            <span>${cost.toFixed(3)}</span>
-          </button>
+          <ToolbarEnd>
+            <Button
+              variant="link"
+              className="usage-toggle"
+              aria-expanded={showUsage}
+              title="사용량"
+              onClick={() => setShowUsage(!showUsage)}
+            >
+              <span>{runs}회 실행</span>
+              <span>{duration(seconds)}</span>
+              <span>${cost.toFixed(3)}</span>
+            </Button>
+          </ToolbarEnd>
         )}
-      </div>
+      </Toolbar>
       {showUsage && (
         <table className="usage" aria-label="사용량">
           <thead>
@@ -117,7 +122,8 @@ export function Log({
           const mark = markOf(e, hb, errors);
           return (
             <li key={e.id} className="log-row" data-kind={e.kind} data-bad={mark.state === 'bad' || undefined}>
-              <button
+              <Button
+                variant="row"
                 className="log-line"
                 disabled={!opens}
                 aria-expanded={opens ? open === e.id : undefined}
@@ -135,7 +141,7 @@ export function Log({
                 </span>
                 <span className="log-who">{m ? m.role : '앱'}</span>
                 <span className="log-text">{m ? e.text.replace(new RegExp(`^${m.role}: `), '') : e.text}</span>
-              </button>
+              </Button>
               {hb && open === e.id && (
                 <HandbackView
                   hb={hb}
@@ -183,9 +189,9 @@ function HandbackView({ hb, onFile }: { hb: Logged; onFile: ((file: string) => v
             {hb.files.map((f) => (
               <li key={f}>
                 {onFile ? (
-                  <button className="file-link" title="변경 내용 보기" onClick={() => onFile(f)}>
+                  <Button variant="link" className="file-link" title="변경 내용 보기" onClick={() => onFile(f)}>
                     <code>{f}</code>
-                  </button>
+                  </Button>
                 ) : (
                   <code>{f}</code>
                 )}
