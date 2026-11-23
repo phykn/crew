@@ -211,6 +211,44 @@ const LOWERS = {
   },
 };
 
+// Seated on a plank, the hips sit at row 18 and the ground is about four rows lower: the thighs come toward us as a lap,
+// then short shins go down to feet on the ground, so a sitting person keeps their legs instead of ending at the waist
+const lap = (d, color, f) => {
+  d.rect(4, 18, 8, 2, color, f);
+  d.rect(4, 18, 8, 1, color, f * 1.15);
+};
+const SEATED = {
+  boots(d) {
+    lap(d, d.cloth, 0.65);
+    d.rect(5, 20, 2, 1, C.leather, 1.3);
+    d.rect(9, 20, 2, 1, C.leather, 1.1);
+    d.rect(4, 21, 3, 1, C.leather, 0.7);
+    d.rect(9, 21, 3, 1, C.leather, 0.6);
+  },
+  gown(d) {
+    lap(d, d.cloth, 0.9);
+    d.rect(3, 20, 10, 1, d.cloth, 0.75);
+    d.rect(5, 21, 2, 1, C.leather, 0.8);
+    d.rect(9, 21, 2, 1, C.leather, 0.7);
+  },
+  greaves(d) {
+    lap(d, d.cloth, 0.65);
+    d.rect(5, 20, 2, 1, C.iron, 1.3);
+    d.rect(9, 20, 2, 1, C.iron, 1.05);
+    d.rect(4, 21, 3, 1, C.iron, 0.95);
+    d.rect(9, 21, 3, 1, C.iron, 0.8);
+  },
+  wraps(d) {
+    lap(d, d.cloth, 0.65);
+    d.rect(5, 20, 2, 1, d.cloth, 0.7);
+    d.rect(9, 20, 2, 1, d.cloth, 0.6);
+    d.px(5, 20, C.parchmentDeep, 0.6);
+    d.px(10, 20, C.parchmentDeep, 0.5);
+    d.rect(4, 21, 3, 1, C.leather, 0.9);
+    d.rect(9, 21, 3, 1, C.leather, 0.8);
+  },
+};
+
 // Each pixel gets a little random darkening so the figure looks worn, not flat
 function paint(room, pose, seed) {
   const c = Object.assign(document.createElement('canvas'), { width: SPRITE_W, height: SPRITE_H });
@@ -235,8 +273,8 @@ function paint(room, pose, seed) {
     r: pose === 'walkR' ? 1 : 0,
   };
   const [head, upper, lower] = room.look;
-  // Bottom to top, so long hair and hoods fall over the shoulders; someone sitting shows the upper half only
-  if (pose !== 'sit') LOWERS[lower](d);
+  // Bottom to top, so long hair and hoods fall over the shoulders
+  (pose === 'sit' ? SEATED : LOWERS)[lower](d);
   UPPERS[upper](d);
   HEADS[head](d);
   return c;
