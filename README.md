@@ -16,15 +16,15 @@ You only talk to the secretary. It opens a task, the crew takes each step, and t
 
 ## Features
 
-| | |
+| Feature | What it does |
 |---|---|
-| 💬 **One chat** | Ask in plain words, attach pictures, queue a message with Ctrl+Enter |
-| 🧑‍🤝‍🧑 **Hire on demand** | HR designs a new member, regular or temp, when no one fits the job |
-| 🛡️ **Guarded tools** | Dangerous commands and writes outside a member's scope are blocked; anything unusual is asked on a card |
-| ⚙️ **Your rules** | Change each member's nickname, model, tools, skills, and MCP access, and edit the workflow |
-| 📚 **Memory** | What the crew learns goes into a project wiki with a graph; every step leaves a log |
-| 🔥 **The camp** | Members walk, sit by the fire, and cast spells while they work; click one to open its log |
-| 🔌 **Subscription or API** | Run on your Claude Code login or an Anthropic API key, kept encrypted on your computer |
+| **One chat** | Ask in plain words, attach pictures, queue a message with Ctrl+Enter |
+| **Hire on demand** | HR designs a new member, regular or temp, when no one fits the job |
+| **Guarded tools** | Dangerous commands and writes outside a member's scope are blocked; anything unusual is asked on a card |
+| **Your rules** | Change each member's nickname, model, tools, skills, and MCP access, and edit the workflow |
+| **Memory** | What the crew learns goes into a project wiki with a graph; every step leaves a log |
+| **The camp** | Members walk, sit by the fire, and cast spells while they work; click one to open its log |
+| **Subscription or API** | Run on your Claude Code login or an Anthropic API key, kept encrypted on your computer |
 
 ## Quick start
 
