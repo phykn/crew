@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
 import { ALLOW } from '../../domain/answers';
+import { RESTARTED } from '../../domain/task';
 import type { Workflow } from '../../domain/workflow';
 import type { RunSpend } from '../../domain/usage';
 import type { Author, Change, Doc, Memory } from '../../domain/wiki';
@@ -390,9 +391,7 @@ export class Store implements Records {
       const cut = this.db
         .prepare("SELECT id FROM tasks WHERE status IN ('running', 'reviewing', 'fixing', 'waiting', 'stopping')")
         .all() as { id: number }[];
-      this.db
-        .prepare("UPDATE step_runs SET status = 'stopped', error = 'app restarted' WHERE status = 'running'")
-        .run();
+      this.db.prepare("UPDATE step_runs SET status = 'stopped', error = ? WHERE status = 'running'").run(RESTARTED);
       for (const { id } of cut) this.writeTaskStatus(id, 'stopped', '', '앱이 다시 시작되어 업무가 멈췄습니다');
     });
   }

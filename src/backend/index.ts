@@ -38,7 +38,7 @@ app.whenReady().then(() => {
   // A definition added since the last start joins every project it is missing from
   for (const p of store.listProjects()) chat.members.seed(p.id);
   store.recoverInterrupted();
-  registerHandlers(createHandlers(store, crew, chat, () => win));
+  registerHandlers(createHandlers(chat, () => win));
   createWindow();
 });
 

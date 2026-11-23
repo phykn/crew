@@ -7,7 +7,6 @@ import { KEPT } from '../../domain/crew';
 import { ALLOW, REFUSE } from '../../domain/answers';
 import { josa, particle } from '../../../korean';
 import { MODE_LABELS, MODELS, MODES } from '../../../shared';
-import { usage } from '../../domain/usage';
 
 type Action = {
   id: string;
@@ -157,11 +156,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       kind: 'read',
       args: z.object({}),
       ui: ['usage.list'],
-      run: () =>
-        usage(store.listRunSpend(sessionId)).map((u) => ({
-          ...u,
-          role: crew.defOf(store.readMemberById(u.memberId)).role,
-        })),
+      run: () => chat.runs.spend(sessionId),
     }),
     action({
       id: 'sessions.list',

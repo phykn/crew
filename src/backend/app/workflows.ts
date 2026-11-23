@@ -48,19 +48,21 @@ export class Workflows {
     // A rule for one task applies only to a task of this project and kind
     if (o.scope !== 'future' && !this.ownTask(o.projectId, o.kind, o.taskId!))
       return { ok: false as const, problems: [`이 프로젝트에 ${o.kind} 업무 #${o.taskId}이 없습니다`] };
-    if (o.scope !== 'once') {
-      const version = store.addWorkflowVersion(o.projectId, o.kind, o.base, rules, o.layout, o.by.name);
-      if (version === null)
-        return {
-          ok: false as const,
-          problems: [`버전 ${o.base} 이후에 다른 변경이 저장되었습니다. 최신 규칙을 다시 읽고 고치세요`],
-        };
-      if (o.reason) {
-        wiki.write(o.projectId, `워크플로우: ${o.kind}`, o.reason, o.by, { kind: o.kind, version });
-        emit('changed', { topic: 'wiki' });
+    const stale = store.transact(() => {
+      if (o.scope !== 'once') {
+        const version = store.addWorkflowVersion(o.projectId, o.kind, o.base, rules, o.layout, o.by.name);
+        if (version === null) return true;
+        if (o.reason) wiki.write(o.projectId, `워크플로우: ${o.kind}`, o.reason, o.by, { kind: o.kind, version });
       }
-    }
-    if (o.taskId && o.scope !== 'future') store.writeTaskWorkflow(o.taskId, rules);
+      if (o.taskId && o.scope !== 'future') store.writeTaskWorkflow(o.taskId, rules);
+      return false;
+    });
+    if (stale)
+      return {
+        ok: false as const,
+        problems: [`버전 ${o.base} 이후에 다른 변경이 저장되었습니다. 최신 규칙을 다시 읽고 고치세요`],
+      };
+    if (o.reason && o.scope !== 'once') emit('changed', { topic: 'wiki' });
     emit('changed', { topic: 'workflows' });
     return { ok: true as const, version: this.current(o.projectId, o.kind).version };
   }

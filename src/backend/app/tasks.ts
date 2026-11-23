@@ -1,13 +1,25 @@
 import type { Chat } from './chat';
-import { changedFiles, type Handback, type Member, NOT_HIRED, type Snapshot, type Task } from '../domain/records';
+import {
+  changedFiles,
+  type Handback,
+  type Member,
+  NOT_HIRED,
+  skipped,
+  type Snapshot,
+  type Task,
+} from '../domain/records';
 import { ancestors, type Step } from '../domain/workflow';
 import {
   CODE_SCOPE,
+  DRIVEN,
+  ENDED,
+  HALTED,
   HANDBACK_SCHEMA,
   lastDone,
   makers,
   nextStatus,
   ReadHandback,
+  RESTARTED,
   satisfied,
   sendsBack,
   sentBack,
@@ -88,7 +100,7 @@ export class Tasks {
 
   // A stopped task takes no new run, even one already waiting in a lane
   halted(taskId: number) {
-    return ['stopping', 'stopped'].includes(this.chat.store.readTask(taskId).status);
+    return HALTED.includes(this.chat.store.readTask(taskId).status);
   }
 
   // More from the user goes back to every step that made the task: a finished task opens again, one at work redoes once its turn ends
@@ -123,6 +135,7 @@ export class Tasks {
   drop(taskId: number) {
     this.stop(taskId);
     this.driving.delete(taskId);
+    this.chat.runs.locksOf(this.projectOf(this.chat.store.readTask(taskId))).forget(taskId);
   }
 
   // Continues a stopped or failed task from the steps it has not finished
@@ -150,10 +163,19 @@ export class Tasks {
     this.driving.set(taskId, drive);
     const current = () => this.driving.get(taskId) === drive;
     if (!resumed) this.move(taskId, 'START', '', `${first.title} 업무 시작`);
+    try {
+      await this.steps(taskId, current);
+    } finally {
+      if (current()) this.driving.delete(taskId);
+    }
+  }
+
+  async steps(taskId: number, current: () => boolean) {
+    const { store } = this.chat;
     while (current()) {
       const task = store.readTask(taskId);
       if (task.status === 'stopping') return this.move(taskId, 'STOPPED', '', `${task.title} 업무 중단됨`);
-      if (!['running', 'reviewing', 'fixing'].includes(task.status)) return;
+      if (!DRIVEN.includes(task.status)) return;
       const w = task.workflow;
       const runs = store.listStepRuns(taskId);
       const holds = (id: string) => satisfied(w, runs, id);
@@ -197,12 +219,16 @@ export class Tasks {
       const runId = store.startStepRun(task.id, step.id, member.id, store.latestVersion(task.id)?.id ?? null);
       this.chat.emit('changed', { topic: 'tasks', sessionId: task.sessionId });
       await this.starting.get(task.id);
-      const out = await this.chat.runs
-        .run(member, task.sessionId, task.id, prompt, {
-          schema: HANDBACK_SCHEMA,
-          mcpServers: { crew: await this.chat.tools.member(task, step, member) },
-          alive: () => current() && !this.halted(task.id),
-        })
+      const out = await this.chat.tools
+        .member(task, step, member)
+        .then((crew) =>
+          this.chat.runs.run(member, task.sessionId, task.id, prompt, {
+            schema: HANDBACK_SCHEMA,
+            mcpServers: { crew },
+            alive: () => current() && !this.halted(task.id),
+          }),
+        )
+        .catch((err: unknown) => skipped('failed', err instanceof Error ? err.message : String(err)))
         // Once the task's last run has really ended, nothing it started can still be writing; a step beside it may still be
         .finally(() => {
           if (!this.chat.runs.ofTask(task.id).length) this.chat.runs.locksOf(project).release(task.id);
@@ -285,7 +311,7 @@ export class Tasks {
     const locks = runs.locksOf(this.projectOf(task));
     const done = store.listStepRuns(task.id);
     // Reservations live in memory: with none seen, or a run of this step cut by a restart, nothing tells the task's writes apart
-    const cut = done.some((r) => r.stepId === step.id && r.error === 'app restarted');
+    const cut = done.some((r) => r.stepId === step.id && r.error === RESTARTED);
     if (!locks.touched.get(task.id)?.size || cut) return all;
     const making = new Set(task.workflow.steps.filter((s) => !s.verdict).map((s) => s.id));
     const earlier = done.flatMap((r) => (making.has(r.stepId) && r.status === 'done' ? (r.handback?.files ?? []) : []));
@@ -300,7 +326,7 @@ export class Tasks {
     const project = this.projectOf(task);
     const own = lastDone(runs, step.id);
     // A run cut off by a restart may have saved files already; the new run checks them instead of starting over
-    const cut = runs.filter((r) => r.stepId === step.id).at(-1)?.error === 'app restarted';
+    const cut = runs.filter((r) => r.stepId === step.id).at(-1)?.error === RESTARTED;
     const saved =
       cut && !step.verdict ? changedFiles(store.readBaseline(task.id), this.chat.files.snapshot(project.path)) : [];
     const earlier = w.steps
@@ -353,7 +379,13 @@ export class Tasks {
     if (!makers(task.workflow).some((s) => this.memberFor(task, s).temp)) return '';
     const project = this.projectOf(task);
     const dir = this.chat.runs.outputDir(project, `task-${task.id}`);
-    const { moved: files, replaced: taken } = this.chat.files.moveAll(dir, project.path);
+    let files: string[], taken: string[];
+    try {
+      ({ moved: files, replaced: taken } = this.chat.files.moveAll(dir, project.path));
+    } catch (err) {
+      // A file held open by another program cannot move; the rest of the ending still has to happen
+      return `[Files] The temp's files could not all be moved from ${dir} into the project folder: ${err instanceof Error ? err.message : String(err)}`;
+    }
     if (!files.length) return '';
     return [
       `[Files] The temp's files were moved into the project folder: ${files.join(', ')}`,
@@ -375,9 +407,7 @@ export class Tasks {
   // A temp's work is the task it came for; once that is done and nothing else needs it, it leaves
   dismissTemps(task: Task) {
     const { store } = this.chat;
-    const open = store
-      .listTasks(task.sessionId)
-      .filter((t) => t.id !== task.id && !['done', 'failed', 'stopped'].includes(t.status));
+    const open = store.listTasks(task.sessionId).filter((t) => t.id !== task.id && !ENDED.includes(t.status));
     for (const s of task.workflow.steps) {
       const m = this.memberFor(task, s);
       if (m.temp && !open.some((t) => t.workflow.steps.some((x) => this.memberFor(t, x).id === m.id)))

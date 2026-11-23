@@ -4,6 +4,13 @@ import type { StepRun, TaskStatus } from './records';
 import { ancestors, type Step, Workflow } from './workflow';
 import { josa } from '../../korean';
 
+// The error left on a step run cut off by an app restart
+export const RESTARTED = 'app restarted';
+// A task whose drive is stepping through its workflow
+export const DRIVEN: readonly TaskStatus[] = ['running', 'reviewing', 'fixing'];
+export const HALTED: readonly TaskStatus[] = ['stopping', 'stopped'];
+export const ENDED: readonly TaskStatus[] = ['done', 'failed', 'stopped'];
+
 export type TaskEvent = {
   type:
     | 'START'

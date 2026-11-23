@@ -18,8 +18,10 @@ const split = (value: string, by: string) => {
   let part = '';
   for (const c of value) {
     depth += c === '(' ? 1 : c === ')' ? -1 : 0;
-    if (c === by && depth === 0) (parts.push(part.trim()), (part = ''));
-    else part += c;
+    if (c === by && depth === 0) {
+      parts.push(part.trim());
+      part = '';
+    } else part += c;
   }
   return [...parts, part.trim()].filter(Boolean);
 };

@@ -1,11 +1,9 @@
 import { BrowserWindow, dialog, ipcMain } from 'electron';
 import { z } from 'zod';
 import { campState } from './camp';
-import type { Store } from '../sqlite/store';
 import type { Chat } from '../../app/chat';
-import { Config, type Crew } from '../../domain/crew';
+import { Config } from '../../domain/crew';
 import { IMAGE_TYPES, MODELS, MODES } from '../../../shared';
-import { usage } from '../../domain/usage';
 
 const id = z.number().int().positive();
 const USER = { memberId: null, name: '사용자' };
@@ -14,8 +12,8 @@ const USER = { memberId: null, name: '사용자' };
 const handle = <S extends z.ZodType, R>(args: S, run: (a: z.infer<S>) => R) => ({ args, run });
 
 // Every call the window can make, with the schema its arguments must pass
-export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => BrowserWindow | null) {
-  const { members, workflows, wiki, tasks } = chat;
+export function createHandlers(chat: Chat, win: () => BrowserWindow | null) {
+  const { store, crew, members, workflows, wiki, tasks } = chat;
   return {
     'projects.list': handle(z.undefined(), () => store.listProjects()),
     'projects.open': handle(z.undefined(), async () => {
@@ -102,7 +100,7 @@ export function createHandlers(store: Store, crew: Crew, chat: Chat, win: () => 
     'memories.list': handle(z.object({ projectId: id, memberId: id.optional() }), (a) =>
       wiki.memories(a.projectId, a.memberId),
     ),
-    'usage.list': handle(z.object({ sessionId: id }), (a) => usage(store.listRunSpend(a.sessionId))),
+    'usage.list': handle(z.object({ sessionId: id }), (a) => chat.runs.spend(a.sessionId)),
     'workflows.kinds': handle(z.undefined(), () => workflows.shipped.map((w) => ({ kind: w.kind, label: w.label }))),
     'workflows.read': handle(z.object({ projectId: id, kind: z.string() }), (a) =>
       workflows.current(a.projectId, a.kind),

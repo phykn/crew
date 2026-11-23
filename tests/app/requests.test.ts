@@ -1,6 +1,5 @@
 import { expect, test, vi } from 'vitest';
-import { askPeer } from '../../../src/backend/adapters/mcp/member';
-import { handback, openChat, reply } from '../../support';
+import { handback, openChat, reply } from '../support';
 
 test('a peer request asked back stays one thread, a resent line runs once, and a test handback without checks is sent back', async () => {
   const { store, fake, chat, p, s } = openChat({
@@ -24,12 +23,20 @@ test('a peer request asked back stays one thread, a resent line runs once, and a
   const step = task.workflow.steps.find((x) => x.id === 'develop')!;
 
   // Asking oneself would wait on one's own run
-  expect(await askPeer(chat, task, step, coder, { role: 'coder', message: '?' })).toContain('cannot ask yourself');
-  const first = await askPeer(chat, task, step, coder, { role: '표준', message: '이름 괜찮나요?' });
+  expect(await chat.requests.ask(task, step, coder, { role: 'coder', message: '?' })).toContain('cannot ask yourself');
+  const first = await chat.requests.ask(task, step, coder, { role: '표준', message: '이름 괜찮나요?' });
   expect(first).toContain('asks back: 어느 파일인가요?');
   const id = Number(first.match(/Request (\d+)/)![1]);
-  const second = await askPeer(chat, task, step, coder, { role: '표준', message: 'search.js입니다', request_id: id });
-  const again = await askPeer(chat, task, step, coder, { role: '표준', message: 'search.js입니다', request_id: id });
+  const second = await chat.requests.ask(task, step, coder, {
+    role: '표준',
+    message: 'search.js입니다',
+    request_id: id,
+  });
+  const again = await chat.requests.ask(task, step, coder, {
+    role: '표준',
+    message: 'search.js입니다',
+    request_id: id,
+  });
   expect(second).toContain('searchItems가 맞습니다');
   expect(again).toBe(second);
   expect(store.readRequest(id).thread.map((l) => l.from)).toEqual(['개발', '표준', '개발', '표준']);

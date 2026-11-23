@@ -32,15 +32,20 @@ export function openScratch(files?: Record<string, string>) {
 }
 
 // A chat on a scratch record with one project, its crew, and a session, its members answering from the scripts
+// An SDK that cannot be loaded, as when its package or binary is missing
+export const broken = async (): Promise<Sdk> => {
+  throw new Error('SDK를 불러오지 못함');
+};
+
 export function openChat(
   scripts: Record<string, Turn[]> = {},
-  o: { files?: Record<string, string>; emit?: Feed; crew?: Crew } = {},
+  o: { files?: Record<string, string>; emit?: Feed; crew?: Crew; sdk?: () => Promise<Sdk> } = {},
 ) {
   const scratch = openScratch(o.files);
   const fake = fakeCrew(scripts);
   const chat = wire({
     records: scratch.store,
-    sdk: async () => fake.sdk,
+    sdk: o.sdk ?? (async () => fake.sdk),
     crew: o.crew ?? CREW,
     emit: o.emit ?? (() => {}),
     paths: scratch.paths,

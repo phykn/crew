@@ -1,7 +1,5 @@
 import { expect, test, vi } from 'vitest';
-import { handback, never, openChat, recordedRuns, reply, type Turn } from '../support';
-import { ClaudeAgent } from '../../src/backend/adapters/claude/agent';
-import { mcpServers } from '../../src/backend/adapters/mcp/servers';
+import { broken, handback, never, openChat, recordedRuns, reply, type Turn } from '../support';
 
 test('비서 answers in its own Claude session and runs on the model chosen last', async () => {
   const streamed: string[] = [];
@@ -105,12 +103,7 @@ test('stopping 비서 mid-answer ends that run, closes the card it left open, an
 });
 
 test('an error before 비서 can run is said in the chat instead of leaving 비서 answering', async () => {
-  const { store, chat, s } = openChat();
-  const broken = async (): Promise<never> => {
-    throw new Error('SDK를 불러오지 못함');
-  };
-  chat.agent = new ClaudeAgent(broken);
-  chat.tools = mcpServers(broken, chat);
+  const { store, chat, s } = openChat({}, { sdk: broken });
   await chat.send(s.id, '안녕');
   expect(store.listMessages(s.id).at(-1)!.text).toBe('답하는 중 오류가 났습니다: SDK를 불러오지 못함');
 });

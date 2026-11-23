@@ -103,29 +103,29 @@ export class ClaudeRun implements AgentRun {
   async run(prompt: string, images: Image[] = []): Promise<RunOutput> {
     const { input } = this;
     this.inbox.push(prompt, images);
-    const { query } = await this.sdk();
-    if (this.stopped) return { claudeId: this.claudeId, text: '', status: 'stopped', usage: emptyUsage() };
-    this.query = query({
-      prompt: this.inbox,
-      options: {
-        cwd: input.cwd,
-        model: input.model,
-        resume: input.resume ?? undefined,
-        forkSession: input.fork,
-        systemPrompt: input.system,
-        // No tool is pre-allowed and the mode asks, so every call that is not read-only reaches the guard
-        canUseTool: input.canUseTool as CanUseTool,
-        permissionMode: 'default',
-        mcpServers: input.mcpServers as Record<string, McpServerConfig>,
-        mcpServersDelivery: 'initialize',
-        // The project's own CLAUDE.md and settings apply; the user's personal ones do not leak into the crew
-        settingSources: ['project'],
-        includePartialMessages: true,
-        outputFormat: input.schema ? { type: 'json_schema', schema: input.schema } : undefined,
-      },
-    });
     let out: RunOutput = { claudeId: input.resume ?? null, text: '', status: 'failed', usage: emptyUsage() };
     try {
+      const { query } = await this.sdk();
+      if (this.stopped) return { ...out, claudeId: this.claudeId, status: 'stopped' };
+      this.query = query({
+        prompt: this.inbox,
+        options: {
+          cwd: input.cwd,
+          model: input.model,
+          resume: input.resume ?? undefined,
+          forkSession: input.fork,
+          systemPrompt: input.system,
+          // No tool is pre-allowed and the mode asks, so every call that is not read-only reaches the guard
+          canUseTool: input.canUseTool as CanUseTool,
+          permissionMode: 'default',
+          mcpServers: input.mcpServers as Record<string, McpServerConfig>,
+          mcpServersDelivery: 'initialize',
+          // The project's own CLAUDE.md and settings apply; the user's personal ones do not leak into the crew
+          settingSources: ['project'],
+          includePartialMessages: true,
+          outputFormat: input.schema ? { type: 'json_schema', schema: input.schema } : undefined,
+        },
+      });
       let answered = 0;
       for await (const msg of this.query) {
         out = this.read(msg, out);

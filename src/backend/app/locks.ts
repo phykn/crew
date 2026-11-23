@@ -54,6 +54,13 @@ export class Locks {
     this.waiting = this.waiting.filter((w) => w.taskId !== taskId);
   }
 
+  // A task whose record is gone keeps nothing here
+  forget(taskId: number) {
+    this.release(taskId);
+    this.seen.delete(taskId);
+    this.touched.delete(taskId);
+  }
+
   take(taskId: number, paths: string[]) {
     for (const map of [this.held, this.touched]) map.set(taskId, new Set([...(map.get(taskId) ?? []), ...paths]));
   }

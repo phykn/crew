@@ -8,6 +8,7 @@ import { guardMember } from './guard';
 import { projectWrites, type Policy } from '../domain/policy';
 import { Locks } from './locks';
 import { josa } from '../../korean';
+import { usage } from '../domain/usage';
 
 type RunOptions = {
   images?: Image[];
@@ -98,6 +99,15 @@ export class Runs {
     if (out.claudeId) store.writeClaudeId(agentSession.id, out.claudeId, member.model);
     store.finishRun(runId, out);
     return out;
+  }
+
+  // What this session's runs cost, per member and model, with the member's role
+  spend(sessionId: number) {
+    const { store, crew } = this.chat;
+    return usage(store.listRunSpend(sessionId)).map((u) => ({
+      ...u,
+      role: crew.defOf(store.readMemberById(u.memberId)).role,
+    }));
   }
 
   system(member: Member, project: Project) {

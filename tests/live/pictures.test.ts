@@ -73,7 +73,7 @@ test('real Claude: a picture sent while 비서 is answering gets its own answer'
 });
 
 test('real Claude: a picture near the window’s 5MB cap is taken', async () => {
-  const { store, chat, s, last } = haikuChat();
+  const { store, chat, s } = haikuChat();
   const noise = randomBytes(1250 * 1250 * 3);
   const big = png(1250, 1250, (x, y) => [...noise.subarray((y * 1250 + x) * 3, (y * 1250 + x) * 3 + 3)]);
   const bytes = Buffer.from(big.data, 'base64').length;

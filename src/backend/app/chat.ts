@@ -2,6 +2,7 @@ import type { Image, Mode } from '../../shared';
 import type { Crew } from '../domain/crew';
 import type { Agent, Feed, Files, Paths, Ports, Records, ToolServers, Versions } from './ports';
 import { Questions } from './questions';
+import { Requests } from './requests';
 import { Members } from './members';
 import { Runs } from './runs';
 import { Tasks } from './tasks';
@@ -9,21 +10,22 @@ import { Wiki } from './wiki';
 import { Workflows } from './workflows';
 // The hub of one app: the user's conversation with 비서, and the parts the crew works through
 export class Chat {
-  questions: Questions;
-  wiki: Wiki;
-  members: Members;
-  runs: Runs;
-  workflows: Workflows;
-  tasks: Tasks;
+  readonly questions: Questions;
+  readonly requests: Requests;
+  readonly wiki: Wiki;
+  readonly members: Members;
+  readonly runs: Runs;
+  readonly workflows: Workflows;
+  readonly tasks: Tasks;
 
-  store: Records;
-  agent: Agent;
-  files: Files;
-  versions: Versions;
-  crew: Crew;
-  emit: Feed;
-  paths: Paths;
-  tools: ToolServers;
+  readonly store: Records;
+  readonly agent: Agent;
+  readonly files: Files;
+  readonly versions: Versions;
+  readonly crew: Crew;
+  readonly emit: Feed;
+  readonly paths: Paths;
+  readonly tools: ToolServers;
 
   constructor(ports: Ports) {
     this.store = ports.records;
@@ -35,6 +37,7 @@ export class Chat {
     this.paths = ports.paths;
     const { store, emit } = this;
     this.questions = new Questions(store, emit);
+    this.requests = new Requests(this);
     this.wiki = new Wiki(store);
     this.members = new Members(this);
     this.runs = new Runs(this);
@@ -128,6 +131,7 @@ export class Chat {
   removeProject(projectId: number) {
     for (const s of this.store.listSessions(projectId)) this.deleteSession(s.id);
     this.store.removeProject(projectId);
+    this.runs.locks.delete(projectId);
     this.emit('changed', { topic: 'projects' });
   }
 }

@@ -1,7 +1,17 @@
 import { expect, test, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { type fakeCrew, handback, never, openChat, recordedAgents, reopenChat, reply, type Turn } from '../support';
+import {
+  broken,
+  type fakeCrew,
+  handback,
+  never,
+  openChat,
+  recordedAgents,
+  reopenChat,
+  reply,
+  type Turn,
+} from '../support';
 import { DiskFiles } from '../../src/backend/adapters/files/files';
 import { usage } from '../../src/backend/domain/usage';
 
@@ -352,6 +362,14 @@ test('reopening a task sends the change back to every step that made it', () => 
       .filter((r) => r.stepId === '_user')
       .map((r) => r.handback?.target),
   ).toEqual(['advise', 'structure']);
+});
+
+test('a step whose SDK cannot load fails after its retries and 비서 hears of it, instead of the task hanging', async () => {
+  const { store, chat, s } = openChat({}, { sdk: broken });
+  chat.tasks.retryWaits = [0, 0, 0];
+  const task = chat.tasks.start(s.id, 'research', '조사', 'r');
+  await vi.waitFor(() => expect(store.readTask(task.id).status).toBe('failed'));
+  expect(store.listStepRuns(task.id).map((r) => r.error)).toEqual(Array(4).fill('SDK를 불러오지 못함'));
 });
 
 test('a run that meets a passing fault is tried again after a wait', async () => {
