@@ -1,7 +1,7 @@
 {
   "name": "crew",
   "productName": "crew",
-  "version": "1.1.9",
+  "version": "1.2.0",
   "private": true,
   "description": "비서 한 명에게 맡기고 AI 에이전트 팀의 일을 픽셀 캠프에서 지켜보는 데스크톱 앱",
   "keywords": [],
@@ -17,7 +17,8 @@
     "test:e2e": "electron-forge package && playwright test",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint && oxfmt --check",
-    "test:live": "vitest run --project live"
+    "test:live": "vitest run --project live",
+    "demo": "electron-forge package && node demo/make.mjs"
   },
   "devDependencies": {
     "@electron-forge/cli": "^8.0.1",

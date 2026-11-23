@@ -10,6 +10,8 @@ type Turn = {
   tool?: { name: string; input: Record<string, unknown> };
   write?: { file: string; text: string };
   call?: { name: string; input: Record<string, unknown> };
+  // Milliseconds the turn takes, so a recording shows the crew at work instead of done at once
+  wait?: number;
 };
 
 type ScriptTool = { name: string; handler: (a: Record<string, unknown>) => Promise<unknown> };
@@ -51,6 +53,7 @@ export function scriptSdk(file: string): Sdk {
             toolUseID: 'script',
           } as never);
         if (asked && (await Promise.race([asked, cutOff])) === 'cut') return;
+        if (turn.wait && (await Promise.race([new Promise((r) => setTimeout(r, turn.wait)), cutOff])) === 'cut') return;
         if (turn.write) fs.writeFileSync(path.join(options!.cwd!, turn.write.file), turn.write.text);
         yield {
           type: 'result',

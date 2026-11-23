@@ -6,3 +6,7 @@ playwright-report/
 *.log
 docs/groove/shots/
 docs/groove/numstat.txt
+
+# Recorded app footage and renders, made again by the demo script
+demo/video/assets/
+demo/video/renders/

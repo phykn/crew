@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: Galmuri11;
+        font-weight: 400;
+        src: url('assets/Galmuri11.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: Galmuri11;
+        font-weight: 700;
+        src: url('assets/Galmuri11-Bold.woff2') format('woff2');
+      }
+      body {
+        margin: 0;
+        background: #1a120b;
+      }
+      #root {
+        position: relative;
+        width: 1280px;
+        height: 720px;
+        overflow: hidden;
+        background: #1a120b;
+        font-family: Galmuri11, sans-serif;
+      }
+      #cam {
+        position: absolute;
+        inset: 0;
+      }
+      #cam video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      /* The caption plate looks like the app's own parchment sheets */
+      .caption {
+        position: absolute;
+        left: 50%;
+        bottom: 36px;
+        transform: translateX(-50%);
+        padding: 14px 28px;
+        background: #fff9e8;
+        color: #4a2a12;
+        border: 4px solid #8a4f22;
+        box-shadow: 0 6px 0 #4a2a12;
+        font-size: 30px;
+        font-weight: 700;
+        white-space: nowrap;
+        z-index: 10;
+      }
+      .card {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 22px;
+        color: #fff1d6;
+        text-align: center;
+        z-index: 10;
+      }
+      #intro-veil,
+      #end {
+        background: rgba(20, 12, 6, 0.72);
+      }
+      .card h1 {
+        margin: 0;
+        font-size: 120px;
+        color: #f3d9a4;
+        text-shadow: 0 8px 0 #5c3213;
+      }
+      .card p {
+        margin: 0;
+        font-size: 30px;
+      }
+      .card small {
+        font-size: 22px;
+        color: #e2bb85;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-width="1280"
+      data-height="720"
+      data-duration="32.6"
+      data-fps="30"
+    >
+      <div id="cam">
+        <video
+          id="v-intro"
+          class="clip"
+          src="assets/intro.mp4"
+          muted
+          data-start="0"
+          data-duration="3"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-ask"
+          class="clip"
+          src="assets/ask.mp4"
+          muted
+          data-start="3"
+          data-duration="5"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-work"
+          class="clip"
+          src="assets/work.mp4"
+          muted
+          data-start="8"
+          data-duration="9"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-report"
+          class="clip"
+          src="assets/report.mp4"
+          muted
+          data-start="17"
+          data-duration="4.5"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-wiki"
+          class="clip"
+          src="assets/wiki.mp4"
+          muted
+          data-start="21.5"
+          data-duration="3"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-workflow"
+          class="clip"
+          src="assets/workflow.mp4"
+          muted
+          data-start="24.5"
+          data-duration="3"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-connect"
+          class="clip"
+          src="assets/connect.mp4"
+          muted
+          data-start="27.5"
+          data-duration="2.6"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-end"
+          class="clip"
+          src="assets/intro.mp4"
+          muted
+          data-start="30.1"
+          data-duration="2.5"
+          data-track-index="0"
+        ></video>
+      </div>
+
+      <div id="intro-veil" class="card clip" data-start="0" data-duration="3" data-track-index="1">
+        <h1 id="title">crew</h1>
+        <p id="tagline">비서 한 명에게 맡기고, AI 에이전트 팀이 일하는 모습을 지켜보는 데스크톱 앱</p>
+      </div>
+      <div id="c-ask" class="caption clip" data-start="3" data-duration="5" data-track-index="1">
+        비서에게 할 일을 말하면
+      </div>
+      <div id="c-work" class="caption clip" data-start="8" data-duration="9" data-track-index="1">
+        크루가 계획 → 개발 → 리뷰·시험을 나눠 맡습니다
+      </div>
+      <div id="c-report" class="caption clip" data-start="17" data-duration="4.5" data-track-index="1">
+        비서가 보고하고, 단계마다 로그가 남습니다
+      </div>
+      <div id="c-wiki" class="caption clip" data-start="21.5" data-duration="3" data-track-index="1">
+        알게 된 것은 프로젝트 위키에 쌓입니다
+      </div>
+      <div id="c-workflow" class="caption clip" data-start="24.5" data-duration="3" data-track-index="1">
+        업무 흐름은 직접 고칠 수 있습니다
+      </div>
+      <div id="c-connect" class="caption clip" data-start="27.5" data-duration="2.6" data-track-index="1">
+        Claude 구독이나 API 키로 연결합니다
+      </div>
+      <div id="end" class="card clip" data-start="30.1" data-duration="2.5" data-track-index="1">
+        <h1 id="end-title">crew</h1>
+        <small id="stack">Electron · React · Claude Agent SDK · PixiJS</small>
+      </div>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      // The camera leans into the half of the window each scene is about: the camp on the left, the tabs on the right
+      const shot = (at, length, origin, from, to) =>
+        tl.fromTo('#cam', { scale: from, transformOrigin: origin }, { scale: to, duration: length, ease: 'none' }, at);
+      shot(0, 3, '50% 50%', 1, 1.06);
+      shot(3, 5, '100% 100%', 1.4, 1.45);
+      shot(8, 9, '0% 50%', 1.45, 1.55);
+      shot(17, 4.5, '100% 35%', 1.5, 1.55);
+      shot(21.5, 3, '100% 35%', 1.5, 1.55);
+      shot(24.5, 3, '100% 55%', 1.5, 1.55);
+      shot(27.5, 2.6, '100% 30%', 1.5, 1.55);
+      shot(30.1, 2.5, '50% 50%', 1.06, 1);
+
+      tl.from('#title', { y: 40, opacity: 0, duration: 0.6, ease: 'back.out(2)' }, 0.1);
+      tl.from('#tagline', { y: 20, opacity: 0, duration: 0.5, ease: 'power2.out' }, 0.5);
+      tl.to('#intro-veil', { opacity: 0, duration: 0.4 }, 2.6);
+      for (const [id, at] of [
+        ['#c-ask', 3],
+        ['#c-work', 8],
+        ['#c-report', 17],
+        ['#c-wiki', 21.5],
+        ['#c-workflow', 24.5],
+        ['#c-connect', 27.5],
+      ])
+        tl.from(id, { y: 30, opacity: 0, duration: 0.35, ease: 'back.out(2)' }, at + 0.1);
+      tl.from('#end', { opacity: 0, duration: 0.4 }, 30.1);
+      tl.from('#end-title', { y: 40, opacity: 0, duration: 0.6, ease: 'back.out(2)' }, 30.2);
+      tl.from('#stack', { opacity: 0, duration: 0.5 }, 30.6);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines.main = tl;
+    </script>
+  </body>
+</html>

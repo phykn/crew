@@ -6,6 +6,8 @@
 
 ![Electron](https://img.shields.io/badge/Electron-45-47848F) ![React](https://img.shields.io/badge/React-19-61DAFB) ![Claude Agent SDK](https://img.shields.io/badge/Claude_Agent_SDK-0.3-D97757) ![PixiJS](https://img.shields.io/badge/PixiJS-8-E72264) ![SQLite](https://img.shields.io/badge/node:sqlite-builtin-003B57)
 
+![crew 소개 영상](assets/demo.gif)
+
 </div>
 
 - 로컬 폴더를 프로젝트로 열고 비서와 대화합니다. 그림을 붙여 보낼 수 있고, Ctrl+Enter로 보낸 메시지는 비서의 답이 끝날 때까지 기다렸다 갑니다. 할 일을 말하면 비서가 업무를 열고, 크루가 계획 → 계획 검토 → 개발 → 코드 리뷰, 시험, 표준 점검을 진행한 뒤 비서가 보고합니다
@@ -47,6 +49,14 @@ npm run package
 npm test
 npm run test:live
 npm run test:e2e
+```
+
+## 소개 영상
+
+위 GIF는 대본 크루로 돌린 앱 화면을 녹화해 [HyperFrames](https://github.com/heygen-com/hyperframes)로 편집한 것입니다. [FFmpeg](https://ffmpeg.org/)가 있어야 다시 만들 수 있습니다. 장면과 자막은 `demo/video/index.html`에 있습니다.
+
+```bat
+npm run demo
 ```
 
 ## 참고
