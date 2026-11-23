@@ -1,11 +1,7 @@
 import { iso } from '../projection.js';
 import { COLOR as C } from '../tokens.js';
 import { TAU, longShadow, oval, poly, prism, shadow } from './shapes.js';
-
-// Height of a bench's plank, where a sitting person's hips rest
-export const SEAT_Z = 8;
-// A piece is painted by the middle of its footprint, so long benches and logs sort against people by their centre
-export const depthOf = (d) => d.x + (d.w || 0) / 2 + d.y + (d.h || 0) / 2;
+import { SEAT_Z } from '../figure.js';
 
 const pixels = (ctx, list, fill) => {
   ctx.fillStyle = fill;

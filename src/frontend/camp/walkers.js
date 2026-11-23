@@ -1,7 +1,7 @@
 import { FIRE, GROUND, SEATS, blocked } from './layout.js';
 import { findPath } from './route.js';
 import { CAMP, TW, iso } from './projection.js';
-import { headTop } from './paint/people.js';
+import { headTop } from './figure.js';
 
 // 비서 hands work out, so assignments walk from them
 const LEAD = 'orchestrator';
@@ -25,6 +25,8 @@ const SPACE = 1.3;
 // How far ahead, in tiles, a walker looks for someone to step around
 const AHEAD = 1.2;
 const SPEED = { stroll: 1.1, brisk: 3.4 };
+// People speed up from a standstill and slow down before they stop, in tiles per second squared
+const ACCEL = 6;
 // The four screen edges as ground angles: bottom, right, top, left
 const SIDES = [Math.PI / 4, -Math.PI / 4, (-3 * Math.PI) / 4, (3 * Math.PI) / 4];
 // Gap between one arrival and the next when the crew first walks in, in ms
@@ -165,11 +167,22 @@ export function createWalkers() {
     if (p.state !== 'working' && !p.path.length && !(p.waitUntil > now) && now > p.nextIdle) idle(p, now);
     const q = p.path[0];
     p.moving = false;
-    if (!q || p.waitUntil > now) return;
+    if (!q || p.waitUntil > now) return void (p.speed = 0);
     const dx = q.x - p.x,
       dy = q.y - p.y,
-      d = Math.hypot(dx, dy),
-      move = (p.fast ? SPEED.brisk : SPEED.stroll) * dt;
+      d = Math.hypot(dx, dy);
+    // Slow enough to stop where the path ends, or where the walker is to wait; a little speed is kept so they always arrive
+    let left = d;
+    for (let i = 1, at = q; i < p.path.length && !at.wait; i++) {
+      left += Math.hypot(p.path[i].x - at.x, p.path[i].y - at.y);
+      at = p.path[i];
+    }
+    p.speed = Math.min(
+      p.fast ? SPEED.brisk : SPEED.stroll,
+      (p.speed ?? 0) + ACCEL * dt,
+      Math.sqrt(2 * ACCEL * left) + 0.3,
+    );
+    const move = p.speed * dt;
     // dx - dy is left-right on the isometric screen
     if (Math.abs(dx - dy) > 0.05) p.facing = Math.sign(dx - dy);
     if (d > move) {

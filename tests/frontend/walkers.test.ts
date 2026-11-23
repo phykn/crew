@@ -81,3 +81,27 @@ test("another session's log is a fresh baseline: none of its history plays as a 
   ]);
   expect(w.people.get('a')!.bubble?.text).toBe('실패');
 });
+
+test('a walker speeds up from a standstill and slows down before stopping, instead of starting and stopping at full pace', () => {
+  const w = createWalkers();
+  w.applyStaff([{ team: 'a', name: 'a', color: '#fff', look: ['hair', 'vest', 'boots'], state: 'idle' }]);
+  const p = w.people.get('a');
+  Object.assign(p, {
+    x: FIRE.x + 2,
+    y: FIRE.y - 3,
+    path: [{ x: FIRE.x + 6, y: FIRE.y - 3 }],
+    fast: true,
+    nextIdle: Infinity,
+    speed: 0,
+  });
+  const paces: number[] = [];
+  for (let now = 0, last = p.x; p.path.length && now < 5000; now += 20) {
+    w.tick(now, 0.02);
+    paces.push((p.x - last) / 0.02);
+    last = p.x;
+  }
+  expect(p.path).toEqual([]);
+  expect(paces[0]).toBeLessThan(1);
+  expect(Math.max(...paces)).toBeCloseTo(3.4, 5);
+  expect(paces.at(-2)!).toBeLessThan(1.5);
+});

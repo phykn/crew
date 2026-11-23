@@ -1,4 +1,5 @@
 import { COLOR as C } from '../tokens.js';
+import { outline, rim, upscale } from './finish.js';
 
 export const SPRITE_W = 16,
   SPRITE_H = 26;
@@ -241,11 +242,49 @@ function paint(room, pose, seed) {
   return c;
 }
 
+// Painted at 16x26 and finished at twice that: smoother slopes, a dark outline, and light along the top edges
+export const SPRITE_SCALE = 2;
+function finished(small) {
+  const W = SPRITE_W * SPRITE_SCALE,
+    H = SPRITE_H * SPRITE_SCALE,
+    d = upscale(small.getContext('2d').getImageData(0, 0, SPRITE_W, SPRITE_H).data, SPRITE_W, SPRITE_H);
+  rim(d, W, H);
+  outline(d, W, H);
+  const c = Object.assign(document.createElement('canvas'), { width: W, height: H });
+  c.getContext('2d').putImageData(new ImageData(d, W, H), 0, 0);
+  return c;
+}
+
 const cache = new Map();
 // Sprites are painted once per person and pose, then only copied each frame
 export function spriteFor(room, pose) {
   // Hair comes from the team, so renaming someone never changes how they look
   const key = [room.team, room.color, room.look, pose].join('|');
-  if (!cache.has(key)) cache.set(key, paint(room, pose, 1 + [...room.team].reduce((a, ch) => a + ch.charCodeAt(0), 0)));
+  if (!cache.has(key))
+    cache.set(key, finished(paint(room, pose, 1 + [...room.team].reduce((a, ch) => a + ch.charCodeAt(0), 0))));
   return cache.get(key);
+}
+
+const lit = new Map();
+// The same sprite with the fire on one side, side 1 being its right: that side takes the warm light and the other falls
+// into shade; laid over the plain sprite as the fire is near, it lights a person from where the fire is
+export function litFor(room, pose, side) {
+  const base = spriteFor(room, pose);
+  if (!lit.has(base)) lit.set(base, new Map());
+  const sides = lit.get(base);
+  if (!sides.has(side)) {
+    const c = Object.assign(document.createElement('canvas'), { width: base.width, height: base.height }),
+      d = c.getContext('2d'),
+      g = d.createLinearGradient(side > 0 ? c.width : 0, 0, side > 0 ? 0 : c.width, 0);
+    d.drawImage(base, 0, 0);
+    d.globalCompositeOperation = 'source-atop';
+    g.addColorStop(0, 'rgba(255, 170, 95, 0.45)');
+    g.addColorStop(0.45, 'rgba(255, 170, 95, 0)');
+    g.addColorStop(0.6, 'rgba(0, 0, 0, 0)');
+    g.addColorStop(1, 'rgba(0, 0, 0, 0.3)');
+    d.fillStyle = g;
+    d.fillRect(0, 0, c.width, c.height);
+    sides.set(side, c);
+  }
+  return sides.get(side);
 }

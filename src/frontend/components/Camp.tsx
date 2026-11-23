@@ -1,20 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
+import { Application, useApplication, useTick } from '@pixi/react';
+// The window's security policy forbids eval, which Pixi builds its shaders with unless given this
+import 'pixi.js/unsafe-eval';
 import type { CrewMember } from '../../backend/domain/crew';
 import type { Session } from '../../backend/domain/records';
 import { call, follow } from '../api';
 import { CAMP, iso } from '../camp/projection.js';
 import { createWalkers } from '../camp/walkers.js';
-import { paintGround } from '../camp/paint/ground.js';
-import { LIGHT_SCALE } from '../camp/paint/lighting.js';
-import { createPainter } from '../camp/paint/frame.js';
+import { createScene } from '../camp/stage/scene';
+import type { Box } from '../camp/stage/light';
 
-// 30 frames a second is plenty for walking and torch flicker, and halves the drawing work
-const FRAME_MS = 33;
 const NONE: Record<string, string> = {};
 
-type Box = { w: number; h: number; scale: number; ox: number; oy: number };
+type Walkers = ReturnType<typeof createWalkers>;
 
-// The camp from the earlier app, drawn on one canvas behind the legend; it follows the crew list it is given
+// The camp, drawn with WebGL behind the legend; it follows the crew list it is given
 export function Camp({
   members,
   session,
@@ -25,8 +25,7 @@ export function Camp({
   onPick: (taskId: number) => void;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
-  const canvas = useRef<HTMLCanvasElement>(null);
-  const walkers = useRef<ReturnType<typeof createWalkers> | null>(null);
+  const walkers = useRef<Walkers | null>(null);
   const [box, setBox] = useState<Box | null>(null);
   const [state, setState] = useState<Awaited<ReturnType<typeof call<'camp.state'>>> | null>(null);
   const working = state?.working ?? NONE;
@@ -78,6 +77,7 @@ export function Camp({
         scale,
         ox: (w - CAMP.w * scale) / 2 - CAMP.x * scale,
         oy: (h - CAMP.h * scale) / 2 - CAMP.y * scale,
+        dpr: devicePixelRatio,
       });
     };
     const ro = new ResizeObserver(measure);
@@ -99,62 +99,71 @@ export function Camp({
     };
   }, []);
 
-  useEffect(() => {
-    if (!box?.w) return;
-    const dpr = devicePixelRatio,
-      c = canvas.current!,
-      { scale, ox, oy } = box;
-    const layer = (k: number) =>
-      Object.assign(document.createElement('canvas'), {
-        width: Math.ceil(box.w * dpr * k),
-        height: Math.ceil(box.h * dpr * k),
-      });
-    Object.assign(c, { width: Math.round(box.w * dpr), height: Math.round(box.h * dpr) });
-    const view = { x: -ox / scale, y: -oy / scale, w: box.w / scale, h: box.h / scale };
-    walkers.current!.fitView(view);
-    const ground = layer(1),
-      light = layer(LIGHT_SCALE);
-    const gctx = ground.getContext('2d')!;
-    gctx.setTransform(scale * dpr, 0, 0, scale * dpr, ox * dpr, oy * dpr);
-    paintGround(gctx, view);
-    const ctx = c.getContext('2d')!,
-      drawFrame = createPainter(ground, light, view);
-    let last = performance.now(),
-      raf = 0;
-    const frame = (t: number) => {
-      raf = requestAnimationFrame(frame);
-      if (t - last < FRAME_MS) return;
-      walkers.current!.tick(t, Math.min(0.1, (t - last) / 1000));
-      last = t;
-      ctx.setTransform(scale * dpr, 0, 0, scale * dpr, ox * dpr, oy * dpr);
-      drawFrame(ctx, walkers.current!.people, t);
-    };
-    raf = requestAnimationFrame(frame);
-    // The canvas has no DOM to query, so window tests read who stands where, and with what name, from here
-    (window as unknown as { camp: unknown }).camp = (key: string) => {
-      const p = walkers.current!.people.get(key);
-      if (!p) return null;
-      const f = iso(p.x, p.y),
-        r = c.getBoundingClientRect();
-      return { name: p.room.name, x: r.left + f.x * scale + ox, y: r.top + (f.y - 20) * scale + oy };
-    };
-    return () => cancelAnimationFrame(raf);
-  }, [box]);
-
   return (
-    <div className="camp-canvas" ref={wrap}>
-      <canvas
-        ref={canvas}
-        onClick={(e) => {
-          if (!box || !state) return;
-          const r = e.currentTarget.getBoundingClientRect();
-          const key = walkers.current!.at(
-            (e.clientX - r.left - box.ox) / box.scale,
-            (e.clientY - r.top - box.oy) / box.scale,
-          );
-          if (key && state.tasks[key]) onPick(state.tasks[key]);
-        }}
-      />
+    <div
+      className="camp-canvas"
+      ref={wrap}
+      onClick={(e) => {
+        if (!box || !state) return;
+        const r = e.currentTarget.getBoundingClientRect();
+        const key = walkers.current!.at(
+          (e.clientX - r.left - box.ox) / box.scale,
+          (e.clientY - r.top - box.oy) / box.scale,
+        );
+        if (key && state.tasks[key]) onPick(state.tasks[key]);
+      }}
+    >
+      {box?.w ? (
+        <Application
+          key={box.dpr}
+          resizeTo={wrap}
+          resolution={box.dpr}
+          autoDensity
+          preference="webgl"
+          background={0x0c0a08}
+        >
+          <Stage box={box} walkers={walkers.current!} wrap={wrap} />
+        </Application>
+      ) : null}
     </div>
   );
+}
+
+// Lives inside the Pixi application: builds the scene for each size and moves it every frame
+function Stage({ box, walkers, wrap }: { box: Box; walkers: Walkers; wrap: RefObject<HTMLDivElement | null> }) {
+  const { app, isInitialised } = useApplication();
+  const scene = useRef<ReturnType<typeof createScene> | null>(null);
+  useEffect(() => {
+    if (!isInitialised) return;
+    // The panel can change size without the window doing so, which is all Pixi listens to
+    app.renderer.resize(box.w, box.h);
+    walkers.fitView({ x: -box.ox / box.scale, y: -box.oy / box.scale, w: box.w / box.scale, h: box.h / box.scale });
+    const s = createScene(app.renderer, box);
+    app.stage.addChild(s.root);
+    scene.current = s;
+    // The canvas has no DOM to query, so window tests read who stands where, and with what name, from here
+    const screen = (x: number, y: number, z = 0) => {
+      const f = iso(x, y, z),
+        r = wrap.current!.getBoundingClientRect();
+      return { x: r.left + f.x * box.scale + box.ox, y: r.top + f.y * box.scale + box.oy };
+    };
+    (window as unknown as { camp: unknown }).camp = Object.assign(
+      (key: string) => {
+        const p = walkers.people.get(key);
+        return p ? { name: p.room.name, ...screen(p.x, p.y, 20) } : null;
+      },
+      // Where a spot on the ground shows, and the shadows switched off and on, so a test can see what they darken
+      { screen, shadows: (on: boolean) => (s.shade.visible = on) },
+    );
+    return () => {
+      scene.current = null;
+      s.destroy();
+    };
+  }, [isInitialised, box]);
+  useTick((ticker) => {
+    const now = performance.now();
+    walkers.tick(now, Math.min(0.1, ticker.deltaMS / 1000));
+    scene.current?.draw(walkers.people, now);
+  });
+  return null;
 }
