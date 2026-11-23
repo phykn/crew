@@ -1,50 +1,55 @@
 # crew
 
-**One word to your secretary, and a team of AI agents gets it done while you watch them in a pixel camp.**
+**Tell one secretary what you need. A team of AI agents does the work, and you watch them in a pixel camp.**
 
 ![Electron](https://img.shields.io/badge/Electron-45-47848F) ![React](https://img.shields.io/badge/React-19-61DAFB) ![Claude Agent SDK](https://img.shields.io/badge/Claude_Agent_SDK-0.3-D97757) ![PixiJS](https://img.shields.io/badge/PixiJS-8-E72264) ![SQLite](https://img.shields.io/badge/node:sqlite-builtin-003B57)
 
 ![crew at work](assets/demo.gif)
 
+## How it works
+
+```
+You ──▶ Secretary ──▶ Plan ──▶ Plan review ──▶ Build ──▶ Code review · Test · Standards ──▶ Report
+```
+
+You only talk to the secretary. It opens a task, the crew takes each step, and the secretary reports back when every check has passed.
+
 ## Features
 
-- **A crew behind one chat**: tell the secretary what you need; the crew plans, builds, reviews, tests, and reports back
-- **Hire on demand**: HR designs a new member, regular or temp, when no one fits the job
-- **Guarded tools**: dangerous commands and writes outside a member's scope are blocked, and anything unusual is asked on a card
-- **Your team, your rules**: change each member's nickname, model, tools, skills, and MCP access, and edit the workflow they follow
-- **Memory that stays**: what the crew learns goes into a project wiki with a graph, and every step leaves a log
-- **A camp you can watch**: members walk, sit by the fire, and cast spells while they work; click one to open its log
-- **Subscription or API**: run on your Claude Code login or on an Anthropic API key, kept encrypted on your computer
+| | |
+|---|---|
+| 💬 **One chat** | Ask in plain words, attach pictures, queue a message with Ctrl+Enter |
+| 🧑‍🤝‍🧑 **Hire on demand** | HR designs a new member, regular or temp, when no one fits the job |
+| 🛡️ **Guarded tools** | Dangerous commands and writes outside a member's scope are blocked; anything unusual is asked on a card |
+| ⚙️ **Your rules** | Change each member's nickname, model, tools, skills, and MCP access, and edit the workflow |
+| 📚 **Memory** | What the crew learns goes into a project wiki with a graph; every step leaves a log |
+| 🔥 **The camp** | Members walk, sit by the fire, and cast spells while they work; click one to open its log |
+| 🔌 **Subscription or API** | Run on your Claude Code login or an Anthropic API key, kept encrypted on your computer |
 
-## Install
+## Quick start
 
-Requires Node.js 24+ and either a [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) login or an Anthropic API key.
+You need **Node.js 24+** and either a [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) login or an Anthropic API key.
 
 ```bat
 npm install
 git config core.hooksPath scripts/hooks
+npm start
 ```
 
 The hooks bump the version on each commit and keep one repository bundle in `out/`.
 
-## Run
-
-```bat
-npm start
-```
-
-Build the executable at `out/crew-win32-x64/crew.exe`:
+## Build
 
 ```bat
 npm run package
 ```
 
+The app lands at `out/crew-win32-x64/crew.exe`.
+
 ## Test
 
-Unit tests with a fake SDK, live tests against real Claude (billed), and window tests on the packaged app:
-
-```bat
-npm test
-npm run test:live
-npm run test:e2e
-```
+| Command | What it runs |
+|---|---|
+| `npm test` | Unit tests with a fake SDK |
+| `npm run test:live` | Live tests against real Claude (billed) |
+| `npm run test:e2e` | Window tests on the packaged app |
