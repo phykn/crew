@@ -37,6 +37,7 @@ export const OFF_CATALOG: Record<string, string> = {
   'projects.remove': 'removing the project the crew works in is for the user',
   'sessions.create': 'a fresh session is the user’s to start, with /clear or 새 세션',
   'last.read': 'window state, not an action',
+  'tasks.versions': 'feeds the file links under a report; 비서 reads a task’s files from its log',
   'last.write': 'window state, not an action',
   'messages.list': '비서 is the conversation itself',
   'messages.busy': '비서 is the conversation itself',

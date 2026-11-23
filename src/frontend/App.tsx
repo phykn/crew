@@ -98,7 +98,7 @@ export function App() {
             onExplorer={() => setTree(true)}
           />
           <Tabs.Root className="tabs" value={tab} onValueChange={setTab}>
-            {/* Icons keep the tabs small; each name shows on hover and is what a screen reader says */}
+            {/* An icon with its name under it: small enough for four tabs, and readable without a hover */}
             {/* A tab picked from a text field would inherit its keyboard ring, so the list remembers whether the last pick was by pointer */}
             <Tabs.List
               className="tab-list"
@@ -111,11 +111,11 @@ export function App() {
                   <Tabs.Trigger
                     key={value}
                     value={value}
-                    title={name}
                     aria-label={marked ? `${name}, 대답 대기` : name}
                     data-waiting={marked || undefined}
                   >
                     <TabIcon tab={value} />
+                    <span className="tab-name">{name}</span>
                   </Tabs.Trigger>
                 );
               })}
@@ -135,6 +135,7 @@ export function App() {
                     { name: 'workflow', run: () => setTab('workflow') },
                   ]}
                   onLog={openLog}
+                  onChanges={setChanges}
                 />
               ) : (
                 <Empty>폴더를 열어 프로젝트를 시작하세요.</Empty>

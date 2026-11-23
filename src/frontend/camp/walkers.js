@@ -133,8 +133,8 @@ export function createWalkers() {
       const q = others(p).find((o) => o.state !== 'working' && !o.path.length && Math.hypot(o.x - p.x, o.y - p.y) < 3);
       if (q) {
         const talk = smallTalk(new Date().getHours());
-        speak(p, pick(talk), 'chat');
-        speak(q, pick(talk), 'chat');
+        speak(p, pick(talk), 'idle');
+        speak(q, pick(talk), 'idle');
         return;
       }
     }

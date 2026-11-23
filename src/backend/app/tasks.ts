@@ -371,7 +371,7 @@ export class Tasks {
     // Before the temps leave, while the record still says who they are
     const note = this.bringTempFiles(task);
     this.dismissTemps(task);
-    void this.chat.tell(task.sessionId, [this.report(task, 'done'), note].filter(Boolean).join('\n\n'));
+    void this.chat.tell(task.sessionId, [this.report(task, 'done'), note].filter(Boolean).join('\n\n'), [], task.id);
   }
 
   // A temp may write only to its output folder, but what it made is meant for the project, so it moves there

@@ -237,8 +237,11 @@ code {
 }
 .tab-list button {
   position: relative;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
   width: var(--w-tab);
   height: var(--h-lg);
   background: var(--surface-control);
@@ -251,6 +254,11 @@ code {
 /* Only the row draws the frame line and every tab stands on it, so the line cannot step */
 .tab-list button[data-state='active'] {
   background: var(--surface-field);
+}
+.tab-name {
+  font-size: var(--fs-xs);
+  line-height: 1;
+  white-space: nowrap;
 }
 .tab-list button:focus-visible {
   outline: var(--bw) solid var(--focus-ring);
@@ -878,9 +886,11 @@ code {
 .log-line time {
   color: var(--text-muted);
 }
-.log-who,
-.log-row[data-kind='status'] .log-text {
+.log-who {
   font-weight: var(--fw-bold);
+}
+.log-row[data-kind='status'] .log-text {
+  color: var(--text-muted);
 }
 .log-detail {
   margin: var(--sp-1) 0 var(--sp-2) var(--sp-2);
@@ -1131,7 +1141,7 @@ code {
 .workflow-side > :nth-child(n + 3) {
   grid-column: 1 / -1;
 }
-.workflow-side label {
+.side-field {
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
@@ -1216,6 +1226,16 @@ code {
   grid-template-columns: var(--w-legend-role) var(--w-legend-nick) auto;
   align-items: center;
   justify-items: start;
+}
+
+/* A report's changed files sit on their own line under its words */
+.report-files {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-1) var(--sp-2);
+  margin-top: var(--sp-2);
+  font-size: var(--fs-sm);
 }
 
 /* Parts gallery: every part on one scrolling sheet, opened only with CREW_GALLERY=1 */

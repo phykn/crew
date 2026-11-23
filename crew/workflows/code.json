@@ -7,7 +7,7 @@
       "id": "plan",
       "role": "advisor",
       "label": "계획",
-      "does": "Write the change plan for this request."
+      "does": "이 요청을 어떻게 바꿀지 계획을 쓴다."
     },
     {
       "id": "plan_review",
@@ -16,14 +16,14 @@
       "after": ["plan"],
       "verdict": true,
       "rework": "plan",
-      "does": "Review the plan with your plan-review skill before anyone edits code."
+      "does": "코드를 고치기 전에 계획 검토 스킬로 계획을 검토한다."
     },
     {
       "id": "develop",
       "role": "coder",
       "label": "개발",
       "after": ["plan_review"],
-      "does": "Make the change the approved plan describes, or the brief when there is no plan."
+      "does": "승인된 계획대로, 계획이 없으면 요청서대로 바꾼다."
     },
     {
       "id": "review",
@@ -32,7 +32,7 @@
       "after": ["develop"],
       "verdict": true,
       "rework": "develop",
-      "does": "Review the code change with your code-review skill."
+      "does": "코드 리뷰 스킬로 바뀐 코드를 검토한다."
     },
     {
       "id": "test",
@@ -41,7 +41,7 @@
       "after": ["develop"],
       "verdict": true,
       "rework": "develop",
-      "does": "Run the project's full test suite and build on the change.",
+      "does": "바뀐 코드로 프로젝트의 전체 테스트와 빌드를 돌린다.",
       "requires": ["checks"]
     },
     {
@@ -51,7 +51,7 @@
       "after": ["develop"],
       "verdict": true,
       "rework": "develop",
-      "does": "Check that the change fits the project's conventions."
+      "does": "바뀐 코드가 프로젝트의 규칙에 맞는지 확인한다."
     }
   ]
 }

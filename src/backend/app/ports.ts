@@ -83,6 +83,7 @@ export interface ConversationRecords {
     text: string,
     questionId?: number | null,
     images?: Image[],
+    taskId?: number | null,
   ): void;
   listMessages(sessionId: number): Message[];
   readImage(messageId: number, n: number): Image | null;

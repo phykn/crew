@@ -56,7 +56,7 @@ export class Chat {
   }
 
   // Hands 비서 something to answer in the chat: the user's words, or a task's result to report
-  async tell(sessionId: number, text: string, images: Image[] = []) {
+  async tell(sessionId: number, text: string, images: Image[] = [], taskId: number | null = null) {
     if (this.runs.live(sessionId)?.say(text, images)) return;
     const { store } = this;
     try {
@@ -66,7 +66,7 @@ export class Chat {
         mcpServers: { crew: await this.tools.secretary(sessionId) },
         onText: (delta) => this.emit('stream', { sessionId, delta }),
         onReply: (reply, more) => {
-          this.post(sessionId, reply);
+          this.post(sessionId, reply, taskId);
           // A message said mid-run is still to be answered, so the chat keeps showing 비서 at it
           if (more) this.emit('stream', { sessionId, delta: '' });
         },
@@ -81,10 +81,10 @@ export class Chat {
   }
 
   // 비서's words in the chat: the message, the end of its stream, and a refresh
-  post(sessionId: number, text: string) {
+  post(sessionId: number, text: string, taskId: number | null = null) {
     // A session deleted while 비서 was answering has nowhere to take the words
     if (!this.store.hasSession(sessionId)) return;
-    this.store.addMessage(sessionId, 'secretary', text);
+    this.store.addMessage(sessionId, 'secretary', text, null, [], taskId);
     this.emit('stream', { sessionId, done: true });
     this.emit('changed', { topic: 'messages', sessionId });
     this.emit('notify', { sessionId, text });

@@ -39,6 +39,7 @@ test("the message box's words sit on the middle of the buttons beside it, a mous
       const r = e.getBoundingClientRect();
       return r.top + r.height / 2;
     });
+  await expect(page.getByLabel('메시지')).toHaveAttribute('placeholder', '비서에게 할 일을 말하세요');
   expect(await middle('.composer-text')).toBeCloseTo(await middle('.composer .ui-button--primary'), 0);
   await page.getByRole('tab', { name: '로그' }).click();
   // Picked from the message box, which always shows focus, so only the drawn outline tells
@@ -54,5 +55,21 @@ test("the message box's words sit on the middle of the buttons beside it, a mous
       }),
     )
     .toBeGreaterThanOrEqual(-0.5);
+  await app.close();
+});
+
+test('every tab shows its name on one line, the open one in bold too', async () => {
+  const scratch = makeScratch();
+  const app = await launchApp(scratch.db);
+  const page = await openProject(app, scratch.project);
+  for (const name of ['대화', '로그', '메모리', '워크플로우']) {
+    await page.getByRole('tab', { name }).click();
+    const fits = await page
+      .locator('.tab-list button .tab-name')
+      .evaluateAll((spans) =>
+        spans.every((s) => s.getClientRects().length === 1 && s.scrollWidth <= s.parentElement!.clientWidth),
+      );
+    expect(fits).toBe(true);
+  }
   await app.close();
 });

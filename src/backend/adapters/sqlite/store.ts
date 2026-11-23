@@ -330,11 +330,14 @@ export class Store implements Records {
     text: string,
     questionId: number | null = null,
     images: Image[] = [],
+    taskId: number | null = null,
   ) {
     this.transact(() => {
       const { lastInsertRowid } = this.db
-        .prepare('INSERT INTO messages (session_id, author, text, created_at, question_id) VALUES (?, ?, ?, ?, ?)')
-        .run(sessionId, author, text, now(), questionId);
+        .prepare(
+          'INSERT INTO messages (session_id, author, text, created_at, question_id, task_id) VALUES (?, ?, ?, ?, ?, ?)',
+        )
+        .run(sessionId, author, text, now(), questionId, taskId);
       const add = this.db.prepare('INSERT INTO message_images (message_id, n, media_type, data) VALUES (?, ?, ?, ?)');
       images.forEach((i, n) => add.run(lastInsertRowid, n, i.mediaType, i.data));
     });
@@ -344,7 +347,7 @@ export class Store implements Records {
   listMessages(sessionId: number): Message[] {
     const rows = this.db
       .prepare(
-        'SELECT id, session_id AS sessionId, author, text, (SELECT COUNT(*) FROM message_images WHERE message_id = messages.id) AS imageCount, created_at AS createdAt, question_id AS questionId FROM messages WHERE session_id = ? ORDER BY id',
+        'SELECT id, session_id AS sessionId, author, text, (SELECT COUNT(*) FROM message_images WHERE message_id = messages.id) AS imageCount, created_at AS createdAt, question_id AS questionId, task_id AS taskId FROM messages WHERE session_id = ? ORDER BY id',
       )
       .all(sessionId) as (Omit<Message, 'question'> & { questionId: number | null })[];
     return rows.map(({ questionId, ...m }) => ({ ...m, question: questionId ? this.readQuestion(questionId) : null }));

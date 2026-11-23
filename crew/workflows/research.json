@@ -7,7 +7,7 @@
       "id": "research",
       "role": "researcher",
       "label": "조사",
-      "does": "Research the request in official sources and report with links and dates."
+      "does": "공식 자료에서 요청을 조사하고 링크와 날짜를 붙여 보고한다."
     }
   ]
 }

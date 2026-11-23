@@ -9,6 +9,7 @@ const SAID_MAX = 26;
 // A label pushed up by its neighbours glides there over a few frames instead of jumping
 const EASE = 0.25;
 const BAR = { work: C.goldDim, rework: C.blood, chat: C.iron };
+// What is only small talk must not read like the crew's work
 
 // Labels of people standing close would print over each other, so whoever is further back lifts theirs until it clears
 export function drawOverheads(ctx, people, now, edge) {
@@ -38,8 +39,13 @@ function drawOverhead(ctx, p, now, taken, edge) {
     x = Math.min(Math.max(f.x - w / 2, CAMP.x + 6), CAMP.x + CAMP.w - 6 - w);
   const head = headTop(p) - 4;
   const box = { l: x - 4, r: x + w + 4, t: head - LINE, b: head };
-  // Someone saying nothing gives way: their name is in the legend, and a crowd of names would stack into a tower
-  if (!said && !checked && taken.some((o) => o.l < box.r && box.l < o.r && o.t < box.b + LINE * 2 && box.t < o.b))
+  const quiet = b?.kind === 'idle';
+  // Someone saying nothing, or only chatting, gives way: their name is in the legend, and a crowd of names would stack into a tower
+  if (
+    (!said || quiet) &&
+    !checked &&
+    taken.some((o) => o.l < box.r && box.l < o.r && o.t < box.b + LINE * 2 && box.t < o.b)
+  )
     return;
   for (let hit; (hit = taken.find((o) => o.l < box.r && box.l < o.r && o.t < box.b && box.t < o.b)); ) {
     const up = box.b - hit.t + 1;
@@ -55,7 +61,7 @@ function drawOverhead(ctx, p, now, taken, edge) {
   p.lift = p.lift === undefined ? lift : p.lift + (lift - p.lift) * EASE;
   const y = head - p.lift;
 
-  if (said) {
+  if (said && !quiet) {
     ctx.fillStyle = 'rgba(12, 10, 8, .72)';
     ctx.fillRect(box.l, y - LINE, box.r - box.l, LINE);
     ctx.fillStyle = BAR[b.kind];
@@ -68,6 +74,6 @@ function drawOverhead(ctx, p, now, taken, edge) {
   if (checked) label(ctx, ' ✓', x + nameW, y - 5, C.moss);
   if (!said) return;
   ctx.font = font(9);
-  ctx.fillStyle = b.kind === 'rework' ? C.bloodBright : C.parchment;
+  ctx.fillStyle = b.kind === 'rework' ? C.bloodBright : quiet ? C.canvasDark : C.parchment;
   ctx.fillText(said, x + nameW + checkW, y - 5);
 }

@@ -71,7 +71,7 @@ export function WorkflowView({
     if (!flow || !canvas.current) return;
     // A canvas drawn anew, as when the tab opens again, starts fitted
     fitted.current = true;
-    const watch = new ResizeObserver(() => fitted.current && flow.fitView(FIT));
+    const watch = new ResizeObserver(() => fitted.current && fit(flow));
     watch.observe(canvas.current);
     return () => watch.disconnect();
   }, [flow]);
@@ -163,7 +163,7 @@ export function WorkflowView({
     fitted.current = true;
     setNodes((ns) => ns.map((n) => ({ ...n, position: auto[n.id] ?? n.position })));
     setDirty(true);
-    requestAnimationFrame(() => flow?.fitView(FIT));
+    requestAnimationFrame(() => flow && fit(flow));
   }
   function addStep() {
     const id = nextId(steps);
@@ -200,7 +200,7 @@ export function WorkflowView({
   const step = steps.find((s) => s.id === picked);
   // The side panel takes room from the canvas when it opens or closes, so the flow is fitted again
   useEffect(() => {
-    requestAnimationFrame(() => flow?.fitView(FIT));
+    requestAnimationFrame(() => flow && fit(flow));
   }, [!!step]);
   return (
     <section className="workflow-view" aria-label="워크플로우 편집">
@@ -277,7 +277,7 @@ export function WorkflowView({
         </div>
         {step && (
           <aside className="workflow-side" aria-label="단계 설정">
-            <label>
+            <label className="side-field">
               이름
               <Input
                 size="md"
@@ -286,7 +286,7 @@ export function WorkflowView({
                 onChange={(e) => edit(step.id, { label: e.target.value })}
               />
             </label>
-            <label>
+            <label className="side-field">
               담당
               <Choice
                 label="담당 역할"
@@ -298,7 +298,7 @@ export function WorkflowView({
                 onChange={(role) => edit(step.id, { role })}
               />
             </label>
-            <label>
+            <label className="side-field">
               할 일
               <TextArea
                 className="side-text"
@@ -308,10 +308,10 @@ export function WorkflowView({
               />
             </label>
             <Checkbox checked={step.verdict} onChange={(e) => edit(step.id, { verdict: e.target.checked })}>
-              되돌리기
+              통과 못 하면 되돌려 보내기
             </Checkbox>
             {step.verdict && (
-              <label>
+              <label className="side-field">
                 최대 횟수
                 <Input
                   size="md"
@@ -351,8 +351,18 @@ function StepBox({ data }: NodeProps<StepNode>) {
   );
 }
 const NODE_TYPES = { step: StepBox };
-// Fits the whole flow but never enlarges past real size
-const FIT = { maxZoom: 1, padding: 0.15 };
+// Fits the whole flow but never enlarges past real size, nor shrinks a node's words past reading
+const FIT = { maxZoom: 1, minZoom: 0.7, padding: 0.15 };
+
+// A flow too big to fit readably starts from its first row, so the work reads from the top and the rest is a pan away
+async function fit(flow: ReactFlowInstance<StepNode, LinkEdge>) {
+  await flow.fitView(FIT);
+  const { x, zoom } = flow.getViewport();
+  if (zoom > FIT.minZoom) return;
+  const gap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sp-4'));
+  const top = Math.min(...flow.getNodes().map((n) => n.position.y));
+  await flow.setViewport({ x, y: gap - top * zoom, zoom });
+}
 
 // A picked link shows its own remove button, so nothing else on the screen is needed to cut one
 function LinkLine({

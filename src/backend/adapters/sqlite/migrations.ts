@@ -112,4 +112,6 @@ export const MIGRATIONS = [
      SELECT m.id, j.key, json_extract(j.value, '$.mediaType'), json_extract(j.value, '$.data')
      FROM messages m, json_each(m.images) j WHERE m.images IS NOT NULL;
    ALTER TABLE messages DROP COLUMN images;`,
+  // The task a report of 비서's is about, so the chat can show that task's changed files under it
+  `ALTER TABLE messages ADD COLUMN task_id INTEGER;`,
 ];

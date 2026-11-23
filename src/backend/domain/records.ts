@@ -48,6 +48,8 @@ export type Message = {
   imageCount: number;
   createdAt: string;
   question: Question | null;
+  // The task a report is about
+  taskId: number | null;
 };
 export type Event = {
   id: number;

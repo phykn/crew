@@ -40,6 +40,9 @@ test('a message opens a pinned task card, the answer card lets it go on, and the
   await page.getByRole('tab', { name: '로그' }).click();
   await expect(page.getByRole('tab', { name: '대화, 대답 대기' })).toHaveAttribute('data-waiting', 'true');
   await page.getByRole('tab', { name: '대화' }).click();
+  // 답하기 on the card brings the question into view, its first option ready
+  await card.getByRole('button', { name: '답하기' }).click();
+  await expect(page.getByRole('button', { name: '거절' })).toBeFocused();
   await page.getByRole('button', { name: '허용' }).click();
   // The card keeps only the answer, so it reads as done
   await expect(page.getByRole('status').filter({ hasText: '✓ 허용' })).toBeVisible();

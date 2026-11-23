@@ -66,7 +66,7 @@ export function Permissions({ memberId }: { memberId: number }) {
           </ToggleChip>
         ))}
       </div>
-      <span className="perm-label">쓰기</span>
+      <span className="perm-label">쓰는 곳</span>
       <div className="perm-items">
         <Choice
           label="쓰기 범위"

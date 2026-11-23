@@ -80,6 +80,7 @@ export function createHandlers(chat: Chat, win: () => BrowserWindow | null) {
     'tasks.list': handle(z.object({ sessionId: id }), (a) => store.listTasks(a.sessionId)),
     'tasks.stop': handle(z.object({ id }), (a) => tasks.stop(a.id)),
     'tasks.resume': handle(z.object({ id }), (a) => tasks.resume(a.id)),
+    'tasks.versions': handle(z.object({ id }), (a) => tasks.versions(a.id)),
     'changes.file': handle(z.object({ taskId: id, versionId: id, file: z.string().min(1) }), (a) =>
       tasks.change(a.taskId, a.versionId, a.file),
     ),

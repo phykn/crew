@@ -39,10 +39,12 @@ export function TaskCards({
   tasks,
   messages,
   onLog,
+  onAnswer,
 }: {
   tasks: Task[];
   messages: Message[];
   onLog: (taskId: number) => void;
+  onAnswer: (questionId: number) => void;
 }) {
   const open = tasks.filter((t) => t.status !== 'done');
   // Stop asks once inline, since a click cuts off the work in progress
@@ -51,8 +53,8 @@ export function TaskCards({
   return (
     <section className="task-cards" aria-label="진행 중 업무">
       {open.map((t) => {
-        const asking = messages.some((m) => m.question?.taskId === t.id && m.question.answer === null);
-        const p = pill(t, asking);
+        const asking = messages.find((m) => m.question?.taskId === t.id && m.question.answer === null)?.question;
+        const p = pill(t, !!asking);
         const stoppable = ACTIVE.includes(t.status);
         return (
           <div className="task-card" key={t.id} data-status={t.status} aria-label={`업무 ${t.title}`}>
@@ -61,6 +63,7 @@ export function TaskCards({
             <span className="task-pill" data-tone={p.tone}>
               {p.text}
             </span>
+            {asking && <TaskLink onClick={() => onAnswer(asking.id)}>답하기</TaskLink>}
             {stoppable && stopping !== t.id && <TaskLink onClick={() => setStopping(t.id)}>중단</TaskLink>}
             {stoppable && stopping === t.id && (
               <span className="task-confirm" role="group" aria-label="중단 확인">

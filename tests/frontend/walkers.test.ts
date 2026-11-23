@@ -26,7 +26,7 @@ test('idle members stroll only on open ground and chat among themselves without 
       // Standing points are never inside a prop, the fire, or past the trodden ground; a bench's step-off spot is its own
       const stepOff = SEATS.some((t: { from: { x: number; y: number } }) => t.from.x === p.x && t.from.y === p.y);
       if (!p.sitting && !p.moving && !p.entering && !stepOff) expect(blocked(p.x, p.y)).toBe(false);
-      if (p.bubble?.kind === 'chat') chats++;
+      if (p.bubble?.kind === 'idle') chats++;
     }
   }
   [...w.people.values()].forEach((p, i) => (moved += Number(Math.hypot(p.x - start[i][0], p.y - start[i][1]) > 0.5)));

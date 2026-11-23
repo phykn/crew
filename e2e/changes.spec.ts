@@ -48,6 +48,10 @@ test('in a git project a file named in the log opens its diff in a popup', async
   await page.getByLabel('메시지').fill('검색 고쳐줘');
   await page.getByLabel('메시지').press('Enter');
   await expect(page.getByText('검색을 고쳤습니다.')).toBeVisible({ timeout: 15_000 });
+  // The report itself names the changed file, one click from its diff
+  await page.locator('.report-files').getByRole('button', { name: 'search.js' }).click();
+  await expect(page.getByRole('dialog').locator('.diff-line[data-kind="add"]')).toHaveText('+v1 고침');
+  await page.keyboard.press('Escape');
 
   await page.getByRole('tab', { name: '로그' }).click();
   await page.getByRole('button', { name: /개발 완료/ }).click();

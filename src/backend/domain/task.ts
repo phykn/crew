@@ -144,7 +144,7 @@ export function stuck(w: Workflow, runs: StepRun[], version: number | null) {
 }
 
 export function solo(role: string, key: string): Workflow {
-  const work = { id: 'work', role: key, label: `${role} 작업`, does: 'Do the request.' };
+  const work = { id: 'work', role: key, label: `${role} 작업`, does: '요청을 수행한다.' };
   return Workflow.parse({ kind: 'solo', label: role, use: '', steps: [work] });
 }
 

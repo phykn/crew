@@ -7,13 +7,13 @@
       "id": "advise",
       "role": "advisor",
       "label": "개선 제안",
-      "does": "With no change in hand, find what to improve in the project's behavior and the user's complaints, and propose fixes."
+      "does": "바꿀 코드 없이, 프로젝트의 동작과 사용자의 불만에서 고칠 점을 찾아 제안한다."
     },
     {
       "id": "structure",
       "role": "stylist",
       "label": "구조 리뷰",
-      "does": "Review the project's structure with your style skill's structure review."
+      "does": "스타일 스킬의 구조 리뷰로 프로젝트 구조를 검토한다."
     }
   ]
 }

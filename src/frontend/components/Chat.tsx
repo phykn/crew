@@ -6,6 +6,7 @@ import { Button } from '../ui/Button';
 import { Choice } from '../ui/Choice';
 import { FileInput, TextArea } from '../ui/Field';
 import { ListMenu, ListOption } from '../ui/Menu';
+import type { ChangesTarget } from './Changes';
 import { TaskCards } from './TaskCards';
 
 // The window's own commands: typed after a slash, they act here and never reach 비서
@@ -45,6 +46,7 @@ export function Chat({
   onMode,
   onWaiting,
   onLog,
+  onChanges,
   commands,
 }: {
   session: Session;
@@ -52,6 +54,7 @@ export function Chat({
   onMode: (m: Mode) => void;
   onWaiting: (waiting: boolean) => void;
   onLog: (taskId: number) => void;
+  onChanges: (target: ChangesTarget) => void;
   commands: Command[];
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -136,6 +139,13 @@ export function Chat({
   }
 
   // Now joins 비서's answer at once; later waits in line while 비서 is answering
+  // A card pushed up by a long conversation comes back into view with its first option ready to pick
+  function showQuestion(id: number) {
+    const card = document.querySelector<HTMLElement>(`[data-question="${id}"]`);
+    card?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    card?.querySelector<HTMLElement>('button')?.focus({ preventScroll: true });
+  }
+
   function send(later = false) {
     const text = draft.trim();
     if (!text && !images.length) return;
@@ -166,7 +176,7 @@ export function Chat({
 
   return (
     <div className="chat">
-      <TaskCards tasks={tasks} messages={messages} onLog={onLog} />
+      <TaskCards tasks={tasks} messages={messages} onLog={onLog} onAnswer={showQuestion} />
       <div
         className="messages"
         aria-label="대화"
@@ -182,7 +192,15 @@ export function Chat({
             text={m.text}
             pictures={Array.from({ length: m.imageCount }, (_, n) => imageUrl(m.id, n, m.createdAt))}
             question={m.question}
-          />
+          >
+            {m.taskId && (
+              <ReportFiles
+                taskId={m.taskId}
+                title={tasks.find((t) => t.id === m.taskId)?.title ?? ''}
+                onChanges={onChanges}
+              />
+            )}
+          </Bubble>
         ))}
         {streaming !== null && <Bubble author="secretary" text={streaming} pending />}
         {queued
@@ -278,7 +296,7 @@ export function Chat({
           bare
           className="composer-text"
           value={draft}
-          placeholder="Ctrl+Enter 키로 대기열에 추가하기"
+          placeholder={streaming !== null ? 'Ctrl+Enter 키로 대기열에 추가하기' : '비서에게 할 일을 말하세요'}
           aria-label="메시지"
           rows={1}
           onChange={(e) => {
@@ -363,6 +381,7 @@ type BubbleProps = {
   pictures?: string[];
   pending?: boolean;
   question?: Question | null;
+  children?: React.ReactNode;
 };
 
 function Pictures({ srcs }: { srcs: string[] }) {
@@ -376,7 +395,7 @@ function Pictures({ srcs }: { srcs: string[] }) {
   );
 }
 
-function Bubble({ author, text, pictures = [], pending, question }: BubbleProps) {
+function Bubble({ author, text, pictures = [], pending, question, children }: BubbleProps) {
   // Only two people talk here, so the side a bubble sits on says who said it: me right, 비서 left
   return (
     <div
@@ -390,8 +409,46 @@ function Bubble({ author, text, pictures = [], pending, question }: BubbleProps)
         <div className="bubble">
           <Pictures srcs={pictures} />
           {text ? renderInline(text) : pending ? <span className="typing">···</span> : ''}
+          {children}
         </div>
       )}
+    </div>
+  );
+}
+
+// Under a finished task's report: the files its last kept version changed, each opening its diff
+function ReportFiles({
+  taskId,
+  title,
+  onChanges,
+}: {
+  taskId: number;
+  title: string;
+  onChanges: (target: ChangesTarget) => void;
+}) {
+  const [last, setLast] = useState<{ id: number; files: string[] } | null>(null);
+  useEffect(() => {
+    let live = true;
+    void call('tasks.versions', { id: taskId }).then((vs) => live && setLast(vs.at(-1) ?? null));
+    return () => {
+      live = false;
+    };
+  }, [taskId]);
+  if (!last?.files.length) return null;
+  return (
+    <div className="report-files">
+      <span className="muted">바뀐 파일</span>
+      {last.files.map((file) => (
+        <Button
+          key={file}
+          variant="link"
+          className="file-link"
+          title="변경 내용 보기"
+          onClick={() => onChanges({ taskId, title, versionId: last.id, file })}
+        >
+          {file}
+        </Button>
+      ))}
     </div>
   );
 }
@@ -401,7 +458,7 @@ function AnswerCard({ question }: { question: Question }) {
   const [picked, setPicked] = useState<string | null>(null);
   const answer = question.answer ?? picked;
   return (
-    <div className="answer-card" data-answered={answer !== null || undefined}>
+    <div className="answer-card" data-question={question.id} data-answered={answer !== null || undefined}>
       <div className="answer-prompt">{renderInline(question.prompt)}</div>
       {answer !== null ? (
         <p className="answer-result" role="status">

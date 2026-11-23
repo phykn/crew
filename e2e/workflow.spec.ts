@@ -138,7 +138,7 @@ test('switching project with unsaved workflow edits asks first, and staying keep
   await app.close();
 });
 
-test('arranged rows keep one gap however tall a node is, and a canvas that shrinks fits the steps again', async () => {
+test('arranged rows keep one gap however tall a node is, and a canvas that shrinks fits again from the first step, still readable', async () => {
   const scratch = makeScratch();
   const app = await launchApp(scratch.db);
   const page = await openProject(app, scratch.project);
@@ -152,15 +152,21 @@ test('arranged rows keep one gap however tall a node is, and a canvas that shrin
       return Math.abs(b!.y - (a!.y + a!.height) - (c!.y - (b!.y + b!.height)));
     })
     .toBeLessThan(1);
+  // Too small to hold every step readably, the canvas keeps the words legible and starts from the first step
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(460, 900));
   await expect
     .poll(() =>
       editor.evaluate((e) => {
         const frame = e.querySelector('.workflow-canvas')!.getBoundingClientRect();
-        return [...e.querySelectorAll('.react-flow__node')].every((n) => {
-          const r = n.getBoundingClientRect();
-          return r.top >= frame.top && r.bottom <= frame.bottom && r.left >= frame.left && r.right <= frame.right;
-        });
+        const r = e.querySelector('.react-flow__node[data-id="plan"]')!.getBoundingClientRect();
+        const zoom = new DOMMatrix(getComputedStyle(e.querySelector('.react-flow__viewport')!).transform).a;
+        return (
+          r.top >= frame.top &&
+          r.bottom <= frame.bottom &&
+          r.left >= frame.left &&
+          r.right <= frame.right &&
+          zoom >= 0.7 - 1e-6
+        );
       }),
     )
     .toBe(true);
