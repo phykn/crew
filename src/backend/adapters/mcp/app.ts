@@ -48,6 +48,10 @@ export const OFF_CATALOG: Record<string, string> = {
   'questions.answer': 'only the user answers cards',
   'camp.state': 'the camp is drawn from the record, not acted on',
   'workflows.save': '비서 saves workflows with change_workflow, filing the reason',
+  'connections.list': 'keys and logins are the user’s to manage in the 연결 tab',
+  'connections.saveKey': 'keys and logins are the user’s to manage in the 연결 tab',
+  'connections.removeKey': 'keys and logins are the user’s to manage in the 연결 tab',
+  'connections.check': 'keys and logins are the user’s to manage in the 연결 tab',
   'changes.file': 'a diff opens from a file the user clicks in the log; 비서 reads files itself',
 };
 

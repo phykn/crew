@@ -1,6 +1,7 @@
 import type { Image, Mode } from '../../shared';
 import type { Crew } from '../domain/crew';
-import type { Agent, Feed, Files, Paths, Ports, Records, ToolServers, Versions } from './ports';
+import type { Agent, Feed, Files, Paths, Ports, Records, Secrets, ToolServers, Versions } from './ports';
+import { Connections } from './connections';
 import { Questions } from './questions';
 import { Requests } from './requests';
 import { Members } from './members';
@@ -20,6 +21,8 @@ export class Chat {
 
   readonly store: Records;
   readonly agent: Agent;
+  readonly secrets: Secrets;
+  readonly connections: Connections;
   readonly files: Files;
   readonly versions: Versions;
   readonly crew: Crew;
@@ -30,6 +33,7 @@ export class Chat {
   constructor(ports: Ports) {
     this.store = ports.records;
     this.agent = ports.agent;
+    this.secrets = ports.secrets;
     this.files = ports.files;
     this.versions = ports.versions;
     this.crew = ports.crew;
@@ -43,6 +47,7 @@ export class Chat {
     this.runs = new Runs(this);
     this.workflows = new Workflows(this);
     this.tasks = new Tasks(this);
+    this.connections = new Connections(this);
     this.tools = ports.tools(this);
   }
 

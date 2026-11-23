@@ -5,7 +5,7 @@ import { loadSdk } from '../../src/backend/adapters/claude/agent';
 import { wire } from '../../src/backend/wire';
 import { Store } from '../../src/backend/adapters/sqlite/store';
 import type { Image } from '../../src/shared';
-import { CREW, makeScratch, recordedRuns } from '../support';
+import { CREW, MemorySecrets, makeScratch, recordedRuns } from '../support';
 
 // A PNG from raw RGB rows, so a test can make one solid colour or one too noisy to compress
 function png(width: number, height: number, pixel: (x: number, y: number) => number[]): Image {
@@ -36,7 +36,14 @@ function png(width: number, height: number, pixel: (x: number, y: number) => num
 function haikuChat() {
   const scratch = makeScratch();
   const store = new Store(scratch.db);
-  const chat = wire({ records: store, sdk: loadSdk, crew: CREW, emit: () => {}, paths: scratch.paths });
+  const chat = wire({
+    records: store,
+    secrets: new MemorySecrets(),
+    sdk: loadSdk,
+    crew: CREW,
+    emit: () => {},
+    paths: scratch.paths,
+  });
   const p = store.addProject(scratch.project);
   chat.members.seed(p.id);
   const s = store.createSession(p.id);

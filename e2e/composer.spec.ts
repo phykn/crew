@@ -127,3 +127,21 @@ test('the window never leaves the app for a file, as a drop outside the input wo
   expect(await page.evaluate(() => !!document.querySelector('.composer'))).toBe(true);
   await app.close();
 });
+
+test('a long message grows the box upward and wraps inside it, never wider than the chat', async () => {
+  const scratch = makeScratch();
+  const app = await launchApp(scratch.db);
+  const page = await openProject(app, scratch.project);
+  const box = page.locator('.composer');
+  const before = (await box.boundingBox())!;
+  const line = '줄을 넘기는 긴 문장입니다 '.repeat(12);
+  await page.getByLabel('메시지').fill([line, line, line, 'x'.repeat(400)].join('\n'));
+  const after = (await box.boundingBox())!;
+  // Upward only: the same left and right edges, taller than one line
+  expect(Math.abs(after.x - before.x)).toBeLessThan(1);
+  expect(Math.abs(after.width - before.width)).toBeLessThan(1);
+  expect(after.height).toBeGreaterThan(before.height);
+  const text = (await page.getByLabel('메시지').boundingBox())!;
+  expect(text.x + text.width).toBeLessThanOrEqual(after.x + after.width + 0.5);
+  await app.close();
+});

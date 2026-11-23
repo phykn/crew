@@ -667,6 +667,10 @@ export class Store implements Records {
       .run(key, value);
   }
 
+  deleteSetting(key: string) {
+    this.db.prepare('DELETE FROM settings WHERE key = ?').run(key);
+  }
+
   listDocs(projectId: number): Doc[] {
     return this.db.prepare(`${DOC} WHERE project_id = ? AND deleted = 0 ORDER BY title`).all(projectId) as Doc[];
   }

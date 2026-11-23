@@ -4,7 +4,7 @@ import { loadSdk } from '../../src/backend/adapters/claude/agent';
 import { wire } from '../../src/backend/wire';
 import type { Chat } from '../../src/backend/app/chat';
 import { Store } from '../../src/backend/adapters/sqlite/store';
-import { CREW, makeScratch, recordedRuns } from '../support';
+import { CREW, MemorySecrets, makeScratch, recordedRuns } from '../support';
 
 const SEARCH = `export function search(items, query) {
   if (!query) return [];
@@ -31,6 +31,7 @@ test('real Claude: 비서 opens a code task and the crew changes and verifies it
   const asked: string[] = [];
   const chat: Chat = wire({
     records: store,
+    secrets: new MemorySecrets(),
     sdk: loadSdk,
     crew: CREW,
     emit: (channel, topic) => {

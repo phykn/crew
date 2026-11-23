@@ -31,6 +31,20 @@ export function openScratch(files?: Record<string, string>) {
   return { ...scratch, store: new Store(scratch.db) };
 }
 
+// Saved keys kept in memory, as the window's encrypted store keeps them on disk
+export class MemorySecrets {
+  saved = new Map<string, string>();
+  read(name: string) {
+    return this.saved.get(name) ?? null;
+  }
+  write(name: string, value: string) {
+    this.saved.set(name, value);
+  }
+  remove(name: string) {
+    this.saved.delete(name);
+  }
+}
+
 // A chat on a scratch record with one project, its crew, and a session, its members answering from the scripts
 // An SDK that cannot be loaded, as when its package or binary is missing
 export const broken = async (): Promise<Sdk> => {
@@ -45,6 +59,7 @@ export function openChat(
   const fake = fakeCrew(scripts);
   const chat = wire({
     records: scratch.store,
+    secrets: new MemorySecrets(),
     sdk: o.sdk ?? (async () => fake.sdk),
     crew: o.crew ?? CREW,
     emit: o.emit ?? (() => {}),
@@ -63,7 +78,14 @@ export function reopenChat(scratch: { db: string; paths: Paths }, scripts: Recor
   return {
     store,
     fake,
-    chat: wire({ records: store, sdk: async () => fake.sdk, crew: CREW, emit: () => {}, paths: scratch.paths }),
+    chat: wire({
+      records: store,
+      secrets: new MemorySecrets(),
+      sdk: async () => fake.sdk,
+      crew: CREW,
+      emit: () => {},
+      paths: scratch.paths,
+    }),
   };
 }
 

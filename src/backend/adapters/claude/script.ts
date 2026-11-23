@@ -63,7 +63,12 @@ export function scriptSdk(file: string): Sdk {
         } as never;
       }
     }
-    return Object.assign(run(), { interrupt: async () => cut() }) as unknown as ReturnType<QueryFn>;
+    // A connection check reads the account and closes, as it does with the real SDK
+    return Object.assign(run(), {
+      interrupt: async () => cut(),
+      accountInfo: async () => ({ email: 'script@crew.test', tokenSource: 'script' }),
+      close: () => {},
+    }) as unknown as ReturnType<QueryFn>;
   };
   return {
     query,

@@ -24,6 +24,7 @@ import type {
 import type { RunSpend } from '../domain/usage';
 import type { Author, Change, Doc, Memory } from '../domain/wiki';
 import type { Crew } from '../domain/crew';
+import type { Account } from '../domain/providers';
 import type { Step, Workflow } from '../domain/workflow';
 import type { Chat } from './chat';
 
@@ -163,6 +164,7 @@ export interface WikiRecords {
 export interface SettingRecords {
   readSetting(key: string): string | null;
   writeSetting(key: string, value: string): void;
+  deleteSetting(key: string): void;
 }
 
 export type Records = Transactions &
@@ -211,6 +213,15 @@ export interface AgentRun {
 
 export interface Agent {
   start(input: AgentInput): AgentRun;
+  // Who the service answers as with the credentials in use now
+  check(): Promise<Account>;
+}
+
+// Saved credentials, unreadable to anyone who copies the record file
+export interface Secrets {
+  read(name: string): string | null;
+  write(name: string, value: string): void;
+  remove(name: string): void;
 }
 
 // The project folder and the crew's output folders on disk
@@ -251,6 +262,7 @@ export type Paths = { output: string; protected: string[] };
 export type Ports = {
   records: Records;
   agent: Agent;
+  secrets: Secrets;
   files: Files;
   versions: Versions;
   crew: Crew;

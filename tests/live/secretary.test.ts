@@ -3,12 +3,19 @@ import { loadSdk } from '../../src/backend/adapters/claude/agent';
 import { wire } from '../../src/backend/wire';
 import { Store } from '../../src/backend/adapters/sqlite/store';
 import { ALLOW } from '../../src/backend/domain/answers';
-import { CREW, makeScratch, recordedAgents, recordedRuns } from '../support';
+import { CREW, MemorySecrets, makeScratch, recordedAgents, recordedRuns } from '../support';
 
 test('real Claude: 비서 lists files itself, remembers after a restart, and switches model', async () => {
   const scratch = makeScratch({ 'notes.txt': 'hello', 'todo.md': '- buy milk' });
   let store = new Store(scratch.db);
-  let chat = wire({ records: store, sdk: loadSdk, crew: CREW, emit: () => {}, paths: scratch.paths });
+  let chat = wire({
+    records: store,
+    secrets: new MemorySecrets(),
+    sdk: loadSdk,
+    crew: CREW,
+    emit: () => {},
+    paths: scratch.paths,
+  });
   const p = store.addProject(scratch.project);
   chat.members.seed(p.id);
   const s = store.createSession(p.id);
@@ -24,7 +31,14 @@ test('real Claude: 비서 lists files itself, remembers after a restart, and swi
   // A new store and chat on the same file is what the app sees after a restart
   store.db.close();
   store = new Store(scratch.db);
-  chat = wire({ records: store, sdk: loadSdk, crew: CREW, emit: () => {}, paths: scratch.paths });
+  chat = wire({
+    records: store,
+    secrets: new MemorySecrets(),
+    sdk: loadSdk,
+    crew: CREW,
+    emit: () => {},
+    paths: scratch.paths,
+  });
   store.updateMember(store.readMember(p.id, 'orchestrator').id, { model: 'sonnet' });
   await chat.send(s.id, '방금 내가 뭘 물어봤고 너는 어떤 파일들을 말했지? 파일 이름만 다시 말해줘.');
   const second = store.listMessages(s.id).at(-1)!;
@@ -42,6 +56,7 @@ test('real Claude: 비서 works the app itself, asking on cards only for what ne
   const navigated: unknown[] = [];
   const chat = wire({
     records: store,
+    secrets: new MemorySecrets(),
     sdk: loadSdk,
     crew: CREW,
     emit: (ch, e) => ch === 'navigate' && navigated.push(e),
@@ -101,7 +116,14 @@ test('real Claude: 비서 works the app itself, asking on cards only for what ne
 test('real Claude: a question about a member at work is answered from a copy of its session, and the work goes on', async () => {
   const scratch = makeScratch();
   const store = new Store(scratch.db);
-  const chat = wire({ records: store, sdk: loadSdk, crew: CREW, emit: () => {}, paths: scratch.paths });
+  const chat = wire({
+    records: store,
+    secrets: new MemorySecrets(),
+    sdk: loadSdk,
+    crew: CREW,
+    emit: () => {},
+    paths: scratch.paths,
+  });
   const p = store.addProject(scratch.project);
   chat.members.seed(p.id);
   const s = store.createSession(p.id);

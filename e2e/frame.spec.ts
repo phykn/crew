@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { launchApp, makeScratch, openProject } from './launch';
 
 // The panel's lines meet by rule, not by eye: checked from the boxes' edges rather than from pixels
-test('the tabs stand on one frame line, the open one hides it, and the folder spans the four tabs', async () => {
+test('the tabs stand on one frame line, the open one hides it, and the folder spans the first four tabs', async () => {
   const scratch = makeScratch();
   const app = await launchApp(scratch.db);
   const page = await openProject(app, scratch.project);
@@ -18,7 +18,7 @@ test('the tabs stand on one frame line, the open one hides it, and the folder sp
       strip: parseFloat(getComputedStyle(open, '::before').height),
       bodyTop: box('.tab-body[data-state="active"]').top,
       folder: [box('.project-picker').left, box('.project-picker').right],
-      tabsSpan: [tabs[0].getBoundingClientRect().left, tabs.at(-1)!.getBoundingClientRect().right],
+      tabsSpan: [tabs[0].getBoundingClientRect().left, tabs[3].getBoundingClientRect().right],
     };
   });
   // Every tab ends where the line begins, so the line is drawn once and never steps

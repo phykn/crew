@@ -13,6 +13,7 @@ import { WorkflowView } from './components/WorkflowView';
 import { Camp } from './components/Camp';
 import { TabIcon } from './components/Icons';
 import { Changes, type ChangesTarget } from './components/Changes';
+import { Connections } from './components/Connections';
 import { Confirm } from './ui/Confirm';
 import { Empty } from './ui/Empty';
 
@@ -21,6 +22,7 @@ const TABS = [
   ['log', '로그'],
   ['memory', '메모리'],
   ['workflow', '워크플로우'],
+  ['connect', '연결'],
 ] as const;
 
 export function App() {
@@ -98,7 +100,7 @@ export function App() {
             onExplorer={() => setTree(true)}
           />
           <Tabs.Root className="tabs" value={tab} onValueChange={setTab}>
-            {/* An icon with its name under it: small enough for four tabs, and readable without a hover */}
+            {/* An icon with its name under it: small enough for five tabs, and readable without a hover */}
             {/* A tab picked from a text field would inherit its keyboard ring, so the list remembers whether the last pick was by pointer */}
             <Tabs.List
               className="tab-list"
@@ -133,6 +135,7 @@ export function App() {
                     { name: 'log', run: () => setTab('log') },
                     { name: 'memory', run: () => setTab('memory') },
                     { name: 'workflow', run: () => setTab('workflow') },
+                    { name: 'connect', run: () => setTab('connect') },
                   ]}
                   onLog={openLog}
                   onChanges={setChanges}
@@ -163,6 +166,9 @@ export function App() {
                   onDirty={setWorkflowDirty}
                 />
               )}
+            </Tabs.Content>
+            <Tabs.Content value="connect" className="tab-body">
+              <Connections />
             </Tabs.Content>
           </Tabs.Root>
         </aside>

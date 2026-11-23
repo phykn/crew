@@ -71,6 +71,7 @@ const TAB_ICONS: Record<string, React.ReactNode> = {
       <path d="M10 6.5V10M5.5 13.5V10h9v3.5" />
     </>
   ),
+  connect: <path d="M7.5 2.5v4M12.5 2.5v4M5 6.5h10v3a5 5 0 0 1-10 0zM10 14.5v3" />,
 };
 
 function Glyph({ children }: { children: React.ReactNode }) {

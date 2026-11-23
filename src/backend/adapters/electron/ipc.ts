@@ -3,9 +3,11 @@ import { z } from 'zod';
 import { campState } from './camp';
 import type { Chat } from '../../app/chat';
 import { Config } from '../../domain/crew';
+import { PROVIDERS } from '../../domain/providers';
 import { IMAGE_TYPES, MODELS, MODES } from '../../../shared';
 
 const id = z.number().int().positive();
+const provider = z.enum(PROVIDERS.map((p) => p.id) as [(typeof PROVIDERS)[number]['id']]);
 const USER = { memberId: null, name: '사용자' };
 
 // The run's argument type comes from its schema, so the two cannot drift apart
@@ -133,6 +135,12 @@ export function createHandlers(chat: Chat, win: () => BrowserWindow | null) {
       }),
       ({ id, ...change }) => members.update(id, change),
     ),
+    'connections.list': handle(z.undefined(), () => chat.connections.list()),
+    'connections.saveKey': handle(z.object({ id: provider, key: z.string().trim().min(1).max(500) }), (a) =>
+      chat.connections.saveKey(a.id, a.key),
+    ),
+    'connections.removeKey': handle(z.object({ id: provider }), (a) => chat.connections.removeKey(a.id)),
+    'connections.check': handle(z.object({ id: provider }), (a) => chat.connections.check(a.id)),
     'members.reset': handle(z.object({ id }), (a) => members.reset(a.id)),
     'members.permissions': handle(z.object({ id }), (a) => {
       const member = store.readMemberById(a.id);

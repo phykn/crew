@@ -10,6 +10,7 @@ import type {
 import type { Image } from '../../../shared';
 import type { Agent, AgentInput, AgentRun } from '../../app/ports';
 import type { RunOutput } from '../../domain/records';
+import type { Account } from '../../domain/providers';
 
 export type QueryFn = (params: { prompt: AsyncIterable<SDKUserMessage>; options: Options }) => Query;
 // The parts of the SDK the app uses; tests hand in stand-ins with the same shape
@@ -73,12 +74,69 @@ function content(text: string, images: Image[]) {
 }
 
 // Runs agents through the Claude Agent SDK, loaded on the first run
+// How long a connection check waits for the service before calling it unreachable
+const CHECK_MS = 20_000;
+
 export class ClaudeAgent implements Agent {
-  constructor(private sdk: () => Promise<Sdk>) {}
+  constructor(
+    private sdk: () => Promise<Sdk>,
+    private key: () => string | null,
+  ) {}
 
   start(input: AgentInput) {
-    return new ClaudeRun(this.sdk, input);
+    return new ClaudeRun(this.sdk, input, this.env());
   }
+
+  // A saved key takes the place of the computer's own Claude login; without one the SDK keeps the process's environment
+  env() {
+    const key = this.key();
+    return key ? { ...(process.env as Record<string, string>), ANTHROPIC_API_KEY: key } : undefined;
+  }
+
+  async check(): Promise<Account> {
+    const key = this.key();
+    try {
+      return await within(CHECK_MS, key ? checkKey(key) : this.checkLogin());
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
+  // A session that is never given a prompt is enough for Claude Code to say whose login it runs on, and costs nothing
+  async checkLogin(): Promise<Account> {
+    const { query } = await this.sdk();
+    const q = query({ prompt: silence(), options: { settingSources: [] } });
+    try {
+      const info = await q.accountInfo();
+      const who = info.email ?? info.organization ?? '';
+      if (!who && (!info.tokenSource || info.tokenSource === 'none'))
+        return { ok: false, error: '로그인도 저장한 키도 없습니다' };
+      return { ok: true, who, via: 'login' };
+    } finally {
+      q.close();
+    }
+  }
+}
+
+// Listing the models is the cheapest call that proves a key: it spends no tokens
+async function checkKey(key: string): Promise<Account> {
+  const res = await fetch('https://api.anthropic.com/v1/models?limit=1', {
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+  });
+  if (res.ok) return { ok: true, who: '', via: 'key' };
+  return { ok: false, error: res.status === 401 ? '키가 맞지 않습니다' : `Anthropic이 ${res.status}로 답했습니다` };
+}
+
+// A prompt that never comes, so the session starts and waits without asking the model anything
+function silence(): AsyncIterable<SDKUserMessage> {
+  return { [Symbol.asyncIterator]: () => ({ next: () => new Promise<never>(() => {}) }) };
+}
+
+function within<T>(ms: number, work: Promise<T>) {
+  return Promise.race([
+    work,
+    new Promise<never>((_, fail) => setTimeout(() => fail(new Error('응답이 없습니다')), ms)),
+  ]);
 }
 
 // One agent's turn, from the first prompt to its result; the inbox may grow while it runs
@@ -92,6 +150,7 @@ export class ClaudeRun implements AgentRun {
   constructor(
     private sdk: () => Promise<Sdk>,
     public input: AgentInput,
+    private env?: Record<string, string>,
   ) {
     this.claudeId = input.fork ? null : (input.resume ?? null);
   }
@@ -111,6 +170,7 @@ export class ClaudeRun implements AgentRun {
         prompt: this.inbox,
         options: {
           cwd: input.cwd,
+          env: this.env,
           model: input.model,
           resume: input.resume ?? undefined,
           forkSession: input.fork,

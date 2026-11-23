@@ -56,7 +56,8 @@ code {
 .log-detail,
 .wiki-toc,
 .wiki-doc,
-.def-body {
+.def-body,
+.connection {
   background: var(--surface-sheet);
   border: var(--bw) solid var(--border-subtle);
   border-radius: var(--r);
@@ -213,7 +214,7 @@ code {
   gap: var(--sp-2);
 }
 
-/* The folder lines up with the four tabs below it; the session, named after what was asked, takes the rest, and the folder gives way once the session would be shorter than its minimum */
+/* The folder lines up with the first four tabs below it, the ones about its work; the session, named after what was asked, takes the rest, and the folder gives way once the session would be shorter than its minimum */
 .project-picker {
   flex: 0 1 calc(4 * var(--w-tab) + 3 * var(--sp-1));
   min-width: 0;
@@ -310,21 +311,57 @@ code {
 .tab-body[data-state='active']:has(.chat),
 .tab-body[data-state='active']:has(.log),
 .tab-body[data-state='active']:has(.memory),
-.tab-body[data-state='active']:has(.workflow-view) {
+.tab-body[data-state='active']:has(.workflow-view),
+.tab-body[data-state='active']:has(.connections) {
   display: flex;
   overflow: hidden;
 }
-/* Each tab's content is one column: its toolbar, then what it shows */
+/* Each tab's content is one column: its toolbar, then what it shows; it keeps to the tab's width, so long content wraps or scrolls inside */
 .chat,
 .log,
 .memory,
 .wiki,
-.workflow-view {
+.workflow-view,
+.connections {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
   min-height: 0;
+  min-width: 0;
+}
+
+/* Connections: one sheet per model service, its name and state on top, its key below */
+.connection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+}
+.connection-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.connection-head h3 {
+  margin: 0;
+  font-size: var(--fs-md);
+}
+.connection-check {
+  margin-left: auto;
+}
+.connection-how {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.connection-key {
+  display: flex;
+  gap: var(--sp-2);
+}
+.connection-input {
+  flex: 1;
+  min-width: 0;
 }
 
 /* Chat: me on the right, 비서 on the left, bubbles only */
@@ -410,9 +447,10 @@ code {
   border-color: var(--border-control);
   border-radius: var(--r-lg);
 }
-/* Grows with wrapped and broken lines, up to the cap, then scrolls */
+/* Grows with wrapped and broken lines, up to the cap, then scrolls; sized to its content, it would also widen past the box, so it may shrink to the room left */
 .composer-text {
   flex: 1;
+  min-width: 0;
   min-height: var(--h-lg);
   padding-block: calc((var(--h-lg) - 1lh) / 2);
   field-sizing: content;

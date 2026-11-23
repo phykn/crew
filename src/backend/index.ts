@@ -6,6 +6,7 @@ import { loadCrew } from './adapters/files/crew';
 import { loadSdk } from './adapters/claude/agent';
 import { scriptSdk } from './adapters/claude/script';
 import { createHandlers, registerHandlers } from './adapters/electron/ipc';
+import { SafeSecrets } from './adapters/electron/secrets';
 import { createWindow, registerImageScheme, serveImages, toWindow, win } from './adapters/electron/window';
 
 // Puts the app together: the record, the crew, the SDK, and the window, handed to the adapters and use cases
@@ -30,6 +31,7 @@ app.whenReady().then(() => {
   const sdk = scripted ? async () => scripted : loadSdk;
   const chat = wire({
     records: store,
+    secrets: new SafeSecrets(store),
     sdk,
     crew,
     emit: toWindow,

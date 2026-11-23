@@ -158,7 +158,8 @@
   /* Widths and fixed areas */
   --camp-share: 64%;
   --camp-share-stacked: 38vh;
-  --w-panel-min: 360px;
+  /* Five tabs side by side, plus the panel's padding and its left frame */
+  --w-panel-min: calc(5 * var(--w-tab) + 4 * var(--sp-1) + 2 * var(--sp-4) + var(--bw-frame));
   --w-tab: 76px;
   --w-legend-role: 3.6em;
   --w-legend-nick: 3.4em;

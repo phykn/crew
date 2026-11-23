@@ -4,7 +4,7 @@ import { loadSdk, type QueryFn, type Sdk } from '../../src/backend/adapters/clau
 import { wire } from '../../src/backend/wire';
 import type { Chat } from '../../src/backend/app/chat';
 import { Store } from '../../src/backend/adapters/sqlite/store';
-import { CREW, makeScratch } from '../support';
+import { CREW, MemorySecrets, makeScratch } from '../support';
 
 const SEARCH = `export function search(items, query) {
   if (!query) return [];
@@ -55,6 +55,7 @@ test('real Claude: what the crew writes to the wiki and memory, and whether a la
   // Cards are answered with their main option so a live run never hangs
   const chat: Chat = wire({
     records: store,
+    secrets: new MemorySecrets(),
     sdk: recording(calls),
     crew: CREW,
     emit: (channel, topic) => {
