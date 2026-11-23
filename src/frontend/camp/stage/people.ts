@@ -54,8 +54,7 @@ export class PersonView {
   body = new Sprite();
   lit = new Sprite();
   seal = new Graphics();
-  // Turning is a quick squeeze through the side view rather than a flip; breath is a slow rise and fall while standing
-  turn = 1;
+  // Breath is a slow rise and fall while standing
   breath = 0;
   stride = 0;
   at: { x: number; y: number } | null = null;
@@ -66,7 +65,6 @@ export class PersonView {
     yoyo: true,
     repeat: -1,
   });
-  turning: gsap.core.Tween | null = null;
   constructor(layer: Container) {
     this.spot.anchor.set(0.5);
     this.spot.tint = 0x000000;
@@ -90,18 +88,15 @@ export class PersonView {
     if (this.at) this.stride += Math.hypot(p.x - this.at.x, p.y - this.at.y);
     this.at = { x: p.x, y: p.y };
     const flip = p.facing < 0 ? -1 : 1;
-    if (Math.sign(this.turn) !== flip && !this.turning?.isActive())
-      this.turning = gsap.to(this, { turn: flip, duration: 0.16, ease: 'sine.inOut' });
     const pose = poseOf(p, now, this.stride),
-      side = Math.sign(this.turn) || flip,
       // The fire's side on screen, turned into the sprite's own side when it is drawn mirrored
-      toward = (Math.sign(iso(FIRE.x, FIRE.y).x - f.x) || 1) * side,
+      toward = (Math.sign(iso(FIRE.x, FIRE.y).x - f.x) || 1) * flip,
       // A walker rises a little as each leg passes the other; someone standing breathes
       bob = p.moving ? -Math.abs(Math.sin((this.stride / STEP) * (Math.PI / 2))) : 0,
       breathe = p.moving ? 1 : 1 + 0.025 * this.breath;
     this.body.texture = textureFor(spriteFor(p.room, pose));
     this.figure.position.set(Math.round(f.x), Math.round(headTop(p) + FIGURE.h * BIG + bob));
-    this.figure.scale.set((BIG / SPRITE_SCALE) * this.turn, (BIG / SPRITE_SCALE) * breathe);
+    this.figure.scale.set((BIG / SPRITE_SCALE) * flip, (BIG / SPRITE_SCALE) * breathe);
     this.lit.texture = textureFor(litFor(p.room, pose, toward));
     this.lit.alpha = Math.max(0, 1 - Math.hypot(p.x - FIRE.x, p.y - FIRE.y) / 10);
     // Someone with nothing to do fades a little, so the eye finds who is at work
@@ -119,7 +114,6 @@ export class PersonView {
 
   destroy() {
     this.breathing.kill();
-    this.turning?.kill();
     this.root.destroy({ children: true });
   }
 }
