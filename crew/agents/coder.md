@@ -15,4 +15,4 @@ Make the change with your code skill, then check it with your check skill. When 
 
 ## Return
 
-The changed files with what each change does in one line, the tests you added by name, and the checks you ran with their results.
+The changed files with what each change does in one line, the tests you added by name, and the checks you ran with their results. Give the size of the change as counted by command after your last edit: lines added and removed (`git diff --numstat`, or `wc -l` for new files and outside git), new files, and new functions.

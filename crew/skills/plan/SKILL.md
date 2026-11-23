@@ -7,7 +7,7 @@
    - a bug fix finds the cause where it arises and adds one regression test the unfixed code fails;
    - new behavior gets a test;
    - a removal takes its callers, tests, dependencies, and documents with it;
-   - a refactor keeps behavior, shown by the existing tests;
+   - a refactor keeps behavior, shown by the existing tests and, where it computes values, by outputs compared before and after;
    - a speedup is measured before the first edit and again after, the same way.
 3. Plan only what something will use: name what calls each new function, option, or file, and prefer reusing or deleting code to adding it. A rename or a config key change lists every caller, test, document, and config that names it; a change in behavior lists the README and `CLAUDE.md` lines to update.
 4. Write it so the coder can follow without guessing: the goal in one line, the files to change and why, the order of steps, what stays out, the risks, and done-when as checks, cheapest first (tests to add or run, what to look at on screen).
