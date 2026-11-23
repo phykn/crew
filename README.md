@@ -1,16 +1,10 @@
-<div align="center">
+# crew
 
-<h1>crew</h1>
+**One word to your secretary, and a team of AI agents gets it done while you watch them in a pixel camp.**
 
-<p><b>One word to your secretary, and a team of AI agents gets it done while you watch them in a pixel camp.</b></p>
+![Electron](https://img.shields.io/badge/Electron-45-47848F) ![React](https://img.shields.io/badge/React-19-61DAFB) ![Claude Agent SDK](https://img.shields.io/badge/Claude_Agent_SDK-0.3-D97757) ![PixiJS](https://img.shields.io/badge/PixiJS-8-E72264) ![SQLite](https://img.shields.io/badge/node:sqlite-builtin-003B57)
 
-<img src="https://img.shields.io/badge/Electron-45-47848F" alt="Electron"> <img src="https://img.shields.io/badge/React-19-61DAFB" alt="React"> <img src="https://img.shields.io/badge/Claude_Agent_SDK-0.3-D97757" alt="Claude Agent SDK"> <img src="https://img.shields.io/badge/PixiJS-8-E72264" alt="PixiJS"> <img src="https://img.shields.io/badge/node:sqlite-builtin-003B57" alt="SQLite">
-
-<br><br>
-
-<img src="assets/demo.gif" alt="crew at work" width="720">
-
-</div>
+![crew at work](assets/demo.gif)
 
 ## Features
 
