@@ -1,11 +1,14 @@
-// The model services the crew can connect to; another joins here, with an adapter that runs the crew on it
+// The connections the crew can run on, each its own service: a subscription signed in on this computer, or an API billed
+// by its key; another joins here, with an adapter that runs the crew on it
 export const PROVIDERS = [
-  { id: 'claude', label: 'Claude', key: 'Anthropic API 키', login: 'Claude Code 로그인' },
+  { id: 'claude-subscription', label: 'Claude 구독', login: 'Claude Code 로그인' },
+  { id: 'claude-api', label: 'Claude API', key: 'Anthropic API 키' },
 ] as const;
 export type ProviderId = (typeof PROVIDERS)[number]['id'];
+export const DEFAULT_PROVIDER: ProviderId = 'claude-subscription';
 
-// Who a service answers as: the account behind it and whether a saved key or the computer's own login got it there
-export type Account = { ok: true; who: string; via: 'key' | 'login' } | { ok: false; error: string };
+// Who a connection answers as, and on which plan when it is a subscription
+export type Account = { ok: true; who: string; plan?: string } | { ok: false; error: string };
 
-// Where a provider's saved key is kept among the secrets
+// Where a connection's saved key is kept among the secrets
 export const keyOf = (id: ProviderId) => `${id}.key`;

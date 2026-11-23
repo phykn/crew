@@ -84,17 +84,10 @@ export class ClaudeAgent implements Agent {
   ) {}
 
   start(input: AgentInput) {
-    return new ClaudeRun(this.sdk, input, this.env());
+    return new ClaudeRun(this.sdk, input, envWith(this.key()));
   }
 
-  // A saved key takes the place of the computer's own Claude login; without one the SDK keeps the process's environment
-  env() {
-    const key = this.key();
-    return key ? { ...(process.env as Record<string, string>), ANTHROPIC_API_KEY: key } : undefined;
-  }
-
-  async check(): Promise<Account> {
-    const key = this.key();
+  async check(key: string | null): Promise<Account> {
     try {
       return await within(CHECK_MS, key ? checkKey(key) : this.checkLogin());
     } catch (err) {
@@ -105,17 +98,25 @@ export class ClaudeAgent implements Agent {
   // A session that is never given a prompt is enough for Claude Code to say whose login it runs on, and costs nothing
   async checkLogin(): Promise<Account> {
     const { query } = await this.sdk();
-    const q = query({ prompt: silence(), options: { settingSources: [] } });
+    const q = query({ prompt: silence(), options: { settingSources: [], env: envWith(null) } });
     try {
       const info = await q.accountInfo();
       const who = info.email ?? info.organization ?? '';
       if (!who && (!info.tokenSource || info.tokenSource === 'none'))
-        return { ok: false, error: '로그인도 저장한 키도 없습니다' };
-      return { ok: true, who, via: 'login' };
+        return { ok: false, error: '이 컴퓨터에 Claude Code 로그인이 없습니다' };
+      return { ok: true, who, plan: info.subscriptionType };
     } finally {
       q.close();
     }
   }
+}
+
+// Claude Code prefers a key in its environment to the login, so a run on the subscription drops any key it inherited
+export function envWith(key: string | null) {
+  const env = { ...process.env } as Record<string, string>;
+  delete env.ANTHROPIC_API_KEY;
+  if (key) env.ANTHROPIC_API_KEY = key;
+  return env;
 }
 
 // Listing the models is the cheapest call that proves a key: it spends no tokens
@@ -123,7 +124,7 @@ async function checkKey(key: string): Promise<Account> {
   const res = await fetch('https://api.anthropic.com/v1/models?limit=1', {
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
   });
-  if (res.ok) return { ok: true, who: '', via: 'key' };
+  if (res.ok) return { ok: true, who: '' };
   return { ok: false, error: res.status === 401 ? '키가 맞지 않습니다' : `Anthropic이 ${res.status}로 답했습니다` };
 }
 

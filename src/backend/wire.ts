@@ -1,6 +1,5 @@
 import { Chat } from './app/chat';
 import type { Feed, Paths, Records, Secrets } from './app/ports';
-import { keyOf } from './domain/providers';
 import type { Crew } from './domain/crew';
 import { ClaudeAgent, type Sdk } from './adapters/claude/agent';
 import { DiskFiles } from './adapters/files/files';
@@ -16,15 +15,17 @@ export function wire(o: {
   emit: Feed;
   paths: Paths;
 }) {
-  return new Chat({
+  // Runs ask the hub's connections which key they go with, and the hub needs the agent first
+  const chat: Chat = new Chat({
     records: o.records,
-    agent: new ClaudeAgent(o.sdk, () => o.secrets.read(keyOf('claude'))),
+    agent: new ClaudeAgent(o.sdk, () => chat.connections.key()),
     secrets: o.secrets,
     files: new DiskFiles(),
     versions: new GitVersions(),
     crew: o.crew,
     emit: o.emit,
     paths: o.paths,
-    tools: (chat) => mcpServers(o.sdk, chat),
+    tools: (hub) => mcpServers(o.sdk, hub),
   });
+  return chat;
 }

@@ -213,8 +213,8 @@ export interface AgentRun {
 
 export interface Agent {
   start(input: AgentInput): AgentRun;
-  // Who the service answers as with the credentials in use now
-  check(): Promise<Account>;
+  // Who the service answers as with this key, or with the computer's own login when there is none
+  check(key: string | null): Promise<Account>;
 }
 
 // Saved credentials, unreadable to anyone who copies the record file

@@ -52,6 +52,7 @@ export const OFF_CATALOG: Record<string, string> = {
   'connections.saveKey': 'keys and logins are the user’s to manage in the 연결 tab',
   'connections.removeKey': 'keys and logins are the user’s to manage in the 연결 tab',
   'connections.check': 'keys and logins are the user’s to manage in the 연결 tab',
+  'connections.use': 'which service the crew runs on, and so what it costs, is the user’s to pick in the 연결 tab',
   'changes.file': 'a diff opens from a file the user clicks in the log; 비서 reads files itself',
 };
 

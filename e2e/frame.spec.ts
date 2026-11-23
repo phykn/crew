@@ -30,17 +30,22 @@ test('the tabs stand on one frame line, the open one hides it, and the folder sp
   await app.close();
 });
 
-test("the message box's words sit on the middle of the buttons beside it, a mouse-picked tab shows no keyboard ring, and a narrow panel keeps room for the session name", async () => {
+test("the message box's words span its width above one row of buttons, a mouse-picked tab shows no keyboard ring, and a narrow panel keeps room for the session name", async () => {
   const scratch = makeScratch();
   const app = await launchApp(scratch.db);
   const page = await openProject(app, scratch.project);
-  const middle = (sel: string) =>
-    page.locator(sel).evaluate((e) => {
-      const r = e.getBoundingClientRect();
-      return r.top + r.height / 2;
-    });
+  const box = async (sel: string) => (await page.locator(sel).boundingBox())!;
   await expect(page.getByLabel('메시지')).toHaveAttribute('placeholder', '비서에게 할 일을 말하세요');
-  expect(await middle('.composer-text')).toBeCloseTo(await middle('.composer .ui-button--primary'), 0);
+  // The words run from the attach button's left edge to the send button's right edge, and the buttons sit below them
+  const [text, attach, send] = [
+    await box('.composer-text'),
+    await box('.composer [aria-label="그림 첨부"]'),
+    await box('.composer .ui-button--primary'),
+  ];
+  expect(text.x).toBeCloseTo(attach.x, 0);
+  expect(text.x + text.width).toBeCloseTo(send.x + send.width, 0);
+  expect(send.y).toBeGreaterThanOrEqual(text.y + text.height);
+  expect(attach.y + attach.height / 2).toBeCloseTo(send.y + send.height / 2, 0);
   await page.getByRole('tab', { name: '로그' }).click();
   // Picked from the message box, which always shows focus, so only the drawn outline tells
   await expect(page.getByRole('tab', { name: '로그' })).toHaveCSS('outline-style', 'none');

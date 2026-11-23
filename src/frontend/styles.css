@@ -331,12 +331,15 @@ code {
   min-width: 0;
 }
 
-/* Connections: one sheet per model service, its name and state on top, its key below */
+/* Connections: one sheet per service, its name and state on top, its key below; the one in use is edged in the emphasis colour */
 .connection {
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
   padding: var(--sp-3);
+}
+.connection[data-active] {
+  border-color: var(--emphasis);
 }
 .connection-head {
   display: flex;
@@ -347,7 +350,9 @@ code {
   margin: 0;
   font-size: var(--fs-md);
 }
-.connection-check {
+.connection-actions {
+  display: flex;
+  gap: var(--sp-2);
   margin-left: auto;
 }
 .connection-how {
@@ -436,25 +441,32 @@ code {
   color: var(--action-primary-edge);
   font-weight: var(--fw-bold);
 }
-/* The send button stays at the bottom while the box grows upward */
+/* The words take the box's whole width and grow upward; the buttons keep one row under them */
 .composer {
   position: relative;
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: var(--sp-2);
+  flex-direction: column;
+  gap: var(--sp-1);
   padding: var(--sp-1);
   border-color: var(--border-control);
   border-radius: var(--r-lg);
 }
 /* Grows with wrapped and broken lines, up to the cap, then scrolls; sized to its content, it would also widen past the box, so it may shrink to the room left */
 .composer-text {
-  flex: 1;
   min-width: 0;
   min-height: var(--h-lg);
-  padding-block: calc((var(--h-lg) - 1lh) / 2);
+  padding: calc((var(--h-lg) - 1lh) / 2) var(--sp-2);
   field-sizing: content;
   max-height: var(--h-compose-max);
+}
+.composer-tools,
+.composer-send {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.composer-send {
+  margin-left: auto;
 }
 /* The command list opens upward from the box, over the conversation */
 .slash-menu {
@@ -467,7 +479,6 @@ code {
 }
 
 .composer-notice {
-  flex-basis: 100%;
   margin: 0;
   padding: var(--sp-1) var(--sp-2) 0;
   color: var(--status-bad-text);
@@ -476,7 +487,6 @@ code {
 /* Pictures waiting to go sit on their own row above the box */
 .attachments {
   display: flex;
-  flex-basis: 100%;
   flex-wrap: wrap;
   gap: var(--sp-2);
   margin: 0;

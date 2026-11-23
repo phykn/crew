@@ -269,29 +269,6 @@ export function Chat({
             ))}
           </ListMenu>
         )}
-        <Button
-          variant="quiet"
-          size="lg"
-          iconOnly
-          aria-label="그림 첨부"
-          title="그림 첨부"
-          disabled={images.length >= MAX_IMAGES}
-          onClick={() => picker.current?.click()}
-        >
-          <svg viewBox="0 0 20 20" aria-hidden="true">
-            <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-        </Button>
-        <FileInput
-          ref={picker}
-          accept={IMAGE_TYPES.join(',')}
-          multiple
-          aria-label="그림 파일"
-          onChange={(e) => {
-            void attach(e.target.files ?? []);
-            e.target.value = '';
-          }}
-        />
         <TextArea
           bare
           className="composer-text"
@@ -332,44 +309,72 @@ export function Chat({
             }
           }}
         />
-        <Choice
-          label="승인 모드"
-          size="lg"
-          value={mode}
-          options={Object.entries(MODE_LABELS).map(([value, label]) => ({
-            value,
-            label,
-            hint: MODE_HINTS[value as Mode],
-          }))}
-          onChange={(m) => onMode(m as Mode)}
-        />
-        {streaming !== null ? (
+        {/* Under the words, one row: attach on the left, the mode and send on the right */}
+        <div className="composer-tools">
           <Button
-            variant="primary"
-            tone="danger"
+            variant="quiet"
             size="lg"
             iconOnly
-            aria-label="중지"
-            onClick={() => call('messages.stop', { sessionId: session.id })}
+            aria-label="그림 첨부"
+            title="그림 첨부"
+            disabled={images.length >= MAX_IMAGES}
+            onClick={() => picker.current?.click()}
           >
             <svg viewBox="0 0 20 20" aria-hidden="true">
-              <rect x="5" y="5" width="10" height="10" rx="1.5" fill="currentColor" />
+              <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </Button>
-        ) : (
-          <Button
-            type="submit"
-            variant="primary"
-            size="lg"
-            iconOnly
-            aria-label="보내기"
-            disabled={!draft.trim() && !images.length}
-          >
-            <svg viewBox="0 0 20 20" aria-hidden="true">
-              <path d="M3 3l15 7-15 7 2.5-7z" fill="currentColor" />
-            </svg>
-          </Button>
-        )}
+          <FileInput
+            ref={picker}
+            accept={IMAGE_TYPES.join(',')}
+            multiple
+            aria-label="그림 파일"
+            onChange={(e) => {
+              void attach(e.target.files ?? []);
+              e.target.value = '';
+            }}
+          />
+          <span className="composer-send">
+            <Choice
+              label="승인 모드"
+              size="lg"
+              value={mode}
+              options={Object.entries(MODE_LABELS).map(([value, label]) => ({
+                value,
+                label,
+                hint: MODE_HINTS[value as Mode],
+              }))}
+              onChange={(m) => onMode(m as Mode)}
+            />
+            {streaming !== null ? (
+              <Button
+                variant="primary"
+                tone="danger"
+                size="lg"
+                iconOnly
+                aria-label="중지"
+                onClick={() => call('messages.stop', { sessionId: session.id })}
+              >
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <rect x="5" y="5" width="10" height="10" rx="1.5" fill="currentColor" />
+                </svg>
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                iconOnly
+                aria-label="보내기"
+                disabled={!draft.trim() && !images.length}
+              >
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="M3 3l15 7-15 7 2.5-7z" fill="currentColor" />
+                </svg>
+              </Button>
+            )}
+          </span>
+        </div>
       </form>
     </div>
   );

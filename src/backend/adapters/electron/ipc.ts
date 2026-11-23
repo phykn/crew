@@ -140,6 +140,7 @@ export function createHandlers(chat: Chat, win: () => BrowserWindow | null) {
       chat.connections.saveKey(a.id, a.key),
     ),
     'connections.removeKey': handle(z.object({ id: provider }), (a) => chat.connections.removeKey(a.id)),
+    'connections.use': handle(z.object({ id: provider }), (a) => chat.connections.use(a.id)),
     'connections.check': handle(z.object({ id: provider }), (a) => chat.connections.check(a.id)),
     'members.reset': handle(z.object({ id }), (a) => members.reset(a.id)),
     'members.permissions': handle(z.object({ id }), (a) => {
