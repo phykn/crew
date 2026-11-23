@@ -9,7 +9,7 @@
 ## How it works
 
 ```
-You ──▶ Secretary ──▶ Plan ──▶ Plan review ──▶ Build ──▶ Code review · Test · Standards ──▶ Report
+You ──▶ Secretary ──▶ Plan ──▶ Plan review ──▶ Build ──▶ Code review, Test, Standards ──▶ Report
 ```
 
 You only talk to the secretary. It opens a task, the crew takes each step, and the secretary reports back when every check has passed.
