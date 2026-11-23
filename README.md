@@ -1,49 +1,51 @@
 <div align="center">
 
-# crew
+<h1>crew</h1>
 
-비서 한 명에게 맡기고, AI 에이전트 팀이 일하는 모습을 픽셀 캠프에서 지켜보는 데스크톱 앱
+<p>A desktop app where you hand work to one secretary and watch a team of AI agents do it in a pixel camp</p>
 
-![Electron](https://img.shields.io/badge/Electron-45-47848F) ![React](https://img.shields.io/badge/React-19-61DAFB) ![Claude Agent SDK](https://img.shields.io/badge/Claude_Agent_SDK-0.3-D97757) ![PixiJS](https://img.shields.io/badge/PixiJS-8-E72264) ![SQLite](https://img.shields.io/badge/node:sqlite-builtin-003B57)
+<img src="https://img.shields.io/badge/Electron-45-47848F" alt="Electron"> <img src="https://img.shields.io/badge/React-19-61DAFB" alt="React"> <img src="https://img.shields.io/badge/Claude_Agent_SDK-0.3-D97757" alt="Claude Agent SDK"> <img src="https://img.shields.io/badge/PixiJS-8-E72264" alt="PixiJS"> <img src="https://img.shields.io/badge/node:sqlite-builtin-003B57" alt="SQLite">
 
-![crew 소개 영상](assets/demo.gif)
+<br><br>
+
+<img src="assets/demo.gif" alt="crew at work" width="720">
 
 </div>
 
-- 로컬 폴더를 프로젝트로 열고 비서와 대화합니다. 그림을 붙여 보낼 수 있고, Ctrl+Enter로 보낸 메시지는 비서의 답이 끝날 때까지 기다렸다 갑니다. 할 일을 말하면 비서가 업무를 열고, 크루가 계획 → 계획 검토 → 개발 → 코드 리뷰, 시험, 표준 점검을 진행한 뒤 비서가 보고합니다
-- 맞는 담당자가 없으면 인사가 새 담당자를 정규나 알바로 설계합니다
-- 가드가 모든 도구 호출을 검사해 위험한 명령과 허용 범위 밖 쓰기를 막고, 역할에 없는 도구는 승인 모드(묻기, 자동, 전부)에 따라 카드로 묻거나 넘깁니다
-- 범례에서 담당자별 별명, 모델, 고용과 도구, 쓰기 범위, 스킬, MCP 접근을 바꾸고, 잘못 바꿨으면 초기화로 처음 설정을 되찾습니다
-- 오른쪽 탭에서 대화와 업무 카드, 단계별 로그와 사용량, 프로젝트 위키와 그래프, 업무 흐름 편집기, 모델 연결을 봅니다. 프로젝트가 git 저장소면 로그의 파일 이름을 눌러 업무가 바꾼 내용을 팝업으로 봅니다
-- 왼쪽 캠프에서 앱을 켜면 크루가 화면 밖 사방에서 걸어 들어오고, 모닥불 주변을 걷고, 일하는 사람 발밑에 마법진과 상태가 뜹니다. 캐릭터를 누르면 그 업무 로그가 열립니다
-- 연결 탭에서 크루가 돌 서비스를 고릅니다. Claude 구독(이 컴퓨터의 Claude Code 로그인, 요금제 한도 안)과 Claude API(저장한 키, 쓴 만큼 청구)는 따로 연결되고, 연결 확인으로 어떤 계정이 답하는지 봅니다. 키는 이 컴퓨터에서 암호화해 저장합니다
+- Open a local folder as a project and talk to the secretary (비서). You can attach pictures, and a message sent with Ctrl+Enter waits until the secretary has finished answering. Ask for something and the secretary opens a task; the crew plans, reviews the plan, builds, then runs code review, tests, and a standards check, and the secretary reports back
+- When no member fits the job, HR (인사) designs a new one, as a regular or a temp
+- A guard checks every tool call, blocking dangerous commands and writes outside the allowed scope; a tool outside a member's role is asked on a card or let through, depending on the approval mode (ask, auto, or all)
+- The legend changes each member's nickname, model, hiring, tools, write scope, skills, and MCP access, and a reset brings back the original settings
+- The tabs on the right show the chat and task cards, the log and usage of each step, the project wiki and its graph, the workflow editor, and connections. In a git project, clicking a file name in the log shows what the task changed in a popup
+- In the camp on the left, the crew walks in from beyond every edge when the app opens and moves around the campfire, with a spell circle and a status line under whoever is at work. Clicking a member opens that task's log
+- The connection tab (연결) picks the service the crew runs on. Claude subscription (this computer's Claude Code login, within the plan's limits) and Claude API (a saved key, billed by use) connect separately, and a check shows which account answers. Keys are encrypted on this computer
 
-## 설치
+## Install
 
-Node.js 24 이상이 필요합니다. 크루를 돌리려면 [Claude Code](https://docs.claude.com/en/docs/claude-code/overview)에 로그인되어 있거나, 앱의 연결 탭에 Anthropic API 키를 저장해야 합니다.
+Requires Node.js 24 or later. To run the crew, either log in to [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) or save an Anthropic API key in the app's connection tab.
 
 ```bat
 npm install
 git config core.hooksPath scripts/hooks
 ```
 
-훅을 켜 두면 커밋할 때마다 버전이 0.0.1씩 오르고, `out/crew-<버전>.bundle`에 저장소 번들이 하나만 남습니다.
+With the hooks on, each commit bumps the version by 0.0.1 and keeps a single repository bundle at `out/crew-<version>.bundle`.
 
-## 실행
+## Run
 
 ```bat
 npm start
 ```
 
-실행 파일은 `out/crew-win32-x64/crew.exe`에 만들어집니다.
+To build the executable at `out/crew-win32-x64/crew.exe`:
 
 ```bat
 npm run package
 ```
 
-## 테스트
+## Test
 
-가짜 SDK로 도는 단위 테스트, 실제 Claude를 부르는 통합 테스트(비용 발생), 패키징한 앱의 화면 테스트입니다.
+Unit tests with a fake SDK, integration tests that call real Claude (these cost money), and window tests on the packaged app.
 
 ```bat
 npm test
@@ -51,16 +53,8 @@ npm run test:live
 npm run test:e2e
 ```
 
-## 소개 영상
+## References
 
-위 GIF는 대본 크루로 돌린 앱 화면을 녹화해 [HyperFrames](https://github.com/heygen-com/hyperframes)로 편집한 것입니다. [FFmpeg](https://ffmpeg.org/)가 있어야 다시 만들 수 있습니다. 장면과 자막은 `demo/video/index.html`에 있습니다.
-
-```bat
-npm run demo
-```
-
-## 참고
-
-1. phykn, AI Crew 제품 구상, 2026. https://github.com/phykn/ai-crew
+1. phykn, AI Crew product concept, 2026. https://github.com/phykn/ai-crew
 2. Anthropic, Claude Agent SDK, 2026. https://docs.claude.com/en/docs/claude-code/sdk
 3. Electron Forge, Vite Plugin, 2026. https://www.electronforge.io/config/plugins/vite
