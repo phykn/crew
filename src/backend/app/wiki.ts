@@ -48,6 +48,21 @@ export class Wiki {
     return this.records.listChanges(projectId);
   }
 
+  // Documents someone else created since a run began, on any of the same files: the run's prompt listed the wiki as it
+  // stood at its start, so members working side by side would each write their own copy of one topic
+  createdSince(projectId: number, since: string, author: string, files: string[]) {
+    return this.timeline(projectId)
+      .filter(
+        (c) =>
+          c.kind === 'create' &&
+          c.at >= since &&
+          c.author !== author &&
+          (!files.length || !c.files.length || c.files.some((f) => files.includes(f))) &&
+          this.find(projectId, c.title),
+      )
+      .map((c) => c.title);
+  }
+
   // The lines a change added and removed, for the timeline's detail; another project's change is as missing as none
   change(id: number, projectId?: number) {
     const row = this.records.readChange(id);

@@ -11,6 +11,9 @@ export function wikiTools(sdk: Sdk, chat: Chat, member: Member, sessionId: numbe
   const by = () => ({ memberId: member.id, name: chat.crew.defOf(store.readMemberById(member.id)).role, taskId });
   // In the prompt from the first turn: a tool found only by searching is passed over for the files at hand
   const loaded = { alwaysLoad: true };
+  // When this run began, and the titles it was already told overlap a newer document, which it may then write anyway
+  const since = new Date().toISOString(),
+    warned = new Set<string>();
   return [
     sdk.tool(
       'wiki_read',
@@ -40,7 +43,15 @@ export function wikiTools(sdk: Sdk, chat: Chat, member: Member, sessionId: numbe
         files: z.array(z.string()).default([]).describe('Project files it is about'),
       },
       async (a) => {
-        const old = wiki.find(projectId, a.title);
+        const old = wiki.find(projectId, a.title),
+          fresh = old || warned.has(a.title) ? [] : wiki.createdSince(projectId, since, by().name, a.files);
+        if (fresh.length) {
+          warned.add(a.title);
+          return text(
+            `Not written: since your run began, ${fresh.map((t) => `"${t}"`).join(', ')} was written on the same files. ` +
+              'Read it with wiki_read and add to it if it covers your topic; if yours is a separate topic, call wiki_write again with the same title.',
+          );
+        }
         wiki.write(projectId, a.title, a.body, { ...by(), files: a.files });
         chat.emit('changed', { topic: 'wiki' });
         return text(`${old ? '수정' : '작성'}: ${a.title}`);
