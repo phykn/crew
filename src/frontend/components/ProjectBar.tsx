@@ -1,5 +1,5 @@
 import * as Select from '@radix-ui/react-select';
-import type { ListedProject, Project, Session } from '../../backend/db';
+import type { ListedProject, Project, Session } from '../../backend/domain/records';
 import { clock } from '../time';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';

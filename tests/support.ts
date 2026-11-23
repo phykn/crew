@@ -3,12 +3,15 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { Options, SDKMessage, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
-import type { QueryFn, Sdk } from '../src/backend/agents/run';
-import { Chat, type Emit, type Paths } from '../src/backend/chat';
-import { Crew } from '../src/backend/crew/shipped';
-import { Store } from '../src/backend/db';
+import type { QueryFn, Sdk } from '../src/backend/adapters/claude/agent';
+import type { Feed, Paths } from '../src/backend/app/ports';
+import { wire } from '../src/backend/wire';
+import type { Crew } from '../src/backend/domain/crew';
+import { loadCrew } from '../src/backend/adapters/files/crew';
+import { Store } from '../src/backend/adapters/sqlite/store';
 
-export const CREW = new Crew(path.resolve(__dirname, '../crew'));
+export const CREW_DIR = path.resolve(__dirname, '../crew');
+export const CREW = loadCrew(CREW_DIR);
 
 // A scratch record and project folder per test, so tests never touch real data
 export function makeScratch(files: Record<string, string> = {}) {
@@ -31,11 +34,17 @@ export function openScratch(files?: Record<string, string>) {
 // A chat on a scratch record with one project, its crew, and a session, its members answering from the scripts
 export function openChat(
   scripts: Record<string, Turn[]> = {},
-  o: { files?: Record<string, string>; emit?: Emit; crew?: Crew } = {},
+  o: { files?: Record<string, string>; emit?: Feed; crew?: Crew } = {},
 ) {
   const scratch = openScratch(o.files);
   const fake = fakeCrew(scripts);
-  const chat = new Chat(scratch.store, async () => fake.sdk, o.crew ?? CREW, o.emit ?? (() => {}), scratch.paths);
+  const chat = wire({
+    records: scratch.store,
+    sdk: async () => fake.sdk,
+    crew: o.crew ?? CREW,
+    emit: o.emit ?? (() => {}),
+    paths: scratch.paths,
+  });
   const p = scratch.store.addProject(scratch.project);
   chat.members.seed(p.id);
   return { ...scratch, fake, chat, p, s: scratch.store.createSession(p.id) };
@@ -49,13 +58,7 @@ export function reopenChat(scratch: { db: string; paths: Paths }, scripts: Recor
   return {
     store,
     fake,
-    chat: new Chat(
-      store,
-      async () => fake.sdk,
-      CREW,
-      () => {},
-      scratch.paths,
-    ),
+    chat: wire({ records: store, sdk: async () => fake.sdk, crew: CREW, emit: () => {}, paths: scratch.paths }),
   };
 }
 

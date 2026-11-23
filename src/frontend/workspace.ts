@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ListedProject, Project, Session } from '../backend/db';
-import type { CrewMember } from '../backend/crew/shipped';
+import type { ListedProject, Project, Session } from '../backend/domain/records';
+import type { CrewMember } from '../backend/domain/crew';
 import type { Mode } from '../shared';
 import { call, onChanged } from './api';
 

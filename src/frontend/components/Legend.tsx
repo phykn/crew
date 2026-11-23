@@ -1,5 +1,5 @@
 import { type ReactNode, useState } from 'react';
-import type { CrewMember } from '../../backend/crew/shipped';
+import type { CrewMember } from '../../backend/domain/crew';
 import { MODELS } from '../../shared';
 import { type Args, call } from '../api';
 import { Badge } from '../ui/Badge';

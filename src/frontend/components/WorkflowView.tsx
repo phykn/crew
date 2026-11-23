@@ -19,9 +19,9 @@ import {
   type ReactFlowInstance,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import type { CrewMember } from '../../backend/crew/shipped';
-import type { Project } from '../../backend/db';
-import type { Step } from '../../backend/tasks/workflow';
+import type { CrewMember } from '../../backend/domain/crew';
+import type { Project } from '../../backend/domain/records';
+import type { Step } from '../../backend/domain/workflow';
 import { call, onChanged } from '../api';
 import { Button } from '../ui/Button';
 import { Choice } from '../ui/Choice';

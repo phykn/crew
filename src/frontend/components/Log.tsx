@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { Event, Handback, Session, Task } from '../../backend/db';
-import type { CrewMember } from '../../backend/crew/shipped';
+import type { Event, Handback, Session, Task } from '../../backend/domain/records';
+import type { CrewMember } from '../../backend/domain/crew';
 import { call, follow } from '../api';
 import { clock, duration } from '../time';
 import { Button } from '../ui/Button';

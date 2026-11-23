@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Message, Task } from '../../backend/db';
+import type { Message, Task } from '../../backend/domain/records';
 import { ACTIVE } from '../../shared';
 import { call } from '../api';
 import { Button } from '../ui/Button';

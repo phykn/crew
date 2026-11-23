@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Config } from '../../backend/crew/shipped';
+import type { Config } from '../../backend/domain/crew';
 import { call, follow } from '../api';
 import { stamp } from '../time';
 import { Choice } from '../ui/Choice';

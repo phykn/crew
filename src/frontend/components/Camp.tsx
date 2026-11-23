@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { CrewMember } from '../../backend/crew/shipped';
-import type { Session } from '../../backend/db';
+import type { CrewMember } from '../../backend/domain/crew';
+import type { Session } from '../../backend/domain/records';
 import { call, follow } from '../api';
 import { CAMP, iso } from '../camp/projection.js';
 import { createWalkers } from '../camp/walkers.js';

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Message, Question, Session, Task } from '../../backend/db';
+import type { Message, Question, Session, Task } from '../../backend/domain/records';
 import { IMAGE_TYPES, type Image, imageUrl, MODE_LABELS, type Mode } from '../../shared';
 import { call, onChanged, onStream } from '../api';
 import { Button } from '../ui/Button';

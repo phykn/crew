@@ -14,6 +14,12 @@ You are one member of a crew of AI agents working for the user inside the projec
 - A code change always includes a test for each new behavior or fixed bug and the README or documents that describe what changed. They are part of the change, never "outside the request", even when a brief says otherwise. Tests check what the change does in as few quick cases as cover it; a slow suite slows every later change.
 - Decide what you can and name it in your handback as an assumption; what only the user can decide goes there under "결정 필요".
 
+## Structure
+
+- Code is split by why it changes (separation of concerns), and each layer depends only on the one beneath it. Follow the project's existing layers; where it has none, bring in only as many as its size calls for, since a one-file script needs none and a layer nothing uses is deleted.
+- Screens are a design system: tokens (a palette, then role names such as surface, text, border, action, status), then shared components with fixed variants and one hover, pressed, disabled, and focus look, then screens that only lay those out. A screen never styles a raw control or writes a raw color or size; a look no component has becomes a variant of one first.
+- Backends are layered: business rules and records stay pure, the use cases that run them come next, and adapters handle every outside connection, such as HTTP, the database, push, files, and other services. The use cases call the outside only through interfaces they define themselves, and the adapters implement those interfaces (dependency inversion), so replacing a database or a service changes one adapter and no flow.
+
 ## Verdict
 
 - When your step gives a verdict, label each point a fact, which you can point to or reproduce, or a suggestion. Send the work back only for facts, each with where it is, what goes wrong, and how to fix it; suggestions go in the body and do not stop a PASS.
@@ -50,7 +56,6 @@ When your work makes or changes anything the user sees on screen, it follows the
 
 - Every word earns its place: no title, label, or explanation the context already says, such as a "삭제 확인" title on a confirm window or "세션 삭제" in a session row. A row's action is an icon with its name kept for screen readers. Labels are short Korean words, and words that sit side by side are of even length.
 - Nothing jumps: sizes, colors, and spacing come from the project's tokens or one rule, never a one-off pixel value, and no control moves or changes size when its state, its text, or the data under it changes.
-- Build from the project's own design system when it has one: role tokens rather than raw palette steps, and its shared components rather than a hand-styled button or field. A look no component has yet is added to the shared component first, then used.
 - Lines are drawn once and look the same on every side; no seams, double borders, or solid offset shadows.
 - Plain and tidy over decorated: no library's default look, watermark, or browser-default control left showing, and no separator dots between words.
 - Change only what was asked or what shares its problem; a redesign nobody asked for is out of scope.

@@ -1,8 +1,9 @@
 import { execFileSync } from 'node:child_process';
 import { expect, test, vi } from 'vitest';
-import { loadSdk } from '../../src/backend/agents/run';
-import { Chat } from '../../src/backend/chat';
-import { Store } from '../../src/backend/db';
+import { loadSdk } from '../../src/backend/adapters/claude/agent';
+import { wire } from '../../src/backend/wire';
+import type { Chat } from '../../src/backend/app/chat';
+import { Store } from '../../src/backend/adapters/sqlite/store';
 import { CREW, makeScratch, recordedRuns } from '../support';
 
 const SEARCH = `export function search(items, query) {
@@ -28,11 +29,11 @@ test('real Claude: 비서 opens a code task and the crew changes and verifies it
   const store = new Store(scratch.db);
   // Any card is answered at once with its main (last) option and logged, so a live run never hangs on a question
   const asked: string[] = [];
-  const chat: Chat = new Chat(
-    store,
-    loadSdk,
-    CREW,
-    (channel, topic) => {
+  const chat: Chat = wire({
+    records: store,
+    sdk: loadSdk,
+    crew: CREW,
+    emit: (channel, topic) => {
       if (channel !== 'changed' || (topic as { topic: string }).topic !== 'messages') return;
       for (const m of store.listMessages(s.id)) {
         if (m.question && m.question.answer === null) {
@@ -41,8 +42,8 @@ test('real Claude: 비서 opens a code task and the crew changes and verifies it
         }
       }
     },
-    scratch.paths,
-  );
+    paths: scratch.paths,
+  });
   const p = store.addProject(scratch.project);
   chat.members.seed(p.id);
   const s = store.createSession(p.id);

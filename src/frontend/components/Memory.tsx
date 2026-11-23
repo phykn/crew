@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { CrewMember } from '../../backend/crew/shipped';
-import type { Change, Doc, Memory as Note } from '../../backend/wiki';
+import type { CrewMember } from '../../backend/domain/crew';
+import type { Change, Doc, Memory as Note } from '../../backend/domain/wiki';
 import { stamp } from '../time';
 import { call, follow } from '../api';
 import { Badge } from '../ui/Badge';

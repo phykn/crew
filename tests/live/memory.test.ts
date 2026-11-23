@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import { expect, test, vi } from 'vitest';
-import { loadSdk, type QueryFn, type Sdk } from '../../src/backend/agents/run';
-import { Chat } from '../../src/backend/chat';
-import { Store } from '../../src/backend/db';
+import { loadSdk, type QueryFn, type Sdk } from '../../src/backend/adapters/claude/agent';
+import { wire } from '../../src/backend/wire';
+import type { Chat } from '../../src/backend/app/chat';
+import { Store } from '../../src/backend/adapters/sqlite/store';
 import { CREW, makeScratch } from '../support';
 
 const SEARCH = `export function search(items, query) {
@@ -52,19 +53,19 @@ test('real Claude: what the crew writes to the wiki and memory, and whether a la
   let mark = 0;
   const since = () => calls.slice(mark).map((c) => `${c.role}:${c.tool.replace(/^mcp__\w+__/, '')}`);
   // Cards are answered with their main option so a live run never hangs
-  const chat: Chat = new Chat(
-    store,
-    recording(calls),
-    CREW,
-    (channel, topic) => {
+  const chat: Chat = wire({
+    records: store,
+    sdk: recording(calls),
+    crew: CREW,
+    emit: (channel, topic) => {
       if (channel !== 'changed' || (topic as { topic: string }).topic !== 'messages') return;
       for (const s of store.listSessions(p.id))
         for (const m of store.listMessages(s.id))
           if (m.question && m.question.answer === null)
             chat.questions.answer(m.question.id, m.question.options.at(-1)!);
     },
-    scratch.paths,
-  );
+    paths: scratch.paths,
+  });
   const p = store.addProject(scratch.project);
   chat.members.seed(p.id);
   for (const m of store.listMembers(p.id)) store.updateMember(m.id, { model: 'sonnet' });

@@ -1,4 +1,4 @@
-import type { TaskStatus } from './backend/db';
+import type { TaskStatus } from './backend/domain/records';
 
 // How calls outside the guard's plain allow are handled: asked on a card, allowed at once, or not checked at all
 export const MODES = ['manual', 'auto', 'bypass'] as const;

@@ -1,9 +1,9 @@
 import { crc32, deflateSync } from 'node:zlib';
 import { randomBytes } from 'node:crypto';
 import { expect, test } from 'vitest';
-import { loadSdk } from '../../src/backend/agents/run';
-import { Chat } from '../../src/backend/chat';
-import { Store } from '../../src/backend/db';
+import { loadSdk } from '../../src/backend/adapters/claude/agent';
+import { wire } from '../../src/backend/wire';
+import { Store } from '../../src/backend/adapters/sqlite/store';
 import type { Image } from '../../src/shared';
 import { CREW, makeScratch, recordedRuns } from '../support';
 
@@ -36,7 +36,7 @@ function png(width: number, height: number, pixel: (x: number, y: number) => num
 function haikuChat() {
   const scratch = makeScratch();
   const store = new Store(scratch.db);
-  const chat = new Chat(store, loadSdk, CREW, () => {}, scratch.paths);
+  const chat = wire({ records: store, sdk: loadSdk, crew: CREW, emit: () => {}, paths: scratch.paths });
   const p = store.addProject(scratch.project);
   chat.members.seed(p.id);
   const s = store.createSession(p.id);
