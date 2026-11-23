@@ -65,7 +65,7 @@ export function createLabels(layer: Container, resolution: number, edge: number)
     const f = iso(p.x, p.y),
       checked = (p.checkUntil ?? 0) > now,
       b = speechOf(p, now),
-      said = b ? ': ' + (b.text.length > SAID_MAX ? b.text.slice(0, SAID_MAX) + '…' : b.text) : '';
+      said = b ? ' ' + (b.text.length > SAID_MAX ? b.text.slice(0, SAID_MAX) + '…' : b.text) : '';
     set(l.name, p.room.name);
     if ((said && said !== l.said.text) || (checked && !l.check.visible)) {
       l.popping?.kill();
