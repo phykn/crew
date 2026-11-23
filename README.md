@@ -8,11 +8,11 @@
 
 ## How it works
 
-```
-You ──▶ Secretary ──▶ Plan ──▶ Plan review ──▶ Build ──▶ Code review, Test, Standards ──▶ Report
-```
-
-You only talk to the secretary. It opens a task, the crew takes each step, and the secretary reports back when every check has passed.
+1. **Ask**: describe the task in the chat
+2. **Plan**: a planner writes the plan and a reviewer checks it
+3. **Build**: a developer makes the change
+4. **Check**: code review, tests, and a standards check run side by side
+5. **Report**: you get a summary, and every step stays in the log
 
 ## Features
 
