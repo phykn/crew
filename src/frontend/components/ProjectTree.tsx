@@ -101,7 +101,9 @@ export function ProjectTree({
                       <ul className="tree-agents">
                         {agents.map((a) => (
                           <li key={a.id} className="tree-agent">
-                            <b>{a.role}</b> <span className="muted">{a.nickname}</span> <Badge>실행 {a.runs}회</Badge>
+                            <b>{a.role}</b>
+                            <span className="muted">{a.nickname}</span>
+                            <Badge>실행 {a.runs}회</Badge>
                           </li>
                         ))}
                       </ul>

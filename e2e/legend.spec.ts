@@ -65,3 +65,15 @@ test('in a narrow window the legend starts folded, so the camp stays in sight', 
   await expect(page.locator('.legend-row')).toHaveCount(10);
   await app.close();
 });
+
+test('a window narrowed after the start folds the legend, and widened again opens it', async () => {
+  const scratch = makeScratch();
+  const app = await launchApp(scratch.db);
+  const page = await openProject(app, scratch.project);
+  await expect(page.locator('.legend-head')).toHaveAttribute('aria-expanded', 'true');
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(460, 900));
+  await expect(page.locator('.legend-head')).toHaveAttribute('aria-expanded', 'false');
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1600, 900));
+  await expect(page.locator('.legend-head')).toHaveAttribute('aria-expanded', 'true');
+  await app.close();
+});

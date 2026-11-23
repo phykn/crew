@@ -163,9 +163,13 @@
   --w-legend-role: 3.6em;
   --w-legend-nick: 3.4em;
   --w-field: 120px;
-  /* Every workflow node is this wide, so the arranged rows line up */
+  /* Every workflow node is this wide and at least this tall, so the arranged rows and columns line up */
   --w-node: 150px;
-  --h-node-row: 104px;
+  --h-node: 104px;
+  /* A session name keeps this much room before the folder beside it gives way */
+  --w-session-min: 160px;
+  /* One crew member in the explorer: role, nickname, and run count */
+  --w-tree-agent: 168px;
   --w-field-sm: 76px;
   /* Narrow label and data columns, and the switch */
   --w-col: 40px;

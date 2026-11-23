@@ -63,3 +63,48 @@ test('a project whose folder was deleted is marked, cannot be picked or opened a
   await expect(page.getByLabel('프로젝트 목록')).not.toContainText('gone');
   await app.close();
 });
+
+const hb = (summary: string, more: Record<string, unknown> = {}) => ({
+  structured: { summary, body: '', points: [], files: [], checks: [], ...more },
+});
+const pass = hb('통과', { verdict: 'pass', checks: ['ok'] });
+const TASK = {
+  비서: [
+    {
+      call: { name: 'start_task', input: { kind: 'code', title: '검색 개선', request: 'r', size: 'small' } },
+      text: '시작했습니다.',
+    },
+    { text: '끝났습니다.' },
+  ],
+  개발: [hb('수정')],
+  리뷰: [pass],
+  시험: [pass],
+  표준: [pass],
+};
+
+test("the explorer lists a session's members in columns: every role, nickname, and count starts where the one above it does", async () => {
+  const scratch = makeScratch();
+  const app = await launchApp(scratch.db, TASK);
+  const page = await openProject(app, scratch.project);
+  await page.getByLabel('메시지').fill('검색 고쳐줘');
+  await page.getByLabel('메시지').press('Enter');
+  await expect(page.getByText('끝났습니다.')).toBeVisible({ timeout: 15_000 });
+  await page.getByRole('button', { name: '탐색기' }).click();
+  await expect(page.locator('.tree-agent')).toHaveCount(5);
+  const offsets = await page.locator('.tree-agent').evaluateAll((cells) =>
+    cells.map((c) => {
+      const left = c.getBoundingClientRect().left;
+      return [...c.children].map((k) => Math.round(k.getBoundingClientRect().left - left));
+    }),
+  );
+  for (const o of offsets) expect(o).toEqual(offsets[0]);
+  const lefts = await page
+    .locator('.tree-agent')
+    .evaluateAll((cells) => cells.map((c) => c.getBoundingClientRect().left));
+  // The second row starts under the first: a cell's left edge is one of the first row's
+  const first = lefts.filter(
+    (l) => l < lefts[0] + 1 || lefts.indexOf(l) < lefts.findIndex((x, i) => i > 0 && x <= lefts[0] + 1),
+  );
+  for (const l of lefts) expect(first.some((f) => Math.abs(f - l) < 1)).toBe(true);
+  await app.close();
+});

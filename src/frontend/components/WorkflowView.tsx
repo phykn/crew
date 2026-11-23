@@ -65,6 +65,16 @@ export function WorkflowView({
   // The kind picked while edits were unsaved, waiting for the user to let them go
   const [leaveFor, setLeaveFor] = useState<string | null>(null);
   const [flow, setFlow] = useState<ReactFlowInstance<StepNode, LinkEdge> | null>(null);
+  const fitted = useRef(true);
+  const canvas = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!flow || !canvas.current) return;
+    // A canvas drawn anew, as when the tab opens again, starts fitted
+    fitted.current = true;
+    const watch = new ResizeObserver(() => fitted.current && flow.fitView(FIT));
+    watch.observe(canvas.current);
+    return () => watch.disconnect();
+  }, [flow]);
 
   useEffect(() => {
     call('workflows.kinds').then(setKinds);
@@ -81,6 +91,7 @@ export function WorkflowView({
     setNodes(toNodes(read.rules.steps, (read.layout ?? {}) as Layout));
     setPicked(null);
     setDirty(false);
+    fitted.current = true;
   }
   useEffect(() => {
     load();
@@ -148,7 +159,8 @@ export function WorkflowView({
   }
   // Lays every node out again by order, for when hand-placed nodes have got tangled
   function tidy() {
-    const auto = arrange(steps);
+    const auto = arrange(steps, Object.fromEntries(flow?.getNodes().map((n) => [n.id, n.measured?.height ?? 0]) ?? []));
+    fitted.current = true;
     setNodes((ns) => ns.map((n) => ({ ...n, position: auto[n.id] ?? n.position })));
     setDirty(true);
     requestAnimationFrame(() => flow?.fitView(FIT));
@@ -235,7 +247,7 @@ export function WorkflowView({
         </p>
       )}
       <div className="workflow-body">
-        <div className="workflow-canvas">
+        <div className="workflow-canvas" ref={canvas}>
           {/* A hidden canvas has no size to fit nodes to, so it is drawn only while the tab shows; the steps stay in state */}
           {active && (
             <ReactFlow
@@ -252,6 +264,9 @@ export function WorkflowView({
               proOptions={HIDE_MARK}
               fitView
               onInit={setFlow}
+              onMoveStart={(e) => {
+                if (e) fitted.current = false;
+              }}
               fitViewOptions={FIT}
               deleteKeyCode={['Backspace', 'Delete']}
             >
@@ -395,10 +410,10 @@ function toNodes(steps: Step[], layout: Layout): StepNode[] {
   return steps.map((s) => ({ id: s.id, type: 'step', position: layout[s.id] ?? auto[s.id], data: { step: s } }));
 }
 
-// Rows by how many steps come before, each row centered, since the panel is tall and narrow
-function arrange(steps: Step[]): Layout {
+// Rows by how many steps come before, each row centered, since the panel is tall and narrow; a row starts below the tallest node above it
+function arrange(steps: Step[], heights: Record<string, number> = {}): Layout {
   const token = (name: string) => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
-  const [width, gap, rowHeight] = [token('--w-node'), token('--sp-4'), token('--h-node-row')];
+  const [width, gap, rowGap, least] = [token('--w-node'), token('--sp-4'), token('--sp-8'), token('--h-node')];
   const depth = (id: string, seen: string[] = []): number => {
     const s = steps.find((x) => x.id === id);
     const before = (s?.after ?? []).filter((a) => !seen.includes(a));
@@ -406,11 +421,15 @@ function arrange(steps: Step[]): Layout {
   };
   const rows: Record<number, string[]> = {};
   for (const s of steps) (rows[depth(s.id)] ??= []).push(s.id);
-  return Object.fromEntries(
-    Object.entries(rows).flatMap(([d, ids]) =>
-      ids.map((id, i) => [id, { x: (i - (ids.length - 1) / 2) * (width + gap), y: Number(d) * rowHeight }]),
-    ),
-  );
+  const out: Layout = {};
+  let y = 0;
+  for (const d of Object.keys(rows)
+    .map(Number)
+    .sort((a, b) => a - b)) {
+    rows[d].forEach((id, i) => (out[id] = { x: (i - (rows[d].length - 1) / 2) * (width + gap), y }));
+    y += Math.max(...rows[d].map((id) => Math.max(heights[id] ?? 0, least))) + rowGap;
+  }
+  return out;
 }
 
 // Step ids are lowercase letters and underscores, so a new one is step_a, step_b, ...

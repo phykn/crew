@@ -99,7 +99,12 @@ export function App() {
           />
           <Tabs.Root className="tabs" value={tab} onValueChange={setTab}>
             {/* Icons keep the tabs small; each name shows on hover and is what a screen reader says */}
-            <Tabs.List className="tab-list">
+            {/* A tab picked from a text field would inherit its keyboard ring, so the list remembers whether the last pick was by pointer */}
+            <Tabs.List
+              className="tab-list"
+              onPointerDown={(e) => (e.currentTarget.dataset.pointer = '')}
+              onKeyDown={(e) => delete e.currentTarget.dataset.pointer}
+            >
               {TABS.map(([value, name]) => {
                 const marked = value === 'chat' && waiting && !!session;
                 return (

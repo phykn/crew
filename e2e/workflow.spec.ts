@@ -137,3 +137,32 @@ test('switching project with unsaved workflow edits asks first, and staying keep
   await expect(added).toHaveCount(0);
   await app.close();
 });
+
+test('arranged rows keep one gap however tall a node is, and a canvas that shrinks fits the steps again', async () => {
+  const scratch = makeScratch();
+  const app = await launchApp(scratch.db);
+  const page = await openProject(app, scratch.project);
+  await page.getByRole('tab', { name: '워크플로우' }).click();
+  const editor = page.getByLabel('워크플로우 편집');
+  await editor.getByRole('button', { name: '정렬' }).click();
+  const box = (id: string) => editor.locator(`.react-flow__node[data-id="${id}"]`).boundingBox();
+  await expect
+    .poll(async () => {
+      const [a, b, c] = [await box('plan'), await box('plan_review'), await box('develop')];
+      return Math.abs(b!.y - (a!.y + a!.height) - (c!.y - (b!.y + b!.height)));
+    })
+    .toBeLessThan(1);
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(460, 900));
+  await expect
+    .poll(() =>
+      editor.evaluate((e) => {
+        const frame = e.querySelector('.workflow-canvas')!.getBoundingClientRect();
+        return [...e.querySelectorAll('.react-flow__node')].every((n) => {
+          const r = n.getBoundingClientRect();
+          return r.top >= frame.top && r.bottom <= frame.bottom && r.left >= frame.left && r.right <= frame.right;
+        });
+      }),
+    )
+    .toBe(true);
+  await app.close();
+});

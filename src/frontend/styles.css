@@ -213,14 +213,13 @@ code {
   gap: var(--sp-2);
 }
 
-/* The folder lines up with the four tabs below it; the session, named after what was asked, takes the rest */
+/* The folder lines up with the four tabs below it; the session, named after what was asked, takes the rest, and the folder gives way once the session would be shorter than its minimum */
 .project-picker {
-  flex: none;
-  width: calc(4 * var(--w-tab) + 3 * var(--sp-1));
+  flex: 0 1 calc(4 * var(--w-tab) + 3 * var(--sp-1));
   min-width: 0;
 }
 .session-picker {
-  flex: 1;
+  flex: 1 0 var(--w-session-min);
   min-width: 0;
 }
 
@@ -252,6 +251,13 @@ code {
 /* Only the row draws the frame line and every tab stands on it, so the line cannot step */
 .tab-list button[data-state='active'] {
   background: var(--surface-field);
+}
+.tab-list button:focus-visible {
+  outline: var(--bw) solid var(--focus-ring);
+  outline-offset: calc(-1 * var(--bw-frame));
+}
+.tab-list[data-pointer] button:focus-visible {
+  outline: none;
 }
 /* The open tab hides the line between its sides; a strip longer than the drawn line falls on the frame's own colour */
 .tab-list button[data-state='active']::before {
@@ -399,6 +405,8 @@ code {
 /* Grows with wrapped and broken lines, up to the cap, then scrolls */
 .composer-text {
   flex: 1;
+  min-height: var(--h-lg);
+  padding-block: calc((var(--h-lg) - 1lh) / 2);
   field-sizing: content;
   max-height: var(--h-compose-max);
 }
@@ -626,6 +634,7 @@ code {
 .changes {
   display: flex;
   flex-direction: column;
+  height: var(--h-dialog-max);
   overflow: hidden;
 }
 
@@ -654,6 +663,7 @@ code {
   white-space: nowrap;
 }
 .diff {
+  flex: 1;
   min-height: 0;
   overflow: auto;
   background: var(--surface-sheet);
@@ -1079,6 +1089,7 @@ code {
 }
 .workflow-node {
   width: var(--w-node);
+  min-height: var(--h-node);
   padding: var(--sp-2) var(--sp-3);
   background: var(--surface-field);
   border: var(--bw) solid var(--border-control);
@@ -1194,11 +1205,17 @@ code {
   white-space: nowrap;
 }
 .tree-agents {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--w-tree-agent), 1fr));
   gap: var(--sp-1) var(--sp-3);
   margin-top: var(--sp-1);
   font-size: var(--fs-sm);
+}
+.tree-agent {
+  display: grid;
+  grid-template-columns: var(--w-legend-role) var(--w-legend-nick) auto;
+  align-items: center;
+  justify-items: start;
 }
 
 /* Parts gallery: every part on one scrolling sheet, opened only with CREW_GALLERY=1 */

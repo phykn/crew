@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import type { CrewMember } from '../../backend/domain/crew';
 import { MODELS } from '../../shared';
 import { type Args, call } from '../api';
@@ -22,6 +22,12 @@ type Definition = Awaited<ReturnType<typeof call<'members.definition'>>> & { id:
 // What matters at a glance (who, which model, hired or not) shows in the row; everything else opens from it
 export function Legend({ members, onMemory }: { members: CrewMember[]; onMemory: (memberId: number) => void }) {
   const [open, setOpen] = useState(() => !matchMedia(STACKED).matches);
+  useEffect(() => {
+    const stacked = matchMedia(STACKED);
+    const follow = () => setOpen(!stacked.matches);
+    stacked.addEventListener('change', follow);
+    return () => stacked.removeEventListener('change', follow);
+  }, []);
   const [shown, setShown] = useState<Definition | null>(null);
   const [resetting, setResetting] = useState(false);
   const current = members.find((m) => m.id === shown?.id);

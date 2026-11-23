@@ -26,10 +26,11 @@ export function Changes({
   onClose: () => void;
   onChat: () => void;
 }) {
-  const [change, setChange] = useState<Change>(null);
+  // undefined while the diff is being read; null when git kept nothing for it
+  const [change, setChange] = useState<Change | undefined>(undefined);
 
   useEffect(() => {
-    setChange(null);
+    setChange(undefined);
     if (!target) return;
     // A diff read for the file opened before this one is dropped
     let live = true;
@@ -63,6 +64,8 @@ export function Changes({
         <DialogClose />
       </DialogHead>
       <div className="diff" aria-label="변경 내용" tabIndex={0}>
+        {change === undefined && <Empty>불러오는 중…</Empty>}
+        {change === null && <Empty>이 버전의 변경을 찾지 못했습니다.</Empty>}
         {d?.binary && <Empty>바이너리 파일이라 내용을 보여 줄 수 없습니다.</Empty>}
         {d?.lines.map((l, n) => (
           <div key={n} className="diff-line" data-kind={l.kind}>

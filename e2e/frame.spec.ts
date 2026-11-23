@@ -29,3 +29,30 @@ test('the tabs stand on one frame line, the open one hides it, and the folder sp
   expect(edges.folder[1]).toBeCloseTo(edges.tabsSpan[1], 1);
   await app.close();
 });
+
+test("the message box's words sit on the middle of the buttons beside it, a mouse-picked tab shows no keyboard ring, and a narrow panel keeps room for the session name", async () => {
+  const scratch = makeScratch();
+  const app = await launchApp(scratch.db);
+  const page = await openProject(app, scratch.project);
+  const middle = (sel: string) =>
+    page.locator(sel).evaluate((e) => {
+      const r = e.getBoundingClientRect();
+      return r.top + r.height / 2;
+    });
+  expect(await middle('.composer-text')).toBeCloseTo(await middle('.composer .ui-button--primary'), 0);
+  await page.getByRole('tab', { name: '로그' }).click();
+  // Picked from the message box, which always shows focus, so only the drawn outline tells
+  await expect(page.getByRole('tab', { name: '로그' })).toHaveCSS('outline-style', 'none');
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('tab', { name: '메모리' })).not.toHaveCSS('outline-style', 'none');
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1100, 800));
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const least = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--w-session-min'));
+        return document.querySelector('.session-picker')!.getBoundingClientRect().width - least;
+      }),
+    )
+    .toBeGreaterThanOrEqual(-0.5);
+  await app.close();
+});
