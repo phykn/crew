@@ -21,7 +21,6 @@ import type {
   Version,
 } from '../domain/records';
 import type { RunSpend } from '../domain/usage';
-import type { Author, Change, Doc, Memory } from '../domain/wiki';
 import type { Crew } from '../domain/crew';
 import type { Account } from '../domain/providers';
 import type { Step, Workflow } from '../domain/workflow';
@@ -132,26 +131,8 @@ interface WorkflowRecords {
     rules: Workflow,
     layout: unknown,
     author: string,
+    reason?: string | null,
   ): number | null;
-  readWorkflowVersion(projectId: number, kind: string, version: number): Workflow | null;
-}
-
-export interface WikiRecords {
-  listDocs(projectId: number): Doc[];
-  findDoc(projectId: number, title: string): Doc | null;
-  readDoc(id: number): Doc;
-  // Creates the document or replaces its body, with the change recorded in the same step
-  writeDoc(projectId: number, title: string, body: string, by: Author, link?: { kind: string; version: number }): Doc;
-  removeDoc(id: number, by: Author): void;
-  listChanges(projectId: number): Change[];
-  readChange(id: number): { before: string; after: string; projectId: number } | null;
-  addMemory(
-    projectId: number,
-    memberId: number,
-    text: string,
-    where: { taskId: number | null; sessionId: number | null },
-  ): void;
-  listMemories(projectId: number, memberId?: number): Memory[];
 }
 
 export interface SettingRecords {
@@ -167,7 +148,6 @@ export type Records = Transactions &
   RunRecords &
   TaskRecords &
   WorkflowRecords &
-  WikiRecords &
   SettingRecords;
 
 // What a member may run: allowed with its input, or refused with a reason the member reads
@@ -226,6 +206,13 @@ export interface Files {
   // The path as the disk resolves it, so a link or a different spelling still names the same file
   realPath(p: string): string;
   ensureDir(dir: string): string;
+  // A text file's contents, or '' when it does not exist
+  readText(file: string): string;
+  // Writes the whole file, making its folder first
+  writeText(file: string, text: string): void;
+  // The names of the files directly in a folder, or none when it does not exist
+  listFiles(dir: string): string[];
+  remove(file: string): void;
 }
 
 // A task's starting point and each version kept as commits, where the folder is a git repository
@@ -236,6 +223,8 @@ export interface Versions {
   kept(dir: string, taskId: number): Promise<string[]>;
   diff(dir: string, taskId: number, from: string, to: string, files: string[]): Promise<FileDiff[]>;
   forget(dir: string, taskIds: number[]): Promise<void>;
+  // The commit HEAD points to; null outside a repository
+  head(dir: string): Promise<string | null>;
 }
 
 // The tool servers that reach back into the app: the interpreter's, a member's inside a task, and the app's own
@@ -243,6 +232,7 @@ export interface ToolServers {
   secretary(sessionId: number): Promise<ToolServer>;
   member(task: Task, step: Step, member: Member): Promise<ToolServer>;
   app(sessionId: number): Promise<ToolServer>;
+  librarian(sessionId: number): Promise<ToolServer>;
 }
 
 // What the window and the system hear about: a changed record, streamed words, a screen to show, a notice, being busy

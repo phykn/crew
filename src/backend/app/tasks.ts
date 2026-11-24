@@ -20,7 +20,7 @@ import {
   makers,
   planStep,
   nextStatus,
-  ReadHandback,
+  HandbackShape,
   RESTARTED,
   satisfied,
   sendsBack,
@@ -267,7 +267,7 @@ export class Tasks {
         store.finishStepRun(runId, 'stopped', null, out.error ?? out.status);
         return out.status === 'limit' ? LIMIT : STOPPED;
       }
-      const parsed = out.status === 'done' ? ReadHandback.safeParse(out.structured) : null;
+      const parsed = out.status === 'done' ? HandbackShape.safeParse(out.structured) : null;
       if (!parsed?.success) {
         const why = out.error ?? 'the result did not match the handback format';
         store.finishStepRun(runId, 'failed', null, why);
@@ -366,7 +366,7 @@ export class Tasks {
         const made = step.verdict && !s.verdict && this.memberFor(task, s).key !== 'conductor';
         return section(
           `${s.label} (${this.roleOf(task, s)})`,
-          made ? { ...hb, summary: '', body: '', points: [], checks: [], wiki: '' } : hb,
+          made ? { ...hb, summary: '', body: '', points: [], checks: [] } : hb,
         );
       });
     const sentBackBy = sendsBack(w, runs, step.id, own?.id).map((r) =>
@@ -401,7 +401,9 @@ export class Tasks {
   finish(task: Task) {
     this.move(task.id, 'DONE', '', { code: 'task.done', title: task.title });
     this.dismissTemps(task);
-    void this.chat.tell(task.sessionId, this.report(task, DONE), [], task.id);
+    const report = this.report(task, DONE);
+    void this.chat.tell(task.sessionId, report, [], task.id);
+    this.chat.librarian.afterTask(task, report);
   }
 
   pause(task: Task) {
@@ -445,7 +447,9 @@ export class Tasks {
   fail(task: Task, why: Say) {
     if (!this.move(task.id, 'FAIL', '', { code: 'task.fail', title: task.title, why })) return;
     this.dismissTemps(task);
-    void this.chat.tell(task.sessionId, this.report(task, why));
+    const report = this.report(task, why);
+    void this.chat.tell(task.sessionId, report);
+    this.chat.librarian.afterTask(task, report);
   }
 
   // A copy's work is the task it came for; once that ends and nothing else needs it, it leaves
@@ -491,7 +495,6 @@ function section(title: string, hb: Handback) {
     hb.points.length ? `Points:\n${hb.points.map((p) => `- ${p}`).join('\n')}` : '',
     hb.files.length ? `Files: ${hb.files.join(', ')}` : '',
     hb.checks.length ? `Checks:\n${hb.checks.map((c) => `- ${c}`).join('\n')}` : '',
-    hb.wiki ? `Wiki: ${hb.wiki}` : '',
   ]
     .filter(Boolean)
     .join('\n');

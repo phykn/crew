@@ -130,6 +130,14 @@ export class GitVersions implements Versions {
   }
 
   // Drops the commits kept for these tasks, once the tasks themselves are gone
+  async head(dir: string) {
+    try {
+      return (await git(dir, ['rev-parse', 'HEAD'])).trim() || null;
+    } catch {
+      return null;
+    }
+  }
+
   async forget(dir: string, taskIds: number[]) {
     for (const id of taskIds)
       for (const name of await taskRefs(dir, id))

@@ -55,6 +55,13 @@
     "skills": ["verify", "verdict"],
     "mcp": ["browser"]
   },
+  "librarian": {
+    "description": "Keeps the project wiki on its own, apart from the crew's tasks: folds every agent's memory, what each task settled, and the commits into documents that help later work, and checks the wiki for contradictions and gaps.",
+    "tools": ["read", "search", "shell"],
+    "write": "none",
+    "skills": ["wiki"],
+    "mcp": []
+  },
   "images": {
     "description": "Puts screenshots, charts, diagrams, and photos into words for members running on a model that cannot see images.",
     "tools": ["read", "search", "write", "shell"],

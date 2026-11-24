@@ -14,6 +14,8 @@ const SKIP = new Set([
   'dist',
   'out',
   '.vite',
+  // The crew's own memory, which is no task's change
+  '.crew',
   '.next',
   'build',
 ]);
@@ -64,5 +66,27 @@ export class DiskFiles implements Files {
   ensureDir(dir: string) {
     fs.mkdirSync(dir, { recursive: true });
     return dir;
+  }
+
+  readText(file: string) {
+    return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+  }
+
+  writeText(file: string, text: string) {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, text);
+  }
+
+  listFiles(dir: string) {
+    return fs.existsSync(dir)
+      ? fs
+          .readdirSync(dir, { withFileTypes: true })
+          .filter((e) => e.isFile())
+          .map((e) => e.name)
+      : [];
+  }
+
+  remove(file: string) {
+    fs.rmSync(file, { force: true });
   }
 }

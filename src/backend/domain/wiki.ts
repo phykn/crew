@@ -1,32 +1,17 @@
-export type Doc = {
-  id: number;
-  projectId: number;
-  title: string;
-  body: string;
-  workflowKind: string | null;
-  workflowVersion: number | null;
-  updatedAt: string;
-};
+// One wiki document: its file's name without .md, and its text
+export type Doc = { title: string; body: string };
+// One line of the wiki's log
 export type Change = {
-  id: number;
-  docId: number;
+  at: string;
   kind: 'create' | 'edit' | 'delete';
   title: string;
   author: string;
   taskId: number | null;
-  files: string[];
-  at: string;
 };
-export type Memory = {
-  id: number;
-  memberId: number;
-  text: string;
-  taskId: number | null;
-  sessionId: number | null;
-  at: string;
-};
-// Who wrote: a member (by id, so a renamed member keeps its record) or the user
-export type Author = { memberId: number | null; name: string; taskId?: number | null; files?: string[] };
+// One agent's memory: its whole file, by the agent's key
+export type Memory = { key: string; text: string };
+// Who wrote, by key or 'user', and in which task
+export type Author = { name: string; taskId?: number | null };
 
 // The titles a body points to with [[title]], each once
 export function links(body: string) {

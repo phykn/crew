@@ -5,17 +5,13 @@ import { text } from './text';
 import type { Chat } from '../../app/chat';
 import type { Member } from '../../domain/records';
 
-// Reading and writing the project wiki and one's own memory, for the interpreter and members alike
+// Reading the project wiki and keeping one's own memory, for everyone; writing the wiki is the librarian's alone
 export function wikiTools(sdk: Sdk, chat: Chat, member: Member, sessionId: number, taskId: number | null) {
   const { store, wiki } = chat;
   const projectId = store.projectOf(sessionId).id;
-  const by = () => ({ memberId: member.id, name: baseKey(member.key), taskId });
   // In the prompt from the first turn: a tool found only by searching is passed over for the files at hand
   const loaded = { alwaysLoad: true };
-  // When this run began, and the titles it was already told overlap a newer document, which it may then write anyway
-  const since = new Date().toISOString(),
-    warned = new Set<string>();
-  return [
+  const tools = [
     sdk.tool(
       'wiki_read',
       'Read one project wiki document by its title.',
@@ -36,39 +32,57 @@ export function wikiTools(sdk: Sdk, chat: Chat, member: Member, sessionId: numbe
       loaded,
     ),
     sdk.tool(
-      'wiki_write',
-      'Create or replace a project wiki document on one topic, its first line saying what it covers; point to related documents with [[title]]. Read it first and keep what is still right.',
-      {
-        title: z.string().min(1).max(60),
-        body: z.string().min(1),
-        files: z.array(z.string()).default([]).describe('Project files it is about'),
-      },
-      async (a) => {
-        const old = wiki.find(projectId, a.title),
-          fresh = old || warned.has(a.title) ? [] : wiki.createdSince(projectId, since, by().name, a.files);
-        if (fresh.length) {
-          warned.add(a.title);
-          return text(
-            `Not written: since your run began, ${fresh.map((t) => `"${t}"`).join(', ')} was written on the same files. ` +
-              'Read it with wiki_read and add to it if it covers your topic; if yours is a separate topic, call wiki_write again with the same title.',
-          );
-        }
-        wiki.write(projectId, a.title, a.body, { ...by(), files: a.files });
-        chat.emit('changed', { topic: 'wiki' });
-        return text(`${old ? 'Changed' : 'Written'}: ${a.title}`);
-      },
-      loaded,
-    ),
-    sdk.tool(
       'remember',
-      'Keep a note only you need in later runs in this project.',
-      { text: z.string().min(1) },
+      'Rewrite your own memory for later runs in this project: the whole of it, one line per item, keeping what still holds and fixing what changed. Your current memory is in your prompt.',
+      { text: z.string().describe('Your whole memory after this change') },
       async (a) => {
-        wiki.remember(projectId, member.id, a.text, { taskId, sessionId });
+        wiki.remember(projectId, member.id, a.text);
         chat.emit('changed', { topic: 'wiki' });
         return text('Remembered.');
       },
       loaded,
     ),
   ];
+  if (baseKey(member.key) !== 'librarian') return tools;
+  const by = { name: 'librarian', taskId };
+  return [
+    ...tools,
+    sdk.tool(
+      'wiki_write',
+      'Create or replace one wiki document on one topic. Its first line says what it covers; point to related documents with [[title]]. The app logs the change and rebuilds index.md.',
+      { title: z.string().min(1).max(60), body: z.string().min(1) },
+      async (a) => {
+        const old = wiki.find(projectId, a.title);
+        try {
+          wiki.write(projectId, a.title, a.body, by);
+        } catch (err) {
+          return text(err instanceof Error ? err.message : String(err));
+        }
+        chat.emit('changed', { topic: 'wiki' });
+        return text(`${old ? 'Changed' : 'Written'}: ${wiki.title(a.title)}`);
+      },
+      loaded,
+    ),
+    sdk.tool(
+      'wiki_delete',
+      'Delete one wiki document, such as one merged into another; fix the links that pointed to it.',
+      { title: z.string() },
+      async (a) => {
+        try {
+          wiki.remove(projectId, a.title, by);
+        } catch (err) {
+          return text(err instanceof Error ? err.message : String(err));
+        }
+        chat.emit('changed', { topic: 'wiki' });
+        return text(`Deleted: ${a.title}`);
+      },
+      loaded,
+    ),
+  ];
+}
+
+// The librarian's own server, for a run outside any task
+export function librarianTools(sdk: Sdk, chat: Chat, sessionId: number) {
+  const member = chat.store.readMember(chat.store.projectOf(sessionId).id, 'librarian');
+  return sdk.createSdkMcpServer({ name: 'crew', tools: wikiTools(sdk, chat, member, sessionId, null) });
 }

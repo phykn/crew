@@ -8,12 +8,14 @@ import { Members } from './members';
 import { Runs } from './runs';
 import { Tasks } from './tasks';
 import { Wiki } from './wiki';
+import { Librarian } from './librarian';
 import { Workflows } from './workflows';
 // The hub of one app: the user's conversation with the interpreter, and the parts the crew works through
 export class Chat {
   readonly questions: Questions;
   readonly requests: Requests;
   readonly wiki: Wiki;
+  readonly librarian: Librarian;
   readonly members: Members;
   readonly runs: Runs;
   readonly workflows: Workflows;
@@ -42,7 +44,8 @@ export class Chat {
     const { store, emit } = this;
     this.questions = new Questions(store, emit);
     this.requests = new Requests(this);
-    this.wiki = new Wiki(store);
+    this.wiki = new Wiki(store, this.files);
+    this.librarian = new Librarian(this);
     this.members = new Members(this);
     this.runs = new Runs(this);
     this.workflows = new Workflows(this);
@@ -99,6 +102,7 @@ export class Chat {
   addProject(dir: string) {
     const project = this.store.addProject(dir);
     this.members.seed(project.id);
+    this.wiki.prepare(project.id);
     this.emit('changed', { topic: 'projects' });
     return project;
   }

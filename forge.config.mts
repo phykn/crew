@@ -1,17 +1,21 @@
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
+import { MakerZIP } from '@electron-forge/maker-zip';
+import { MakerPKG } from '@electron-forge/maker-pkg';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    // The title bar's campfire, drawn from the same paths as TitleBar.tsx
+    // The title bar's campfire, drawn from the same paths as TitleBar.tsx; icon.ico on Windows, icon.icns on macOS
     icon: 'assets/icon',
     // The crew's rules and definitions are read at runtime from resources/crew
     extraResource: ['crew'],
   },
   rebuildConfig: {},
+  // The macOS app as a zip, which any computer can make, and as a .pkg installer, which only a Mac can make
+  makers: [new MakerZIP({}, ['darwin']), new MakerPKG({}, ['darwin'])],
   plugins: [
     new VitePlugin({
       build: [

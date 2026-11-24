@@ -21,7 +21,7 @@ export function WikiGraph({ graph, onOpen }: { graph: Graph; onOpen: (title: str
       id: n.title,
       type: 'doc',
       position: at[n.title],
-      data: { title: n.title, missing: n.id === null },
+      data: { title: n.title, missing: n.missing },
     }));
   }, [graph]);
   const edges: Edge[] = graph.edges.map((e) => ({ id: `${e.from}->${e.to}`, source: e.from, target: e.to }));

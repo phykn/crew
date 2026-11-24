@@ -66,8 +66,6 @@ export function problemText(p: Say): string {
       return `this project has no ${a.kind} task #${a.task}`;
     case 'wf.stale':
       return `another change was saved after version ${a.base}; read the latest rules and edit again`;
-    case 'wf.laterRule':
-      return 'a rule saved after this document is in force, so it was not put back; change it in the workflow editor';
     default:
       return p.code;
   }

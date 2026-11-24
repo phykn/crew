@@ -93,7 +93,7 @@ test("the explorer lists a session's members in columns: every role, nickname, a
   await page.getByLabel('메시지').press('Enter');
   await expect(page.getByText('끝났습니다.')).toBeVisible({ timeout: 15_000 });
   await page.getByRole('button', { name: '탐색기' }).click();
-  await expect(page.locator('.tree-agent')).toHaveCount(4);
+  await expect(page.locator('.tree-agent')).toHaveCount(5);
   const offsets = await page.locator('.tree-agent').evaluateAll((cells) =>
     cells.map((c) => {
       const left = c.getBoundingClientRect().left;

@@ -93,7 +93,6 @@ test('real Claude: what the crew writes to the wiki and memory, and whether a la
     { timeout: 900_000, interval: 2000 },
   );
   await vi.waitFor(() => expect(store.listMessages(a.id).at(-1)!.author).toBe('secretary'), { timeout: 120_000 });
-  const role = (memberId: number) => chat.crew.defOf(store.readMemberById(memberId)).role;
   report.task = {
     status: store.listTasks(a.id)[0].status,
     // Each role's tools in order, so it shows who worked and whether anyone reached for the wiki
@@ -102,7 +101,7 @@ test('real Claude: what the crew writes to the wiki and memory, and whether a la
     ),
     steps: store.listStepRuns(store.listTasks(a.id)[0].id).map((r) => `${r.stepId}:${r.status}`),
     docs: chat.wiki.list(p.id).map((d) => ({ title: d.title, firstLine: d.body.split('\n')[0] })),
-    memories: chat.wiki.memories(p.id).map((m) => `${role(m.memberId)}: ${m.text}`),
+    memories: chat.wiki.memories(p.id).map((m) => `${m.key}: ${m.text}`),
   };
   mark = calls.length;
 

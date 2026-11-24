@@ -27,6 +27,7 @@ export const MEMBERS: Record<string, { model: (typeof MODELS)[number] }> = {
   proofreader: { model: 'sonnet' },
   tester: { model: 'haiku' },
   images: { model: 'sonnet' },
+  librarian: { model: 'sonnet' },
 };
 // The names the window shows, handed over at start: members' roles and starting nicknames, workflows', and approval modes'
 export const Names = z.object({

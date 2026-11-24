@@ -5,7 +5,6 @@ import { ALLOW } from '../../domain/answers';
 import { RESTARTED } from '../../domain/task';
 import type { Workflow } from '../../domain/workflow';
 import type { RunSpend } from '../../domain/usage';
-import type { Author, Change, Doc, Memory } from '../../domain/wiki';
 import type { Records } from '../../app/ports';
 import { MIGRATIONS } from './migrations';
 import type { Image, Mode, Say } from '../../../shared';
@@ -46,10 +45,6 @@ const TASK =
   'SELECT id, session_id AS sessionId, kind, title, request, workflow, status, stage, created_at AS createdAt, updated_at AS updatedAt FROM tasks';
 const toTask = (r: TaskRow): Task => ({ ...r, workflow: JSON.parse(r.workflow) });
 type StepRunRow = Omit<StepRun, 'handback'> & { handback: string | null };
-
-const DOC =
-  'SELECT id, project_id AS projectId, title, body, workflow_kind AS workflowKind, workflow_version AS workflowVersion, updated_at AS updatedAt FROM wiki_docs';
-const CHANGE = 'SELECT id, doc_id AS docId, kind, title, author, task_id AS taskId, files, at FROM wiki_changes';
 
 export function now() {
   return new Date().toISOString();
@@ -589,12 +584,13 @@ export class Store implements Records {
     rules: Workflow,
     layout: unknown,
     author: string,
+    reason: string | null = null,
   ): number | null {
     return this.transact(() => {
       if ((this.latestWorkflow(projectId, kind)?.version ?? 0) !== base) return null;
       this.db
         .prepare(
-          'INSERT INTO workflow_versions (project_id, kind, version, rules, layout, author, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO workflow_versions (project_id, kind, version, rules, layout, author, reason, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         )
         .run(
           projectId,
@@ -603,17 +599,11 @@ export class Store implements Records {
           JSON.stringify(rules),
           layout === undefined ? null : JSON.stringify(layout),
           author,
+          reason,
           now(),
         );
       return base + 1;
     });
-  }
-
-  readWorkflowVersion(projectId: number, kind: string, version: number): Workflow | null {
-    const row = this.db
-      .prepare('SELECT rules FROM workflow_versions WHERE project_id = ? AND kind = ? AND version = ?')
-      .get(projectId, kind, version) as { rules: string } | undefined;
-    return row ? JSON.parse(row.rules) : null;
   }
 
   writeTaskWorkflow(taskId: number, w: Workflow) {
@@ -656,120 +646,5 @@ export class Store implements Records {
 
   deleteSetting(key: string) {
     this.db.prepare('DELETE FROM settings WHERE key = ?').run(key);
-  }
-
-  listDocs(projectId: number): Doc[] {
-    return this.db.prepare(`${DOC} WHERE project_id = ? AND deleted = 0 ORDER BY title`).all(projectId) as Doc[];
-  }
-
-  findDoc(projectId: number, title: string): Doc | null {
-    return (
-      (this.db.prepare(`${DOC} WHERE project_id = ? AND title = ? AND deleted = 0`).get(projectId, title) as
-        | Doc
-        | undefined) ?? null
-    );
-  }
-
-  readDoc(id: number): Doc {
-    const doc = this.db.prepare(`${DOC} WHERE id = ?`).get(id) as Doc | undefined;
-    if (!doc) throw new Error(`no wiki document ${id}`);
-    return doc;
-  }
-
-  writeDoc(projectId: number, title: string, body: string, by: Author, link?: { kind: string; version: number }) {
-    return this.transact(() => {
-      const old = this.findDoc(projectId, title);
-      let id: number;
-      if (old) {
-        this.db.prepare('UPDATE wiki_docs SET body = ?, updated_at = ? WHERE id = ?').run(body, now(), old.id);
-        id = old.id;
-      } else {
-        // A deleted document of the same title stays, with its history; this one starts its own
-        id = Number(
-          this.db
-            .prepare('INSERT INTO wiki_docs (project_id, title, body, updated_at) VALUES (?, ?, ?, ?)')
-            .run(projectId, title, body, now()).lastInsertRowid,
-        );
-      }
-      if (link)
-        this.db
-          .prepare('UPDATE wiki_docs SET workflow_kind = ?, workflow_version = ? WHERE id = ?')
-          .run(link.kind, link.version, id);
-      this.addChange(id, projectId, old ? 'edit' : 'create', title, old?.body ?? '', body, by);
-      return this.readDoc(id);
-    });
-  }
-
-  removeDoc(id: number, by: Author) {
-    this.transact(() => {
-      const doc = this.readDoc(id);
-      this.db.prepare('UPDATE wiki_docs SET deleted = 1, updated_at = ? WHERE id = ?').run(now(), id);
-      this.addChange(id, doc.projectId, 'delete', doc.title, doc.body, '', by);
-    });
-  }
-
-  private addChange(
-    docId: number,
-    projectId: number,
-    kind: Change['kind'],
-    title: string,
-    before: string,
-    after: string,
-    by: Author,
-  ) {
-    this.db
-      .prepare(
-        'INSERT INTO wiki_changes (doc_id, project_id, kind, title, author, member_id, task_id, files, before, after, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      )
-      .run(
-        docId,
-        projectId,
-        kind,
-        title,
-        by.name,
-        by.memberId,
-        by.taskId ?? null,
-        JSON.stringify(by.files ?? []),
-        before,
-        after,
-        now(),
-      );
-  }
-
-  listChanges(projectId: number): Change[] {
-    const rows = this.db.prepare(`${CHANGE} WHERE project_id = ? ORDER BY id DESC`).all(projectId) as (Omit<
-      Change,
-      'files'
-    > & { files: string })[];
-    return rows.map((r) => ({ ...r, files: JSON.parse(r.files) }));
-  }
-
-  readChange(id: number) {
-    return (
-      (this.db.prepare('SELECT before, after, project_id AS projectId FROM wiki_changes WHERE id = ?').get(id) as
-        | { before: string; after: string; projectId: number }
-        | undefined) ?? null
-    );
-  }
-
-  addMemory(
-    projectId: number,
-    memberId: number,
-    text: string,
-    where: { taskId: number | null; sessionId: number | null },
-  ) {
-    this.db
-      .prepare('INSERT INTO memories (project_id, member_id, text, task_id, session_id, at) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(projectId, memberId, text, where.taskId, where.sessionId, now());
-  }
-
-  listMemories(projectId: number, memberId?: number): Memory[] {
-    const sql =
-      'SELECT id, member_id AS memberId, text, task_id AS taskId, session_id AS sessionId, at FROM memories WHERE project_id = ?';
-    return (
-      memberId
-        ? this.db.prepare(`${sql} AND member_id = ? ORDER BY id`).all(projectId, memberId)
-        : this.db.prepare(`${sql} ORDER BY id`).all(projectId)
-    ) as Memory[];
   }
 }

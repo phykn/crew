@@ -12,6 +12,7 @@ export const ROLE_NAMES: Record<string, string> = {
   proofreader: '문서 검토',
   tester: '시험',
   images: '이미지',
+  librarian: '기록',
 };
 
 // A member shows this until the user gives it a nickname of their own
@@ -25,6 +26,7 @@ export const NICKNAMES: Record<string, string> = {
   proofreader: '바름',
   tester: '시우',
   images: '빛나',
+  librarian: '하람',
 };
 
 // Each workflow's name and its steps' names, for a workflow whose steps the user has not named
@@ -132,8 +134,6 @@ export function say(s: Say): string {
       return `${role}(${a.nickname})${particle(role, '을')} ${a.hired ? '다시 고용할까요?' : '내보낼까요?'}`;
     case 'confirm.mode':
       return `승인 모드를 ${josa(MODE_LABELS[a.mode as Mode] ?? String(a.mode), '으로')} 바꿀까요?`;
-    case 'confirm.deleteDoc':
-      return `위키 문서를 지울까요? ${a.title}.${a.rule ? ' 이 문서가 만든 규칙도 함께 풉니다.' : ''}`;
     case 'chat.limit':
       return '모델 사용 한도에 도달해 답하지 못했습니다. 한도가 풀린 뒤 다시 말씀해 주세요.';
     case 'chat.stopped':
@@ -172,8 +172,6 @@ export function say(s: Say): string {
       return `이 프로젝트에 ${a.kind} 업무 #${a.task}이 없습니다`;
     case 'wf.stale':
       return `버전 ${a.base} 이후에 다른 변경이 저장되었습니다. 최신 규칙을 다시 읽고 고치세요`;
-    case 'wf.laterRule':
-      return '이 문서 뒤에 저장된 규칙이 있어 되돌리지 않았습니다. 워크플로우 탭에서 직접 고치세요';
     case 'account.noLogin':
       return '이 컴퓨터에 Claude Code 로그인이 없습니다';
     case 'account.badKey':

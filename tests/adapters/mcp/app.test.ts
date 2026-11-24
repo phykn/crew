@@ -139,18 +139,5 @@ test('deleting a session or document that cannot go is refused before any card',
   const act = (action: string, args: Record<string, unknown>) => toolText(fake, 'app_act', { action, args });
   expect(await act('sessions.delete', { session_id: other.id })).toContain('has no session');
   expect(await act('sessions.delete', { session_id: s.id })).toContain('cannot be deleted');
-  expect(await act('wiki.remove', { title: '없는 문서' })).toContain('has no document');
   expect(store.listMessages(s.id).filter((m) => m.question)).toEqual([]);
-});
-
-test('a wiki change of another project reads as missing, as does one that never was', async () => {
-  const { store, fake, chat, s, project } = openChat();
-  const q = store.addProject(`${project}-other`);
-  chat.wiki.write(q.id, '비밀', 'TOP SECRET', { memberId: null, name: '사용자' });
-  const [change] = chat.wiki.timeline(q.id);
-  appServer(fake.sdk, chat, s.id);
-  const read = (change_id: number) => toolText(fake, 'app_read', { action: 'wiki.timeline', args: { change_id } });
-  expect(await read(change.id)).not.toContain('TOP SECRET');
-  expect(await read(change.id)).toContain('no change');
-  expect(await read(9999)).toContain('no change');
 });

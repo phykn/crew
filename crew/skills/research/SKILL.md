@@ -6,4 +6,4 @@
 4. Read PDF and office files (docx, xlsx, pptx) with Python from the shell, using what is already installed; say which file and page each fact came from.
 5. Check numbers, versions, and dates against the source itself, including ranges and end dates such as end of support.
 6. Stop once each key fact is confirmed.
-7. Fold the confirmed facts, each with its source and the date read, into the wiki, so the next question starts from them.
+7. Give the confirmed facts each with its source and the date read, so the librarian can keep them for the next question.

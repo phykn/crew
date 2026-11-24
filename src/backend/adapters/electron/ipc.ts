@@ -9,7 +9,7 @@ import { IMAGE_TYPES, MODELS, MODES, Names } from '../../../shared';
 const id = z.number().int().positive();
 const provider = z.enum(PROVIDERS.map((p) => p.id) as [(typeof PROVIDERS)[number]['id']]);
 // The window writes as the user; names on record are keys the screen words
-const USER = { memberId: null, name: 'user' };
+const USER = { name: 'user' };
 
 // The run's argument type comes from its schema, so the two cannot drift apart
 const handle = <S extends z.ZodType, R>(args: S, run: (a: z.infer<S>) => R) => ({ args, run });
@@ -103,17 +103,6 @@ export function createHandlers(chat: Chat, win: () => BrowserWindow | null) {
     'wiki.list': handle(z.object({ projectId: id }), (a) => wiki.list(a.projectId)),
     'wiki.timeline': handle(z.object({ projectId: id }), (a) => wiki.timeline(a.projectId)),
     'wiki.graph': handle(z.object({ projectId: id }), (a) => wiki.graph(a.projectId)),
-    'wiki.change': handle(z.object({ id }), (a) => wiki.change(a.id)),
-    'wiki.write': handle(
-      z.object({ projectId: id, title: z.string().trim().min(1).max(60), body: z.string() }),
-      (a) => {
-        wiki.write(a.projectId, a.title, a.body, USER);
-        chat.emit('changed', { topic: 'wiki' });
-      },
-    ),
-    'wiki.remove': handle(z.object({ id, releaseRule: z.boolean() }), (a) =>
-      workflows.removeDoc(a.id, a.releaseRule, USER),
-    ),
     'memories.list': handle(z.object({ projectId: id, memberId: id.optional() }), (a) =>
       wiki.memories(a.projectId, a.memberId),
     ),

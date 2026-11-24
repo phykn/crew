@@ -2,23 +2,19 @@ import { expect, test } from 'vitest';
 import { wikiTools } from '../../../src/backend/adapters/mcp/wiki';
 import { openChat, toolText } from '../../support';
 
-test('a member who would start a document on files a colleague wrote about since its run began reads that one first', async () => {
+test('only the librarian gets the tools that write the wiki, and its writes are logged and indexed', async () => {
   const { store, fake, chat, p, s } = openChat();
-  const reviewer = store.readMember(p.id, 'reviewer');
-  wikiTools(fake.sdk, chat, reviewer, s.id, null);
-  // 시험, working beside 코드 검토, writes after 코드 검토's run began, so 코드 검토's prompt never listed it
-  chat.wiki.write(p.id, '테트리스 테스트', 'node tetris.test.js', {
-    memberId: null,
-    name: '시험',
-    files: ['tetris.js'],
-  });
-  const write = (title: string, files: string[]) => toolText(fake, 'wiki_write', { title, body: 'b', files });
+  const names = (key: string) => wikiTools(fake.sdk, chat, store.readMember(p.id, key), s.id, null).map((t) => t.name);
+  expect(names('coder')).toEqual(['wiki_read', 'remember']);
+  expect(names('librarian')).toEqual(['wiki_read', 'remember', 'wiki_write', 'wiki_delete']);
 
-  expect(await write('테트리스 구조', ['tetris.js', 'main.js'])).toContain('"테트리스 테스트"');
-  expect(chat.wiki.find(p.id, '테트리스 구조')).toBeFalsy();
-  // Told once, the member may still decide its topic is its own
-  expect(await write('테트리스 구조', ['tetris.js', 'main.js'])).toBe('Written: 테트리스 구조');
-  // Other files, or an existing document, are written at once
-  expect(await write('화면 색', ['style.css'])).toBe('Written: 화면 색');
-  expect(await write('테트리스 테스트', ['tetris.js'])).toBe('Changed: 테트리스 테스트');
+  expect(await toolText(fake, 'wiki_write', { title: '테스트 방법', body: 'npm test로 돌린다\n\n[[구조]]' })).toBe(
+    'Written: 테스트 방법',
+  );
+  expect(await toolText(fake, 'wiki_write', { title: 'index', body: 'x' })).toContain('cannot be a document title');
+  expect(chat.wiki.list(p.id)).toEqual([{ title: '테스트 방법', body: 'npm test로 돌린다\n\n[[구조]]\n' }]);
+  expect(chat.wiki.find(p.id, 'index')).toBeNull();
+  expect(chat.wiki.timeline(p.id)).toMatchObject([{ kind: 'create', title: '테스트 방법', author: 'librarian' }]);
+  expect(await toolText(fake, 'wiki_delete', { title: '테스트 방법' })).toBe('Deleted: 테스트 방법');
+  expect(chat.wiki.list(p.id)).toEqual([]);
 });

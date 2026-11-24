@@ -62,19 +62,6 @@ export const MIGRATIONS = [
      member_id INTEGER NOT NULL REFERENCES members (id), PRIMARY KEY (task_id, step_id));
    CREATE TABLE workflow_versions (
      id INTEGER PRIMARY KEY, project_id INTEGER NOT NULL REFERENCES projects (id) ON DELETE CASCADE, kind TEXT NOT NULL,
-     version INTEGER NOT NULL, rules TEXT NOT NULL, layout TEXT, author TEXT NOT NULL, created_at TEXT NOT NULL,
-     UNIQUE (project_id, kind, version));
-   CREATE TABLE wiki_docs (
-     id INTEGER PRIMARY KEY, project_id INTEGER NOT NULL REFERENCES projects (id) ON DELETE CASCADE, title TEXT NOT NULL,
-     body TEXT NOT NULL, workflow_kind TEXT, workflow_version INTEGER, deleted INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL);
-   CREATE TABLE wiki_changes (
-     id INTEGER PRIMARY KEY, doc_id INTEGER NOT NULL REFERENCES wiki_docs (id) ON DELETE CASCADE,
-     project_id INTEGER NOT NULL REFERENCES projects (id) ON DELETE CASCADE,
-     kind TEXT NOT NULL CHECK (kind IN ('create', 'edit', 'delete')), title TEXT NOT NULL, author TEXT NOT NULL,
-     member_id INTEGER REFERENCES members (id) ON DELETE SET NULL, task_id INTEGER REFERENCES tasks (id) ON DELETE SET NULL,
-     files TEXT NOT NULL, before TEXT NOT NULL, after TEXT NOT NULL, at TEXT NOT NULL);
-   CREATE TABLE memories (
-     id INTEGER PRIMARY KEY, project_id INTEGER NOT NULL REFERENCES projects (id) ON DELETE CASCADE,
-     member_id INTEGER NOT NULL REFERENCES members (id) ON DELETE CASCADE, text TEXT NOT NULL,
-     task_id INTEGER REFERENCES tasks (id) ON DELETE SET NULL, session_id INTEGER REFERENCES sessions (id) ON DELETE SET NULL, at TEXT NOT NULL);`,
+     version INTEGER NOT NULL, rules TEXT NOT NULL, layout TEXT, author TEXT NOT NULL, reason TEXT, created_at TEXT NOT NULL,
+     UNIQUE (project_id, kind, version));`,
 ];

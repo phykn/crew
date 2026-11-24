@@ -4,6 +4,7 @@ import type { Sdk } from '../claude/agent';
 import { appServer } from './app';
 import { memberTools } from './member';
 import { secretaryTools } from './secretary';
+import { librarianTools } from './wiki';
 
 // The in-process tool servers, made through the SDK each time a run needs one
 export function mcpServers(sdk: () => Promise<Sdk>, chat: Chat): ToolServers {
@@ -11,5 +12,6 @@ export function mcpServers(sdk: () => Promise<Sdk>, chat: Chat): ToolServers {
     secretary: async (sessionId) => secretaryTools(await sdk(), chat, sessionId),
     member: async (task, step, member) => memberTools(await sdk(), chat, task, step, member),
     app: async (sessionId) => appServer(await sdk(), chat, sessionId),
+    librarian: async (sessionId) => librarianTools(await sdk(), chat, sessionId),
   };
 }

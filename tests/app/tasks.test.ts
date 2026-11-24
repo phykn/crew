@@ -57,9 +57,6 @@ test('지휘 → 코드 검토 (sent back once) → 지휘 → 코드 검토 →
     ['review', 'pass'],
     ['test', 'pass'],
   ]);
-  // Every step must say what it kept in the wiki, or why nothing, before it can hand back
-  const format = fake.calls.find((c) => c.role === '코드 작성')!.options.outputFormat!;
-  expect(format.schema.required).toContain('wiki');
   // The code review sees the plan and the coder's files, never the coder's own account of them
   const review = fake.calls.filter((c) => c.role === '코드 검토')[2].prompt;
   expect([review.includes('계획 v2'), review.includes('search.js'), review.includes('검색 수정')]).toEqual([
@@ -77,6 +74,8 @@ test('지휘 → 코드 검토 (sent back once) → 지휘 → 코드 검토 →
     ['reviewer', 'claude-review'],
     ['coder', 'claude-code'],
     ['tester', 'claude-test'],
+    // The librarian folds the finished task into the wiki on its own
+    ['librarian', null],
   ]);
   expect(
     store
@@ -123,7 +122,7 @@ test('a task past its loop limit goes back to 지휘 once to re-plan, and stops 
     kind: 'code',
     base: base.version,
     rules: { ...base.rules, steps },
-    by: { memberId: null, name: 't' },
+    by: { name: 't' },
     scope: 'future',
   });
 
@@ -475,7 +474,7 @@ test('two steps for one role at once run side by side through a copy, which leav
     kind: 'research',
     base: base.version,
     rules: { ...base.rules, steps: [step('a'), step('b')] },
-    by: { memberId: null, name: 't' },
+    by: { name: 't' },
     scope: 'future',
   });
 

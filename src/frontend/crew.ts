@@ -9,6 +9,7 @@ export const LOOKS: Record<string, { color: string; look: [string, string, strin
   proofreader: { color: '#3d8bff', look: ['braids', 'vest', 'gown'] },
   tester: { color: '#ffd23f', look: ['helm', 'vest', 'boots'] },
   images: { color: '#ff6fb5', look: ['hood', 'robe', 'wraps'] },
+  librarian: { color: '#8fd16a', look: ['braids', 'robe', 'boots'] },
 };
 
 // Each skill and MCP server of the crew folder as the permissions window shows it
@@ -46,6 +47,11 @@ export const KIT: Record<string, { icon: string; label: string; use: string }> =
     icon: 'bug',
     label: '시험 실행',
     use: '테스트를 돌리고 바뀐 화면을 브라우저로 써 보며 진짜 실패와 불안정한 실패를 가림',
+  },
+  wiki: {
+    icon: 'book',
+    label: '위키 정리',
+    use: '기억, 업무 보고, 커밋을 모아 주제별 문서로 정리하고 어긋남과 빈 곳을 점검',
   },
   image: { icon: 'image', label: '이미지 설명', use: '이미지를 볼 수 없는 멤버를 위해 글자와 내용을 모두 글로 옮김' },
   verdict: {

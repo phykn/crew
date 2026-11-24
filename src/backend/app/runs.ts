@@ -186,7 +186,8 @@ export class Runs {
       })),
       project: project.path,
       output: this.outputDir(project, scope),
-      protected: paths.protected,
+      // The crew's memory changes only through remember, so no agent rewrites another's
+      protected: [...paths.protected, path.join(project.path, '.crew')],
       // Read fresh, so a mode changed mid-run applies to the next call
       mode: store.readProject(project.id).mode,
     };

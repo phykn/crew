@@ -84,13 +84,9 @@ test('a filter or draft stays with its own session or project: the log, the memo
   await page.getByLabel('담당자').click();
   await page.getByRole('option', { name: /조사/ }).click();
   await expect(page.locator('.memory')).toContainText('짧은 답을 좋아함');
-  await page.getByRole('button', { name: '위키' }).click();
-  await page.getByRole('button', { name: '+ 새 문서' }).click();
-  await page.getByLabel('문서 제목').fill('반쯤 쓴 문서');
 
   page = await openProject(app, other);
   await expect(page.getByLabel('프로젝트')).toContainText('other');
-  await expect(page.getByLabel('문서 제목')).toHaveCount(0);
   await page.getByRole('button', { name: '기억' }).click();
   await expect(page.getByLabel('담당자')).toHaveText('모든 담당자');
   await app.close();

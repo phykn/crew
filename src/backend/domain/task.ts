@@ -63,28 +63,19 @@ export function nextStatus(status: TaskStatus, type: TaskEvent['type']): TaskSta
   return getNextSnapshot(taskMachine, from, { type }).value as TaskStatus;
 }
 
-const HandbackShape = z.object({
+export const HandbackShape = z.object({
   summary: z.string().describe('One Korean sentence: what you did and the outcome'),
   body: z.string().describe('Your full result in Korean: the plan, the review, the test output, or the change made'),
   verdict: z.enum(['pass', 'rework']).optional().describe('Review and test steps only: pass, or rework with points'),
   points: z.array(z.string()).default([]).describe('For rework: each point to fix, with file and line'),
   files: z.array(z.string()).default([]).describe('Project files you changed, relative to the project folder'),
   checks: z.array(z.string()).default([]).describe('Commands you ran, each with its result'),
-  // Required, so no step ends without deciding what the next task should not have to rediscover
-  wiki: z
-    .string()
-    .min(1)
-    .describe(
-      'In Korean: the wiki documents you wrote or updated with wiki_write before handing back, or why this step found nothing later work needs',
-    ),
 });
 // Claude Code validates --json-schema as draft-7 and refuses the 2020-12 tag zod writes by default
 export const HANDBACK_SCHEMA = z.toJSONSchema(HandbackShape, { target: 'draft-7', io: 'input' }) as Record<
   string,
   unknown
 >;
-// Claude must fill the wiki field; handbacks scripted before it existed still read
-export const ReadHandback = HandbackShape.extend({ wiki: z.string().default('') });
 
 // Transient failures of one step are retried this many times
 

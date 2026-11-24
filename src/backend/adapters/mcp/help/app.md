@@ -13,6 +13,6 @@ The interpreter does these itself with the app tools, the way the matching click
 
 - Ask a member about its work while it works, such as what the coder is doing now; a copy of its session answers and the work is not interrupted.
 - Find a task, read its log or why it stopped, stop or resume it, open the log, wiki, or workflow editor.
-- Rename or delete a session, change a member's nickname or model, change the approval mode, let a member go or hire one back, write or delete a wiki document, read usage.
-- Changing the approval mode, letting a member go or hiring one back, and deleting a session or a wiki document ask the user on a card first, except in **All** mode.
+- Rename or delete a session, change a member's nickname or model, change the approval mode, let a member go or hire one back, read usage.
+- Changing the approval mode, letting a member go or hiring one back, and deleting a session ask the user on a card first, except in **All** mode.
 - Not done by talk: opening a folder (it needs the system dialog), removing a project, starting a fresh session (**New session** or `/clear`), answering cards, anything in **Connections**, and a member's permissions, skills, and MCP servers; those are the user's, in the window.

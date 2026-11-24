@@ -29,10 +29,10 @@ export class Workflows {
     by: Author;
     scope: Scope;
     taskId?: number;
-    // Why, kept in the wiki as the rule's decision document
+    // Why, kept with the version
     reason?: string;
   }) {
-    const { store, emit, wiki } = this.chat;
+    const { store, emit } = this.chat;
     const parsed = Workflow.safeParse(o.rules);
     if (!parsed.success)
       return {
@@ -53,9 +53,8 @@ export class Workflows {
       return { ok: false as const, problems: [{ code: 'wf.notHere', kind: o.kind, task: o.taskId }] };
     const stale = store.transact(() => {
       if (o.scope !== 'once') {
-        const version = store.addWorkflowVersion(o.projectId, o.kind, o.base, rules, o.layout, o.by.name);
+        const version = store.addWorkflowVersion(o.projectId, o.kind, o.base, rules, o.layout, o.by.name, o.reason);
         if (version === null) return true;
-        if (o.reason) wiki.write(o.projectId, `Workflow: ${o.kind}`, o.reason, o.by, { kind: o.kind, version });
       }
       if (o.taskId && o.scope !== 'future') store.writeTaskWorkflow(o.taskId, rules);
       return false;
@@ -65,7 +64,6 @@ export class Workflows {
         ok: false as const,
         problems: [{ code: 'wf.stale', base: o.base }],
       };
-    if (o.reason && o.scope !== 'once') emit('changed', { topic: 'wiki' });
     emit('changed', { topic: 'workflows' });
     return { ok: true as const, version: this.current(o.projectId, o.kind).version };
   }
@@ -75,35 +73,5 @@ export class Workflows {
     return store
       .listSessions(projectId)
       .some((s) => store.listTasks(s.id).some((t) => t.id === taskId && t.kind === kind));
-  }
-
-  // Deleting a document tied to a rule either leaves the rule in force or puts back the rule from before it
-  removeDoc(docId: number, releaseRule: boolean, by: Author) {
-    const { store, wiki, emit } = this.chat;
-    const doc = wiki.read(docId);
-    if (releaseRule && doc.workflowKind && doc.workflowVersion) {
-      const now = this.current(doc.projectId, doc.workflowKind).version;
-      if (now !== doc.workflowVersion) {
-        return {
-          ok: false as const,
-          problems: [{ code: 'wf.laterRule' }],
-        };
-      }
-      const prev =
-        store.readWorkflowVersion(doc.projectId, doc.workflowKind, doc.workflowVersion - 1) ??
-        this.shipped.find((w) => w.kind === doc.workflowKind)!;
-      const r = this.save({
-        projectId: doc.projectId,
-        kind: doc.workflowKind,
-        base: now,
-        rules: prev,
-        by,
-        scope: 'future',
-      });
-      if (!r.ok) return r;
-    }
-    wiki.remove(docId, by);
-    emit('changed', { topic: 'wiki' });
-    return { ok: true as const };
   }
 }

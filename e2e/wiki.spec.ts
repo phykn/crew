@@ -8,23 +8,19 @@ const start = (role: string, title: string) => ({
   call: { name: 'start_task', input: { original: '원문', kind: 'code', title, request: title, role } },
   text: '시작했습니다.',
 });
+// The members only hand back; the librarian folds each finished task into the wiki on its own
 const SCRIPT = {
   통역: [start('시험', '시험 방법 정리'), { text: '보고 1' }, start('코드 작성', '명령 보완'), { text: '보고 2' }],
-  시험: [{ call: { name: 'wiki_write', input: { title: '테스트 방법', body: 'npm test' } }, ...hb('정리') }, pass],
+  시험: [hb('정리'), pass],
   '코드 검토': [pass],
-  표준: [pass],
-  '코드 작성': [
-    {
-      call: {
-        name: 'wiki_write',
-        input: { title: '테스트 방법', body: 'npm test\nnpm run test:e2e', files: ['package.json'] },
-      },
-      ...hb('보완'),
-    },
+  '코드 작성': [hb('보완')],
+  기록: [
+    { call: { name: 'wiki_write', input: { title: '테스트 방법', body: 'npm test' } }, text: '정리' },
+    { call: { name: 'wiki_write', input: { title: '테스트 방법', body: 'npm test\nnpm run test:e2e' } }, text: '보완' },
   ],
 };
 
-test('the wiki keeps one document with two changes by two members', async () => {
+test('the librarian keeps one document with a change after each task, and the window only reads it', async () => {
   const scratch = makeScratch();
   const app = await launchApp(scratch.db, SCRIPT);
   const page = await openProject(app, scratch.project);
@@ -39,13 +35,12 @@ test('the wiki keeps one document with two changes by two members', async () => 
   const check = async () => {
     await page.getByRole('tab', { name: '메모리' }).click();
     await expect(page.getByLabel('위키 목차').getByRole('button', { name: '테스트 방법' })).toHaveCount(1);
-    const timeline = page.getByLabel('변경 타임라인');
-    await expect(timeline.getByRole('button')).toHaveCount(2);
-    await expect(timeline.getByRole('button').nth(1)).toContainText('생성');
-    await expect(timeline.getByRole('button').nth(1)).toContainText('시험');
-    await timeline.getByRole('button').first().click();
-    await expect(timeline).toContainText('+ npm run test:e2e');
-    await expect(timeline).toContainText('업무 #2');
+    const timeline = page.getByLabel('변경 타임라인').getByRole('listitem');
+    await expect(timeline).toHaveCount(2);
+    await expect(timeline.nth(0)).toContainText('수정');
+    await expect(timeline.nth(1)).toContainText('생성');
+    await expect(timeline.nth(1)).toContainText('기록');
+    await expect(page.getByRole('button', { name: '+ 새 문서' })).toHaveCount(0);
     await page.getByLabel('위키 목차').getByRole('button', { name: '테스트 방법' }).click();
     await expect(page.getByLabel('위키 본문')).toContainText('npm run test:e2e');
     // The graph shows the document as a dot that opens it

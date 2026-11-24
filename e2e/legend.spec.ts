@@ -5,10 +5,10 @@ test('the legend lists the crew with their models, and its settings change nickn
   const scratch = makeScratch();
   const app = await launchApp(scratch.db);
   const page = await openProject(app, scratch.project);
-  const roles = ['통역', '지휘', '조사', '코드 작성', '문서 작성', '코드 검토', '문서 검토', '시험', '이미지'];
+  const roles = ['통역', '지휘', '조사', '코드 작성', '문서 작성', '코드 검토', '문서 검토', '시험', '이미지', '기록'];
   await expect(page.locator('.legend-row .role')).toHaveText(roles);
   await expect(page.getByLabel('코드 작성 설정')).toContainText('Sonnet');
-  await expect(page.locator('.legend-head')).toHaveText('크루 9명 고용');
+  await expect(page.locator('.legend-head')).toHaveText('크루 10명 고용');
 
   // Kept roles have no hiring switch
   await page.getByLabel('통역 설정').click();
@@ -34,14 +34,14 @@ test('the legend lists the crew with their models, and its settings change nickn
   await page.getByLabel('시험 고용').click();
   await page.getByRole('dialog').getByRole('button', { name: '닫기' }).click();
   await expect(page.getByLabel('시험 설정')).toContainText('미고용');
-  await expect(page.locator('.legend-head')).toHaveText('크루 8명 고용');
+  await expect(page.locator('.legend-head')).toHaveText('크루 9명 고용');
 
   // A member let go comes back through the same switch
   await page.getByLabel('시험 설정').click();
   await page.getByLabel('시험 고용').click();
   await expect(page.getByLabel('시험 고용')).toBeChecked();
   await page.getByRole('dialog').getByRole('button', { name: '닫기' }).click();
-  await expect(page.locator('.legend-head')).toHaveText('크루 9명 고용');
+  await expect(page.locator('.legend-head')).toHaveText('크루 10명 고용');
 
   // A wrong press is undone in one go, after a confirm
   await page.getByLabel('코드 작성 설정').click();
@@ -62,7 +62,7 @@ test('in a narrow window the legend starts folded, so the camp stays in sight', 
   await expect(page.locator('.legend-head')).toHaveAttribute('aria-expanded', 'false');
   await expect(page.locator('.legend-row')).toHaveCount(0);
   await page.locator('.legend-head').click();
-  await expect(page.locator('.legend-row')).toHaveCount(9);
+  await expect(page.locator('.legend-row')).toHaveCount(10);
   await app.close();
 });
 

@@ -26,7 +26,13 @@ export function start(dbFile: string, crewDir: string, script: string | undefine
     const sdk = scripted ? async () => scripted : loadSdk;
     const chat = wire({ records: store, secrets: new SafeSecrets(store), sdk, crew, emit: toWindow, paths });
     // A definition added since the last start joins every project it is missing from
-    for (const p of store.listProjects()) chat.members.seed(p.id);
+    for (const p of store.listProjects()) {
+      chat.members.seed(p.id);
+      // A folder deleted outside the app stays deleted
+      if (p.missing) continue;
+      chat.wiki.prepare(p.id);
+      void chat.librarian.catchUp(p.id);
+    }
     store.recoverInterrupted();
     registerHandlers(createHandlers(chat, () => win));
     createWindow();

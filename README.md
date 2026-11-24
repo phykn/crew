@@ -46,6 +46,8 @@ npm run package
 
 The app lands at `out/crew-win32-x64/crew.exe`.
 
+For Apple Silicon Macs, `npm run package:mac` makes an unsigned zip of the app in `out/make/` on any computer. `npm run make:mac` also makes a `.pkg` installer, which works only on a Mac.
+
 ## Test
 
 | Command             | What it runs                            |

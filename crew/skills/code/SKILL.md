@@ -8,4 +8,4 @@
 6. Write files as UTF-8 with the line endings the project already uses, and format only with the project's own formatter and settings. Text beyond plain ASCII goes into a file, not through a shell pipe, where it can be garbled.
 7. Check the build: run the project's build or type check, or a plain run of the changed program, and the tests of the files you touched. When a check still fails after two fixes, stop and hand back what fails. The full test run is the tester's.
 8. Before you hand back, cut what this change wrote that your conventions skill rules out, and delete temporary files. Read each file you changed and confirm the change is saved.
-9. Fold into the wiki what the next change to this code needs and the files do not say, such as what a module is for or a trap you found.
+9. Say in your handback what the next change to this code needs and the files do not say, such as what a module is for or a trap you found.

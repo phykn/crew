@@ -5,7 +5,6 @@ import type { Chat } from '../../app/chat';
 import type { Task } from '../../domain/records';
 import { KEPT } from '../../domain/crew';
 import { ALLOW, REFUSE } from '../../domain/answers';
-import { problemText } from '../../domain/workflow';
 import { MODELS, MODES, type Say } from '../../../shared';
 import appHelp from './help/app.md?raw';
 import crewHelp from './help/crew.md?raw';
@@ -89,11 +88,6 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
     ownSession(id);
     if (id === sessionId) throw new Error('The session this conversation is in cannot be deleted.');
   };
-  const doc = (title: string) => {
-    const d = wiki.find(projectId, title);
-    if (!d) throw new Error(`The wiki has no document "${title}".`);
-    return d;
-  };
   const member = (name: string) => {
     const m = members.find(projectId, name);
     if (!m) throw new Error(`${name} is not in this project's crew.`);
@@ -113,8 +107,6 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
   };
   const go = (view: Record<string, unknown>) => chat.emit('navigate', { sessionId, ...view });
   const kinds = chat.workflows.shipped.map((w) => w.kind) as [string, ...string[]];
-  const secretary = { memberId: members.find(projectId, 'interpreter')?.id ?? null, name: 'interpreter' };
-
   const actions: Action[] = [
     action({
       id: 'help',
@@ -225,11 +217,9 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       id: 'wiki.timeline',
       label: 'Read the wiki change history',
       kind: 'read',
-      args: z.object({
-        change_id: z.number().int().optional().describe('One change, to read what it added and removed'),
-      }),
-      ui: ['wiki.timeline', 'wiki.change'],
-      run: (a) => (a.change_id ? wiki.change(a.change_id, projectId) : wiki.timeline(projectId)),
+      args: z.object({}),
+      ui: ['wiki.timeline'],
+      run: () => wiki.timeline(projectId),
     }),
     action({
       id: 'memories',
@@ -379,35 +369,6 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       run: (a) => {
         chat.setMode(projectId, a.mode);
         return `The approval mode is now ${a.mode}.`;
-      },
-    }),
-    action({
-      id: 'wiki.write',
-      label: 'Write a wiki document',
-      kind: 'act',
-      args: z.object({ title: z.string().trim().min(1).max(60), body: z.string() }),
-      ui: ['wiki.write'],
-      run: (a) => {
-        wiki.write(projectId, a.title, a.body, secretary);
-        chat.emit('changed', { topic: 'wiki' });
-        return `Saved the wiki document: ${a.title}`;
-      },
-    }),
-    action({
-      id: 'wiki.remove',
-      label: 'Delete a wiki document',
-      kind: 'act',
-      args: z.object({ title: z.string(), release_rule: z.boolean().default(false) }),
-      ui: ['wiki.remove'],
-      confirm: (a) => {
-        doc(a.title);
-        return { code: 'confirm.deleteDoc', title: a.title, rule: a.release_rule };
-      },
-      run: (a) => {
-        const r = chat.workflows.removeDoc(doc(a.title).id, a.release_rule, secretary);
-        return r.ok
-          ? `Deleted the wiki document: ${a.title}`
-          : `Not deleted: ${r.problems.map(problemText).join('; ')}`;
       },
     }),
   ];
