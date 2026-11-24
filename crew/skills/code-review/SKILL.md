@@ -1,14 +1,27 @@
 # Code review
 
-1. Read the change: `git diff -- <files>` for the files the coder lists, or the files themselves outside git. Other uncommitted changes are the user's own, not yours to judge. Read enough of the surrounding code to know what callers expect.
-2. Check:
-   - Behavior: it does what was asked, including empty, missing, and wrong input.
-   - Screens: when the change touches a web page, open it with the browser tools at the address the README gives and check it on the real screen. If nothing serves the page, say so instead of starting servers yourself.
-   - Tests: each new behavior and fixed bug has a test in the files, unless the project has none, and a regression test would fail on the unfixed code. A missing test is a fact to send back.
-   - Documents: the README and other documents that describe what changed say it now. A missing one is a fact to send back.
-   - Structure: the change keeps the project's layers and design system; a screen that styles a raw control or writes a raw color or size, or a use case that calls an outside service directly, is a fact to send back.
-   - Breakage: callers, configs, and documents that name what changed still agree with it.
-   - Security: input from outside is validated, and no secret, command injection, or unsafe path handling was added.
-   - Done: the done-when holds, from the plan, or from the brief when a small change has no plan.
-3. Run only small checks that prove an edge case you suspect.
-4. Investigate handling with no obvious purpose before calling it a defect.
+## A change
+
+1. Read the change: `git diff -- <files>` for the files changed, or the files themselves outside git. Other uncommitted changes are the user's own, not yours to judge. Read enough of the surrounding code to know what the rest of the program expects.
+2. Scope:
+   - Something built that the request does not ask for is must fix.
+   - Something the request asks for that is missing is must fix.
+   - Never report as missing something the request did not ask for.
+3. Correctness, by reading:
+   - The code does what was asked, including empty, missing, and wrong input.
+   - Each new behavior and fixed bug has a test, and a bug's test would fail without the fix.
+   - Places that name what changed (callers, settings, documents, the README) still agree with it.
+   - Input from outside is checked, and no secret, command built from user input, or unsafe file path was added.
+4. Structure, against your conventions skill: how files and folders are split, names, comments, less code, and for screens and backend the levels it describes. Each point names the rule it breaks. What only your taste says, and no rule in the project or your conventions skill, is minor.
+5. Run only small commands that prove an edge case you suspect; running the tests is the tester's.
+6. Before calling handling with no obvious purpose a defect, find out why it is there.
+
+## The whole project
+
+When the task asks what to improve, with no change in hand, go through the folders and files the request names, or the whole project:
+
+1. For each file, whether its folder tells what it is for.
+2. For each function, what it does in short steps, whether anything needs it, and whether its name fits, with a better name if not.
+3. After each folder, its comments, unused imports, and tests.
+
+Report what to fix; change nothing.

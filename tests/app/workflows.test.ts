@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import { never, openChat } from '../support';
 
 test('rule versions: broken or stale saves are refused, and each scope reaches only its tasks', () => {
-  const { store, chat, p, s } = openChat({ 기획: [never, never, never] });
+  const { store, chat, p, s } = openChat({ 지휘: [never, never, never] });
   const base = chat.workflows.current(p.id, 'code');
   const save = (rules: unknown, o: { base?: number; scope?: 'future' | 'current' | 'once'; taskId?: number } = {}) =>
     chat.workflows.save({
@@ -78,7 +78,7 @@ test('a document tied to a rule deletes alone, or with its rule put back as it w
     kind: 'code',
     base: 0,
     rules: lean,
-    by: { memberId: null, name: '비서' },
+    by: { memberId: null, name: '통역' },
     scope: 'future',
   });
   chat.workflows.removeDoc(link(1).id, false, user);

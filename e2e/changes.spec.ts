@@ -7,22 +7,25 @@ const hb = (summary: string, more: Record<string, unknown> = {}) => ({
 });
 const pass = hb('통과', { verdict: 'pass', checks: ['ok'] });
 const SCRIPT = {
-  비서: [
+  통역: [
     {
-      call: { name: 'start_task', input: { kind: 'code', title: '검색 개선', request: 'r', size: 'small' } },
+      call: {
+        name: 'start_task',
+        input: { original: '원문', kind: 'code', title: '검색 개선', request: 'r', size: 'small' },
+      },
       text: '업무를 시작했습니다.',
     },
     { text: '검색을 고쳤습니다.' },
   ],
   // The write goes through the guard, so the task knows the file as its own
-  개발: [
+  '코드 작성': [
     {
       tool: { name: 'Write', input: { file_path: 'search.js' } },
       write: { file: 'search.js', text: 'v1 고침\n' },
       ...hb('수정'),
     },
   ],
-  리뷰: [pass],
+  '코드 검토': [pass],
   시험: [pass],
   표준: [pass],
 };
@@ -54,7 +57,7 @@ test('in a git project a file named in the log opens its diff in a popup', async
   await page.keyboard.press('Escape');
 
   await page.getByRole('tab', { name: '로그' }).click();
-  await page.getByRole('button', { name: /개발 완료/ }).click();
+  await page.getByRole('button', { name: /코드 작성 완료/ }).click();
   await page.getByRole('button', { name: 'search.js' }).click();
   const popup = page.getByRole('dialog');
   await expect(popup.getByRole('heading')).toHaveText('search.js');

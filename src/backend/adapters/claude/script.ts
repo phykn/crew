@@ -2,6 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { SDKMessage, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
 import type { QueryFn, Sdk } from './agent';
+import { MEMBERS, baseKey } from '../../../shared';
+
+// A script answers by a member's role on screen, read from the key its system prompt names
+export const roleIn = (system: unknown) => {
+  const key = String(system).match(/You are the crew's \*\*.+?\*\* \(`(.+?)`\)/)?.[1];
+  return key ? (MEMBERS[baseKey(key)]?.role ?? key) : '?';
+};
 
 // One scripted answer: optionally a guarded tool call, a file write, or an app tool call first
 type Turn = {
@@ -26,7 +33,7 @@ export function scriptSdk(file: string): Sdk {
         .flatMap((s) => (s as unknown as { tools?: ScriptTool[] }).tools ?? [])
         .map((t) => [t.name, t.handler]),
     );
-    const role = String(options?.systemPrompt).match(/You are the crew's \*\*(.+?)\*\*/)?.[1] ?? '?';
+    const role = roleIn(options?.systemPrompt);
     // An interrupt ends a turn waiting on a card, as the real SDK does, so a stop can be tested
     let cut = () => {};
     const cutOff = new Promise<'cut'>((resolve) => (cut = () => resolve('cut')));

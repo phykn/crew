@@ -97,7 +97,7 @@ export function WorkflowView({
     load();
     setNote(null);
   }, [project.id, kind]);
-  // A version 비서 saves shows at once; unsaved edits stay, and saving them is refused as stale
+  // A version 통역 saves shows at once; unsaved edits stay, and saving them is refused as stale
   useEffect(() => onChanged((topic) => topic === 'workflows' && !dirty && load()), [project.id, kind, dirty]);
 
   // Nodes carry the step, so edits in the side panel show on the canvas at once

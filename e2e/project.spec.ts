@@ -4,7 +4,7 @@ import path from 'node:path';
 import { launchApp, makeScratch, openProject } from './launch';
 
 // Scripted, so the first message never reaches a real model
-const SCRIPT = { 비서: [{ text: '네' }] };
+const SCRIPT = { 통역: [{ text: '네' }] };
 
 test('an opened folder and its named sessions survive a restart', async () => {
   const scratch = makeScratch();
@@ -52,8 +52,11 @@ test("a newly opened folder shows only its own session, never the last folder's"
 
 const hb = (summary: string) => ({ structured: { summary, body: '', points: [], files: [], checks: [] } });
 const RESEARCH = {
-  비서: [
-    { call: { name: 'start_task', input: { kind: 'research', title: '자료 조사', request: 'r' } }, text: '시작' },
+  통역: [
+    {
+      call: { name: 'start_task', input: { original: '원문', kind: 'research', title: '자료 조사', request: 'r' } },
+      text: '시작',
+    },
     { text: '보고' },
   ],
   조사: [{ call: { name: 'remember', input: { text: '짧은 답을 좋아함' } }, ...hb('조사 완료') }],

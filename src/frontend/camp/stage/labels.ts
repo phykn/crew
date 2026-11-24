@@ -18,7 +18,7 @@ type Rect = { l: number; r: number; t: number; b: number };
 function speechOf(p: Person, now: number) {
   if (p.bubble && p.bubble.until > now) return p.bubble;
   if (p.state === 'working') return { text: p.doing || '작업 중…', kind: 'work' };
-  // 비서 waiting on the user's answer keeps a ? over the head until it comes
+  // 통역 waiting on the user's answer keeps a ? over the head until it comes
   return p.doing ? { text: p.doing, kind: 'chat' } : null;
 }
 

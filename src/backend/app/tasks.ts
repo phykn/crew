@@ -6,6 +6,7 @@ import {
   NOT_HIRED,
   skipped,
   type Snapshot,
+  type StepRun,
   type Task,
 } from '../domain/records';
 import { ancestors, type Step } from '../domain/workflow';
@@ -17,6 +18,7 @@ import {
   HANDBACK_SCHEMA,
   lastDone,
   makers,
+  planStep,
   nextStatus,
   ReadHandback,
   RESTARTED,
@@ -103,7 +105,7 @@ export class Tasks {
     return HALTED.includes(this.chat.store.readTask(taskId).status);
   }
 
-  // More from the user goes back to every step that made the task: a finished task opens again, one at work redoes once its turn ends
+  // More from the user goes to 지휘's plan, or without one to every step that made the task: a finished task opens again, one at work redoes once its turn ends
   reopen(taskId: number, text: string) {
     const { store } = this.chat;
     const task = store.readTask(taskId);
@@ -111,7 +113,8 @@ export class Tasks {
     if (working) store.writeTaskStatus(taskId, task.status, task.stage, `${task.title} 업무 추가 요청: ${text}`);
     else if (!this.move(taskId, 'REOPEN', '', `${task.title} 업무 다시 진행: ${text}`)) return false;
     store.appendRequest(taskId, text);
-    for (const target of makers(task.workflow))
+    const plan = planStep(task.workflow);
+    for (const target of plan ? [plan] : makers(task.workflow))
       store.addUserRework(taskId, this.memberFor(task, target).id, target.id, text);
     if (!working) void this.drive(taskId, true);
     return true;
@@ -180,12 +183,27 @@ export class Tasks {
       const runs = store.listStepRuns(taskId);
       const holds = (id: string) => satisfied(w, runs, id);
       if (w.steps.every((s) => holds(s.id))) return this.finish(task);
-      const stuckWhy = stuck(w, runs, store.latestVersion(taskId)?.id ?? null);
-      if (stuckWhy) return this.fail(task, stuckWhy);
+      // What went before a re-plan is the old plan's, so its loop counts start over
+      const since = runs.findLast((r) => isReplan(r))?.id ?? 0;
+      const stuckWhy = stuck(
+        w,
+        runs.filter((r) => r.id > since),
+        store.latestVersion(taskId)?.id ?? null,
+      );
+      if (stuckWhy) {
+        if (!this.replan(task, runs, stuckWhy)) return this.fail(task, stuckWhy);
+        continue;
+      }
       const ready = w.steps.filter((s) => !holds(s.id) && s.after.every(holds));
       const fixing = ready.some((s) => lastDone(runs, s.id) && sentBack(w, runs, s.id, lastDone(runs, s.id)!.id));
       const stage = ready.map((s) => s.label).join(', ');
       this.move(taskId, fixing ? 'REWORK' : ready.every((s) => s.verdict) ? 'REVIEW' : 'WORK', stage, `${stage} 진행`);
+      // A member already at work in this session, or given another step of this round, works through a copy
+      const taken = new Set<number>();
+      for (const s of ready) {
+        const m = this.memberFor(task, s);
+        taken.add(taken.has(m.id) || this.chat.runs.busy(m.id, task.sessionId) ? this.copy(task, s, m).id : m.id);
+      }
       const results = await Promise.all(ready.map((s) => this.runStep(task, s, current)));
       if (!current()) return;
       // A usage limit pauses the task instead of failing it: nothing is wrong with the work, it can resume later
@@ -200,7 +218,7 @@ export class Tasks {
     const project = this.projectOf(task);
     const member = this.memberFor(task, step);
     const role = crew.defOf(member).role;
-    // A member let go takes no new step; 비서 hears of it and can hand the step to someone else
+    // A member let go takes no new step; 통역 hears of it and can hand the step to someone else
     const absent = `${josa(role, '이')} 고용되어 있지 않아 ${josa(step.label, '을')} 진행할 수 없습니다. 다른 담당자를 붙여야 합니다`;
     if (member.status !== 'hired' || member.leaving) return absent;
     let prompt = this.brief(task, step);
@@ -336,7 +354,15 @@ export class Tasks {
           lastDone(runs, s.id) &&
           (step.after.includes(s.id) || (s.after.length === 0 && ancestors(w, step.id).includes(s.id))),
       )
-      .map((s) => section(`${s.label} (${this.roleOf(task, s)})`, lastDone(runs, s.id)!.handback!));
+      .map((s) => {
+        const hb = lastDone(runs, s.id)!.handback!;
+        // A check judges what was made, not what its maker says of it: only the files reach it
+        const made = step.verdict && !s.verdict && this.memberFor(task, s).key !== 'conductor';
+        return section(
+          `${s.label} (${this.roleOf(task, s)})`,
+          made ? { ...hb, summary: '', body: '', points: [], checks: [], wiki: '' } : hb,
+        );
+      });
     const sentBackBy = sendsBack(w, runs, step.id, own?.id).map((r) =>
       section(
         `Sent back by ${w.steps.find((s) => s.id === r.stepId)?.label ?? 'the user after the report'}`,
@@ -345,7 +371,7 @@ export class Tasks {
     );
     return [
       `[Task #${task.id}] ${task.title}`,
-      `The user's request, through 비서:\n${task.request}`,
+      `The user's request, through 통역:\n${task.request}`,
       `Your step: ${step.label}. ${step.does}`,
       `Project folder: ${project.path}\nYour output folder for files you produce: ${this.chat.runs.outputDir(project, `task-${task.id}`)}`,
       ...(earlier.length ? ['# Earlier steps', ...earlier] : []),
@@ -368,29 +394,8 @@ export class Tasks {
 
   finish(task: Task) {
     this.move(task.id, 'DONE', '', `${task.title} 업무 완료`);
-    // Before the temps leave, while the record still says who they are
-    const note = this.bringTempFiles(task);
     this.dismissTemps(task);
-    void this.chat.tell(task.sessionId, [this.report(task, 'done'), note].filter(Boolean).join('\n\n'), [], task.id);
-  }
-
-  // A temp may write only to its output folder, but what it made is meant for the project, so it moves there
-  bringTempFiles(task: Task) {
-    if (!makers(task.workflow).some((s) => this.memberFor(task, s).temp)) return '';
-    const project = this.projectOf(task);
-    const dir = this.chat.runs.outputDir(project, `task-${task.id}`);
-    let files: string[], taken: string[];
-    try {
-      ({ moved: files, replaced: taken } = this.chat.files.moveAll(dir, project.path));
-    } catch (err) {
-      // A file held open by another program cannot move; the rest of the ending still has to happen
-      return `[Files] The temp's files could not all be moved from ${dir} into the project folder: ${err instanceof Error ? err.message : String(err)}`;
-    }
-    if (!files.length) return '';
-    return [
-      `[Files] The temp's files were moved into the project folder: ${files.join(', ')}`,
-      ...(taken.length ? [`They replaced files already there: ${taken.join(', ')}`] : []),
-    ].join('\n');
+    void this.chat.tell(task.sessionId, this.report(task, 'done'), [], task.id);
   }
 
   pause(task: Task) {
@@ -399,12 +404,45 @@ export class Tasks {
     void this.chat.tell(task.sessionId, this.report(task, LIMIT));
   }
 
+  // A copy of a member for one step: the same definition and permissions, gone once the task ends
+  copy(task: Task, step: Step, m: Member) {
+    const { store } = this.chat;
+    const project = this.projectOf(task);
+    const key = `${m.key}-${task.id}-${step.id}`;
+    const members = store.listMembers(project.id);
+    const n = members.filter((x) => x.key.startsWith(`${m.key}-`)).length + 2;
+    const copy =
+      members.find((x) => x.key === key) ??
+      store.addMember(project.id, {
+        key,
+        nickname: `${m.nickname}${n}`,
+        model: m.model,
+        temp: true,
+      });
+    if (copy.status !== 'hired') this.chat.members.rehire(copy.id);
+    if (Object.keys(m.config).length) store.writeConfig(copy.id, m.config, '원본 권한 복사');
+    store.assign(task.id, step.id, copy.id);
+    this.chat.emit('changed', { topic: 'members' });
+    return copy;
+  }
+
+  // A failing task goes back to 지휘 once, to plan the steps still left; a second failure stops it for the user
+  replan(task: Task, runs: StepRun[], why: string) {
+    const plan = planStep(task.workflow);
+    if (!plan || runs.some((r) => isReplan(r))) return false;
+    const { store } = this.chat;
+    store.addUserRework(task.id, this.memberFor(task, plan).id, plan.id, `${REPLAN}${why}`);
+    store.writeTaskStatus(task.id, task.status, task.stage, `${task.title} 다시 계획: ${why}`);
+    return true;
+  }
+
   fail(task: Task, why: string) {
     if (!this.move(task.id, 'FAIL', '', `${task.title} 업무 실패: ${why}`)) return;
+    this.dismissTemps(task);
     void this.chat.tell(task.sessionId, this.report(task, why));
   }
 
-  // A temp's work is the task it came for; once that is done and nothing else needs it, it leaves
+  // A copy's work is the task it came for; once that ends and nothing else needs it, it leaves
   dismissTemps(task: Task) {
     const { store } = this.chat;
     const open = store.listTasks(task.sessionId).filter((t) => t.id !== task.id && !ENDED.includes(t.status));
@@ -415,7 +453,7 @@ export class Tasks {
     }
   }
 
-  // 비서 is told what happened and words the report to the user itself
+  // 통역 is told what happened and words the report to the user itself
   report(task: Task, outcome: string) {
     const runs = this.chat.store.listStepRuns(task.id);
     const steps = task.workflow.steps
@@ -435,6 +473,9 @@ export class Tasks {
     ].join('\n\n');
   }
 }
+const REPLAN = '다시 계획: ';
+const isReplan = (r: StepRun) => r.stepId === '_user' && !!r.handback?.summary.startsWith(REPLAN);
+
 function section(title: string, hb: Handback) {
   return [
     `## ${title}`,

@@ -4,6 +4,7 @@ import { call, follow } from '../api';
 import { stamp } from '../time';
 import { Choice } from '../ui/Choice';
 import { Chip, ChipButton, ToggleChip } from '../ui/Chip';
+import { KIT } from '../crew';
 import { KitIcon } from './Icons';
 
 type Data = Awaited<ReturnType<typeof call<'members.permissions'>>>;
@@ -35,7 +36,7 @@ export function Permissions({ memberId }: { memberId: number }) {
   const load = () => call('members.permissions', { id: memberId }).then(setData);
   useEffect(() => {
     setAllSkills(false);
-    // A reset or 도구's change elsewhere shows here too
+    // A reset or a change from another window shows here too
     return follow(
       () => call('members.permissions', { id: memberId }),
       setData,
@@ -50,7 +51,9 @@ export function Permissions({ memberId }: { memberId: number }) {
     await load();
   }
   const toggle = <T,>(list: T[], item: T) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
-  const skills = Object.entries(kit.skills).filter(([name]) => allSkills || settings.skills.includes(name));
+  const skills = kit.skills
+    .filter((name) => allSkills || settings.skills.includes(name))
+    .map((name) => [name, KIT[name]] as const);
 
   return (
     <section className="permissions" aria-label="권한">
@@ -92,7 +95,8 @@ export function Permissions({ memberId }: { memberId: number }) {
       </div>
       <span className="perm-label">MCP</span>
       <div className="perm-items">
-        {Object.entries(kit.mcp).map(([server, item]) => {
+        {kit.mcp.map((server) => {
+          const item = KIT[server];
           const held = settings.mcp.find((m) => m.server === server);
           return (
             <Chip key={server} title={item.use}>

@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { launchApp, makeScratch, openProject } from './launch';
 
-// 비서 starts its reply, then waits on a tool outside its role, so the reply is still streaming
+// 통역 starts its reply, then waits on a tool outside its role, so the reply is still streaming
 const SCRIPT = {
-  비서: [{ text: '문서를 찾아보겠습니다.', tool: { name: 'WebFetch', input: { url: 'https://example.com' } } }],
+  통역: [{ text: '문서를 찾아보겠습니다.', tool: { name: 'WebFetch', input: { url: 'https://example.com' } } }],
 };
 
 test('a reply still streaming keeps its first words after a look at another tab', async () => {

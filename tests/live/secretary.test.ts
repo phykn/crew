@@ -5,7 +5,7 @@ import { Store } from '../../src/backend/adapters/sqlite/store';
 import { ALLOW } from '../../src/backend/domain/answers';
 import { CREW, MemorySecrets, makeScratch, recordedAgents, recordedRuns } from '../support';
 
-test('real Claude: 비서 lists files itself, remembers after a restart, and switches model', async () => {
+test('real Claude: 통역 lists files itself, remembers after a restart, and switches model', async () => {
   const scratch = makeScratch({ 'notes.txt': 'hello', 'todo.md': '- buy milk' });
   let store = new Store(scratch.db);
   let chat = wire({
@@ -20,7 +20,7 @@ test('real Claude: 비서 lists files itself, remembers after a restart, and swi
   chat.members.seed(p.id);
   const s = store.createSession(p.id);
   // Haiku keeps the live run cheap; the model switch below proves the choice reaches the run
-  store.updateMember(store.readMember(p.id, 'orchestrator').id, { model: 'haiku' });
+  store.updateMember(store.readMember(p.id, 'interpreter').id, { model: 'haiku' });
 
   await chat.send(s.id, '이 폴더에 무슨 파일 있어?');
   const first = store.listMessages(s.id).at(-1)!;
@@ -39,7 +39,7 @@ test('real Claude: 비서 lists files itself, remembers after a restart, and swi
     emit: () => {},
     paths: scratch.paths,
   });
-  store.updateMember(store.readMember(p.id, 'orchestrator').id, { model: 'sonnet' });
+  store.updateMember(store.readMember(p.id, 'interpreter').id, { model: 'sonnet' });
   await chat.send(s.id, '방금 내가 뭘 물어봤고 너는 어떤 파일들을 말했지? 파일 이름만 다시 말해줘.');
   const second = store.listMessages(s.id).at(-1)!;
   expect(second.text).toMatch(/notes\.txt/);
@@ -50,7 +50,7 @@ test('real Claude: 비서 lists files itself, remembers after a restart, and swi
   ]);
 });
 
-test('real Claude: 비서 works the app itself, asking on cards only for what needs the user', async () => {
+test('real Claude: 통역 works the app itself, asking on cards only for what needs the user', async () => {
   const scratch = makeScratch();
   const store = new Store(scratch.db);
   const navigated: unknown[] = [];
@@ -78,7 +78,7 @@ test('real Claude: 비서 works the app itself, asking on cards only for what ne
     const before = cards.length;
     await chat.send(s.id, text);
     const asked = cards.slice(before);
-    console.log(`> ${text}\n  cards: ${JSON.stringify(asked)}\n  비서: ${store.listMessages(s.id).at(-1)!.text}`);
+    console.log(`> ${text}\n  cards: ${JSON.stringify(asked)}\n  통역: ${store.listMessages(s.id).at(-1)!.text}`);
     return asked;
   };
   const tester = () => store.readMember(p.id, 'tester');
@@ -106,8 +106,8 @@ test('real Claude: 비서 works the app itself, asking on cards only for what ne
     expect(await say('방금 고용한 알바는 이제 내보내줘')).toEqual([]);
     expect(store.readMemberById(temp.id).status).toBe('unhired');
 
-    // 비서 did the app work itself: only 인사 ran besides it, to design the temp
-    expect([...new Set(recordedAgents(store, s.id).map((a) => a.key))].sort()).toEqual(['hr', 'orchestrator']);
+    // 통역 did the app work itself: only 인사 ran besides it, to design the temp
+    expect([...new Set(recordedAgents(store, s.id).map((a) => a.key))].sort()).toEqual(['hr', 'interpreter']);
   } finally {
     clearInterval(answering);
   }
@@ -127,11 +127,11 @@ test('real Claude: a question about a member at work is answered from a copy of 
   const p = store.addProject(scratch.project);
   chat.members.seed(p.id);
   const s = store.createSession(p.id);
-  for (const key of ['orchestrator', 'coder']) store.updateMember(store.readMember(p.id, key).id, { model: 'haiku' });
+  for (const key of ['interpreter', 'coder']) store.updateMember(store.readMember(p.id, key).id, { model: 'haiku' });
   store.setMode(p.id, 'auto');
   const coder = store.readMember(p.id, 'coder');
 
-  // Only 개발's own conversation knows the codeword, so an answer that has it came from a copy of that conversation
+  // Only 코드 작성's own conversation knows the codeword, so an answer that has it came from a copy of that conversation
   const work = chat.runs.run(
     coder,
     s.id,
@@ -141,7 +141,7 @@ test('real Claude: a question about a member at work is answered from a copy of 
   await expect
     .poll(() => [...chat.runs.active].find((a) => a.memberId === coder.id)?.run.claudeId, { timeout: 60_000 })
     .toBeTruthy();
-  await chat.send(s.id, '개발한테 지금 뭐 하고 있는지, 이번 일의 코드워드가 뭔지 물어봐줘.');
+  await chat.send(s.id, '코드 작성한테 지금 뭐 하고 있는지, 이번 일의 코드워드가 뭔지 물어봐줘.');
   expect(store.listMessages(s.id).at(-1)!.text).toMatch(/blue-17/);
   const side = store.db.prepare('SELECT COUNT(*) AS n FROM runs WHERE side = 1').get() as { n: number };
   expect(side.n).toBe(1);

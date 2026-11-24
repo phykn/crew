@@ -9,7 +9,7 @@ import { ListMenu, ListOption } from '../ui/Menu';
 import type { ChangesTarget } from './Changes';
 import { TaskCards } from './TaskCards';
 
-// The window's own commands: typed after a slash, they act here and never reach 비서
+// The window's own commands: typed after a slash, they act here and never reach 통역
 // A label only where the name alone does not say it
 type Command = { name: string; label?: string; run: () => void };
 // What each approval mode lets a member do without asking
@@ -18,7 +18,7 @@ const MODE_HINTS: Record<Mode, string> = {
   auto: '역할 밖 도구도 바로 허용',
   bypass: '아무것도 검사하지 않음',
 };
-// A message held back until 비서 is done answering
+// A message held back until 통역 is done answering
 type Queued = { id: number; sessionId: number; text: string; images: Image[] };
 
 // Claude takes up to five pictures of about 5MB each in one message
@@ -117,7 +117,7 @@ export function Chat({
   const waiting = messages.some((m) => m.question && m.question.answer === null);
   useEffect(() => onWaiting(waiting), [waiting]);
 
-  // Once 비서 is done, the oldest held message goes; its answer holds the rest until it is done too
+  // Once 통역 is done, the oldest held message goes; its answer holds the rest until it is done too
   useEffect(() => {
     const next = queued.find((q) => q.sessionId === session.id);
     if (known === session.id && streaming === null && next) sendQueued(next);
@@ -138,7 +138,7 @@ export function Chat({
     dispatch(q.text, q.images);
   }
 
-  // Now joins 비서's answer at once; later waits in line while 비서 is answering
+  // Now joins 통역's answer at once; later waits in line while 통역 is answering
   // A card pushed up by a long conversation comes back into view with its first option ready to pick
   function showQuestion(id: number) {
     const card = document.querySelector<HTMLElement>(`[data-question="${id}"]`);
@@ -273,7 +273,7 @@ export function Chat({
           bare
           className="composer-text"
           value={draft}
-          placeholder={streaming !== null ? 'Ctrl+Enter 키로 대기열에 추가하기' : '비서에게 할 일을 말하세요'}
+          placeholder={streaming !== null ? 'Ctrl+Enter 키로 대기열에 추가하기' : '통역에게 할 일을 말하세요'}
           aria-label="메시지"
           rows={1}
           onChange={(e) => {
@@ -401,12 +401,12 @@ function Pictures({ srcs }: { srcs: string[] }) {
 }
 
 function Bubble({ author, text, pictures = [], pending, question, children }: BubbleProps) {
-  // Only two people talk here, so the side a bubble sits on says who said it: me right, 비서 left
+  // Only two people talk here, so the side a bubble sits on says who said it: me right, 통역 left
   return (
     <div
       className={`message ${author}`}
       data-pending={pending || undefined}
-      aria-label={author === 'user' ? '나' : '비서'}
+      aria-label={author === 'user' ? '나' : '통역'}
     >
       {question ? (
         <AnswerCard question={question} />

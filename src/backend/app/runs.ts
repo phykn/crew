@@ -24,7 +24,7 @@ type Active = { run: AgentRun; memberId: number; sessionId: number; taskId: numb
 
 // Every member run: one at a time per member and session, each behind its own guard
 export class Runs {
-  // Every run at work now: who is busy, what a task has running, and 비서's live run are all read from it
+  // Every run at work now: who is busy, what a task has running, and 통역's live run are all read from it
   active = new Set<Active>();
   // One lane per agent session: a member works on one task at a time and the rest wait their turn
   lanes = new Map<number, Promise<unknown>>();
@@ -33,15 +33,17 @@ export class Runs {
 
   constructor(public chat: Chat) {}
 
-  busy(memberId: number) {
-    return [...this.active].some((a) => a.memberId === memberId);
+  busy(memberId: number, sessionId?: number) {
+    return [...this.active].some(
+      (a) => a.memberId === memberId && (sessionId === undefined || a.sessionId === sessionId),
+    );
   }
 
   ofTask(taskId: number) {
     return [...this.active].filter((a) => a.taskId === taskId).map((a) => a.run);
   }
 
-  // 비서's run in this session, so what the user adds mid-answer joins it
+  // 통역's run in this session, so what the user adds mid-answer joins it
   live(sessionId: number) {
     return [...this.active].find((a) => a.secretary && a.sessionId === sessionId)?.run;
   }
@@ -86,7 +88,7 @@ export class Runs {
     });
     // A run that waited in its lane for work no longer wanted never starts
     if (opts.alive?.() === false) return skipped('stopped');
-    const active = { run, memberId: member.id, sessionId, taskId, secretary: member.key === 'orchestrator' };
+    const active = { run, memberId: member.id, sessionId, taskId, secretary: member.key === 'interpreter' };
     this.active.add(active);
     if (this.active.size === 1) this.chat.emit('busy', true);
     const runId = store.startRun(agentSession.id, member.model, taskId);
@@ -113,7 +115,7 @@ export class Runs {
   system(member: Member, project: Project) {
     const { crew, members, wiki } = this.chat;
     return [
-      crew.system(crew.defOf(member), members.settings(member), members.kit(project.id)),
+      crew.system(crew.defOf(member), members.settings(member)),
       members.roster(project.id),
       wiki.context(project.id, member.id),
     ].join('\n\n');
@@ -142,21 +144,21 @@ export class Runs {
     });
     const runId = store.startRun(agentSession.id, model, null, true);
     const out = await run.run(
-      `[Side question from the user, through 비서] You are answering in a copy of your session: nothing you do here reaches your work, and you cannot change files. Answer in a few Korean sentences.\n\n${question}`,
+      `[Side question from the user, through 통역] You are answering in a copy of your session: nothing you do here reaches your work, and you cannot change files. Answer in a few Korean sentences.\n\n${question}`,
     );
     store.finishRun(runId, out);
     return out;
   }
 
-  // What a member's earlier Claude session knew, for a fresh one: the conversation for 비서, its own handbacks for the rest
+  // What a member's earlier Claude session knew, for a fresh one: the conversation for 통역, its own handbacks for the rest
   handoff(member: Member, sessionId: number) {
     const { store } = this.chat;
     const lines =
-      member.key === 'orchestrator'
+      member.key === 'interpreter'
         ? store
             .listMessages(sessionId)
             .slice(-30)
-            .map((m) => `${m.author === 'user' ? 'User' : '비서'}: ${m.text}`)
+            .map((m) => `${m.author === 'user' ? 'User' : '통역'}: ${m.text}`)
         : store
             .listTasks(sessionId)
             .flatMap((t) => store.listStepRuns(t.id).filter((r) => r.memberId === member.id && r.handback))
@@ -179,7 +181,7 @@ export class Runs {
       write: settings.write,
       mcp: settings.mcp.map(({ server, access }) => ({
         server,
-        readTools: access === 'read' ? (crew.kit.mcp[server].readTools ?? []) : null,
+        readTools: access === 'read' ? (crew.readTools[server] ?? []) : null,
       })),
       project: project.path,
       output: this.outputDir(project, scope),
@@ -248,7 +250,7 @@ export class Runs {
     return `Not written: ${stale.join(', ')} changed since this task last read it (another task or the user changed it while you waited). Read it again and redo your change on top of the current content.`;
   }
 
-  // A write outside any task, such as 비서's own small edit, waits for no one but never lands on a file a task is writing
+  // A write outside any task, such as 통역's own small edit, waits for no one but never lands on a file a task is writing
   async checkFree(project: Project, policy: Policy, tool: string, input: Record<string, unknown>) {
     const paths = projectWrites(policy, tool, input).map((p) => this.chat.files.realPath(p));
     const holders = paths.length ? this.locksOf(project).blockers(0, paths) : [];

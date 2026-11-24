@@ -6,7 +6,7 @@ test('a member who would start a document on files a colleague wrote about since
   const { store, fake, chat, p, s } = openChat();
   const reviewer = store.readMember(p.id, 'reviewer');
   wikiTools(fake.sdk, chat, reviewer, s.id, null);
-  // 시험, working beside 리뷰, writes after 리뷰's run began, so 리뷰's prompt never listed it
+  // 시험, working beside 코드 검토, writes after 코드 검토's run began, so 코드 검토's prompt never listed it
   chat.wiki.write(p.id, '테트리스 테스트', 'node tetris.test.js', {
     memberId: null,
     name: '시험',

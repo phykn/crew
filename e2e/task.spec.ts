@@ -5,17 +5,20 @@ const hb = (summary: string, more: Record<string, unknown> = {}) => ({
   structured: { summary, body: '', points: [], files: [], checks: [], ...more },
 });
 const SCRIPT = {
-  비서: [
+  통역: [
     {
-      call: { name: 'start_task', input: { kind: 'code', title: '검색 개선', request: '빈 검색어는 전체 목록' } },
+      call: {
+        name: 'start_task',
+        input: { original: '원문', kind: 'code', title: '검색 개선', request: '빈 검색어는 전체 목록' },
+      },
       text: '업무를 시작했습니다.',
     },
-    { text: '검색을 고쳤고 리뷰와 시험을 통과했습니다.' },
+    { text: '검색을 고쳤고 코드 검토와 시험을 통과했습니다.' },
   ],
-  기획: [hb('계획')],
-  리뷰: [hb('계획 통과', { verdict: 'pass' }), hb('코드 통과', { verdict: 'pass' })],
-  // 개발 reaches for a tool outside its role, which becomes an answer card
-  개발: [
+  지휘: [hb('계획')],
+  '코드 검토': [hb('계획 통과', { verdict: 'pass' }), hb('코드 통과', { verdict: 'pass' })],
+  // 코드 작성 reaches for a tool outside its role, which becomes an answer card
+  '코드 작성': [
     {
       tool: { name: 'WebFetch', input: { url: 'https://example.com/docs' } },
       write: { file: 'search.js', text: 'v1' },
@@ -46,22 +49,22 @@ test('a message opens a pinned task card, the answer card lets it go on, and the
   await page.getByRole('button', { name: '허용' }).click();
   // The card keeps only the answer, so it reads as done
   await expect(page.getByRole('status').filter({ hasText: '✓ 허용' })).toBeVisible();
-  await expect(page.getByText('검색을 고쳤고 리뷰와 시험을 통과했습니다.')).toBeVisible();
+  await expect(page.getByText('검색을 고쳤고 코드 검토와 시험을 통과했습니다.')).toBeVisible();
   await expect(card).toHaveCount(0);
   await expect(page.getByRole('tab', { name: '대화, 대답 대기' })).toHaveCount(0);
 
   await page.getByRole('tab', { name: '로그' }).click();
-  const developed = page.locator('.log-row', { hasText: '개발 완료' });
+  const developed = page.locator('.log-row', { hasText: '코드 작성 완료' });
   await expect(developed).not.toHaveAttribute('data-bad', 'true');
   // Each line reads its time, then what became of it, then who did what
   await expect(developed.locator('.log-line > *').first()).toHaveText(/^\d\d:\d\d:\d\d$/);
   await expect(developed.locator('.log-mark')).toHaveAttribute('aria-label', '완료');
-  await page.getByRole('button', { name: /개발 완료/ }).click();
+  await page.getByRole('button', { name: /코드 작성 완료/ }).click();
   await expect(page.getByLabel('업무 로그')).toContainText('search.js');
   await page.getByRole('button', { name: /시험 완료/ }).click();
   await expect(page.getByLabel('업무 로그')).toContainText('npm test → 3 passed');
 
   await page.getByRole('tab', { name: '대화' }).click();
-  await expect(page.getByText('검색을 고쳤고 리뷰와 시험을 통과했습니다.')).toBeVisible();
+  await expect(page.getByText('검색을 고쳤고 코드 검토와 시험을 통과했습니다.')).toBeVisible();
   await app.close();
 });

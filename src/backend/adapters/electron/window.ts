@@ -33,7 +33,7 @@ export function createWindow() {
 // A report or a card that comes while the user is in another window would otherwise wait unseen
 function notify({ text }: { text: string }) {
   if (!win || win.isFocused() || !Notification.isSupported()) return;
-  const note = new Notification({ title: '비서', body: text.length > 200 ? `${text.slice(0, 200)}…` : text });
+  const note = new Notification({ title: '통역', body: text.length > 200 ? `${text.slice(0, 200)}…` : text });
   note.on('click', () => {
     win?.show();
     win?.focus();

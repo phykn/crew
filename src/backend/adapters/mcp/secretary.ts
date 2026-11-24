@@ -3,14 +3,13 @@ import type { Sdk } from '../claude/agent';
 import { text } from './text';
 import type { Chat } from '../../app/chat';
 import type { Task } from '../../domain/records';
-import { kitTools } from './kit';
 import { wikiTools } from './wiki';
 import { josa } from '../../../korean';
 
-// The app's own tools for 비서 in one session; a call is how 비서 opens real work for the crew
+// The app's own tools for 통역 in one session; a call is how 통역 opens real work for the crew
 export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
   const projectId = () => chat.store.projectOf(sessionId).id;
-  const secretary = chat.store.readMember(projectId(), 'orchestrator');
+  const secretary = chat.store.readMember(projectId(), 'interpreter');
   const kinds = chat.workflows.shipped.map((w) => w.kind) as [string, ...string[]];
   // Only a task of this conversation can be reached, whatever id is given
   const ownTask = (id: number) => chat.store.listTasks(sessionId).find((t) => t.id === id) ?? null;
@@ -31,12 +30,16 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
           kind: z.enum(kinds),
           title: z.string().min(1).max(40).describe('A few Korean words naming the task, shown on its card'),
           request: z.string().min(1).describe("The user's request in full, with any scope you settled with them"),
+          original: z
+            .string()
+            .min(1)
+            .describe(
+              "The user's own words for this request, exactly as they wrote them, so the conductor can check your reading",
+            ),
           role: z
             .string()
             .optional()
-            .describe(
-              'Give the whole request to this one member instead, such as a temp you just hired: its key or Korean role',
-            ),
+            .describe('Give the whole request to this one member instead: its key or Korean role'),
           size: z
             .enum(['small', 'large'])
             .default('large')
@@ -47,21 +50,18 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
         async (a) => {
           const one = a.role ? memberOf(a.role) : null;
           if (a.role && !one) return text(`${josa(a.role, '은')} 지금 고용되어 있지 않습니다.`);
-          const task = chat.tasks.start(sessionId, a.kind, a.title, a.request, one ?? undefined, a.size === 'small');
+          const task = chat.tasks.start(
+            sessionId,
+            a.kind,
+            a.title,
+            `${a.request}
+
+The user's own words:
+${a.original}`,
+            one ?? undefined,
+            a.size === 'small',
+          );
           return text(`업무 #${task.id} ${josa(`"${task.title}"`, '을')} 시작했습니다.`);
-        },
-      ),
-      sdk.tool(
-        'ask_tools',
-        "Hand the tools member a request about the crew's skills: make, change, or delete one, or decide who holds which skill or MCP server. Each change it makes waits for the user on a card. Its answer comes back as the result.",
-        { request: z.string().min(1).describe("The user's request in their words") },
-        async (a) => {
-          const member = chat.store.readMember(projectId(), 'tools');
-          if (member.status !== 'hired') return text('도구가 지금 고용되어 있지 않습니다.');
-          const out = await chat.runs.run(member, sessionId, null, a.request, {
-            mcpServers: { crew: kitTools(sdk, chat, sessionId) },
-          });
-          return text(out.status === 'done' ? out.text : `도구가 답하지 못했습니다: ${out.error ?? out.status}`);
         },
       ),
       sdk.tool(
@@ -110,7 +110,7 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
             kind: a.kind,
             base: a.base_version,
             rules: a.rules,
-            by: { memberId: secretary.id, name: '비서' },
+            by: { memberId: secretary.id, name: '통역' },
             scope: a.scope,
             taskId: a.task_id,
             reason: a.reason,
@@ -119,14 +119,8 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
         },
       ),
       sdk.tool(
-        'hire',
-        'When no member fits the work, have 인사 design a new one. A temp (알바) joins for this work and leaves when it is done; a regular stays. To bring back a member who left, use the app action crew.hire instead.',
-        { need: z.string().min(1).describe('The work no one fits'), temp: z.boolean() },
-        async (a) => text(await chat.members.hire(sessionId, a.need, a.temp)),
-      ),
-      sdk.tool(
         'reassign',
-        "Give a task's steps from a member who left to another, such as a new temp, before reopening or resuming it. The new member gets the saved handback.",
+        "Give a task's steps from a member who left to another before reopening or resuming it. The new member gets the saved handback.",
         {
           task_id: z.number().int(),
           from_role: z.string().describe('Key or Korean role'),

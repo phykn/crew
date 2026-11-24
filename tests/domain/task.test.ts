@@ -1,9 +1,6 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { expect, test } from 'vitest';
 import { nextStatus, satisfied } from '../../src/backend/domain/task';
-import { Workflow } from '../../src/backend/domain/workflow';
-import { CREW_DIR } from '../support';
+import { CREW } from '../support';
 
 test('the status machine refuses moves a task cannot make', () => {
   expect(nextStatus('done', 'REOPEN')).toBe('running');
@@ -13,7 +10,7 @@ test('the status machine refuses moves a task cannot make', () => {
 });
 
 test('a review of an older version that arrives late does not satisfy the newer one', () => {
-  const w = Workflow.parse(JSON.parse(fs.readFileSync(path.join(CREW_DIR, 'workflows', 'code.json'), 'utf-8')));
+  const w = CREW.workflows.find((x) => x.kind === 'code')!;
   const run = (id: number, stepId: string, verdict: 'pass' | 'rework' | null = null) =>
     ({
       id,

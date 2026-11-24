@@ -48,7 +48,7 @@ function haikuChat() {
   chat.members.seed(p.id);
   const s = store.createSession(p.id);
   // Haiku keeps the live run cheap; reading a colour needs no more
-  store.updateMember(store.readMember(p.id, 'orchestrator').id, { model: 'haiku' });
+  store.updateMember(store.readMember(p.id, 'interpreter').id, { model: 'haiku' });
   const last = () => store.listMessages(s.id).at(-1)!.text;
   return { store, chat, s, last };
 }
@@ -56,7 +56,7 @@ function haikuChat() {
 const RED = png(32, 32, () => [230, 20, 20]);
 const BLUE = png(32, 32, () => [20, 40, 230]);
 
-test('real Claude: 비서 sees a picture, takes one without words, and still knows it in the next turn', async () => {
+test('real Claude: 통역 sees a picture, takes one without words, and still knows it in the next turn', async () => {
   const { store, chat, s, last } = haikuChat();
   await chat.send(s.id, '이 그림은 무슨 색이야? 색 이름 한 단어로만 답해.', [RED]);
   expect(last()).toMatch(/빨|red/i);
@@ -68,7 +68,7 @@ test('real Claude: 비서 sees a picture, takes one without words, and still kno
   expect(recordedRuns(store, s.id).map((r) => r.status)).toEqual(['done', 'done', 'done']);
 });
 
-test('real Claude: a picture sent while 비서 is answering gets its own answer', async () => {
+test('real Claude: a picture sent while 통역 is answering gets its own answer', async () => {
   const { store, chat, s } = haikuChat();
   const first = chat.send(s.id, '1부터 5까지 한 줄에 하나씩 세어 줘.');
   // The second message joins the run under way, as Enter does in the window

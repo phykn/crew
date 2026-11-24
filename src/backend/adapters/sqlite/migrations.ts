@@ -92,7 +92,7 @@ export const MIGRATIONS = [
      label TEXT NOT NULL, purpose TEXT NOT NULL, body TEXT NOT NULL, deleted INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL,
      PRIMARY KEY (project_id, name));`,
   `ALTER TABLE projects ADD COLUMN mode TEXT NOT NULL DEFAULT 'manual';`,
-  // 비서 works the app itself now, so the shipped 도우미 goes with its runs; the log keeps its lines
+  // 통역 works the app itself now, so the shipped 도우미 goes with its runs; the log keeps its lines
   `CREATE TEMP TABLE gone AS SELECT id FROM members WHERE key = 'helper' AND definition IS NULL;
    UPDATE events SET member_id = NULL WHERE member_id IN (SELECT id FROM gone);
    DELETE FROM requests WHERE from_member IN (SELECT id FROM gone);
@@ -112,6 +112,27 @@ export const MIGRATIONS = [
      SELECT m.id, j.key, json_extract(j.value, '$.mediaType'), json_extract(j.value, '$.data')
      FROM messages m, json_each(m.images) j WHERE m.images IS NOT NULL;
    ALTER TABLE messages DROP COLUMN images;`,
-  // The task a report of 비서's is about, so the chat can show that task's changed files under it
+  // The task a report of 통역's is about, so the chat can show that task's changed files under it
   `ALTER TABLE messages ADD COLUMN task_id INTEGER;`,
+  // The crew was rebuilt around 통역 and 지휘: the old secretary becomes 통역, the roles that went leave with their runs, and the
+  // skills were rewritten, so skill choices, the project's own skills, and saved workflows naming gone roles reset
+  `UPDATE members SET key = 'interpreter' WHERE key = 'orchestrator' AND definition IS NULL;
+   CREATE TEMP TABLE gone AS SELECT id FROM members WHERE key IN ('hr', 'tools', 'advisor', 'stylist') AND definition IS NULL;
+   UPDATE events SET member_id = NULL WHERE member_id IN (SELECT id FROM gone);
+   DELETE FROM requests WHERE from_member IN (SELECT id FROM gone);
+   DELETE FROM assignees WHERE member_id IN (SELECT id FROM gone);
+   DELETE FROM step_runs WHERE member_id IN (SELECT id FROM gone);
+   DELETE FROM members WHERE id IN (SELECT id FROM gone);
+   DROP TABLE gone;
+   UPDATE members SET config = json_remove(config, '$.skills');
+   DROP TABLE skills;
+   DELETE FROM workflow_versions WHERE rules LIKE '%"advisor"%' OR rules LIKE '%"stylist"%';`,
+  // A member is only ever one of the crew folder's agents or a copy of one, so anyone hired with a definition of its own leaves with its runs
+  `CREATE TEMP TABLE gone AS SELECT id FROM members WHERE definition IS NOT NULL;
+   UPDATE events SET member_id = NULL WHERE member_id IN (SELECT id FROM gone);
+   DELETE FROM requests WHERE from_member IN (SELECT id FROM gone);
+   DELETE FROM assignees WHERE member_id IN (SELECT id FROM gone);
+   DELETE FROM step_runs WHERE member_id IN (SELECT id FROM gone);
+   DELETE FROM members WHERE id IN (SELECT id FROM gone);
+   DROP TABLE gone;`,
 ];

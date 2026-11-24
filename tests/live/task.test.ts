@@ -20,7 +20,7 @@ test('finds items containing the query', () => {
 });
 `;
 
-test('real Claude: 비서 opens a code task and the crew changes and verifies it', async () => {
+test('real Claude: 통역 opens a code task and the crew changes and verifies it', async () => {
   const scratch = makeScratch({
     'package.json': JSON.stringify({ name: 'demo', type: 'module', scripts: { test: 'node --test' } }, null, 2),
     'search.js': SEARCH,
@@ -59,7 +59,7 @@ test('real Claude: 비서 opens a code task and the crew changes and verifies it
     },
     { timeout: 900_000, interval: 2000 },
   );
-  // The report is the last thing 비서 writes after the task closes
+  // The report is the last thing 통역 writes after the task closes
   await vi.waitFor(() => expect(store.listMessages(s.id).at(-1)!.author).toBe('secretary'), { timeout: 120_000 });
 
   const [task] = store.listTasks(s.id);
@@ -72,7 +72,7 @@ test('real Claude: 비서 opens a code task and the crew changes and verifies it
     report: store.listMessages(s.id).at(-1)!.text,
   });
   expect(task.status).toBe('done');
-  // 비서 sizes the change: a large one starts with the plan, a small one with development
+  // 통역 sizes the change: a large one starts with the plan, a small one with development
   expect(['plan:done:', 'develop:done:']).toContain(steps[0]);
   const out = execFileSync(
     process.execPath,
@@ -83,5 +83,7 @@ test('real Claude: 비서 opens a code task and the crew changes and verifies it
     },
   );
   expect(JSON.parse(out)).toEqual(['a', 'b']);
-  expect(store.listEvents(s.id).some((e) => e.kind === 'step' && e.text.includes('개발: 개발 완료'))).toBe(true);
+  expect(store.listEvents(s.id).some((e) => e.kind === 'step' && e.text.includes('코드 작성: 코드 작성 완료'))).toBe(
+    true,
+  );
 }, 1_200_000);

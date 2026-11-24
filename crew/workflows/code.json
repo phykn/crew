@@ -1,57 +1,42 @@
 {
   "kind": "code",
-  "label": "코드 변경",
-  "use": "Change code in the project: plan, plan review, development, then code review, style check, and tests in parallel. A small change skips the plan and its review.",
+  "use": "Change code in the project: the conductor's plan, its review, the coder's change, then code review and tests side by side. A small change skips the plan and its review.",
   "steps": [
     {
       "id": "plan",
-      "role": "advisor",
-      "label": "계획",
-      "does": "이 요청을 어떻게 바꿀지 계획을 쓴다."
+      "role": "conductor",
+      "does": "Write the plan, breaking the request into steps."
     },
     {
       "id": "plan_review",
       "role": "reviewer",
-      "label": "계획 검토",
       "after": ["plan"],
       "verdict": true,
       "rework": "plan",
-      "does": "코드를 고치기 전에 계획 검토 스킬로 계획을 검토한다."
+      "does": "Review the plan with your plan-review skill before any code changes."
     },
     {
       "id": "develop",
       "role": "coder",
-      "label": "개발",
       "after": ["plan_review"],
-      "does": "승인된 계획대로, 계획이 없으면 요청서대로 바꾼다."
+      "does": "Change the code as the plan says, or as the request says when there is no plan."
     },
     {
       "id": "review",
       "role": "reviewer",
-      "label": "코드 리뷰",
       "after": ["develop"],
       "verdict": true,
       "rework": "develop",
-      "does": "코드 리뷰 스킬로 바뀐 코드를 검토한다."
+      "does": "Read and review the changed code with your code-review skill."
     },
     {
       "id": "test",
       "role": "tester",
-      "label": "시험",
       "after": ["develop"],
       "verdict": true,
       "rework": "develop",
-      "does": "바뀐 코드로 프로젝트의 전체 테스트와 빌드를 돌린다.",
+      "does": "Run the project's tests on the changed code and try the changed screens yourself.",
       "requires": ["checks"]
-    },
-    {
-      "id": "style",
-      "role": "stylist",
-      "label": "스타일 검토",
-      "after": ["develop"],
-      "verdict": true,
-      "rework": "develop",
-      "does": "바뀐 코드가 프로젝트의 규칙에 맞는지 확인한다."
     }
   ]
 }

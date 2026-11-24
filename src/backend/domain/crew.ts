@@ -1,23 +1,10 @@
 import { z } from 'zod';
-import type { Member, SkillRow } from './records';
+import type { Member } from './records';
 import { Workflow } from './workflow';
-import { MODELS } from '../../shared';
+import { MEMBERS, WORKFLOW_LABELS, baseKey } from '../../shared';
 
-// The legend lists the starting crew in this order; anyone hired later follows in the order they joined
-const ORDER = [
-  'orchestrator',
-  'hr',
-  'tools',
-  'advisor',
-  'coder',
-  'reviewer',
-  'tester',
-  'stylist',
-  'researcher',
-  'images',
-];
-// The crew cannot run without these: 비서 takes every request, and only 인사 and 도구 bring in people and tools
-export const KEPT = ['orchestrator', 'hr', 'tools'];
+// The crew cannot run without these: 통역 takes every request and 지휘 plans every task
+export const KEPT = ['interpreter', 'conductor'];
 
 // Each kind of tool a definition can ask for, and the Claude Code tools it opens
 const TOOL_KINDS = {
@@ -35,47 +22,20 @@ const ToolKinds = z.enum(Object.keys(TOOL_KINDS) as [ToolKind]);
 const Write = z.enum(['project', 'output', 'none']);
 const Access = z.enum(['all', 'read']);
 
-// The sprite parts src/frontend/camp/paint/sprites.js draws, as head, upper, lower
-const LOOKS = {
-  head: ['hood', 'hair', 'helm', 'hat', 'braids'],
-  upper: ['tunic', 'robe', 'armor', 'vest'],
-  lower: ['boots', 'gown', 'greaves', 'wraps'],
-} as const;
-
-// A definition 인사 writes may say none for an empty list, as models often do
-const list = z
-  .string()
-  .default('')
-  .transform((s) =>
-    s
-      .split(',')
-      .map((x) => x.trim())
-      .filter((x) => x && !/^(none|-)$/i.test(x)),
-  );
-
-const Front = z.object({
-  role: z.string().min(1),
-  color: z.string().regex(/^#[0-9a-f]{6}$/i),
-  model: z.enum(MODELS),
-  tools: list.pipe(z.array(ToolKinds)),
-  write: Write,
-  skills: list,
-  mcp: list,
-  look: list.pipe(z.tuple([z.enum(LOOKS.head), z.enum(LOOKS.upper), z.enum(LOOKS.lower)])),
+// agents.json: what each agent is for, and the tools, write scope, skills, and MCP servers it starts with
+const Agent = z.object({
   description: z.string().min(1),
+  tools: z.array(ToolKinds),
+  write: Write,
+  skills: z.array(z.string()),
+  mcp: z.array(z.string()),
 });
 
-// readTools lists an MCP server's tools that only look, for members given read access to it
-const KitItem = z.object({
-  icon: z.string(),
-  label: z.string(),
-  use: z.string(),
-  readTools: z.array(z.string()).optional(),
+// mcp.json: each server's command, and the tools of each that only look, for members given read access to it
+const McpFile = z.object({
+  mcpServers: z.record(z.string(), z.record(z.string(), z.unknown())),
+  readTools: z.record(z.string(), z.array(z.string())).default({}),
 });
-const Kit = z.object({ skills: z.record(z.string(), KitItem), mcp: z.record(z.string(), KitItem) });
-// A project's kit, with the text each skill adds to a run
-type ProjectKit = z.infer<typeof Kit> & { texts: Record<string, string> };
-const McpFile = z.object({ mcpServers: z.record(z.string(), z.record(z.string(), z.unknown())) });
 
 // What the user changed for one member in one project; anything left out follows the definition
 export const Config = z.object({
@@ -87,91 +47,63 @@ export const Config = z.object({
 export type Config = z.infer<typeof Config>;
 export type Settings = Required<Config>;
 
-export type Definition = z.infer<typeof Front> & { key: string; instructions: string };
-type Skill = { name: string; icon: string; label: string; use: string };
-export type CrewMember = Member & {
-  role: string;
-  color: string;
-  kept: boolean;
-  skills: Skill[];
-  look: string[];
-  description: string;
-};
-
-export function parseDefinition(key: string, text: string): Definition {
-  const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
-  if (!m) throw new Error(`${key}.md has no front matter`);
-  const fields = Object.fromEntries(
-    m[1]
-      .split(/\r?\n/)
-      .filter(Boolean)
-      .map((line) => {
-        const at = line.indexOf(':');
-        return [line.slice(0, at).trim(), line.slice(at + 1).trim()];
-      }),
-  );
-  return { ...Front.parse(fields), key, instructions: m[2].trim() };
-}
+export type Definition = z.infer<typeof Agent> & { key: string; role: string; instructions: string };
+// base: the shipped member a copy came from
+export type CrewMember = Member & { role: string; base: string; kept: boolean };
 
 // What the crew folder holds, as the files say it; the Crew checks and reads it
 export type CrewData = {
-  agents: { key: string; text: string }[];
+  agents: unknown;
+  instructions: Record<string, string>;
   rules: string;
-  nicknames: unknown;
-  kit: unknown;
   mcp: unknown;
-  skill: (name: string) => string;
+  skills: Record<string, string>;
   workflows: unknown[];
-  help: () => string;
 };
 
-// The crew's shipped rules, definitions, kit, and workflows
+// The crew's shipped rules, definitions, skills, MCP servers, and workflows
 export class Crew {
   defs: Definition[];
   rules: string;
-  kit: z.infer<typeof Kit>;
   servers: Record<string, Record<string, unknown>>;
+  readTools: Record<string, string[]>;
+  // The app's own server runs inside the app, so it has no command in mcp.json
+  serverNames: string[];
   skillTexts: Record<string, string>;
-  // The starting crew's nicknames; the user may rename anyone, so they live apart from the definitions
-  nicknames: Record<string, string>;
   workflows: Workflow[];
 
-  // The help reads fresh, so an edit to crew/help shows without a restart
-  help: () => string;
-
   constructor(data: CrewData) {
-    this.defs = data.agents.map(({ key, text }) => parseDefinition(key, text));
+    this.defs = Object.entries(z.record(z.string(), Agent).parse(data.agents)).map(([key, agent]) => {
+      if (!data.instructions[key]) throw new Error(`agents/${key}.md is missing`);
+      if (!MEMBERS[key]) throw new Error(`${key} has no name on screen`);
+      return { ...agent, key, role: MEMBERS[key].role, instructions: data.instructions[key].trim() };
+    });
+    const stray = Object.keys(data.instructions).filter((key) => !this.defs.some((d) => d.key === key));
+    if (stray.length) throw new Error(`agents.json has no entry for: ${stray.join(', ')}`);
     this.rules = data.rules;
-    this.nicknames = z.record(z.string(), z.string().min(1)).parse(data.nicknames);
-    const unnamed = this.defs.filter((d) => !this.nicknames[d.key]).map((d) => d.key);
-    if (unnamed.length) throw new Error(`nicknames.json has no nickname for: ${unnamed.join(', ')}`);
-    this.kit = Kit.parse(data.kit);
-    this.servers = McpFile.parse(data.mcp).mcpServers;
-    // kit.json names each skill; its procedure is the whole of skills/<name>/SKILL.md
-    this.skillTexts = Object.fromEntries(Object.keys(this.kit.skills).map((name) => [name, data.skill(name).trim()]));
-    this.workflows = data.workflows.map((w) => Workflow.parse(w));
-    this.help = data.help;
-    // The app's own server runs inside the app, so it has no command in mcp.json
-    const unserved = Object.keys(this.kit.mcp).filter((name) => !this.servers[name] && name !== 'app');
-    if (unserved.length) throw new Error(`kit.json names MCP servers missing from mcp.json: ${unserved.join(', ')}`);
+    const mcp = McpFile.parse(data.mcp);
+    this.servers = mcp.mcpServers;
+    this.readTools = mcp.readTools;
+    this.serverNames = [...Object.keys(this.servers), 'app'];
+    this.skillTexts = Object.fromEntries(Object.entries(data.skills).map(([name, text]) => [name, text.trim()]));
+    this.workflows = data.workflows.map((w) => Workflow.parse(labeled(w as Record<string, unknown>)));
+    const missing = Object.keys(MEMBERS).filter((key) => !this.defs.some((d) => d.key === key));
+    if (missing.length) throw new Error(`the crew folder has no agent for: ${missing.join(', ')}`);
     for (const d of this.defs) {
-      const unknown = [...d.skills.filter((s) => !this.kit.skills[s]), ...d.mcp.filter((s) => !this.kit.mcp[s])];
-      if (unknown.length) throw new Error(`${d.key}.md names kit items missing from kit.json: ${unknown.join(', ')}`);
+      const unknown = [
+        ...d.skills.filter((s) => !this.skillTexts[s]),
+        ...d.mcp.filter((s) => !this.serverNames.includes(s)),
+      ];
+      if (unknown.length)
+        throw new Error(`${d.key}.md names skills or servers the crew does not have: ${unknown.join(', ')}`);
     }
   }
 
-  // A member's definition: its own when 인사 wrote it, the shipped one otherwise
+  // A member's definition: a copy has its original's
   defOf(member: Member): Definition {
-    if (!member.definition) {
-      const def = this.defs.find((d) => d.key === member.key);
-      if (!def) throw new Error(`no definition ${member.key}`);
-      return def;
-    }
-    const def = parseDefinition(member.key, member.definition);
-    // A temp may only read, search, and write into its output folder, with no MCP server
-    return member.temp
-      ? { ...def, tools: def.tools.filter((t) => ['read', 'search', 'write'].includes(t)), write: 'output', mcp: [] }
-      : def;
+    const def = this.defs.find((d) => d.key === baseKey(member.key));
+    if (!def) throw new Error(`no definition ${member.key}`);
+    return def;
   }
 
   settings(def: Definition, config: Config): Settings {
@@ -183,24 +115,8 @@ export class Crew {
     };
   }
 
-  // A project's kit: the shipped skills, with the ones its tools member wrote over, made, or deleted
-  kitFor(rows: SkillRow[]): ProjectKit {
-    const skills = { ...this.kit.skills };
-    const texts = { ...this.skillTexts };
-    for (const r of rows) {
-      if (r.deleted) {
-        delete skills[r.name];
-        delete texts[r.name];
-      } else {
-        skills[r.name] = { icon: skills[r.name]?.icon ?? 'puzzle', label: r.label, use: r.use };
-        texts[r.name] = r.body;
-      }
-    }
-    return { skills, mcp: this.kit.mcp, texts };
-  }
-
-  system(def: Definition, settings: Settings, kit: ProjectKit) {
-    const skills = settings.skills.map((name) => `## Skill: ${name}\n\n${kit.texts[name]}`);
+  system(def: Definition, settings: Settings) {
+    const skills = settings.skills.map((name) => `## Skill: ${name}\n\n${this.skillTexts[name]}`);
     return [this.rules, def.instructions, ...skills].join('\n\n');
   }
 
@@ -212,36 +128,22 @@ export class Crew {
     ) as Record<string, never>;
   }
 
-  checkConfig(config: Config, kit: ProjectKit) {
+  checkConfig(config: Config) {
     const unknown = [
-      ...(config.skills ?? []).filter((s) => !kit.skills[s]),
-      ...(config.mcp ?? []).filter((m) => !kit.mcp[m.server]).map((m) => m.server),
+      ...(config.skills ?? []).filter((s) => !this.skillTexts[s]),
+      ...(config.mcp ?? []).filter((m) => !this.serverNames.includes(m.server)).map((m) => m.server),
     ];
-    if (unknown.length) throw new Error(`not in the kit: ${unknown.join(', ')}`);
+    if (unknown.length) throw new Error(`not in the crew: ${unknown.join(', ')}`);
   }
 
-  describe(members: Member[], kit: ProjectKit): CrewMember[] {
-    const rank = (key: string) => (ORDER.includes(key) ? ORDER.indexOf(key) : ORDER.length);
+  describe(members: Member[]): CrewMember[] {
+    const order = Object.keys(MEMBERS);
+    const rank = (key: string) => (order.includes(key) ? order.indexOf(key) : order.length);
     return (
       members
         // A temp is on the legend only while hired
         .filter((m) => !(m.temp && m.status !== 'hired'))
-        .map((m) => {
-          const def = this.defOf(m);
-          const settings = this.settings(def, m.config);
-          return {
-            ...m,
-            role: def.role,
-            color: def.color,
-            kept: KEPT.includes(m.key),
-            skills: [
-              ...settings.skills.map((name) => ({ name, ...kit.skills[name] })),
-              ...settings.mcp.map(({ server }) => ({ name: server, ...kit.mcp[server] })),
-            ],
-            look: def.look,
-            description: def.description,
-          };
-        })
+        .map((m) => ({ ...m, role: this.defOf(m).role, base: baseKey(m.key), kept: KEPT.includes(m.key) }))
         .sort((a, b) => rank(a.key) - rank(b.key) || a.id - b.id)
     );
   }
@@ -249,4 +151,12 @@ export class Crew {
 
 export function toolsOf(settings: Settings): string[] {
   return settings.tools.flatMap((k) => TOOL_KINDS[k]);
+}
+
+// A shipped workflow with its names on screen; a saved one already carries its own
+function labeled(w: Record<string, unknown>) {
+  const names = WORKFLOW_LABELS[String(w.kind)];
+  if (!names || w.label) return w;
+  const steps = (w.steps as Record<string, unknown>[]).map((st) => ({ ...st, label: names.steps[String(st.id)] }));
+  return { ...w, label: names.label, steps };
 }

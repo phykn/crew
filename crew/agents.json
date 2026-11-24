@@ -1,0 +1,65 @@
+{
+  "interpreter": {
+    "description": "The only member the user talks to: answers questions, turns requests into tasks with the original words attached, relays the conductor's questions, and reports results in plain words.",
+    "tools": ["read", "search"],
+    "write": "none",
+    "skills": ["brief"],
+    "mcp": ["app"]
+  },
+  "conductor": {
+    "description": "One per task: works out the goal and scope, splits the work into ordered steps for the right members, and re-plans when the work fails.",
+    "tools": ["read", "search", "shell"],
+    "write": "output",
+    "skills": ["plan"],
+    "mcp": []
+  },
+  "researcher": {
+    "description": "Finds the material a task needs on the web, in documents, and in the project, checks that each source is official and current, and reports what it found with its sources.",
+    "tools": ["read", "search", "web", "shell"],
+    "write": "output",
+    "skills": ["research"],
+    "mcp": ["browser"]
+  },
+  "coder": {
+    "description": "Writes and changes code within what the plan or request asks, keeps the build working, and hands back the changed files.",
+    "tools": ["read", "search", "write", "edit", "shell"],
+    "write": "project",
+    "skills": ["code", "conventions"],
+    "mcp": []
+  },
+  "writer": {
+    "description": "Writes and changes documents and materials within what the plan or request asks, including PDF and office files, charts, and pictures, and hands back the result.",
+    "tools": ["read", "search", "write", "edit", "shell"],
+    "write": "project",
+    "skills": ["write"],
+    "mcp": []
+  },
+  "reviewer": {
+    "description": "Checks a large task's plan before work starts, then reads a code change for scope, correctness, and the project's structure, and reports each problem in detail. Never edits the code.",
+    "tools": ["read", "search", "shell"],
+    "write": "output",
+    "skills": ["plan-review", "code-review", "conventions", "verdict"],
+    "mcp": []
+  },
+  "proofreader": {
+    "description": "Reads a document against its request for scope, facts, and consistency, and reports each problem in detail. Never edits the document.",
+    "tools": ["read", "search", "web", "shell"],
+    "write": "output",
+    "skills": ["doc-review", "verdict"],
+    "mcp": []
+  },
+  "tester": {
+    "description": "Runs the project's tests after a code change and tries the changed screens for real, and reports each failure in detail. Never edits the code.",
+    "tools": ["read", "search", "shell"],
+    "write": "output",
+    "skills": ["verify", "verdict"],
+    "mcp": ["browser"]
+  },
+  "images": {
+    "description": "Puts screenshots, charts, diagrams, and photos into words for members running on a model that cannot see images.",
+    "tools": ["read", "search", "write", "shell"],
+    "write": "output",
+    "skills": ["image"],
+    "mcp": ["browser"]
+  }
+}

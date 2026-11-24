@@ -7,7 +7,7 @@ const PNG = Buffer.from(
   'base64',
 );
 
-// 비서's first answer waits on a card, so it is still answering while more is typed
+// 통역's first answer waits on a card, so it is still answering while more is typed
 const WAITING = { text: '찾아보겠습니다.', tool: { name: 'WebFetch', input: { url: 'https://example.com' } } };
 
 async function startWaiting(page: Page) {
@@ -21,10 +21,10 @@ async function hold(page: Page, text: string) {
   await page.getByLabel('메시지').press('Control+Enter');
 }
 
-test('Ctrl+Enter holds a message until 비서 is done, and 지금 보내기 sends a held one at once', async () => {
+test('Ctrl+Enter holds a message until 통역 is done, and 지금 보내기 sends a held one at once', async () => {
   const scratch = makeScratch();
   const app = await launchApp(scratch.db, {
-    비서: [WAITING, { text: '둘째에 답합니다.' }, { text: '첫째에 답합니다.' }],
+    통역: [WAITING, { text: '둘째에 답합니다.' }, { text: '첫째에 답합니다.' }],
   });
   const page = await openProject(app, scratch.project);
   await startWaiting(page);
@@ -38,26 +38,26 @@ test('Ctrl+Enter holds a message until 비서 is done, and 지금 보내기 send
   await expect(page.getByLabel('나').filter({ hasText: '둘째' })).toBeVisible();
 
   await page.getByRole('button', { name: '허용' }).click();
-  await expect(page.getByLabel('비서').filter({ hasText: '첫째에 답합니다.' })).toBeVisible();
+  await expect(page.getByLabel('통역').filter({ hasText: '첫째에 답합니다.' })).toBeVisible();
   await expect(held).toHaveCount(0);
   await app.close();
 });
 
-test('stopping 비서 sends the held message at once', async () => {
+test('stopping 통역 sends the held message at once', async () => {
   const scratch = makeScratch();
-  const app = await launchApp(scratch.db, { 비서: [WAITING, { text: '나중 것에 답합니다.' }] });
+  const app = await launchApp(scratch.db, { 통역: [WAITING, { text: '나중 것에 답합니다.' }] });
   const page = await openProject(app, scratch.project);
   await startWaiting(page);
   await hold(page, '나중에');
   await page.getByRole('button', { name: '중지' }).click();
-  await expect(page.getByLabel('비서').filter({ hasText: '나중 것에 답합니다.' })).toBeVisible();
+  await expect(page.getByLabel('통역').filter({ hasText: '나중 것에 답합니다.' })).toBeVisible();
   await expect(page.getByLabel('대기 중')).toHaveCount(0);
   await app.close();
 });
 
 test('a held message waits for the answer still under way after a visit to another session', async () => {
   const scratch = makeScratch();
-  const app = await launchApp(scratch.db, { 비서: [WAITING, { text: '나중 것에 답합니다.' }] });
+  const app = await launchApp(scratch.db, { 통역: [WAITING, { text: '나중 것에 답합니다.' }] });
   const page = await openProject(app, scratch.project);
   await startWaiting(page);
   await hold(page, '나중에');
@@ -70,14 +70,14 @@ test('a held message waits for the answer still under way after a visit to anoth
   await expect(page.locator('.message[data-pending]')).toBeVisible();
   await expect(page.getByLabel('대기 중')).toHaveCount(1);
   await page.getByRole('button', { name: '허용' }).click();
-  await expect(page.getByLabel('비서').filter({ hasText: '나중 것에 답합니다.' })).toBeVisible();
+  await expect(page.getByLabel('통역').filter({ hasText: '나중 것에 답합니다.' })).toBeVisible();
   await expect(page.getByLabel('대기 중')).toHaveCount(0);
   await app.close();
 });
 
 test('a chosen picture can be taken back, goes without words, and shows in the message', async () => {
   const scratch = makeScratch();
-  const app = await launchApp(scratch.db, { 비서: [{ text: '그림을 받았습니다.' }] });
+  const app = await launchApp(scratch.db, { 통역: [{ text: '그림을 받았습니다.' }] });
   const page = await openProject(app, scratch.project);
   const file = { name: 'dot.png', mimeType: 'image/png', buffer: PNG };
   await page.getByLabel('그림 파일').setInputFiles([file, file]);
@@ -96,7 +96,7 @@ test('a chosen picture can be taken back, goes without words, and shows in the m
         .evaluate((i: HTMLImageElement) => i.naturalWidth),
     )
     .toBe(1);
-  await expect(page.getByLabel('비서').filter({ hasText: '그림을 받았습니다.' })).toBeVisible();
+  await expect(page.getByLabel('통역').filter({ hasText: '그림을 받았습니다.' })).toBeVisible();
   await app.close();
 });
 

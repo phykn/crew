@@ -4,7 +4,7 @@ import { OFF_CATALOG, appActions, appServer } from '../../../src/backend/adapter
 import { checkCall } from '../../../src/backend/domain/policy';
 import { never, openChat, reply, toolText, type Turn } from '../../support';
 
-test('비서 finds the stopped test task the user picks, opens its log, resumes only that one, and renames a member, all without another run', async () => {
+test('통역 finds the stopped test task the user picks, opens its log, resumes only that one, and renames a member, all without another run', async () => {
   const navigated: unknown[] = [];
   const tool = (name: string, a: Record<string, unknown>) => toolText(fake, name, a);
   // The scripted model acts on what the tools answer, as a real one would
@@ -21,7 +21,7 @@ test('비서 finds the stopped test task the user picks, opens its log, resumes 
     return reply(`${done} ${named}`, 's')(p, o);
   };
   const { store, fake, chat, p, s, project } = openChat(
-    { 비서: [finds, resumes], 시험: [never] },
+    { 통역: [finds, resumes], 시험: [never] },
     { emit: (ch, payload) => ch === 'navigate' && navigated.push(payload) },
   );
   const research = chat.workflows.shipped.find((w) => w.kind === 'research')!;
@@ -49,7 +49,7 @@ test('비서 finds the stopped test task the user picks, opens its log, resumes 
   expect(stopped.map((t) => store.readTask(t.id).status)).toEqual(['stopped', 'running']);
   expect(store.readMember(p.id, 'tester').nickname).toBe('새별');
   // The only other run is the resumed task's own step
-  await vi.waitFor(() => expect(fake.calls.map((c) => c.role)).toEqual(['비서', '비서', '시험']));
+  await vi.waitFor(() => expect(fake.calls.map((c) => c.role)).toEqual(['통역', '통역', '시험']));
 
   // Another project's task is not there for this session, and nothing opens
   const other = store.createSession(store.addProject(`${project}-other`).id);
@@ -60,8 +60,8 @@ test('비서 finds the stopped test task the user picks, opens its log, resumes 
   // A read goes through app_read only, so a read-only grant cannot be used to act
   expect(await tool('app_act', { action: 'help', args: {} })).toContain('app_read');
 
-  // With read access only, resuming is not 비서's to do
-  const secretary = store.readMember(p.id, 'orchestrator');
+  // With read access only, resuming is not 통역's to do
+  const secretary = store.readMember(p.id, 'interpreter');
   chat.members.setPermissions(secretary.id, { mcp: [{ server: 'app', access: 'read' }] });
   const policy = chat.runs.policy(store.readMemberById(secretary.id), p, `session-${s.id}`);
   expect(checkCall(policy, 'mcp__app__app_act', { action: 'tasks.resume' }).kind).not.toBe('allow');
@@ -71,18 +71,17 @@ test('비서 finds the stopped test task the user picks, opens its log, resumes 
 test('a temp whose work is done leaves without a card, and a regular leaves or comes back only once allowed', async () => {
   const { store, fake, chat, p, s } = openChat();
   appServer(fake.sdk, chat, s.id);
-  const definition = fs.readFileSync('crew/agents/researcher.md', 'utf-8').replace('role: 조사', 'role: 정리');
-  const temp = store.addMember(p.id, { key: 'sorter', nickname: '알바', model: 'haiku', definition, temp: true });
+  const temp = store.addMember(p.id, { key: 'researcher-1-research', nickname: '누리2', model: 'haiku', temp: true });
   const hire = (role: string, hired: boolean) =>
     toolText(fake, 'app_act', { action: 'crew.hire', args: { role, hired } });
   const card = () => store.listMessages(s.id).at(-1)?.question;
 
-  expect(await hire('정리', false)).toContain('퇴장');
+  expect(await hire('researcher-1-research', false)).toContain('퇴장');
   expect(store.readMemberById(temp.id).status).toBe('unhired');
   expect(card()).toBeUndefined();
 
-  // 비서 cannot be let go, so that is refused without asking
-  expect(await hire('비서', false)).toContain('내보낼 수 없습니다');
+  // 통역 cannot be let go, so that is refused without asking
+  expect(await hire('통역', false)).toContain('내보낼 수 없습니다');
   expect(card()).toBeUndefined();
 
   // 시험 ends in a consonant, so the card shows whether its particle follows the role and not the bracket

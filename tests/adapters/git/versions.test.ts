@@ -17,7 +17,7 @@ const git = (dir: string, ...args: string[]) =>
     },
   }).trim();
 
-// 개발 writes search.js through the guard; the user edits notes.md in the meantime
+// 코드 작성 writes search.js through the guard; the user edits notes.md in the meantime
 const crew = (project: () => string) => {
   const edit: Turn = async (prompt, options) => {
     const file = path.join(project(), 'search.js');
@@ -29,7 +29,7 @@ const crew = (project: () => string) => {
     return handback('c', { summary: '수정' })(prompt, options);
   };
   const pass = handback('x', { summary: '통과', verdict: 'pass', checks: ['ok'] });
-  return { 비서: [reply('보고')], 개발: [edit], 리뷰: [pass], 시험: [pass], 표준: [pass] };
+  return { 통역: [reply('보고')], '코드 작성': [edit], '코드 검토': [pass], 시험: [pass] };
 };
 
 test(
@@ -73,7 +73,7 @@ test(
     // The user's own edit is not the task's, so it has no diff to offer
     expect(await chat.tasks.change(task.id, versions[0].id, 'notes.md')).toBeNull();
     // The log line of the step that made it names the version, which is how the window offers the diff
-    const made = store.listEvents(s.id).find((e) => e.text.startsWith('개발: 개발 완료'))!;
+    const made = store.listEvents(s.id).find((e) => e.text.startsWith('코드 작성: 코드 작성 완료'))!;
     expect(JSON.parse(made.detail!).version).toBe(versions[0].id);
 
     expect(state()).toEqual(before);
@@ -95,6 +95,6 @@ test('outside a git repository the task runs as before and offers no diff', asyn
   await vi.waitFor(() => expect(store.readTask(task.id).status).toBe('done'), { timeout: 10_000 });
   expect(store.latestVersion(task.id)!.files).toEqual(['search.js']);
   expect(await chat.tasks.versions(task.id)).toEqual([]);
-  const made = store.listEvents(s.id).find((e) => e.text.startsWith('개발: 개발 완료'))!;
+  const made = store.listEvents(s.id).find((e) => e.text.startsWith('코드 작성: 코드 작성 완료'))!;
   expect(JSON.parse(made.detail!).version).toBeUndefined();
 });

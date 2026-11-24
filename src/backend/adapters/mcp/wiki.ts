@@ -4,7 +4,7 @@ import { text } from './text';
 import type { Chat } from '../../app/chat';
 import type { Member } from '../../domain/records';
 
-// Reading and writing the project wiki and one's own memory, for 비서 and members alike
+// Reading and writing the project wiki and one's own memory, for 통역 and members alike
 export function wikiTools(sdk: Sdk, chat: Chat, member: Member, sessionId: number, taskId: number | null) {
   const { store, wiki } = chat;
   const projectId = store.projectOf(sessionId).id;

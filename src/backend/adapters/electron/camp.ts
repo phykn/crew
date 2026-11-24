@@ -18,15 +18,15 @@ export function campState(chat: Chat, sessionId: number) {
         working[key] = `${t.workflow.steps.find((s) => s.id === r.stepId)?.label ?? '작업'} 중`;
     }
   }
-  // 비서 waits by the fire with a ? while a card waits for the user
-  if (store.listMessages(sessionId).some((m) => m.question && m.question.answer === null)) working.orchestrator ??= '?';
+  // 통역 waits by the fire with a ? while a card waits for the user
+  if (store.listMessages(sessionId).some((m) => m.question && m.question.answer === null)) working.interpreter ??= '?';
   // Scenes are read from what each line records, never from its wording: a status, a handback's verdict, a request's addressee
   const log: CampLine[] = [];
   for (const e of store.listEvents(sessionId)) {
     const who = keyOf(e.memberId);
     if (e.kind === 'status') {
-      if (e.detail === 'done') log.push({ id: e.id, who: 'orchestrator', text: '완료 보고', kind: 'work' });
-      if (e.detail === 'failed') log.push({ id: e.id, who: 'orchestrator', text: '업무 실패', kind: 'rework' });
+      if (e.detail === 'done') log.push({ id: e.id, who: 'interpreter', text: '완료 보고', kind: 'work' });
+      if (e.detail === 'failed') log.push({ id: e.id, who: 'interpreter', text: '업무 실패', kind: 'rework' });
       continue;
     }
     if (!who || !e.detail) continue;

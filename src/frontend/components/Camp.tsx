@@ -5,6 +5,7 @@ import 'pixi.js/unsafe-eval';
 import type { CrewMember } from '../../backend/domain/crew';
 import type { Session } from '../../backend/domain/records';
 import { call, follow } from '../api';
+import { LOOKS } from '../crew';
 import { CAMP, iso } from '../camp/projection.js';
 import { createWalkers } from '../camp/walkers.js';
 import { createScene } from '../camp/stage/scene';
@@ -58,8 +59,7 @@ export function Camp({
         .map((m) => ({
           team: m.key,
           name: m.nickname,
-          color: m.color,
-          look: m.look,
+          ...LOOKS[m.base],
           state: working[m.key] ? 'working' : 'idle',
         })),
     );

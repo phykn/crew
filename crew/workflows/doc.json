@@ -1,0 +1,19 @@
+{
+  "kind": "doc",
+  "use": "Write or change a document or material, such as a report, guide, slides, or spreadsheet, then have it reviewed.",
+  "steps": [
+    {
+      "id": "write",
+      "role": "writer",
+      "does": "Write or change the document as the request says."
+    },
+    {
+      "id": "review",
+      "role": "proofreader",
+      "after": ["write"],
+      "verdict": true,
+      "rework": "write",
+      "does": "Review its scope, facts, and consistency with your doc-review skill."
+    }
+  ]
+}

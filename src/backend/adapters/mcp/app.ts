@@ -7,6 +7,10 @@ import { KEPT } from '../../domain/crew';
 import { ALLOW, REFUSE } from '../../domain/answers';
 import { josa, particle } from '../../../korean';
 import { MODE_LABELS, MODELS, MODES } from '../../../shared';
+import appHelp from './help/app.md?raw';
+import crewHelp from './help/crew.md?raw';
+import tasksHelp from './help/tasks.md?raw';
+import workflowHelp from './help/workflow.md?raw';
 
 type Action = {
   id: string;
@@ -29,31 +33,31 @@ const action = <S extends z.ZodObject>(
   },
 ) => a as unknown as Action;
 
-// Window calls 비서 does not get, each with why
+// Window calls 통역 does not get, each with why
 export const OFF_CATALOG: Record<string, string> = {
-  'projects.list': '비서 sees only its own project',
+  'projects.list': '통역 sees only its own project',
   'projects.open': 'opening a folder needs the native dialog',
   'projects.impact': 'removing the project the crew works in is for the user',
   'projects.remove': 'removing the project the crew works in is for the user',
   'sessions.create': 'a fresh session is the user’s to start, with /clear or 새 세션',
   'last.read': 'window state, not an action',
-  'tasks.versions': 'feeds the file links under a report; 비서 reads a task’s files from its log',
+  'tasks.versions': 'feeds the file links under a report; 통역 reads a task’s files from its log',
   'last.write': 'window state, not an action',
-  'messages.list': '비서 is the conversation itself',
-  'messages.busy': '비서 is the conversation itself',
-  'messages.send': '비서 is the conversation itself',
-  'messages.stop': '비서 is the conversation itself',
-  'members.reset': 'a reset also drops permission changes, which are the tools member’s to make',
-  'members.setPermissions': 'the tools member changes permissions, skills, and MCP servers, through ask_tools',
+  'messages.list': '통역 is the conversation itself',
+  'messages.busy': '통역 is the conversation itself',
+  'messages.send': '통역 is the conversation itself',
+  'messages.stop': '통역 is the conversation itself',
+  'members.reset': 'a reset also drops permission changes, which only the user makes in the window',
+  'members.setPermissions': 'only the user changes permissions, skills, and MCP servers, in the window',
   'questions.answer': 'only the user answers cards',
   'camp.state': 'the camp is drawn from the record, not acted on',
-  'workflows.save': '비서 saves workflows with change_workflow, filing the reason',
+  'workflows.save': '통역 saves workflows with change_workflow, filing the reason',
   'connections.list': 'keys and logins are the user’s to manage in the 연결 tab',
   'connections.saveKey': 'keys and logins are the user’s to manage in the 연결 tab',
   'connections.removeKey': 'keys and logins are the user’s to manage in the 연결 tab',
   'connections.check': 'keys and logins are the user’s to manage in the 연결 tab',
   'connections.use': 'which service the crew runs on, and so what it costs, is the user’s to pick in the 연결 tab',
-  'changes.file': 'a diff opens from a file the user clicks in the log; 비서 reads files itself',
+  'changes.file': 'a diff opens from a file the user clicks in the log; 통역 reads files itself',
 };
 
 // Every action the user can take in the window, within this session's project
@@ -107,7 +111,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
   };
   const go = (view: Record<string, unknown>) => chat.emit('navigate', { sessionId, ...view });
   const kinds = chat.workflows.shipped.map((w) => w.kind) as [string, ...string[]];
-  const secretary = { memberId: members.find(projectId, 'orchestrator')?.id ?? null, name: '비서' };
+  const secretary = { memberId: members.find(projectId, 'interpreter')?.id ?? null, name: '통역' };
 
   const actions: Action[] = [
     action({
@@ -116,7 +120,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       kind: 'read',
       args: z.object({}),
       ui: [],
-      run: () => crew.help(),
+      run: () => [appHelp, crewHelp, tasksHelp, workflowHelp].join('\n\n'),
     }),
     action({
       id: 'tasks.find',
@@ -180,7 +184,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       ui: ['members.list'],
       run: () =>
         crew
-          .describe(store.listMembers(projectId), members.kit(projectId))
+          .describe(store.listMembers(projectId))
           .map((m) => ({ key: m.key, role: m.role, nickname: m.nickname, model: m.model, status: m.status })),
     }),
     action({

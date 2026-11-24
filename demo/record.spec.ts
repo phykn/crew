@@ -13,28 +13,33 @@ const note = (title: string, body: string, files: string[] = []) => ({
 });
 // Each step takes a few seconds, long enough for the camp to show who is at work
 const SCRIPT = {
-  비서: [
+  통역: [
     {
       call: {
         name: 'start_task',
-        input: { kind: 'code', title: '비밀번호 찾기', request: '로그인 화면에 비밀번호 찾기 링크와 재설정 메일 추가' },
+        input: {
+          original: '비밀번호 찾기 넣어줘',
+          kind: 'code',
+          title: '비밀번호 찾기',
+          request: '로그인 화면에 비밀번호 찾기 링크와 재설정 메일 추가',
+        },
       },
-      text: '업무를 열었습니다. 기획부터 시작합니다.',
+      text: '업무를 열었습니다. 지휘부터 시작합니다.',
     },
-    { text: '비밀번호 찾기를 추가했습니다. 계획 리뷰, 코드 리뷰, 시험, 표준 점검을 모두 통과했습니다.' },
+    { text: '비밀번호 찾기를 추가했습니다. 계획 코드 검토, 코드 검토, 시험, 표준 점검을 모두 통과했습니다.' },
   ],
-  기획: [
+  지휘: [
     {
       ...note('로그인 흐름', '로그인 화면에서 [[비밀번호 재설정]]으로 갑니다.', ['login.html']),
       wait: 3500,
       ...hb('계획 작성'),
     },
   ],
-  리뷰: [
+  '코드 검토': [
     { wait: 2500, ...pass('계획 통과') },
     { wait: 3500, ...pass('코드 통과') },
   ],
-  개발: [
+  '코드 작성': [
     {
       ...note('비밀번호 재설정', '재설정 링크는 [[메일 발송]]으로 보내고 30분 뒤 만료됩니다.', ['reset.js']),
       write: { file: 'reset.js', text: 'export function sendReset(email) {}\n' },
@@ -86,7 +91,7 @@ test('record the demo', async () => {
   mark('done');
   await page.waitForTimeout(2000);
   for (const [tab, then] of [
-    ['로그', () => page.getByRole('button', { name: /개발 완료/ }).click()],
+    ['로그', () => page.getByRole('button', { name: /코드 작성 완료/ }).click()],
     ['메모리', () => page.getByRole('button', { name: '그래프' }).click()],
     ['워크플로우', async () => {}],
     ['연결', async () => {}],

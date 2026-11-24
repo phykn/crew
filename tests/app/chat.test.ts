@@ -1,10 +1,10 @@
 import { expect, test, vi } from 'vitest';
 import { broken, handback, never, openChat, recordedRuns, reply, type Turn } from '../support';
 
-test('비서 answers in its own Claude session and runs on the model chosen last', async () => {
+test('통역 answers in its own Claude session and runs on the model chosen last', async () => {
   const streamed: string[] = [];
   const { store, fake, chat, p, s } = openChat(
-    { 비서: [reply('파일은 README.md 하나입니다.'), reply('README.md라고 했습니다.')] },
+    { 통역: [reply('파일은 README.md 하나입니다.'), reply('README.md라고 했습니다.')] },
     {
       emit: (channel, payload) => {
         const delta = (payload as { delta?: string }).delta;
@@ -14,7 +14,7 @@ test('비서 answers in its own Claude session and runs on the model chosen last
   );
 
   await chat.send(s.id, '이 폴더에 무슨 파일 있어?');
-  store.updateMember(store.readMember(p.id, 'orchestrator').id, { model: 'haiku' });
+  store.updateMember(store.readMember(p.id, 'interpreter').id, { model: 'haiku' });
   await chat.send(s.id, '방금 뭐라고 했지?');
 
   expect(store.listMessages(s.id).map((m) => [m.author, m.text])).toEqual([
@@ -34,8 +34,8 @@ test('비서 answers in its own Claude session and runs on the model chosen last
   ]);
 });
 
-test('pictures go to 비서 before the words, stay with the message, and may go without words, which name no session', async () => {
-  const { store, fake, chat, s } = openChat({ 비서: [reply('고양이네요.'), reply('같은 고양이네요.')] });
+test('pictures go to 통역 before the words, stay with the message, and may go without words, which name no session', async () => {
+  const { store, fake, chat, s } = openChat({ 통역: [reply('고양이네요.'), reply('같은 고양이네요.')] });
   const png = { mediaType: 'image/png' as const, data: 'aGk=' };
 
   await chat.send(s.id, '', [png]);
@@ -53,10 +53,10 @@ test('pictures go to 비서 before the words, stay with the message, and may go 
   expect(store.listSessions(s.projectId)[0].title).toBe('이거 뭐야?');
 });
 
-test("비서's replies and cards reach the notification feed, so a user in another window hears of them", async () => {
+test("통역's replies and cards reach the notification feed, so a user in another window hears of them", async () => {
   const notes: unknown[] = [];
   const { chat, s } = openChat(
-    { 비서: [reply('끝났습니다.')] },
+    { 통역: [reply('끝났습니다.')] },
     { emit: (channel, payload) => channel === 'notify' && notes.push(payload) },
   );
   await chat.send(s.id, '어떻게 됐어?');
@@ -67,12 +67,12 @@ test("비서's replies and cards reach the notification feed, so a user in anoth
   ]);
 });
 
-test('a message said while 비서 is answering keeps the chat showing 비서 at work after the first reply', async () => {
+test('a message said while 통역 is answering keeps the chat showing 통역 at work after the first reply', async () => {
   let release = () => {};
   const held: Turn = (p, o) => new Promise((r) => (release = () => r(reply('첫 답', 's')(p, o) as never)));
   const streams: { delta?: string; done?: boolean }[] = [];
   const { store, fake, chat, s } = openChat(
-    { 비서: [held, reply('둘째 답', 's')] },
+    { 통역: [held, reply('둘째 답', 's')] },
     { emit: (channel, payload) => channel === 'stream' && streams.push(payload as never) },
   );
   const first = chat.send(s.id, '하나');
@@ -86,8 +86,8 @@ test('a message said while 비서 is answering keeps the chat showing 비서 at 
   expect(store.listMessages(s.id).map((m) => m.text)).toEqual(['하나', '둘', '첫 답', '둘째 답']);
 });
 
-test('stopping 비서 mid-answer ends that run, closes the card it left open, and says so in the chat', async () => {
-  const { store, chat, s } = openChat({ 비서: [never] });
+test('stopping 통역 mid-answer ends that run, closes the card it left open, and says so in the chat', async () => {
+  const { store, chat, s } = openChat({ 통역: [never] });
   const answering = chat.send(s.id, '길게 설명해줘');
   await vi.waitFor(() => expect(chat.runs.live(s.id)).toBeDefined());
   const picked = chat.questions.choose(s.id, '어느 업무를 다시 할까요?', ['#1', '#2']);
@@ -102,13 +102,13 @@ test('stopping 비서 mid-answer ends that run, closes the card it left open, an
   ).toEqual(['취소', '답변을 멈췄습니다.']);
 });
 
-test('an error before 비서 can run is said in the chat instead of leaving 비서 answering', async () => {
+test('an error before 통역 can run is said in the chat instead of leaving 통역 answering', async () => {
   const { store, chat, s } = openChat({}, { sdk: broken });
   await chat.send(s.id, '안녕');
   expect(store.listMessages(s.id).at(-1)!.text).toBe('답하는 중 오류가 났습니다: SDK를 불러오지 못함');
 });
 
-test('a new session (/clear) starts an empty 비서 on the same crew while the old session works on; deleting counts what goes', async () => {
+test('a new session (/clear) starts an empty 통역 on the same crew while the old session works on; deleting counts what goes', async () => {
   let release = () => {};
   const held: Turn = (p, o) =>
     new Promise((r) => (release = () => r(handback('r', { summary: '조사 끝' })(p, o) as never)));
@@ -119,7 +119,7 @@ test('a new session (/clear) starts an empty 비서 on the same crew while the o
     p,
     s: old,
   } = openChat(
-    { 조사: [held], 비서: [reply('새 세션입니다', 'claude-new'), reply('보고', 'claude-old')] },
+    { 조사: [held], 통역: [reply('새 세션입니다', 'claude-new'), reply('보고', 'claude-old')] },
     { files: { 'a.md': 'x' } },
   );
   store.updateMember(store.readMember(p.id, 'researcher').id, { model: 'haiku' });
@@ -146,7 +146,7 @@ test('a new session (/clear) starts an empty 비서 on the same crew while the o
   expect(store.listProjects()).toEqual([]);
 });
 
-test('each change to the record is announced by the part that made it, whether the window or 비서 asked', () => {
+test('each change to the record is announced by the part that made it, whether the window or 통역 asked', () => {
   const changed: { topic: string; sessionId?: number }[] = [];
   const { store, chat, p, s } = openChat(
     {},
@@ -170,8 +170,8 @@ test('each change to the record is announced by the part that made it, whether t
   expect(said(() => chat.removeProject(p.id))).toEqual(['sessions', 'projects']);
 });
 
-test('a session deleted while 비서 answers takes no failure message, and the send settles quietly', async () => {
-  const { store, chat, s } = openChat({ 비서: [never] });
+test('a session deleted while 통역 answers takes no failure message, and the send settles quietly', async () => {
+  const { store, chat, s } = openChat({ 통역: [never] });
   const sent = chat.send(s.id, '안녕');
   await vi.waitFor(() => expect(chat.runs.live(s.id)).toBeTruthy());
   chat.deleteSession(s.id);

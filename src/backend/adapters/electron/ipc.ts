@@ -56,7 +56,7 @@ export function createHandlers(chat: Chat, win: () => BrowserWindow | null) {
       store.writeSetting('last', JSON.stringify(a)),
     ),
     'messages.list': handle(z.object({ sessionId: id }), (a) => store.listMessages(a.sessionId)),
-    // A window coming back to a session learns whether 비서 is still answering there
+    // A window coming back to a session learns whether 통역 is still answering there
     'messages.busy': handle(z.object({ sessionId: id }), (a) => !!chat.runs.live(a.sessionId)),
     // The reply arrives through the change feed; the call only hands the message over
     // Words, pictures, or both; Claude takes a picture up to about 5MB
@@ -75,7 +75,7 @@ export function createHandlers(chat: Chat, win: () => BrowserWindow | null) {
         void chat.send(a.sessionId, a.text, a.images);
       },
     ),
-    // Stops only 비서's answer; tasks it started go on and have their own stop
+    // Stops only 통역's answer; tasks it started go on and have their own stop
     'messages.stop': handle(z.object({ sessionId: id }), (a) => {
       void chat.runs.live(a.sessionId)?.stop();
     }),
@@ -123,9 +123,7 @@ export function createHandlers(chat: Chat, win: () => BrowserWindow | null) {
     'questions.answer': handle(z.object({ id, choice: z.string().min(1) }), (a) =>
       chat.questions.answer(a.id, a.choice),
     ),
-    'members.list': handle(z.object({ projectId: id }), (a) =>
-      crew.describe(store.listMembers(a.projectId), members.kit(a.projectId)),
-    ),
+    'members.list': handle(z.object({ projectId: id }), (a) => crew.describe(store.listMembers(a.projectId))),
     'members.update': handle(
       z.object({
         id,
@@ -145,8 +143,8 @@ export function createHandlers(chat: Chat, win: () => BrowserWindow | null) {
     'members.reset': handle(z.object({ id }), (a) => members.reset(a.id)),
     'members.permissions': handle(z.object({ id }), (a) => {
       const member = store.readMemberById(a.id);
-      const { skills, mcp } = members.kit(member.projectId);
-      return { settings: members.settings(member), kit: { skills, mcp }, changes: store.listPermissionChanges(a.id) };
+      const kit = { skills: Object.keys(crew.skillTexts), mcp: crew.serverNames };
+      return { settings: members.settings(member), kit, changes: store.listPermissionChanges(a.id) };
     }),
     'members.setPermissions': handle(z.object({ id, config: Config }), (a) => members.setPermissions(a.id, a.config)),
     'members.definition': handle(z.object({ id }), (a) => {

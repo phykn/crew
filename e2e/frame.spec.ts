@@ -35,7 +35,7 @@ test("the message box's words span its width above one row of buttons, a mouse-p
   const app = await launchApp(scratch.db);
   const page = await openProject(app, scratch.project);
   const box = async (sel: string) => (await page.locator(sel).boundingBox())!;
-  await expect(page.getByLabel('메시지')).toHaveAttribute('placeholder', '비서에게 할 일을 말하세요');
+  await expect(page.getByLabel('메시지')).toHaveAttribute('placeholder', '통역에게 할 일을 말하세요');
   // The words run from the attach button's left edge to the send button's right edge, and the buttons sit below them
   const [text, attach, send] = [
     await box('.composer-text'),

@@ -4,5 +4,20 @@
       "command": "npx",
       "args": ["@playwright/mcp@0.0.85"]
     }
+  },
+  "readTools": {
+    "browser": [
+      "browser_navigate",
+      "browser_navigate_back",
+      "browser_snapshot",
+      "browser_take_screenshot",
+      "browser_console_messages",
+      "browser_network_requests",
+      "browser_tabs",
+      "browser_wait_for",
+      "browser_resize",
+      "browser_close"
+    ],
+    "app": ["app_find_actions", "app_read"]
   }
 }

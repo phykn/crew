@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { launchApp, makeScratch, openProject } from './launch';
 
-const SCRIPT = { 비서: [{ text: '안녕하세요' }, { text: '새 세션입니다' }] };
+const SCRIPT = { 통역: [{ text: '안녕하세요' }, { text: '새 세션입니다' }] };
 
 test('a slash lists the commands, Tab completes one, /clear opens a new session, and deleting a session shows what goes with it', async () => {
   const scratch = makeScratch();
@@ -27,7 +27,7 @@ test('a slash lists the commands, Tab completes one, /clear opens a new session,
   await expect(page.getByText('안녕하세요')).toHaveCount(0);
 
   await page.getByRole('button', { name: '탐색기' }).click();
-  await expect(page.getByLabel('프로젝트 목록')).toContainText('비서');
+  await expect(page.getByLabel('프로젝트 목록')).toContainText('통역');
   await page.getByRole('button', { name: '안녕 삭제' }).click();
   // The session named 안녕 holds two messages, and no task or log line
   await expect(page.getByLabel('삭제 확인')).toContainText('업무 0건, 로그 0건, 메시지 2건');
@@ -69,15 +69,18 @@ const hb = (summary: string, more: Record<string, unknown> = {}) => ({
 });
 const pass = hb('통과', { verdict: 'pass', checks: ['ok'] });
 const TASK = {
-  비서: [
+  통역: [
     {
-      call: { name: 'start_task', input: { kind: 'code', title: '검색 개선', request: 'r', size: 'small' } },
+      call: {
+        name: 'start_task',
+        input: { original: '원문', kind: 'code', title: '검색 개선', request: 'r', size: 'small' },
+      },
       text: '시작했습니다.',
     },
     { text: '끝났습니다.' },
   ],
-  개발: [hb('수정')],
-  리뷰: [pass],
+  '코드 작성': [hb('수정')],
+  '코드 검토': [pass],
   시험: [pass],
   표준: [pass],
 };
@@ -90,7 +93,7 @@ test("the explorer lists a session's members in columns: every role, nickname, a
   await page.getByLabel('메시지').press('Enter');
   await expect(page.getByText('끝났습니다.')).toBeVisible({ timeout: 15_000 });
   await page.getByRole('button', { name: '탐색기' }).click();
-  await expect(page.locator('.tree-agent')).toHaveCount(5);
+  await expect(page.locator('.tree-agent')).toHaveCount(4);
   const offsets = await page.locator('.tree-agent').evaluateAll((cells) =>
     cells.map((c) => {
       const left = c.getBoundingClientRect().left;

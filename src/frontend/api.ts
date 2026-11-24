@@ -49,7 +49,7 @@ export function follow<T>(
   };
 }
 
-// 비서 opening a screen, the way a click would
+// 통역 opening a screen, the way a click would
 type Navigate = { sessionId: number; view: 'log' | 'wiki' | 'workflow'; taskId?: number; kind?: string };
 
 export function onNavigate(fn: (ev: Navigate) => void) {

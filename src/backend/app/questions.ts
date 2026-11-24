@@ -2,7 +2,7 @@ import type { Question } from '../domain/records';
 import type { ConversationRecords, Feed } from './ports';
 import { CANCEL } from '../domain/answers';
 
-// Questions 비서 puts to the user as answer cards under its message; a waiting run resumes when the user picks
+// Questions 통역 puts to the user as answer cards under its message; a waiting run resumes when the user picks
 export class Questions {
   waiters = new Map<number, (answer: string) => void>();
 
@@ -33,7 +33,7 @@ export class Questions {
     this.settle(id, q.sessionId, choice);
   }
 
-  // A card whose asker is gone, such as 비서's stopped answer: closed, so the chat no longer waits on it
+  // A card whose asker is gone, such as 통역's stopped answer: closed, so the chat no longer waits on it
   cancel(id: number) {
     this.settle(id, this.store.readQuestion(id).sessionId, CANCEL);
   }

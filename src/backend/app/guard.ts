@@ -19,7 +19,7 @@ type GuardDeps = {
   reserve: (tool: string, input: Record<string, unknown>) => Promise<string | null>;
 };
 
-// One member's guard inside one task: denials go to the log, approvals are asked in 비서's chat and kept for the task
+// One member's guard inside one task: denials go to the log, approvals are asked in 통역's chat and kept for the task
 export function guardMember({ store, questions, policy, sessionId, taskId, member, reserve }: GuardDeps): ToolGate {
   const record = (kind: 'denied' | 'approved' | 'refused', text: string) =>
     store.addEvent({ sessionId, taskId, memberId: member.id, kind, text, detail: null });

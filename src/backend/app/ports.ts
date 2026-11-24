@@ -14,7 +14,6 @@ import type {
   RunOutput,
   RunResult,
   Session,
-  SkillRow,
   Snapshot,
   StepRun,
   Task,
@@ -63,18 +62,11 @@ export interface MemberRecords {
   listMembers(projectId: number): Member[];
   readMember(projectId: number, key: string): Member;
   readMemberById(id: number): Member;
-  addMember(
-    projectId: number,
-    m: { key: string; nickname: string; model: string; definition: string; temp: boolean },
-  ): Member;
+  addMember(projectId: number, m: { key: string; nickname: string; model: string; temp: boolean }): Member;
   writeLeaving(id: number, leaving: boolean): void;
   updateMember(id: number, change: { nickname?: string; model?: string; status?: Member['status'] }): void;
   writeConfig(id: number, config: Record<string, unknown>, change: string): void;
   listPermissionChanges(memberId: number): { change: string; at: string }[];
-  listSkills(projectId: number): SkillRow[];
-  writeSkill(projectId: number, s: Omit<SkillRow, 'deleted'>): void;
-  clearSkills(projectId: number, name?: string): void;
-  removeSkill(projectId: number, name: string): void;
 }
 
 export interface ConversationRecords {
@@ -234,7 +226,6 @@ export interface Files {
   realPath(p: string): string;
   ensureDir(dir: string): string;
   // Moves every file under from into to, keeping their places; returns the moved files and those it replaced
-  moveAll(from: string, to: string): { moved: string[]; replaced: string[] };
 }
 
 // A task's starting point and each version kept as commits, where the folder is a git repository
@@ -247,7 +238,7 @@ export interface Versions {
   forget(dir: string, taskIds: number[]): Promise<void>;
 }
 
-// The tool servers that reach back into the app: 비서's, a member's inside a task, and the app's own
+// The tool servers that reach back into the app: 통역's, a member's inside a task, and the app's own
 export interface ToolServers {
   secretary(sessionId: number): Promise<ToolServer>;
   member(task: Task, step: Step, member: Member): Promise<ToolServer>;

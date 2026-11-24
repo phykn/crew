@@ -54,7 +54,7 @@ export function App() {
     setTab('log');
   }
 
-  // 비서 moves the window the way the user would by clicking
+  // 통역 moves the window the way the user would by clicking
   useEffect(
     () =>
       onNavigate((ev) => {

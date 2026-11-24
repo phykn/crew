@@ -73,7 +73,7 @@ test('real Claude: what the crew writes to the wiki and memory, and whether a la
   const report: Record<string, unknown> = {};
   const last = (sessionId: number) => store.listMessages(sessionId).at(-1)!.text;
 
-  // 1. A fact told to 비서 to keep, asked back in a fresh session
+  // 1. A fact told to 통역 to keep, asked back in a fresh session
   const a = store.createSession(p.id);
   await chat.send(a.id, '참고로 이 프로젝트 담당자인 내가 좋아하는 색은 초록이야. 다음 대화에서도 쓰게 기억해 둬.');
   report.rememberTurn = { tools: since(), reply: last(a.id) };

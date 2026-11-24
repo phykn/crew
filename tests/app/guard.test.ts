@@ -1,15 +1,13 @@
 import path from 'node:path';
 import { expect, test } from 'vitest';
 import { checkCall } from '../../src/backend/domain/policy';
-import { DiskFiles } from '../../src/backend/adapters/files/files';
 
-const realPath = (p: string) => new DiskFiles().realPath(p);
 import { openChat } from '../support';
 
 const call = (tool: string, input: Record<string, unknown>) => [tool, input] as const;
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
-test('리뷰 cannot write the project or push, and each refusal is logged', async () => {
+test('코드 검토 cannot write the project or push, and each refusal is logged', async () => {
   const { store, chat, p, s } = openChat();
   const reviewer = store.readMember(p.id, 'reviewer');
   const guard = chat.runs.guard(reviewer, p, s.id, 7);
@@ -34,8 +32,8 @@ test('리뷰 cannot write the project or push, and each refusal is logged', asyn
 
 test('a tool outside the role becomes an answer card, and the approval holds only in that task', async () => {
   const { store, chat, p, s } = openChat();
-  const researcher = store.readMember(p.id, 'researcher');
-  const inTask = chat.runs.guard(researcher, p, s.id, 1);
+  const interpreter = store.readMember(p.id, 'interpreter');
+  const inTask = chat.runs.guard(interpreter, p, s.id, 1);
 
   const pending = inTask(...call('Bash', { command: 'ls' }));
   await tick();
@@ -43,13 +41,13 @@ test('a tool outside the role becomes an answer card, and the approval holds onl
   expect(card.question?.kind).toBe('approval');
   expect(card.question?.options).toEqual(['거절', '허용']);
   // The member is named once, then what it lacks
-  expect(card.question?.prompt).toBe('조사 누리: Bash 도구가 역할에 없습니다.\nls');
+  expect(card.question?.prompt).toBe('통역 모아: Bash 도구가 역할에 없습니다.\nls');
   chat.questions.answer(card.question!.id, '허용');
   expect((await pending)!.behavior).toBe('allow');
 
   // The same task asks no more; another task asks again
   expect((await inTask(...call('Bash', { command: 'ls -a' })))!.behavior).toBe('allow');
-  const other = chat.runs.guard(researcher, p, s.id, 2)(...call('Bash', { command: 'ls' }));
+  const other = chat.runs.guard(interpreter, p, s.id, 2)(...call('Bash', { command: 'ls' }));
   await tick();
   const second = store.listMessages(s.id).at(-1)!;
   expect(second.question!.id).not.toBe(card.question!.id);
@@ -57,7 +55,7 @@ test('a tool outside the role becomes an answer card, and the approval holds onl
   expect((await other)!.behavior).toBe('deny');
 });
 
-test('on one MCP server 개발 may use every tool and 리뷰 only the looking ones', async () => {
+test('on one MCP server 코드 작성 may use every tool and 코드 검토 only the looking ones', async () => {
   const { store, chat, p, s } = openChat();
   const coder = store.readMember(p.id, 'coder');
   const reviewer = store.readMember(p.id, 'reviewer');
@@ -97,7 +95,7 @@ test('a permission revoked while a call waits blocks that call and the next call
   chat.questions.answer(store.listMessages(s.id).at(-1)!.question!.id, '허용');
   expect((await waiting)!.behavior).toBe('deny');
 
-  // 개발 had the shell approved in this task once; after the shell is revoked from its tools, the approval no longer holds
+  // 코드 작성 had the shell approved in this task once; after the shell is revoked from its tools, the approval no longer holds
   const coder = store.readMember(p.id, 'coder');
   chat.members.setPermissions(coder.id, { tools: ['read', 'search', 'write', 'edit'] });
   const shell = chat.runs.guard(coder, p, s.id, task.id)(...call('Bash', { command: 'ls' }));
@@ -114,17 +112,13 @@ test('a permission revoked while a call waits blocks that call and the next call
   expect((await again)!.behavior).toBe('deny');
 });
 
-test('비서 may edit the project itself, but not a file a task is writing', async () => {
-  const { store, chat, p, s } = openChat();
-  const guard = chat.runs.guard(store.readMember(p.id, 'orchestrator'), p, s.id, null);
-  const file = path.join(p.path, 'README.md');
-  expect((await guard(...call('Edit', { file_path: file, old_string: 'a', new_string: 'b' })))!.behavior).toBe('allow');
-  chat.runs.locksOf(p).held.set(3, new Set([realPath(file)]));
-  const busy = await guard(...call('Edit', { file_path: file, old_string: 'a', new_string: 'b' }));
-  expect(busy).toMatchObject({ behavior: 'deny', message: expect.stringContaining('task #3') });
+test('통역 changes no project file, even a typo: that is a task', () => {
+  const { store, chat, p } = openChat();
+  const policy = chat.runs.policy(store.readMember(p.id, 'interpreter'), p, 'chat');
+  expect(checkCall(policy, 'Edit', { file_path: path.join(p.path, 'README.md') }).kind).toBe('deny');
 });
 
-test('the app record and crew files are protected even from 개발', () => {
+test('the app record and crew files are protected even from 코드 작성', () => {
   const { store, chat, p, paths } = openChat();
   const policy = chat.runs.policy(store.readMember(p.id, 'coder'), p, 'task-1');
   expect(checkCall(policy, 'Write', { file_path: paths.protected[0] }).kind).toBe('deny');
@@ -146,11 +140,11 @@ test('the app record and crew files are protected even from 개발', () => {
 test('auto mode allows a tool outside the role without a card but still denies; bypass checks nothing', async () => {
   const { store, chat, p, s } = openChat();
   const reviewer = store.readMember(p.id, 'reviewer');
-  const researcher = store.readMember(p.id, 'researcher');
+  const interpreter = store.readMember(p.id, 'interpreter');
   const push = () => chat.runs.guard(reviewer, p, s.id, 7)(...call('Bash', { command: 'git push origin main' }));
 
   store.setMode(p.id, 'auto');
-  expect((await chat.runs.guard(researcher, p, s.id, 7)(...call('Bash', { command: 'ls' })))!.behavior).toBe('allow');
+  expect((await chat.runs.guard(interpreter, p, s.id, 7)(...call('Bash', { command: 'ls' })))!.behavior).toBe('allow');
   expect(store.listMessages(s.id)).toEqual([]);
   expect((await push())!.behavior).toBe('deny');
   store.setMode(p.id, 'bypass');

@@ -14,15 +14,15 @@ test('a run starts with its own memory and this project wiki only', async () => 
   chat.wiki.write(a.id, '테스트 방법', 'npm test', user);
   chat.wiki.write(b.id, '다른 프로젝트 문서', 'x', user);
   chat.wiki.remember(a.id, tester.id, 'node --test를 쓴다', { taskId: null, sessionId: null });
-  chat.wiki.remember(a.id, store.readMember(a.id, 'coder').id, '개발의 기억', { taskId: null, sessionId: null });
+  chat.wiki.remember(a.id, store.readMember(a.id, 'coder').id, '코드 작성의 기억', { taskId: null, sessionId: null });
 
   await chat.runs.run(tester, store.createSession(a.id).id, null, 'hi');
   const system = String(fake.calls[0].options.systemPrompt);
   expect(system).toContain('- 테스트 방법: npm test');
-  expect(system).toContain('- coder (개발):');
+  expect(system).toContain('- coder (코드 작성):');
   expect(system).toContain('node --test를 쓴다');
   expect(system).not.toContain('다른 프로젝트 문서');
-  expect(system).not.toContain('개발의 기억');
+  expect(system).not.toContain('코드 작성의 기억');
 });
 
 test('the wiki graph draws each [[link]] once and shows a linked title with no document as one to write', () => {

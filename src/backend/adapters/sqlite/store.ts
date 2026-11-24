@@ -10,7 +10,6 @@ import type { Records } from '../../app/ports';
 import { MIGRATIONS } from './migrations';
 import type { Image, Mode } from '../../../shared';
 import type {
-  SkillRow,
   Project,
   ListedProject,
   Session,
@@ -30,8 +29,7 @@ import type {
 } from '../../domain/records';
 
 type MemberRow = Omit<Member, 'config' | 'temp' | 'leaving'> & { config: string; temp: number; leaving: number };
-const MEMBER =
-  'SELECT id, project_id AS projectId, key, nickname, model, status, config, definition, temp, leaving FROM members';
+const MEMBER = 'SELECT id, project_id AS projectId, key, nickname, model, status, config, temp, leaving FROM members';
 const toMember = (r: MemberRow): Member => ({
   ...r,
   config: JSON.parse(r.config),
@@ -217,13 +215,10 @@ export class Store implements Records {
     return toMember(row);
   }
 
-  addMember(
-    projectId: number,
-    m: { key: string; nickname: string; model: string; definition: string; temp: boolean },
-  ): Member {
+  addMember(projectId: number, m: { key: string; nickname: string; model: string; temp: boolean }): Member {
     const { lastInsertRowid } = this.db
-      .prepare('INSERT INTO members (project_id, key, nickname, model, definition, temp) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(projectId, m.key, m.nickname, m.model, m.definition, m.temp ? 1 : 0);
+      .prepare('INSERT INTO members (project_id, key, nickname, model, temp) VALUES (?, ?, ?, ?, ?)')
+      .run(projectId, m.key, m.nickname, m.model, m.temp ? 1 : 0);
     return this.readMemberById(Number(lastInsertRowid));
   }
 
@@ -264,38 +259,6 @@ export class Store implements Records {
       this.db.prepare('UPDATE members SET config = ? WHERE id = ?').run(JSON.stringify(config), id);
       this.db.prepare('INSERT INTO permission_changes (member_id, change, at) VALUES (?, ?, ?)').run(id, change, now());
     });
-  }
-
-  listSkills(projectId: number): SkillRow[] {
-    const rows = this.db
-      .prepare('SELECT name, label, purpose AS "use", body, deleted FROM skills WHERE project_id = ? ORDER BY name')
-      .all(projectId) as (Omit<SkillRow, 'deleted'> & { deleted: number })[];
-    return rows.map((r) => ({ ...r, deleted: !!r.deleted }));
-  }
-
-  writeSkill(projectId: number, s: Omit<SkillRow, 'deleted'>) {
-    this.db
-      .prepare(
-        `INSERT INTO skills (project_id, name, label, purpose, body, deleted, updated_at) VALUES (?, ?, ?, ?, ?, 0, ?)
-         ON CONFLICT (project_id, name) DO UPDATE SET label = excluded.label, purpose = excluded.purpose, body = excluded.body, deleted = 0, updated_at = excluded.updated_at`,
-      )
-      .run(projectId, s.name, s.label, s.use, s.body, now());
-  }
-
-  // Drops the project's own version of one skill, or of all, so the shipped one shows again
-  clearSkills(projectId: number, name?: string) {
-    this.db
-      .prepare('DELETE FROM skills WHERE project_id = ? AND (? IS NULL OR name = ?)')
-      .run(projectId, name ?? null, name ?? null);
-  }
-
-  removeSkill(projectId: number, name: string) {
-    this.db
-      .prepare(
-        `INSERT INTO skills (project_id, name, label, purpose, body, deleted, updated_at) VALUES (?, ?, '', '', '', 1, ?)
-         ON CONFLICT (project_id, name) DO UPDATE SET deleted = 1, updated_at = excluded.updated_at`,
-      )
-      .run(projectId, name, now());
   }
 
   listPermissionChanges(memberId: number): { change: string; at: string }[] {

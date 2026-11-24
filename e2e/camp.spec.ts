@@ -3,9 +3,12 @@ import { launchApp, makeScratch, openProject } from './launch';
 
 // 조사 has no scripted answer, so the task stays on record with 조사 in it
 const SCRIPT = {
-  비서: [
+  통역: [
     {
-      call: { name: 'start_task', input: { kind: 'research', title: '자료 조사', request: 'x', role: '조사' } },
+      call: {
+        name: 'start_task',
+        input: { original: '원문', kind: 'research', title: '자료 조사', request: 'x', role: '조사' },
+      },
       text: '시작했습니다.',
     },
     { text: '실패 보고' },

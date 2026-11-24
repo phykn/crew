@@ -9,7 +9,7 @@ import { Runs } from './runs';
 import { Tasks } from './tasks';
 import { Wiki } from './wiki';
 import { Workflows } from './workflows';
-// The hub of one app: the user's conversation with 비서, and the parts the crew works through
+// The hub of one app: the user's conversation with 통역, and the parts the crew works through
 export class Chat {
   readonly questions: Questions;
   readonly requests: Requests;
@@ -60,34 +60,34 @@ export class Chat {
     await this.tell(sessionId, text, images);
   }
 
-  // Hands 비서 something to answer in the chat: the user's words, or a task's result to report
+  // Hands 통역 something to answer in the chat: the user's words, or a task's result to report
   async tell(sessionId: number, text: string, images: Image[] = [], taskId: number | null = null) {
     if (this.runs.live(sessionId)?.say(text, images)) return;
     const { store } = this;
     try {
-      const member = store.readMember(store.projectOf(sessionId).id, 'orchestrator');
+      const member = store.readMember(store.projectOf(sessionId).id, 'interpreter');
       const out = await this.runs.run(member, sessionId, null, text, {
         images,
         mcpServers: { crew: await this.tools.secretary(sessionId) },
         onText: (delta) => this.emit('stream', { sessionId, delta }),
         onReply: (reply, more) => {
           this.post(sessionId, reply, taskId);
-          // A message said mid-run is still to be answered, so the chat keeps showing 비서 at it
+          // A message said mid-run is still to be answered, so the chat keeps showing 통역 at it
           if (more) this.emit('stream', { sessionId, delta: '' });
         },
       });
       if (out.status !== 'done') this.post(sessionId, failureText(out.status, out.error));
     } catch (err) {
-      // Without a message the chat would show 비서 answering forever
+      // Without a message the chat would show 통역 answering forever
       this.post(sessionId, failureText('failed', err instanceof Error ? err.message : String(err)));
     }
-    // A card 비서 left open, as when its answer was stopped, has no one waiting for it any more
+    // A card 통역 left open, as when its answer was stopped, has no one waiting for it any more
     for (const id of store.openQuestionIds(sessionId, null)) this.questions.cancel(id);
   }
 
-  // 비서's words in the chat: the message, the end of its stream, and a refresh
+  // 통역's words in the chat: the message, the end of its stream, and a refresh
   post(sessionId: number, text: string, taskId: number | null = null) {
-    // A session deleted while 비서 was answering has nowhere to take the words
+    // A session deleted while 통역 was answering has nowhere to take the words
     if (!this.store.hasSession(sessionId)) return;
     this.store.addMessage(sessionId, 'secretary', text, null, [], taskId);
     this.emit('stream', { sessionId, done: true });
@@ -108,7 +108,7 @@ export class Chat {
     this.emit('changed', { topic: 'projects' });
   }
 
-  // A fresh session on the same project and crew (새 세션, /clear): 비서 starts without context and older sessions' tasks go on
+  // A fresh session on the same project and crew (새 세션, /clear): 통역 starts without context and older sessions' tasks go on
   createSession(projectId: number) {
     const session = this.store.createSession(projectId);
     this.emit('changed', { topic: 'sessions' });

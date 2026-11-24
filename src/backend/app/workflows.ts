@@ -19,7 +19,7 @@ export class Workflows {
     return { version: 0, rules: shipped, layout: null };
   }
 
-  // One place for the editor's and 비서's changes, so both make the same kind of version
+  // One place for the editor's and 통역's changes, so both make the same kind of version
   save(o: {
     projectId: number;
     kind: string;

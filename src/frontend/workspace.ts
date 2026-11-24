@@ -14,7 +14,7 @@ export function useWorkspace() {
   // The project being shown or switched to; a reply read for any other one arrives too late and is dropped
   const current = useRef<number | null>(null);
 
-  // Whoever changes the record, the window or 비서, the main process says so and the window reads it again
+  // Whoever changes the record, the window or 통역, the main process says so and the window reads it again
   useEffect(
     () =>
       onChanged(async (t) => {

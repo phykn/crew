@@ -2,7 +2,6 @@ import type { Mode } from '../../shared';
 import type { Workflow } from './workflow';
 
 // A project's change to the kit: a skill written over the shipped one or new, or one deleted
-export type SkillRow = { name: string; label: string; use: string; body: string; deleted: boolean };
 
 export type Project = { id: number; path: string; name: string; mode: Mode };
 export type ListedProject = Project & { missing: boolean };
@@ -16,9 +15,8 @@ export type Member = {
   model: string;
   status: 'hired' | 'unhired';
   config: Record<string, unknown>;
-  // A member 인사 designed is defined here instead of in crew/agents
-  definition: string | null;
-  // A temp (알바) is gone once let go, instead of staying as 미고용
+  // A copy made for one task is defined here instead of in crew/agents
+  // A copy made for one task is gone once let go, instead of staying as 미고용
   temp: boolean;
   // Let go while at work: it finishes or hands back its step, then leaves
   leaving: boolean;

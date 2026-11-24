@@ -3,8 +3,8 @@ import { findPath } from './route.js';
 import { CAMP, TW, iso } from './projection.js';
 import { headTop } from './figure.js';
 
-// 비서 hands work out, so assignments walk from them
-const LEAD = 'orchestrator';
+// 통역 hands work out, so assignments walk from them
+const LEAD = 'interpreter';
 
 // Small talk follows the user's clock, so a camp at midnight does not plan lunch
 const CHAT = {

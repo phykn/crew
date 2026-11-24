@@ -65,18 +65,4 @@ export class DiskFiles implements Files {
     fs.mkdirSync(dir, { recursive: true });
     return dir;
   }
-
-  moveAll(from: string, to: string) {
-    const moved = (fs.readdirSync(from, { recursive: true, withFileTypes: true }) as fs.Dirent[])
-      .filter((f) => f.isFile())
-      .map((f) => path.relative(from, path.join(f.parentPath, f.name)));
-    const replaced = moved.filter((f) => fs.existsSync(path.join(to, f)));
-    for (const f of moved) {
-      fs.mkdirSync(path.dirname(path.join(to, f)), { recursive: true });
-      // Copied, then removed: a rename fails when the two folders are on different drives
-      fs.copyFileSync(path.join(from, f), path.join(to, f));
-      fs.rmSync(path.join(from, f));
-    }
-    return { moved, replaced };
-  }
 }

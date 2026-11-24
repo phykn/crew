@@ -5,15 +5,15 @@ const hb = (summary: string) => ({ structured: { summary, body: '', points: [], 
 // The second task is code, so its change also goes through every check
 const pass = { structured: { summary: '통과', body: '', verdict: 'pass', points: [], files: [], checks: ['ok'] } };
 const start = (role: string, title: string) => ({
-  call: { name: 'start_task', input: { kind: 'code', title, request: title, role } },
+  call: { name: 'start_task', input: { original: '원문', kind: 'code', title, request: title, role } },
   text: '시작했습니다.',
 });
 const SCRIPT = {
-  비서: [start('시험', '시험 방법 정리'), { text: '보고 1' }, start('개발', '명령 보완'), { text: '보고 2' }],
+  통역: [start('시험', '시험 방법 정리'), { text: '보고 1' }, start('코드 작성', '명령 보완'), { text: '보고 2' }],
   시험: [{ call: { name: 'wiki_write', input: { title: '테스트 방법', body: 'npm test' } }, ...hb('정리') }, pass],
-  리뷰: [pass],
+  '코드 검토': [pass],
   표준: [pass],
-  개발: [
+  '코드 작성': [
     {
       call: {
         name: 'wiki_write',
