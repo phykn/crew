@@ -1,8 +1,8 @@
+import type { Say } from '../../shared';
 import { getNextSnapshot, setup } from 'xstate';
 import { z } from 'zod';
 import type { StepRun, TaskStatus } from './records';
 import { ancestors, type Step, Workflow } from './workflow';
-import { josa } from '../../korean';
 
 // The error left on a step run cut off by an app restart
 export const RESTARTED = 'app restarted';
@@ -126,25 +126,34 @@ export function sentBack(w: Workflow, runs: StepRun[], id: string, since: number
 }
 
 // Why going on would only repeat itself, or null: a step sent back past its loop limit, or a redo that changed nothing
-export function stuck(w: Workflow, runs: StepRun[], version: number | null) {
+export function stuck(w: Workflow, runs: StepRun[], version: number | null): Say | null {
   const back = w.steps
     .map((s) => ({ s, done: runs.filter((r) => r.stepId === s.id && r.status === 'done') }))
     .filter(({ s, done }) => done.length > 0 && sentBack(w, runs, s.id, done.at(-1)!.id));
   // A step sent back to stops at the smallest loop count among the checks that send work to it
   const limit = (s: Step) => Math.min(...w.steps.filter((v) => v.rework === s.id).map((v) => v.loops));
   const over = back.find(({ s, done }) => done.length - 1 >= limit(s));
-  if (over) return `${josa(over.s.label, '을')} ${limit(over.s)}번 고쳤지만 검증을 통과하지 못했습니다`;
+  if (over) return { code: 'overLimit', step: over.s.label, loops: limit(over.s) };
   // A redo that left the files as they were and is sent back again would only repeat itself: the user decides
   const idle = back.find(
     ({ s, done }) => version !== null && !s.verdict && done.length > 1 && done.at(-1)!.versionId === version,
   );
-  return idle
-    ? `${josa(idle.s.label, '이')} 다시 했지만 바뀐 것이 없는데 또 되돌려졌습니다. 지적과 지시가 맞지 않아 사용자 결정이 필요합니다`
-    : null;
+  return idle ? { code: 'noChange', step: idle.s.label } : null;
 }
 
-export function solo(role: string, key: string): Workflow {
-  const work = { id: 'work', role: key, label: `${role} 작업`, does: 'Do the request.' };
+// Why a task stopped, as the interpreter reads it in the report
+export function whyText(why: Say) {
+  if (why.code === 'overLimit') return `${why.step} was fixed ${why.loops} times and still did not pass the checks`;
+  if (why.code === 'noChange')
+    return `${why.step} was redone without changing anything and sent back again; the points and the instructions disagree, so the user must decide`;
+  if (why.code === 'retries') return `${why.step} failed after ${why.n} retries`;
+  if (why.code === 'absent')
+    return `${why.role} is not hired, so ${why.step} cannot go on; another member must take it`;
+  return 'it was stopped';
+}
+
+export function solo(role: string, key: string, label: string): Workflow {
+  const work = { id: 'work', role: key, label, does: 'Do the request.' };
   return Workflow.parse({ kind: 'solo', label: role, use: '', steps: [work] });
 }
 
@@ -154,7 +163,7 @@ export function makers(w: Workflow) {
   return making.filter((s) => !making.some((o) => ancestors(w, o.id).includes(s.id)));
 }
 
-// 지휘's plan step, which a failure or a changed request goes back to
+// The conductor's plan step, which a failure or a changed request goes back to
 export function planStep(w: Workflow) {
   return w.steps.find((s) => !s.verdict && s.role === 'conductor');
 }

@@ -92,7 +92,7 @@ export const MIGRATIONS = [
      label TEXT NOT NULL, purpose TEXT NOT NULL, body TEXT NOT NULL, deleted INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL,
      PRIMARY KEY (project_id, name));`,
   `ALTER TABLE projects ADD COLUMN mode TEXT NOT NULL DEFAULT 'manual';`,
-  // 통역 works the app itself now, so the shipped 도우미 goes with its runs; the log keeps its lines
+  // The interpreter works the app itself now, so the shipped helper goes with its runs; the log keeps its lines
   `CREATE TEMP TABLE gone AS SELECT id FROM members WHERE key = 'helper' AND definition IS NULL;
    UPDATE events SET member_id = NULL WHERE member_id IN (SELECT id FROM gone);
    DELETE FROM requests WHERE from_member IN (SELECT id FROM gone);
@@ -112,10 +112,9 @@ export const MIGRATIONS = [
      SELECT m.id, j.key, json_extract(j.value, '$.mediaType'), json_extract(j.value, '$.data')
      FROM messages m, json_each(m.images) j WHERE m.images IS NOT NULL;
    ALTER TABLE messages DROP COLUMN images;`,
-  // The task a report of 통역's is about, so the chat can show that task's changed files under it
+  // The task a report of the interpreter's is about, so the chat can show that task's changed files under it
   `ALTER TABLE messages ADD COLUMN task_id INTEGER;`,
-  // The crew was rebuilt around 통역 and 지휘: the old secretary becomes 통역, the roles that went leave with their runs, and the
-  // skills were rewritten, so skill choices, the project's own skills, and saved workflows naming gone roles reset
+  // The crew was rebuilt around the interpreter and the conductor, so the roles that went leave and choices naming the old skills or roles reset
   `UPDATE members SET key = 'interpreter' WHERE key = 'orchestrator' AND definition IS NULL;
    CREATE TEMP TABLE gone AS SELECT id FROM members WHERE key IN ('hr', 'tools', 'advisor', 'stylist') AND definition IS NULL;
    UPDATE events SET member_id = NULL WHERE member_id IN (SELECT id FROM gone);
@@ -135,4 +134,14 @@ export const MIGRATIONS = [
    DELETE FROM step_runs WHERE member_id IN (SELECT id FROM gone);
    DELETE FROM members WHERE id IN (SELECT id FROM gone);
    DROP TABLE gone;`,
+  // A log line says what happened as a code the window words; older lines keep their words
+  `ALTER TABLE events ADD COLUMN say TEXT;`,
+  // Cards and the app's own messages are codes too, and an answer is a value the window words; char() spells the old Korean answers
+  `ALTER TABLE questions ADD COLUMN say TEXT;
+   ALTER TABLE messages ADD COLUMN say TEXT;
+   UPDATE questions SET answer = CASE answer
+     WHEN char(0xD5C8, 0xC6A9) THEN 'allow' WHEN char(0xAC70, 0xC808) THEN 'refuse' WHEN char(0xCDE8, 0xC18C) THEN 'cancel'
+     ELSE answer END;
+   UPDATE questions SET options = replace(replace(options,
+     '"' || char(0xD5C8, 0xC6A9) || '"', '"allow"'), '"' || char(0xAC70, 0xC808) || '"', '"refuse"');`,
 ];

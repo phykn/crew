@@ -39,7 +39,7 @@ test('a mode 통역 changes, once the user allows it on the card, shows by the i
   await page.getByLabel('메시지').fill('승인 모드 자동으로 바꿔줘');
   await page.getByLabel('메시지').press('Enter');
   await page.getByRole('button', { name: '허용' }).click();
-  await expect(page.locator('.messages')).toContainText('자동으로 바꿨습니다');
+  await expect(page.locator('.messages')).toContainText('The approval mode is now auto.');
   await expect(page.getByLabel('승인 모드')).toHaveText('자동');
   await app.close();
 });

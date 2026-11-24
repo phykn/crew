@@ -7,7 +7,7 @@ test('the crew runs on the subscription with no key until the API, once its key 
   const active = () => chat.connections.list().find((c) => c.active)!.id;
   expect(active()).toBe('claude-subscription');
   expect(chat.connections.key()).toBeNull();
-  expect(() => chat.connections.use('claude-api')).toThrow('API 키를 먼저 저장하세요');
+  expect(() => chat.connections.use('claude-api')).toThrow('save the API key first');
   expect(() => chat.connections.saveKey('claude-subscription', 'x')).toThrow();
 
   chat.connections.saveKey('claude-api', 'sk-ant-test');
@@ -26,5 +26,5 @@ test('the crew runs on the subscription with no key until the API, once its key 
 
 test("the API's check without a saved key says so instead of asking anyone", async () => {
   const { chat } = openChat();
-  expect(await chat.connections.check('claude-api')).toEqual({ ok: false, error: '저장한 키가 없습니다' });
+  expect(await chat.connections.check('claude-api')).toEqual({ ok: false, error: { code: 'account.noKey' } });
 });

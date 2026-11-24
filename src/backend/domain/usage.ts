@@ -1,5 +1,5 @@
 // What a run spent, as the SDK reported it
-export type Spend = { inputTokens: number; outputTokens: number; costUsd: number };
+type Spend = { inputTokens: number; outputTokens: number; costUsd: number };
 // One run as recorded: whose session it ran on, how long it took, and the totals the SDK reported at its end
 export type RunSpend = Spend & {
   memberId: number;

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { CrewMember } from '../../backend/domain/crew';
 import type { Change, Doc, Memory as Note } from '../../backend/domain/wiki';
 import { stamp } from '../time';
+import { roleName, say } from '../locale';
 import { call, follow } from '../api';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -137,7 +138,7 @@ function WikiView({
   }
   async function remove(releaseRule: boolean) {
     const r = await call('wiki.remove', { id: doc!.id, releaseRule });
-    if (!r.ok) return setRefusal(r.problems.join(' '));
+    if (!r.ok) return setRefusal(r.problems.map(say).join(' '));
     setAsking(false);
     setPicked(null);
   }
@@ -282,7 +283,7 @@ function WikiView({
                   {KIND[c.kind]}
                 </span>
                 <span className="log-text">
-                  {c.title} <span className="muted">{c.author}</span>
+                  {c.title} <span className="muted">{c.author === 'user' ? '사용자' : roleName(c.author)}</span>
                 </span>
               </Button>
               {detail?.id === c.id && (

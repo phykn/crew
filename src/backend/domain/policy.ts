@@ -1,7 +1,7 @@
 import path from 'node:path';
 import type { Mode } from '../../shared';
 import type { Settings } from './crew';
-import { josa } from '../../korean';
+import type { Say } from '../../shared';
 
 // What one member may do right now; read fresh on every call so a revoked permission applies at once
 export type Policy = {
@@ -18,7 +18,8 @@ export type Policy = {
   mode: Mode;
 };
 
-export type Verdict = { kind: 'allow' } | { kind: 'deny'; reason: string } | { kind: 'ask'; reason: string };
+// An ask also carries a code, so the card the user answers is worded by the window
+export type Verdict = { kind: 'allow' } | { kind: 'deny'; reason: string } | { kind: 'ask'; reason: string; say: Say };
 
 // Tools that only read are fine for everyone; the rest must be in the member's own tool list
 const READ_ONLY = ['Read', 'Glob', 'Grep', 'LS', 'TodoWrite', 'NotebookRead'];
@@ -41,7 +42,7 @@ const FORBIDDEN: [RegExp, string][] = [
   ],
   [
     /\bclaude(\.exe)?\s+mcp\s+(add|add-json|add-from-claude-desktop|remove)\b/i,
-    "MCP servers are brought in by 도구 with the user's approval",
+    'MCP servers are brought in by the user',
   ],
 ];
 // Checkers leave the project as they found it
@@ -79,7 +80,8 @@ export function checkCall(policy: Policy, tool: string, input: Record<string, un
       ? checkWrite(policy, path.resolve(policy.project, namedWrites(tool, input)[0]))
       : ({ kind: 'allow' } as Verdict);
   if (scope.kind === 'deny') return scope;
-  if (!policy.tools.includes(tool)) return { kind: 'ask', reason: `${tool} 도구가 역할에 없습니다` };
+  if (!policy.tools.includes(tool))
+    return { kind: 'ask', reason: `${tool} is not among the role's tools`, say: { code: 'reason.tool', tool } };
   return scope;
 }
 
@@ -90,12 +92,18 @@ function checkMcp(policy: Policy, tool: string, input: Record<string, unknown>):
   // The app's own in-process tools are how members report; everyone has them
   if (server === 'crew') return { kind: 'allow' };
   const held = policy.mcp.find((m) => m.server === server);
-  if (!held) return { kind: 'ask', reason: `${server} MCP 서버가 역할에 없습니다` };
+  if (!held)
+    return {
+      kind: 'ask',
+      reason: `the role does not hold the ${server} MCP server`,
+      say: { code: 'reason.server', server },
+    };
   const name = tool.split('__').slice(2).join('__');
   if (held.readTools && !held.readTools.includes(name)) {
     return {
       kind: 'ask',
-      reason: `${josa(server, '을')} 읽기로만 쓸 수 있어 ${josa(name, '을')} 쓰려면 승인이 필요합니다`,
+      reason: `${server} is read-only for the role, so ${name} needs approval`,
+      say: { code: 'reason.readOnly', server, name },
     };
   }
   const file = input.filename;
@@ -232,7 +240,6 @@ export function projectWrites(policy: Policy, tool: string, input: Record<string
   return files.map((t) => resolveTarget(t, policy.project)).filter((f) => inside(f, policy.project));
 }
 
-// Whether a path lies in a folder; a name that merely starts with dots, such as ..env, is still inside
 export function inside(file: string, dir: string) {
   const rel = path.relative(path.resolve(dir), path.resolve(file));
   // A name that merely starts with dots, such as ..env, is still inside

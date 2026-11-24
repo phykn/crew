@@ -2,6 +2,7 @@ import { expect, test, vi } from 'vitest';
 import fs from 'node:fs';
 import { OFF_CATALOG, appActions, appServer } from '../../../src/backend/adapters/mcp/app';
 import { checkCall } from '../../../src/backend/domain/policy';
+import { say } from '../../../src/frontend/locale';
 import { never, openChat, reply, toolText, type Turn } from '../../support';
 
 test('통역 finds the stopped test task the user picks, opens its log, resumes only that one, and renames a member, all without another run', async () => {
@@ -13,7 +14,7 @@ test('통역 finds the stopped test task the user picks, opens its log, resumes 
       await tool('app_read', { action: 'tasks.find', args: { query: '시험', status: 'stopped' } }),
     );
     await tool('app_act', { action: 'open.log', args: { task_id: t.id } });
-    return reply(`업무 #${t.id}: ${t.stopReasons.join(' / ')}`, 's')(p, o);
+    return reply(`업무 #${t.id}: ${JSON.stringify(t.stopReasons)}`, 's')(p, o);
   };
   const resumes: Turn = async (p, o) => {
     const done = await tool('app_act', { action: 'tasks.resume', args: { task_id: stopped[1].id } });
@@ -33,7 +34,11 @@ test('통역 finds the stopped test task the user picks, opens its log, resumes 
       request: '테스트',
       workflow: { ...research, steps: research.steps.map((x) => ({ ...x, role: 'tester' })) },
     });
-    store.writeTaskStatus(t.id, 'stopped', '', `${title} 업무 중단됨: 사유 ${i + 1}`);
+    store.writeTaskStatus(t.id, 'stopped', '', {
+      code: 'task.fail',
+      title,
+      why: { code: 'retries', step: `사유 ${i + 1}`, n: 3 },
+    });
     return t;
   });
 
@@ -54,9 +59,9 @@ test('통역 finds the stopped test task the user picks, opens its log, resumes 
   // Another project's task is not there for this session, and nothing opens
   const other = store.createSession(store.addProject(`${project}-other`).id);
   appServer(fake.sdk, chat, other.id);
-  expect(await tool('app_act', { action: 'open.log', args: { task_id: stopped[0].id } })).toContain('없습니다');
+  expect(await tool('app_act', { action: 'open.log', args: { task_id: stopped[0].id } })).toContain('has no task');
   expect(navigated).toHaveLength(1);
-  expect(await tool('app_act', { action: 'open.workflow', args: { kind: 'nope' } })).toContain('인자가 맞지 않습니다');
+  expect(await tool('app_act', { action: 'open.workflow', args: { kind: 'nope' } })).toContain('Wrong arguments');
   // A read goes through app_read only, so a read-only grant cannot be used to act
   expect(await tool('app_act', { action: 'help', args: {} })).toContain('app_read');
 
@@ -76,12 +81,12 @@ test('a temp whose work is done leaves without a card, and a regular leaves or c
     toolText(fake, 'app_act', { action: 'crew.hire', args: { role, hired } });
   const card = () => store.listMessages(s.id).at(-1)?.question;
 
-  expect(await hire('researcher-1-research', false)).toContain('퇴장');
+  expect(await hire('researcher-1-research', false)).toContain('let go');
   expect(store.readMemberById(temp.id).status).toBe('unhired');
   expect(card()).toBeUndefined();
 
   // 통역 cannot be let go, so that is refused without asking
-  expect(await hire('통역', false)).toContain('내보낼 수 없습니다');
+  expect(await hire('통역', false)).toContain('cannot be let go');
   expect(card()).toBeUndefined();
 
   // 시험 ends in a consonant, so the card shows whether its particle follows the role and not the bracket
@@ -89,8 +94,8 @@ test('a temp whose work is done leaves without a card, and a regular leaves or c
   for (const hired of [false, true]) {
     const asked = hire('시험', hired);
     await vi.waitFor(() => expect(card()?.answer).toBeNull());
-    expect(card()!.prompt).toContain(hired ? '시험(시우)을 다시 고용할까요' : '시험(시우)을 내보낼까요');
-    chat.questions.answer(card()!.id, '허용');
+    expect(say(card()!.say!)).toContain(hired ? '시험(시우)을 다시 고용할까요' : '시험(시우)을 내보낼까요');
+    chat.questions.answer(card()!.id, 'allow');
     await asked;
     expect(store.readMemberById(tester.id).status).toBe(hired ? 'hired' : 'unhired');
   }
@@ -113,17 +118,17 @@ test('changing the approval mode waits for the user, and a refusal leaves it as 
   const card = () => store.listMessages(s.id).at(-1)!.question!;
 
   const refused = act('bypass');
-  await vi.waitFor(() => expect(card().prompt).toContain('전부로'));
+  await vi.waitFor(() => expect(say(card().say!)).toContain('전부로'));
   // Allowing is the last option, the card's main button, as on every card
-  expect(card().options).toEqual(['거절', '허용']);
-  chat.questions.answer(card().id, '거절');
-  expect(await refused).toContain('거절');
+  expect(card().options).toEqual(['refuse', 'allow']);
+  chat.questions.answer(card().id, 'refuse');
+  expect(await refused).toContain('refused');
   expect(store.readProject(p.id).mode).toBe('manual');
 
   const allowed = act('auto');
   await vi.waitFor(() => expect(card().answer).toBeNull());
-  chat.questions.answer(card().id, '허용');
-  expect(await allowed).toContain('자동으로');
+  chat.questions.answer(card().id, 'allow');
+  expect(await allowed).toContain('now auto');
   expect(store.readProject(p.id).mode).toBe('auto');
 });
 
@@ -132,9 +137,9 @@ test('deleting a session or document that cannot go is refused before any card',
   const other = chat.createSession(store.addProject(`${project}-other`).id);
   appServer(fake.sdk, chat, s.id);
   const act = (action: string, args: Record<string, unknown>) => toolText(fake, 'app_act', { action, args });
-  expect(await act('sessions.delete', { session_id: other.id })).toContain('이 프로젝트에 없습니다');
-  expect(await act('sessions.delete', { session_id: s.id })).toContain('지울 수 없습니다');
-  expect(await act('wiki.remove', { title: '없는 문서' })).toContain('문서가 없습니다');
+  expect(await act('sessions.delete', { session_id: other.id })).toContain('has no session');
+  expect(await act('sessions.delete', { session_id: s.id })).toContain('cannot be deleted');
+  expect(await act('wiki.remove', { title: '없는 문서' })).toContain('has no document');
   expect(store.listMessages(s.id).filter((m) => m.question)).toEqual([]);
 });
 
@@ -146,6 +151,6 @@ test('a wiki change of another project reads as missing, as does one that never 
   appServer(fake.sdk, chat, s.id);
   const read = (change_id: number) => toolText(fake, 'app_read', { action: 'wiki.timeline', args: { change_id } });
   expect(await read(change.id)).not.toContain('TOP SECRET');
-  expect(await read(change.id)).toContain('없습니다');
-  expect(await read(9999)).toContain('없습니다');
+  expect(await read(change.id)).toContain('no change');
+  expect(await read(9999)).toContain('no change');
 });

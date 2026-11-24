@@ -1,4 +1,4 @@
-import type { Image, Mode } from '../../shared';
+import type { Image, Mode, Say } from '../../shared';
 import type { Crew } from '../domain/crew';
 import type { Agent, Feed, Files, Paths, Ports, Records, Secrets, ToolServers, Versions } from './ports';
 import { Connections } from './connections';
@@ -9,7 +9,7 @@ import { Runs } from './runs';
 import { Tasks } from './tasks';
 import { Wiki } from './wiki';
 import { Workflows } from './workflows';
-// The hub of one app: the user's conversation with 통역, and the parts the crew works through
+// The hub of one app: the user's conversation with the interpreter, and the parts the crew works through
 export class Chat {
   readonly questions: Questions;
   readonly requests: Requests;
@@ -60,7 +60,7 @@ export class Chat {
     await this.tell(sessionId, text, images);
   }
 
-  // Hands 통역 something to answer in the chat: the user's words, or a task's result to report
+  // Hands the interpreter something to answer in the chat: the user's words, or a task's result to report
   async tell(sessionId: number, text: string, images: Image[] = [], taskId: number | null = null) {
     if (this.runs.live(sessionId)?.say(text, images)) return;
     const { store } = this;
@@ -72,27 +72,27 @@ export class Chat {
         onText: (delta) => this.emit('stream', { sessionId, delta }),
         onReply: (reply, more) => {
           this.post(sessionId, reply, taskId);
-          // A message said mid-run is still to be answered, so the chat keeps showing 통역 at it
+          // A message said mid-run is still to be answered, so the chat keeps showing the interpreter at it
           if (more) this.emit('stream', { sessionId, delta: '' });
         },
       });
-      if (out.status !== 'done') this.post(sessionId, failureText(out.status, out.error));
+      if (out.status !== 'done') this.post(sessionId, '', null, failure(out.status, out.error));
     } catch (err) {
-      // Without a message the chat would show 통역 answering forever
-      this.post(sessionId, failureText('failed', err instanceof Error ? err.message : String(err)));
+      // Without a message the chat would show the interpreter answering forever
+      this.post(sessionId, '', null, failure('failed', err instanceof Error ? err.message : String(err)));
     }
-    // A card 통역 left open, as when its answer was stopped, has no one waiting for it any more
+    // A card the interpreter left open, as when its answer was stopped, has no one waiting for it any more
     for (const id of store.openQuestionIds(sessionId, null)) this.questions.cancel(id);
   }
 
-  // 통역's words in the chat: the message, the end of its stream, and a refresh
-  post(sessionId: number, text: string, taskId: number | null = null) {
-    // A session deleted while 통역 was answering has nowhere to take the words
+  // The interpreter's words in the chat: the message, the end of its stream, and a refresh
+  post(sessionId: number, text: string, taskId: number | null = null, say: Say | null = null) {
+    // A session deleted while the interpreter was answering has nowhere to take the words
     if (!this.store.hasSession(sessionId)) return;
-    this.store.addMessage(sessionId, 'secretary', text, null, [], taskId);
+    this.store.addMessage(sessionId, 'secretary', text, null, [], taskId, say);
     this.emit('stream', { sessionId, done: true });
     this.emit('changed', { topic: 'messages', sessionId });
-    this.emit('notify', { sessionId, text });
+    this.emit('notify', { sessionId, text, say });
   }
 
   // A folder becomes a project with its own crew
@@ -108,7 +108,7 @@ export class Chat {
     this.emit('changed', { topic: 'projects' });
   }
 
-  // A fresh session on the same project and crew (새 세션, /clear): 통역 starts without context and older sessions' tasks go on
+  // A fresh session on the same project and crew (New session, /clear): the interpreter starts without context and older sessions' tasks go on
   createSession(projectId: number) {
     const session = this.store.createSession(projectId);
     this.emit('changed', { topic: 'sessions' });
@@ -141,8 +141,8 @@ export class Chat {
   }
 }
 
-function failureText(status: string, error?: string) {
-  if (status === 'limit') return '모델 사용 한도에 도달해 답하지 못했습니다. 한도가 풀린 뒤 다시 말씀해 주세요.';
-  if (status === 'stopped') return '답변을 멈췄습니다.';
-  return `답하는 중 오류가 났습니다: ${error ?? '알 수 없는 오류'}`;
+function failure(status: string, error?: string): Say {
+  if (status === 'limit') return { code: 'chat.limit' };
+  if (status === 'stopped') return { code: 'chat.stopped' };
+  return { code: 'chat.error', error: error ?? null };
 }

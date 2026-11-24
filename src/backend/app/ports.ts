@@ -1,4 +1,4 @@
-import type { Image, Mode } from '../../shared';
+import type { Image, Mode, Say } from '../../shared';
 import type {
   AgentSession,
   Event,
@@ -29,12 +29,12 @@ import type { Chat } from './chat';
 
 // What the app needs from the record, one port per kind of record; the SQLite store implements them all
 
-export interface Transactions {
+interface Transactions {
   // Everything inside lands together or not at all
   transact<T>(fn: () => T): T;
 }
 
-export interface ProjectRecords {
+interface ProjectRecords {
   addProject(dir: string): Project;
   listProjects(): ListedProject[];
   setMode(id: number, mode: Mode): void;
@@ -57,7 +57,7 @@ export interface ProjectRecords {
   listSessions(projectId: number): Session[];
 }
 
-export interface MemberRecords {
+interface MemberRecords {
   seedMembers(projectId: number, defs: { key: string; nickname: string; model: string }[]): void;
   listMembers(projectId: number): Member[];
   readMember(projectId: number, key: string): Member;
@@ -65,8 +65,8 @@ export interface MemberRecords {
   addMember(projectId: number, m: { key: string; nickname: string; model: string; temp: boolean }): Member;
   writeLeaving(id: number, leaving: boolean): void;
   updateMember(id: number, change: { nickname?: string; model?: string; status?: Member['status'] }): void;
-  writeConfig(id: number, config: Record<string, unknown>, change: string): void;
-  listPermissionChanges(memberId: number): { change: string; at: string }[];
+  writeConfig(id: number, config: Record<string, unknown>, change: Say): void;
+  listPermissionChanges(memberId: number): { say: Say | null; text: string; at: string }[];
 }
 
 export interface ConversationRecords {
@@ -77,19 +77,20 @@ export interface ConversationRecords {
     questionId?: number | null,
     images?: Image[],
     taskId?: number | null,
+    say?: Say | null,
   ): void;
   listMessages(sessionId: number): Message[];
   readImage(messageId: number, n: number): Image | null;
-  addQuestion(q: Omit<Question, 'id' | 'answer'>): number;
+  addQuestion(q: Omit<Question, 'id' | 'answer' | 'prompt'>): number;
   readQuestion(id: number): Question;
   openQuestionIds(sessionId: number, taskId: number | null): number[];
   answerQuestion(id: number, answer: string): void;
   isGranted(sessionId: number, taskId: number | null, memberId: number, tool: string): boolean;
-  addEvent(e: Omit<Event, 'id' | 'at'>): void;
+  addEvent(e: Omit<Event, 'id' | 'at' | 'text'>): void;
   listEvents(sessionId: number): Event[];
 }
 
-export interface RunRecords {
+interface RunRecords {
   openAgentSession(sessionId: number, memberId: number): AgentSession;
   writeClaudeId(agentSessionId: number, claudeId: string, model: string): void;
   startRun(agentSessionId: number, model: string, taskId?: number | null, side?: boolean): number;
@@ -97,11 +98,11 @@ export interface RunRecords {
   listRunSpend(sessionId: number): RunSpend[];
 }
 
-export interface TaskRecords {
+interface TaskRecords {
   createTask(t: { sessionId: number; kind: string; title: string; request: string; workflow: Workflow }): Task;
   readTask(id: number): Task;
   listTasks(sessionId: number): Task[];
-  writeTaskStatus(id: number, status: TaskStatus, stage: string, log: string): void;
+  writeTaskStatus(id: number, status: TaskStatus, stage: string, say: Say): void;
   writeTaskWorkflow(taskId: number, w: Workflow): void;
   appendRequest(taskId: number, text: string): void;
   assign(taskId: number, stepId: string, memberId: number): void;
@@ -121,7 +122,7 @@ export interface TaskRecords {
   writeThread(id: number, thread: PeerLine[]): void;
 }
 
-export interface WorkflowRecords {
+interface WorkflowRecords {
   latestWorkflow(projectId: number, kind: string): { version: number; rules: Workflow; layout: unknown } | null;
   // null when another version was saved after base
   addWorkflowVersion(
@@ -225,7 +226,6 @@ export interface Files {
   // The path as the disk resolves it, so a link or a different spelling still names the same file
   realPath(p: string): string;
   ensureDir(dir: string): string;
-  // Moves every file under from into to, keeping their places; returns the moved files and those it replaced
 }
 
 // A task's starting point and each version kept as commits, where the folder is a git repository
@@ -238,7 +238,7 @@ export interface Versions {
   forget(dir: string, taskIds: number[]): Promise<void>;
 }
 
-// The tool servers that reach back into the app: 통역's, a member's inside a task, and the app's own
+// The tool servers that reach back into the app: the interpreter's, a member's inside a task, and the app's own
 export interface ToolServers {
   secretary(sessionId: number): Promise<ToolServer>;
   member(task: Task, step: Step, member: Member): Promise<ToolServer>;

@@ -55,7 +55,7 @@ test('a peer request asked back stays one thread, a resent line runs once, and a
   ]);
 
   const test = task.workflow.steps.find((x) => x.id === 'test')!;
-  await expect(chat.tasks.runStep(task, test, () => true)).resolves.toBe('done');
+  await expect(chat.tasks.runStep(task, test, () => true)).resolves.toEqual({ code: 'done' });
   expect(store.listStepRuns(task.id).map((r) => [r.status, r.error])).toEqual([
     ['failed', 'missing checks'],
     ['done', null],

@@ -8,6 +8,7 @@ import { Choice } from '../ui/Choice';
 import { Toolbar, ToolbarEnd } from '../ui/Toolbar';
 import { MarkIcon } from './Icons';
 import type { ChangesTarget } from './Changes';
+import { say } from '../locale';
 
 const ALL = 'all';
 // A making step's log line also names its version when git kept it
@@ -140,7 +141,7 @@ export function Log({
                   <MarkIcon state={mark.state} />
                 </span>
                 <span className="log-who">{m ? m.role : '앱'}</span>
-                <span className="log-text">{m ? e.text.replace(new RegExp(`^${m.role}: `), '') : e.text}</span>
+                <span className="log-text">{m ? lineOf(e).replace(new RegExp(`^${m.role}: `), '') : lineOf(e)}</span>
               </Button>
               {hb && open === e.id && (
                 <HandbackView
@@ -260,3 +261,6 @@ function readErrors(detail: string | null): string[] | null {
   const d = detail ? JSON.parse(detail) : null;
   return d && Array.isArray(d.errors) ? d.errors : null;
 }
+
+// A line from before codes keeps the words it was saved with
+const lineOf = (e: Event) => (e.say ? say(e.say) : e.text);

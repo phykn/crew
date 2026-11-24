@@ -17,8 +17,8 @@ test('a member who would start a document on files a colleague wrote about since
   expect(await write('테트리스 구조', ['tetris.js', 'main.js'])).toContain('"테트리스 테스트"');
   expect(chat.wiki.find(p.id, '테트리스 구조')).toBeFalsy();
   // Told once, the member may still decide its topic is its own
-  expect(await write('테트리스 구조', ['tetris.js', 'main.js'])).toBe('작성: 테트리스 구조');
+  expect(await write('테트리스 구조', ['tetris.js', 'main.js'])).toBe('Written: 테트리스 구조');
   // Other files, or an existing document, are written at once
-  expect(await write('화면 색', ['style.css'])).toBe('작성: 화면 색');
-  expect(await write('테트리스 테스트', ['tetris.js'])).toBe('수정: 테트리스 테스트');
+  expect(await write('화면 색', ['style.css'])).toBe('Written: 화면 색');
+  expect(await write('테트리스 테스트', ['tetris.js'])).toBe('Changed: 테트리스 테스트');
 });

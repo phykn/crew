@@ -1,7 +1,5 @@
-import type { Mode } from '../../shared';
+import type { Mode, Say } from '../../shared';
 import type { Workflow } from './workflow';
-
-// A project's change to the kit: a skill written over the shipped one or new, or one deleted
 
 export type Project = { id: number; path: string; name: string; mode: Mode };
 export type ListedProject = Project & { missing: boolean };
@@ -15,8 +13,7 @@ export type Member = {
   model: string;
   status: 'hired' | 'unhired';
   config: Record<string, unknown>;
-  // A copy made for one task is defined here instead of in crew/agents
-  // A copy made for one task is gone once let go, instead of staying as 미고용
+  // A copy made for one task is gone once let go, instead of staying as unhired
   temp: boolean;
   // Let go while at work: it finishes or hands back its step, then leaves
   leaving: boolean;
@@ -33,6 +30,8 @@ export type Question = {
   sessionId: number;
   taskId: number | null;
   kind: 'approval' | 'choice';
+  // What the card asks; a card from before codes keeps its words in prompt instead
+  say: Say | null;
   prompt: string;
   options: string[];
   payload: Record<string, unknown>;
@@ -43,6 +42,8 @@ export type Message = {
   sessionId: number;
   author: 'user' | 'secretary';
   text: string;
+  // A message the app writes itself, such as a failed answer, is a code the window words
+  say: Say | null;
   imageCount: number;
   createdAt: string;
   question: Question | null;
@@ -55,6 +56,8 @@ export type Event = {
   taskId: number | null;
   memberId: number | null;
   kind: string;
+  // What happened; a line from before codes keeps its words in text instead
+  say: Say | null;
   text: string;
   detail: string | null;
   at: string;
@@ -132,7 +135,7 @@ export function changedFiles(base: Snapshot, now: Snapshot) {
 }
 
 // One file's changes between two kept versions, as the diff popup shows them
-export type DiffLine = { kind: 'add' | 'del' | 'same' | 'hunk'; text: string };
+type DiffLine = { kind: 'add' | 'del' | 'same' | 'hunk'; text: string };
 export type FileDiff = {
   file: string;
   status: 'added' | 'deleted' | 'changed';

@@ -1,14 +1,15 @@
-import { BrowserWindow, dialog, ipcMain } from 'electron';
+import { BrowserWindow, Notification, dialog, ipcMain } from 'electron';
 import { z } from 'zod';
 import { campState } from './camp';
 import type { Chat } from '../../app/chat';
 import { Config } from '../../domain/crew';
 import { PROVIDERS } from '../../domain/providers';
-import { IMAGE_TYPES, MODELS, MODES } from '../../../shared';
+import { IMAGE_TYPES, MODELS, MODES, Names } from '../../../shared';
 
 const id = z.number().int().positive();
 const provider = z.enum(PROVIDERS.map((p) => p.id) as [(typeof PROVIDERS)[number]['id']]);
-const USER = { memberId: null, name: '사용자' };
+// The window writes as the user; names on record are keys the screen words
+const USER = { memberId: null, name: 'user' };
 
 // The run's argument type comes from its schema, so the two cannot drift apart
 const handle = <S extends z.ZodType, R>(args: S, run: (a: z.infer<S>) => R) => ({ args, run });
@@ -17,6 +18,20 @@ const handle = <S extends z.ZodType, R>(args: S, run: (a: z.infer<S>) => R) => (
 export function createHandlers(chat: Chat, win: () => BrowserWindow | null) {
   const { store, crew, members, workflows, wiki, tasks } = chat;
   return {
+    // A report or a card that comes while the user is in another window would otherwise wait unseen
+    'window.notify': handle(z.object({ title: z.string(), body: z.string() }), (a) => {
+      const w = win();
+      if (!w || w.isFocused() || !Notification.isSupported()) return;
+      const note = new Notification({
+        title: a.title,
+        body: a.body.length > 200 ? `${a.body.slice(0, 200)}…` : a.body,
+      });
+      note.on('click', () => {
+        w.show();
+        w.focus();
+      });
+      note.show();
+    }),
     'projects.list': handle(z.undefined(), () => store.listProjects()),
     'projects.open': handle(z.undefined(), async () => {
       const w = win();
@@ -31,7 +46,7 @@ export function createHandlers(chat: Chat, win: () => BrowserWindow | null) {
     ),
     'projects.impact': handle(z.object({ projectId: id }), (a) => store.impact(a)),
     'projects.remove': handle(z.object({ projectId: id }), (a) => chat.removeProject(a.projectId)),
-    // 프로젝트 → 세션 → 에이전트 세션
+    // Projects, then their sessions, then each session's agent sessions
     'tree.list': handle(z.undefined(), () =>
       store.listProjects().map((project) => ({
         project,
@@ -39,7 +54,7 @@ export function createHandlers(chat: Chat, win: () => BrowserWindow | null) {
           session,
           agents: store.listAgentTree(session.id).map((a) => {
             const m = store.readMemberById(a.memberId);
-            return { ...a, role: crew.defOf(m).role, nickname: m.nickname };
+            return { ...a, role: crew.defOf(m).role, nickname: crew.nicknameOf(m) };
           }),
         })),
       })),
@@ -56,10 +71,9 @@ export function createHandlers(chat: Chat, win: () => BrowserWindow | null) {
       store.writeSetting('last', JSON.stringify(a)),
     ),
     'messages.list': handle(z.object({ sessionId: id }), (a) => store.listMessages(a.sessionId)),
-    // A window coming back to a session learns whether 통역 is still answering there
+    // A window coming back to a session learns whether the interpreter is still answering there
     'messages.busy': handle(z.object({ sessionId: id }), (a) => !!chat.runs.live(a.sessionId)),
-    // The reply arrives through the change feed; the call only hands the message over
-    // Words, pictures, or both; Claude takes a picture up to about 5MB
+    // Words, pictures up to about 5MB as Claude takes them, or both; the reply comes through the change feed
     'messages.send': handle(
       z
         .object({
@@ -75,7 +89,7 @@ export function createHandlers(chat: Chat, win: () => BrowserWindow | null) {
         void chat.send(a.sessionId, a.text, a.images);
       },
     ),
-    // Stops only 통역's answer; tasks it started go on and have their own stop
+    // Stops only the interpreter's answer; tasks it started go on and have their own stop
     'messages.stop': handle(z.object({ sessionId: id }), (a) => {
       void chat.runs.live(a.sessionId)?.stop();
     }),
@@ -123,6 +137,11 @@ export function createHandlers(chat: Chat, win: () => BrowserWindow | null) {
     'questions.answer': handle(z.object({ id, choice: z.string().min(1) }), (a) =>
       chat.questions.answer(a.id, a.choice),
     ),
+    'crew.names': handle(Names, (a) => {
+      crew.useNames(a);
+      chat.emit('changed', { topic: 'members' });
+      chat.emit('changed', { topic: 'workflows' });
+    }),
     'members.list': handle(z.object({ projectId: id }), (a) => crew.describe(store.listMembers(a.projectId))),
     'members.update': handle(
       z.object({

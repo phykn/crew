@@ -30,7 +30,8 @@ import { Checkbox, Input, TextArea } from '../ui/Field';
 import { Segmented } from '../ui/Segmented';
 import { Toolbar, ToolbarEnd } from '../ui/Toolbar';
 import { HIDE_MARK } from './WikiGraph';
-import { josa } from '../../korean';
+import { josa } from '../korean';
+import { say } from '../locale';
 
 type Read = Awaited<ReturnType<typeof call<'workflows.read'>>>;
 type StepNode = Node<{ step: Step; member?: CrewMember; back?: string }, 'step'>;
@@ -194,7 +195,7 @@ export function WorkflowView({
       setDirty(false);
       const read = await call('workflows.read', { projectId: project.id, kind });
       setW(read);
-    } else setNote({ ok: false, text: r.problems.join(' / ') });
+    } else setNote({ ok: false, text: r.problems.map(say).join(' / ') });
   }
 
   const step = steps.find((s) => s.id === picked);

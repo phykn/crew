@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test, vi } from 'vitest';
-import { handback, openChat, reply, type Turn } from '../../support';
+import { handback, openChat, reply, type Turn, words } from '../../support';
 
 const git = (dir: string, ...args: string[]) =>
   execFileSync('git', args, {
@@ -73,7 +73,7 @@ test(
     // The user's own edit is not the task's, so it has no diff to offer
     expect(await chat.tasks.change(task.id, versions[0].id, 'notes.md')).toBeNull();
     // The log line of the step that made it names the version, which is how the window offers the diff
-    const made = store.listEvents(s.id).find((e) => e.text.startsWith('코드 작성: 코드 작성 완료'))!;
+    const made = store.listEvents(s.id).find((e) => words(e).startsWith('코드 작성: 코드 작성 완료'))!;
     expect(JSON.parse(made.detail!).version).toBe(versions[0].id);
 
     expect(state()).toEqual(before);
@@ -95,6 +95,6 @@ test('outside a git repository the task runs as before and offers no diff', asyn
   await vi.waitFor(() => expect(store.readTask(task.id).status).toBe('done'), { timeout: 10_000 });
   expect(store.latestVersion(task.id)!.files).toEqual(['search.js']);
   expect(await chat.tasks.versions(task.id)).toEqual([]);
-  const made = store.listEvents(s.id).find((e) => e.text.startsWith('코드 작성: 코드 작성 완료'))!;
+  const made = store.listEvents(s.id).find((e) => words(e).startsWith('코드 작성: 코드 작성 완료'))!;
   expect(JSON.parse(made.detail!).version).toBeUndefined();
 });

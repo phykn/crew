@@ -7,7 +7,6 @@ import { toolsOf } from '../domain/crew';
 import { guardMember } from './guard';
 import { projectWrites, type Policy } from '../domain/policy';
 import { Locks } from './locks';
-import { josa } from '../../korean';
 import { usage } from '../domain/usage';
 
 type RunOptions = {
@@ -24,7 +23,7 @@ type Active = { run: AgentRun; memberId: number; sessionId: number; taskId: numb
 
 // Every member run: one at a time per member and session, each behind its own guard
 export class Runs {
-  // Every run at work now: who is busy, what a task has running, and 통역's live run are all read from it
+  // Every run at work now: who is busy, what a task has running, and the interpreter's live run are all read from it
   active = new Set<Active>();
   // One lane per agent session: a member works on one task at a time and the rest wait their turn
   lanes = new Map<number, Promise<unknown>>();
@@ -43,7 +42,7 @@ export class Runs {
     return [...this.active].filter((a) => a.taskId === taskId).map((a) => a.run);
   }
 
-  // 통역's run in this session, so what the user adds mid-answer joins it
+  // The interpreter's run in this session, so what the user adds mid-answer joins it
   live(sessionId: number) {
     return [...this.active].find((a) => a.secretary && a.sessionId === sessionId)?.run;
   }
@@ -144,13 +143,13 @@ export class Runs {
     });
     const runId = store.startRun(agentSession.id, model, null, true);
     const out = await run.run(
-      `[Side question from the user, through 통역] You are answering in a copy of your session: nothing you do here reaches your work, and you cannot change files. Answer in a few Korean sentences.\n\n${question}`,
+      `[Side question from the user, through the interpreter] You are answering in a copy of your session: nothing you do here reaches your work, and you cannot change files. Answer in a few Korean sentences.\n\n${question}`,
     );
     store.finishRun(runId, out);
     return out;
   }
 
-  // What a member's earlier Claude session knew, for a fresh one: the conversation for 통역, its own handbacks for the rest
+  // What a member's earlier Claude session knew, for a fresh one: the conversation for the interpreter, its own handbacks for the rest
   handoff(member: Member, sessionId: number) {
     const { store } = this.chat;
     const lines =
@@ -158,7 +157,9 @@ export class Runs {
         ? store
             .listMessages(sessionId)
             .slice(-30)
-            .map((m) => `${m.author === 'user' ? 'User' : '통역'}: ${m.text}`)
+            // A card or a failed answer is the app's own line, not the conversation
+            .filter((m) => m.text)
+            .map((m) => `${m.author === 'user' ? 'User' : 'Interpreter'}: ${m.text}`)
         : store
             .listTasks(sessionId)
             .flatMap((t) => store.listStepRuns(t.id).filter((r) => r.memberId === member.id && r.handback))
@@ -203,7 +204,8 @@ export class Runs {
       ? (tool: string, input: Record<string, unknown>) => this.reserve(project, taskId, policy(), tool, input)
       : (tool: string, input: Record<string, unknown>) => this.checkFree(project, policy(), tool, input);
     const { store, questions } = this.chat;
-    return guardMember({ store, questions, policy, sessionId, taskId, member, reserve });
+    const nickname = this.chat.crew.nicknameOf(member);
+    return guardMember({ store, questions, policy, sessionId, taskId, member, nickname, reserve });
   }
 
   locksOf(project: Project) {
@@ -229,7 +231,7 @@ export class Runs {
         taskId,
         memberId: null,
         kind: 'waiting',
-        text: `쓰기 예약 대기: 업무 ${josa(`#${holders.join(', #')}`, '이')} 같은 범위를 쓰는 중`,
+        say: { code: 'write.wait', tasks: holders },
         detail: JSON.stringify({ paths }),
       });
       emit('changed', { topic: 'tasks', sessionId: task.sessionId });
@@ -244,13 +246,13 @@ export class Runs {
       taskId,
       memberId: null,
       kind: 'stale',
-      text: `다시 읽어야 할 파일: ${stale.join(', ')}`,
+      say: { code: 'write.stale', files: stale },
       detail: null,
     });
     return `Not written: ${stale.join(', ')} changed since this task last read it (another task or the user changed it while you waited). Read it again and redo your change on top of the current content.`;
   }
 
-  // A write outside any task, such as 통역's own small edit, waits for no one but never lands on a file a task is writing
+  // A write outside any task, such as the interpreter's own small edit, waits for no one but never lands on a file a task is writing
   async checkFree(project: Project, policy: Policy, tool: string, input: Record<string, unknown>) {
     const paths = projectWrites(policy, tool, input).map((p) => this.chat.files.realPath(p));
     const holders = paths.length ? this.locksOf(project).blockers(0, paths) : [];

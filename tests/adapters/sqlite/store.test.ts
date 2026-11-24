@@ -16,17 +16,41 @@ test('a record from before the rebuild opens with 비서 as 통역, without the 
     })),
   );
   const coder = store.readMember(p.id, 'coder');
-  store.writeConfig(coder.id, { skills: ['code', 'check'], tools: ['read'] }, 'test');
+  store.writeConfig(coder.id, { skills: ['code', 'check'], tools: ['read'] }, { code: 'test' });
   const advisor = store.readMember(p.id, 'advisor');
   store.startRun(store.openAgentSession(s.id, advisor.id).id, 'opus');
-  store.addEvent({ sessionId: s.id, taskId: null, memberId: advisor.id, kind: 'note', text: '계획', detail: null });
+  // A line from before codes, with its words in text
+  store.db
+    .prepare("INSERT INTO events (session_id, member_id, kind, text, at) VALUES (?, ?, 'note', '계획', '')")
+    .run(s.id, advisor.id);
   const version = (store.db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
-  store.db.exec(`CREATE TABLE skills (project_id INTEGER, name TEXT); PRAGMA user_version = ${version - 2}`);
+  store.db.exec(
+    `CREATE TABLE skills (project_id INTEGER, name TEXT); ALTER TABLE events DROP COLUMN say; ALTER TABLE questions DROP COLUMN say; ALTER TABLE messages DROP COLUMN say; PRAGMA user_version = ${version - 4}`,
+  );
 
   const after = new Store(db);
   expect(after.listMembers(p.id).map((m) => m.key)).toEqual(['interpreter', 'coder']);
   expect(after.readMemberById(coder.id).config).toEqual({ tools: ['read'] });
   expect(after.listEvents(s.id).map((e) => [e.text, e.memberId])).toEqual([['계획', null]]);
+});
+
+test('a card answered before codes opens with its answer as a value the window words', () => {
+  const { store, project, db } = openScratch();
+  const s = store.createSession(store.addProject(project).id);
+  store.db.exec('ALTER TABLE questions DROP COLUMN say; ALTER TABLE messages DROP COLUMN say;');
+  const add = store.db.prepare(
+    "INSERT INTO questions (session_id, kind, prompt, options, answer, created_at) VALUES (?, ?, '?', ?, ?, '')",
+  );
+  add.run(s.id, 'approval', '["거절","허용"]', '허용');
+  add.run(s.id, 'choice', '["#1 거절 처리","#2"]', '취소');
+  const version = (store.db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
+  store.db.exec(`PRAGMA user_version = ${version - 1}`);
+
+  const after = new Store(db);
+  expect([1, 2].map((id) => [after.readQuestion(id).options, after.readQuestion(id).answer])).toEqual([
+    [['refuse', 'allow'], 'allow'],
+    [['#1 거절 처리', '#2'], 'cancel'],
+  ]);
 });
 
 test('a record from when 도우미 was shipped opens without it, keeping the log lines and tasks', () => {
@@ -46,23 +70,20 @@ test('a record from when 도우미 was shipped opens without it, keeping the log
     request: 'r',
     workflow: { kind: 'research', label: '조사', use: '', steps: [] } as never,
   });
-  store.addEvent({
-    sessionId: s.id,
-    taskId: task.id,
-    memberId: helper.id,
-    kind: 'note',
-    text: '도우미가 열었습니다',
-    detail: null,
-  });
+  store.db
+    .prepare(
+      "INSERT INTO events (session_id, task_id, member_id, kind, text, at) VALUES (?, ?, ?, 'note', '도우미가 열었습니다', '')",
+    )
+    .run(s.id, task.id, helper.id);
   const version = (store.db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
   store.db.exec(
-    `CREATE TABLE skills (project_id INTEGER, name TEXT); ALTER TABLE runs DROP COLUMN side; DROP TABLE message_images; ALTER TABLE messages DROP COLUMN task_id; PRAGMA user_version = ${version - 7}`,
+    `CREATE TABLE skills (project_id INTEGER, name TEXT); ALTER TABLE runs DROP COLUMN side; DROP TABLE message_images; ALTER TABLE messages DROP COLUMN task_id; ALTER TABLE events DROP COLUMN say; ALTER TABLE questions DROP COLUMN say; ALTER TABLE messages DROP COLUMN say; PRAGMA user_version = ${version - 9}`,
   );
 
   const after = new Store(db);
   expect(after.listMembers(p.id).map((m) => m.key)).toEqual(['interpreter']);
   expect(after.db.prepare('SELECT COUNT(*) AS n FROM runs').get()).toEqual({ n: 0 });
-  expect(after.listEvents(s.id).map((e) => [e.text, e.memberId])).toEqual([['도우미가 열었습니다', null]]);
+  expect(after.listEvents(s.id).map((e) => [e.text, e.say, e.memberId])).toEqual([['도우미가 열었습니다', null, null]]);
   expect(after.readTask(task.id).title).toBe('조사');
 });
 

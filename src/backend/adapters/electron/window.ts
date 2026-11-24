@@ -1,4 +1,4 @@
-import { BrowserWindow, Notification, powerSaveBlocker, protocol } from 'electron';
+import { BrowserWindow, powerSaveBlocker, protocol } from 'electron';
 import path from 'node:path';
 import type { Feed } from '../../app/ports';
 import type { Store } from '../sqlite/store';
@@ -30,17 +30,6 @@ export function createWindow() {
   else win.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`), { hash });
 }
 
-// A report or a card that comes while the user is in another window would otherwise wait unseen
-function notify({ text }: { text: string }) {
-  if (!win || win.isFocused() || !Notification.isSupported()) return;
-  const note = new Notification({ title: '통역', body: text.length > 200 ? `${text.slice(0, 200)}…` : text });
-  note.on('click', () => {
-    win?.show();
-    win?.focus();
-  });
-  note.show();
-}
-
 // A sleeping computer would cut off the crew mid-step; the screen may still turn off
 let awake: number | null = null;
 function keepAwake(busy: boolean) {
@@ -68,9 +57,8 @@ export function serveImages(store: Store) {
   });
 }
 
-// Where the app's feeds go: system notifications, the sleep blocker, or the window
+// Where the app's feeds go: the sleep blocker, or the window, which words a notification and hands it back to show
 export const toWindow: Feed = (channel, payload) => {
-  if (channel === 'notify') notify(payload as { text: string });
-  else if (channel === 'busy') keepAwake(payload as boolean);
+  if (channel === 'busy') keepAwake(payload as boolean);
   else win?.webContents.send(channel, payload);
 };

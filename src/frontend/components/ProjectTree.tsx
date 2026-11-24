@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { josa } from '../../korean';
+import { josa } from '../korean';
 import { call } from '../api';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';

@@ -4,7 +4,7 @@ import type { Chat } from './chat';
 const IN_USE = 'connection';
 const find = (id: ProviderId) => PROVIDERS.find((p) => p.id === id)!;
 
-// The connections the 연결 tab shows, for the whole app: each its own service, and one of them the crew runs on
+// The connections the window's connections tab shows, for the whole app: each its own service, and one of them the crew runs on
 export class Connections {
   constructor(private chat: Chat) {}
 
@@ -29,13 +29,13 @@ export class Connections {
   }
 
   use(id: ProviderId) {
-    if ('key' in find(id) && !this.chat.secrets.read(keyOf(id))) throw new Error('API 키를 먼저 저장하세요');
+    if ('key' in find(id) && !this.chat.secrets.read(keyOf(id))) throw new Error('save the API key first');
     this.chat.store.writeSetting(IN_USE, id);
     this.chat.emit('changed', { topic: 'connections' });
   }
 
   saveKey(id: ProviderId, key: string) {
-    if (!('key' in find(id))) throw new Error(`${find(id).label}은 키 없이 연결합니다`);
+    if (!('key' in find(id))) throw new Error(`${id} connects without a key`);
     this.chat.secrets.write(keyOf(id), key);
     this.chat.emit('changed', { topic: 'connections' });
   }
@@ -51,6 +51,6 @@ export class Connections {
   async check(id: ProviderId) {
     if (!('key' in find(id))) return this.chat.agent.check(null);
     const key = this.chat.secrets.read(keyOf(id));
-    return key ? this.chat.agent.check(key) : ({ ok: false, error: '저장한 키가 없습니다' } as const);
+    return key ? this.chat.agent.check(key) : ({ ok: false, error: { code: 'account.noKey' } } as const);
   }
 }

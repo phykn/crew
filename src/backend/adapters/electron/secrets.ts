@@ -11,7 +11,7 @@ export class SafeSecrets implements Secrets {
   }
 
   write(name: string, value: string) {
-    if (!safeStorage.isEncryptionAvailable()) throw new Error('이 컴퓨터에서는 키를 암호화해 저장할 수 없습니다');
+    if (!safeStorage.isEncryptionAvailable()) throw new Error('this computer cannot encrypt a key to save it');
     this.settings.writeSetting(`secret.${name}`, safeStorage.encryptString(value).toString('base64'));
   }
 

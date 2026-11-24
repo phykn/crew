@@ -1,6 +1,7 @@
 import { expect, test, vi } from 'vitest';
 import { campState } from '../../../src/backend/adapters/electron/camp';
 import { createWalkers } from '../../../src/frontend/camp/walkers.js';
+import { CAMP_SCENES, doing } from '../../../src/frontend/locale';
 import { handback, openChat, reply, type Turn } from '../../support';
 
 const staff = (keys: string[], working: Record<string, string>) =>
@@ -28,8 +29,9 @@ test('the record plays in the camp: assignment, work, request, waiting, failure,
   const feed = (x: ReturnType<typeof createWalkers>, team = keys) => {
     const st = campState(chat, s.id);
     x.applyStaff(staff(team, st.working));
-    x.applyNow(st.working);
-    x.applyLog(st.log);
+    // Worded as the window words them
+    x.applyNow(Object.fromEntries(Object.entries(st.working).map(([k, v]) => [k, doing(v)])));
+    x.applyLog(st.log.map((l) => ({ ...l, text: CAMP_SCENES[l.scene] })));
     return st;
   };
   feed(w);
@@ -37,11 +39,11 @@ test('the record plays in the camp: assignment, work, request, waiting, failure,
   chat.tasks.start(s.id, 'code', '검색', 'r');
   await vi.waitFor(() => expect(fake.calls.some((c) => c.role === '지휘')).toBe(true));
   const st = feed(w);
-  expect(st.working.conductor).toBe('계획 중');
+  expect(st.working.conductor).toBe('계획');
   // 통역 walks over to hand the work out
   expect(w.people.get('interpreter')!.path.at(-1)?.say?.text).toContain('업무 배정');
 
-  const q = chat.questions.choose(s.id, '?', ['a', 'b']);
+  const q = chat.questions.choose(s.id, { code: 'card.whichTask' }, ['a', 'b']);
   expect(feed(w).working.interpreter).toBe('?');
   chat.questions.answer(store.listMessages(s.id).at(-1)!.question!.id, 'a');
   await q;
@@ -51,7 +53,7 @@ test('the record plays in the camp: assignment, work, request, waiting, failure,
     taskId: null,
     memberId: store.readMember(p.id, 'conductor').id,
     kind: 'request',
-    text: '지휘 → 문서 검토: 이름?',
+    say: { code: 'request', from: 'conductor', to: 'proofreader', text: '이름?' },
     detail: JSON.stringify({ requestId: 1, to: store.readMember(p.id, 'proofreader').id }),
   });
   feed(w);
@@ -59,10 +61,10 @@ test('the record plays in the camp: assignment, work, request, waiting, failure,
 
   release();
   await vi.waitFor(() => expect(['failed', 'fixing', 'running', 'reviewing']).toContain(store.readTask(1).status));
-  await vi.waitFor(() => expect(campState(chat, s.id).log.some((l) => l.text === '수정 요청')).toBe(true));
+  await vi.waitFor(() => expect(campState(chat, s.id).log.some((l) => l.scene === 'rework')).toBe(true));
   feed(w);
   expect(said(w, 'reviewer')).toBe('수정 요청');
-  store.writeTaskStatus(1, 'done', '', '검색 업무 완료');
+  store.writeTaskStatus(1, 'done', '', { code: 'task.done', title: '검색' });
   feed(w);
   expect(said(w, 'interpreter')).toBe('완료 보고');
 
@@ -92,7 +94,7 @@ test('scenes come from what a line records, not its words: a passing step that m
     taskId: null,
     memberId: advisor.id,
     kind: 'step',
-    text: '지휘: 계획 완료 — 실패 케이스 시험 추가',
+    say: { code: 'step.done', role: 'conductor', step: '계획', verdict: 'pass', summary: '실패 케이스 시험 추가' },
     detail: JSON.stringify(hb),
   });
   store.addEvent({
@@ -100,8 +102,8 @@ test('scenes come from what a line records, not its words: a passing step that m
     taskId: null,
     memberId: advisor.id,
     kind: 'request',
-    text: '지휘 → 문서 작성: 용어집 있나요?',
+    say: { code: 'request', from: 'conductor', to: 'writer', text: '용어집 있나요?' },
     detail: JSON.stringify({ requestId: 1, to: writer.id }),
   });
-  expect(campState(chat, s.id).log.map((l) => [l.who, l.to, l.text])).toEqual([['conductor', 'writer', '요청 메모']]);
+  expect(campState(chat, s.id).log.map((l) => [l.who, l.to, l.scene])).toEqual([['conductor', 'writer', 'note']]);
 });

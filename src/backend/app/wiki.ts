@@ -48,8 +48,7 @@ export class Wiki {
     return this.records.listChanges(projectId);
   }
 
-  // Documents someone else created since a run began, on any of the same files: the run's prompt listed the wiki as it
-  // stood at its start, so members working side by side would each write their own copy of one topic
+  // A run's prompt lists the wiki as it began, so without this, members side by side would each write their own copy of a topic
   createdSince(projectId: number, since: string, author: string, files: string[]) {
     return this.timeline(projectId)
       .filter(
@@ -66,8 +65,7 @@ export class Wiki {
   // The lines a change added and removed, for the timeline's detail; another project's change is as missing as none
   change(id: number, projectId?: number) {
     const row = this.records.readChange(id);
-    if (!row || (projectId !== undefined && row.projectId !== projectId))
-      throw new Error(`변경 기록 #${id}이 없습니다`);
+    if (!row || (projectId !== undefined && row.projectId !== projectId)) throw new Error(`There is no change #${id}`);
     const parts = diffLines(row.before, row.after);
     const lines = (p: (typeof parts)[number]) => p.value.split('\n').filter(Boolean);
     return {

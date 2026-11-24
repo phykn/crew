@@ -2,6 +2,9 @@ import { _electron as electron, type ElectronApplication } from '@playwright/tes
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { ROLE_NAMES } from '../src/frontend/locale';
+
+const KEY_OF = Object.fromEntries(Object.entries(ROLE_NAMES).map(([key, role]) => [role, key]));
 
 // A scratch record and a scratch project folder per test, so the real app data is never touched
 export function makeScratch(files: Record<string, string> = {}) {
@@ -21,7 +24,11 @@ export async function launchApp(
   const env = { ...process.env, CREW_DB: db, ...more } as Record<string, string>;
   if (script) {
     env.CREW_SCRIPT = path.join(path.dirname(db), 'script.json');
-    fs.writeFileSync(env.CREW_SCRIPT, JSON.stringify(script));
+    // Scripts name members as the screen does; the app reads them by key
+    const byKey = Object.fromEntries(
+      Object.entries(script as Record<string, unknown>).map(([role, turns]) => [KEY_OF[role] ?? role, turns]),
+    );
+    fs.writeFileSync(env.CREW_SCRIPT, JSON.stringify(byKey));
   }
   // Set by editors that host Node in Electron; it would start Electron as plain Node
   delete env.ELECTRON_RUN_AS_NODE;

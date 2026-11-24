@@ -5,7 +5,7 @@ declare global {
   interface Window {
     crew: {
       call: (name: string, args?: unknown) => Promise<unknown>;
-      on: (channel: 'changed' | 'stream' | 'navigate', fn: (payload: unknown) => void) => () => void;
+      on: (channel: 'changed' | 'stream' | 'navigate' | 'notify', fn: (payload: unknown) => void) => () => void;
     };
   }
 }

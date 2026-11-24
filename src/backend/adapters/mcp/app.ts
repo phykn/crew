@@ -2,11 +2,11 @@ import { z } from 'zod';
 import type { Sdk } from '../claude/agent';
 import { text } from './text';
 import type { Chat } from '../../app/chat';
-import type { Member, Task } from '../../domain/records';
+import type { Task } from '../../domain/records';
 import { KEPT } from '../../domain/crew';
 import { ALLOW, REFUSE } from '../../domain/answers';
-import { josa, particle } from '../../../korean';
-import { MODE_LABELS, MODELS, MODES } from '../../../shared';
+import { problemText } from '../../domain/workflow';
+import { MODELS, MODES, type Say } from '../../../shared';
 import appHelp from './help/app.md?raw';
 import crewHelp from './help/crew.md?raw';
 import tasksHelp from './help/tasks.md?raw';
@@ -14,7 +14,7 @@ import workflowHelp from './help/workflow.md?raw';
 
 type Action = {
   id: string;
-  // What the user would call it, in Korean
+  // What it does, for the interpreter to find
   label: string;
   // read changes nothing; act changes the record or the window
   kind: 'read' | 'act';
@@ -22,42 +22,48 @@ type Action = {
   // The window calls this action does, so a new call in the window shows up as missing here
   ui: string[];
   // Set for what changes who may do what or deletes something: the user approves it on a card first, unless it returns null
-  confirm?: (a: never) => string | null;
+  confirm?: (a: never) => Say | null;
   run: (a: never) => unknown;
 };
 const action = <S extends z.ZodObject>(
   a: Omit<Action, 'args' | 'run' | 'confirm'> & {
     args: S;
-    confirm?: (a: z.infer<S>) => string | null;
+    confirm?: (a: z.infer<S>) => Say | null;
     run: (a: z.infer<S>) => unknown;
   },
 ) => a as unknown as Action;
 
-// Window calls 통역 does not get, each with why
+// The log lines that say why a task stopped
+const STOPS = ['task.fail', 'task.stopped', 'task.limit', 'task.restarted', 'step.failed'];
+
+// Window calls the interpreter does not get, each with why
 export const OFF_CATALOG: Record<string, string> = {
-  'projects.list': '통역 sees only its own project',
+  'window.notify': 'window state, not an action',
+  'projects.list': 'the interpreter sees only its own project',
   'projects.open': 'opening a folder needs the native dialog',
   'projects.impact': 'removing the project the crew works in is for the user',
   'projects.remove': 'removing the project the crew works in is for the user',
-  'sessions.create': 'a fresh session is the user’s to start, with /clear or 새 세션',
+  'sessions.create': 'a fresh session is the user’s to start, with /clear or New session',
   'last.read': 'window state, not an action',
-  'tasks.versions': 'feeds the file links under a report; 통역 reads a task’s files from its log',
+  'tasks.versions': 'feeds the file links under a report; the interpreter reads a task’s files from its log',
   'last.write': 'window state, not an action',
-  'messages.list': '통역 is the conversation itself',
-  'messages.busy': '통역 is the conversation itself',
-  'messages.send': '통역 is the conversation itself',
-  'messages.stop': '통역 is the conversation itself',
+  'messages.list': 'the interpreter is the conversation itself',
+  'messages.busy': 'the interpreter is the conversation itself',
+  'messages.send': 'the interpreter is the conversation itself',
+  'messages.stop': 'the interpreter is the conversation itself',
   'members.reset': 'a reset also drops permission changes, which only the user makes in the window',
   'members.setPermissions': 'only the user changes permissions, skills, and MCP servers, in the window',
   'questions.answer': 'only the user answers cards',
   'camp.state': 'the camp is drawn from the record, not acted on',
-  'workflows.save': '통역 saves workflows with change_workflow, filing the reason',
-  'connections.list': 'keys and logins are the user’s to manage in the 연결 tab',
-  'connections.saveKey': 'keys and logins are the user’s to manage in the 연결 tab',
-  'connections.removeKey': 'keys and logins are the user’s to manage in the 연결 tab',
-  'connections.check': 'keys and logins are the user’s to manage in the 연결 tab',
-  'connections.use': 'which service the crew runs on, and so what it costs, is the user’s to pick in the 연결 tab',
-  'changes.file': 'a diff opens from a file the user clicks in the log; 통역 reads files itself',
+  'workflows.save': 'the interpreter saves workflows with change_workflow, filing the reason',
+  'connections.list': 'keys and logins are the user’s to manage in the Connections tab',
+  'connections.saveKey': 'keys and logins are the user’s to manage in the Connections tab',
+  'connections.removeKey': 'keys and logins are the user’s to manage in the Connections tab',
+  'connections.check': 'keys and logins are the user’s to manage in the Connections tab',
+  'crew.names': 'the window hands over the names it shows when it starts; there is nothing to change by talk',
+  'connections.use':
+    'which service the crew runs on, and so what it costs, is the user’s to pick in the Connections tab',
+  'changes.file': 'a diff opens from a file the user clicks in the log; the interpreter reads files itself',
 };
 
 // Every action the user can take in the window, within this session's project
@@ -76,47 +82,43 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
     }
   };
   const ownSession = (id: number) => {
-    if (!store.listSessions(projectId).some((s) => s.id === id))
-      throw new Error(`세션 ${josa(`#${id}`, '은')} 이 프로젝트에 없습니다.`);
+    if (!store.listSessions(projectId).some((s) => s.id === id)) throw new Error(`This project has no session #${id}.`);
   };
   // Checked before the card too, so the user is never asked about a session that cannot go
   const deletable = (id: number) => {
     ownSession(id);
-    if (id === sessionId) throw new Error('지금 대화 중인 세션은 지울 수 없습니다.');
+    if (id === sessionId) throw new Error('The session this conversation is in cannot be deleted.');
   };
   const doc = (title: string) => {
     const d = wiki.find(projectId, title);
-    if (!d) throw new Error(`위키에 "${title}" 문서가 없습니다.`);
+    if (!d) throw new Error(`The wiki has no document "${title}".`);
     return d;
   };
   const member = (name: string) => {
     const m = members.find(projectId, name);
-    if (!m) throw new Error(`${josa(name, '은')} 이 프로젝트 크루에 없습니다.`);
+    if (!m) throw new Error(`${name} is not in this project's crew.`);
     return m;
   };
-  // The particle follows the role, since the bracket after it hides the word's last sound from josa
-  const named = (m: Member, kind?: Parameters<typeof particle>[1]) =>
-    `${crew.defOf(m).role}(${m.nickname})${kind ? particle(crew.defOf(m).role, kind) : ''}`;
   const task = (id: number) => {
     const t = ownTask(id);
-    if (!t) throw new Error(`업무 ${josa(`#${id}`, '은')} 이 프로젝트에 없습니다.`);
+    if (!t) throw new Error(`This project has no task #${id}.`);
     return t;
   };
   const describe = (t: Task) => {
     const stop = store
       .listEvents(t.sessionId)
-      .filter((e) => e.taskId === t.id && /실패|중단|멈/.test(e.text))
-      .map((e) => e.text);
+      .filter((e) => e.taskId === t.id && STOPS.includes(e.say?.code ?? ''))
+      .map((e) => e.say);
     return { id: t.id, title: t.title, status: t.status, stage: t.stage, updatedAt: t.updatedAt, stopReasons: stop };
   };
   const go = (view: Record<string, unknown>) => chat.emit('navigate', { sessionId, ...view });
   const kinds = chat.workflows.shipped.map((w) => w.kind) as [string, ...string[]];
-  const secretary = { memberId: members.find(projectId, 'interpreter')?.id ?? null, name: '통역' };
+  const secretary = { memberId: members.find(projectId, 'interpreter')?.id ?? null, name: 'interpreter' };
 
   const actions: Action[] = [
     action({
       id: 'help',
-      label: '도움말 읽기',
+      label: 'Read the help',
       kind: 'read',
       args: z.object({}),
       ui: [],
@@ -124,7 +126,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
     }),
     action({
       id: 'tasks.find',
-      label: '업무 찾기',
+      label: 'Find a task',
       kind: 'read',
       args: z.object({
         query: z.string().default(''),
@@ -142,13 +144,13 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
           .sort((x, y) => y.id - x.id);
         if (all.length <= 1) return all.map(describe);
         const label = (t: Task) => `#${t.id} ${t.title} (${t.status})`;
-        const choice = await chat.questions.choose(sessionId, '어느 업무를 말씀하시나요?', all.map(label));
+        const choice = await chat.questions.choose(sessionId, { code: 'card.whichTask' }, all.map(label));
         return [describe(all.find((t) => label(t) === choice)!)];
       },
     }),
     action({
       id: 'tasks.log',
-      label: '업무 기록 읽기',
+      label: 'Read a task log',
       kind: 'read',
       args: z.object({ task_id }),
       ui: ['events.list'],
@@ -162,7 +164,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
     }),
     action({
       id: 'usage',
-      label: '사용량 보기',
+      label: 'Read usage',
       kind: 'read',
       args: z.object({}),
       ui: ['usage.list'],
@@ -170,7 +172,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
     }),
     action({
       id: 'sessions.list',
-      label: '세션 목록 보기',
+      label: 'List sessions',
       kind: 'read',
       args: z.object({}),
       ui: ['sessions.list', 'tree.list'],
@@ -178,7 +180,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
     }),
     action({
       id: 'crew.list',
-      label: '크루 목록 보기',
+      label: 'List the crew',
       kind: 'read',
       args: z.object({}),
       ui: ['members.list'],
@@ -189,7 +191,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
     }),
     action({
       id: 'crew.permissions',
-      label: '담당자 권한과 정의 보기',
+      label: 'Read a member’s permissions and definition',
       kind: 'read',
       args: z.object({ role }),
       ui: ['members.permissions', 'members.definition'],
@@ -205,7 +207,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
     }),
     action({
       id: 'mode.read',
-      label: '승인 모드 보기',
+      label: 'Read the approval mode',
       kind: 'read',
       args: z.object({}),
       ui: [],
@@ -213,7 +215,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
     }),
     action({
       id: 'wiki.list',
-      label: '위키 문서 보기',
+      label: 'Read a wiki document',
       kind: 'read',
       args: z.object({}),
       ui: ['wiki.list', 'wiki.graph'],
@@ -221,7 +223,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
     }),
     action({
       id: 'wiki.timeline',
-      label: '위키 변경 기록 보기',
+      label: 'Read the wiki change history',
       kind: 'read',
       args: z.object({
         change_id: z.number().int().optional().describe('One change, to read what it added and removed'),
@@ -231,7 +233,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
     }),
     action({
       id: 'memories',
-      label: '담당자 기억 보기',
+      label: 'Read a member’s memory',
       kind: 'read',
       args: z.object({ role: role.optional() }),
       ui: ['memories.list'],
@@ -239,7 +241,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
     }),
     action({
       id: 'workflows.read',
-      label: '워크플로우 보기',
+      label: 'Read a workflow',
       kind: 'read',
       args: z.object({ kind: z.enum(kinds).optional() }),
       ui: ['workflows.kinds', 'workflows.read'],
@@ -250,108 +252,108 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
     }),
     action({
       id: 'open.log',
-      label: '로그 열기',
+      label: 'Open the log',
       kind: 'act',
       args: z.object({ task_id: task_id.optional() }),
       ui: [],
       run: (a) => {
         const t = a.task_id === undefined ? null : task(a.task_id);
         go({ view: 'log', taskId: t?.id ?? null });
-        return t ? `업무 #${t.id}의 로그를 열었습니다.` : '로그를 열었습니다.';
+        return t ? `Opened the log of task #${t.id}.` : 'Opened the log.';
       },
     }),
     action({
       id: 'open.wiki',
-      label: '위키 변경 기록 열기',
+      label: 'Open the wiki change timeline',
       kind: 'act',
       args: z.object({}),
       ui: [],
       run: () => {
         go({ view: 'wiki' });
-        return '위키 변경 타임라인을 열었습니다.';
+        return 'Opened the wiki change timeline.';
       },
     }),
     action({
       id: 'open.workflow',
-      label: '워크플로우 편집기 열기',
+      label: 'Open the workflow editor',
       kind: 'act',
       args: z.object({ kind: z.enum(kinds).default('code') }),
       ui: [],
       run: (a) => {
         go({ view: 'workflow', kind: a.kind });
-        return `${a.kind} 워크플로우 편집 화면을 열었습니다.`;
+        return `Opened the ${a.kind} workflow editor.`;
       },
     }),
     action({
       id: 'tasks.stop',
-      label: '업무 중단',
+      label: 'Stop a task',
       kind: 'act',
       args: z.object({ task_id }),
       ui: ['tasks.stop'],
       run: (a) => {
         const t = task(a.task_id);
         return chat.tasks.stop(t.id)
-          ? `업무 ${josa(`#${t.id}`, '을')} 중단합니다.`
-          : `업무 ${josa(`#${t.id}`, '은')} ${t.status} 상태라 중단할 수 없습니다.`;
+          ? `Stopping task #${t.id}.`
+          : `Task #${t.id} is ${t.status} and cannot be stopped.`;
       },
     }),
     action({
       id: 'tasks.resume',
-      label: '업무 재개',
+      label: 'Resume a task',
       kind: 'act',
       args: z.object({ task_id }),
       ui: ['tasks.resume'],
       run: (a) => {
         const t = task(a.task_id);
         return chat.tasks.resume(t.id)
-          ? `업무 ${josa(`#${t.id}`, '을')} 재개했습니다.`
-          : `업무 ${josa(`#${t.id}`, '은')} ${t.status} 상태라 재개할 수 없습니다.`;
+          ? `Resumed task #${t.id}.`
+          : `Task #${t.id} is ${t.status} and cannot be resumed.`;
       },
     }),
     action({
       id: 'sessions.rename',
-      label: '세션 이름 바꾸기',
+      label: 'Rename a session',
       kind: 'act',
       args: z.object({ session_id: z.number().int(), title: z.string().trim().min(1).max(30) }),
       ui: [],
       run: (a) => {
         ownSession(a.session_id);
         chat.renameSession(a.session_id, a.title);
-        return `세션 이름을 바꿨습니다: ${a.title}`;
+        return `Renamed the session: ${a.title}`;
       },
     }),
     action({
       id: 'sessions.delete',
-      label: '세션 삭제',
+      label: 'Delete a session',
       kind: 'act',
       args: z.object({ session_id: z.number().int() }),
       ui: ['sessions.delete', 'sessions.impact'],
       confirm: (a) => {
         deletable(a.session_id);
         const n = store.impact({ sessionId: a.session_id });
-        return `세션 ${josa(`#${a.session_id}`, '을')} 지울까요? 업무 ${n.tasks}개와 기록 ${n.events}줄이 함께 지워집니다.`;
+        return { code: 'confirm.deleteSession', session: a.session_id, tasks: n.tasks, events: n.events };
       },
       run: (a) => {
         deletable(a.session_id);
         chat.deleteSession(a.session_id);
-        return `세션 ${josa(`#${a.session_id}`, '을')} 지웠습니다.`;
+        return `Deleted session #${a.session_id}.`;
       },
     }),
     action({
       id: 'crew.update',
-      label: '담당자 별명과 모델 바꾸기',
+      label: 'Change a member’s nickname or model',
       kind: 'act',
       args: z.object({ role, nickname: z.string().trim().min(1).max(12).optional(), model: z.enum(MODELS).optional() }),
       ui: ['members.update'],
       run: (a) => {
         const m = member(a.role);
         members.update(m.id, { nickname: a.nickname, model: a.model });
-        return `${a.role}: ${[a.nickname && `별명 ${a.nickname}`, a.model && `모델 ${a.model}`].filter(Boolean).join(', ') || '바뀐 것 없음'}`;
+        return `${a.role}: ${[a.nickname && `nickname ${a.nickname}`, a.model && `model ${a.model}`].filter(Boolean).join(', ') || 'nothing changed'}`;
       },
     }),
     action({
       id: 'crew.hire',
-      label: '담당자 고용과 내보내기',
+      label: 'Hire or let go a member',
       kind: 'act',
       args: z.object({ role, hired: z.boolean() }),
       ui: ['members.update'],
@@ -359,49 +361,54 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
       confirm: (a) => {
         const m = member(a.role);
         if (!a.hired && (m.temp || KEPT.includes(m.key))) return null;
-        return `${named(m, '을')} ${a.hired ? '다시 고용할까요?' : '내보낼까요?'}`;
+        return { code: 'confirm.hire', role: m.key, nickname: crew.nicknameOf(m), hired: a.hired };
       },
       run: (a) => {
         const m = member(a.role);
         members.update(m.id, { status: a.hired ? 'hired' : 'unhired' });
-        return `${named(m)} ${a.hired ? '고용' : '퇴장'} 처리했습니다.`;
+        return `${m.key} is ${a.hired ? 'hired' : 'let go'}.`;
       },
     }),
     action({
       id: 'mode.set',
-      label: '승인 모드 바꾸기',
+      label: 'Change the approval mode',
       kind: 'act',
       args: z.object({ mode: z.enum(MODES) }),
       ui: ['projects.setMode'],
-      confirm: (a) => `승인 모드를 ${josa(MODE_LABELS[a.mode], '으로')} 바꿀까요?`,
+      confirm: (a) => ({ code: 'confirm.mode', mode: a.mode }),
       run: (a) => {
         chat.setMode(projectId, a.mode);
-        return `승인 모드를 ${josa(MODE_LABELS[a.mode], '으로')} 바꿨습니다.`;
+        return `The approval mode is now ${a.mode}.`;
       },
     }),
     action({
       id: 'wiki.write',
-      label: '위키 문서 쓰기',
+      label: 'Write a wiki document',
       kind: 'act',
       args: z.object({ title: z.string().trim().min(1).max(60), body: z.string() }),
       ui: ['wiki.write'],
       run: (a) => {
         wiki.write(projectId, a.title, a.body, secretary);
         chat.emit('changed', { topic: 'wiki' });
-        return `위키 문서를 저장했습니다: ${a.title}`;
+        return `Saved the wiki document: ${a.title}`;
       },
     }),
     action({
       id: 'wiki.remove',
-      label: '위키 문서 지우기',
+      label: 'Delete a wiki document',
       kind: 'act',
       args: z.object({ title: z.string(), release_rule: z.boolean().default(false) }),
       ui: ['wiki.remove'],
       confirm: (a) => {
         doc(a.title);
-        return `위키 문서를 지울까요? ${a.title}.${a.release_rule ? ' 이 문서가 만든 규칙도 함께 풉니다.' : ''}`;
+        return { code: 'confirm.deleteDoc', title: a.title, rule: a.release_rule };
       },
-      run: (a) => chat.workflows.removeDoc(doc(a.title).id, a.release_rule, secretary),
+      run: (a) => {
+        const r = chat.workflows.removeDoc(doc(a.title).id, a.release_rule, secretary);
+        return r.ok
+          ? `Deleted the wiki document: ${a.title}`
+          : `Not deleted: ${r.problems.map(problemText).join('; ')}`;
+      },
     }),
   ];
   return actions;
@@ -415,17 +422,17 @@ export function appServer(sdk: Sdk, chat: Chat, sessionId: number) {
 
   async function perform(id: string, args: unknown, kind: Action['kind']) {
     const a = byId.get(id);
-    if (!a) return text(`없는 동작입니다: ${id}. app_find_actions로 찾으세요.`);
-    if (a.kind !== kind) return text(`${id}: ${a.kind === 'read' ? 'app_read' : 'app_act'}로 하는 동작입니다.`);
+    if (!a) return text(`No such action: ${id}. Find it with app_find_actions.`);
+    if (a.kind !== kind) return text(`${id} is done with ${a.kind === 'read' ? 'app_read' : 'app_act'}.`);
     const parsed = a.args.safeParse(args ?? {});
-    if (!parsed.success) return text(`인자가 맞지 않습니다: ${parsed.error.message}`);
+    if (!parsed.success) return text(`Wrong arguments: ${parsed.error.message}`);
     try {
-      // 전부 checks nothing; otherwise who may do what, and deleting, is the user's call
+      // bypass checks nothing; otherwise who may do what, and deleting, is the user's call
       const prompt = store.projectOf(sessionId).mode === 'bypass' ? null : a.confirm?.(parsed.data as never);
       if (prompt) {
         // The last option is the card's main button, as on every other card
         const answer = await chat.questions.choose(sessionId, prompt, [REFUSE, ALLOW]);
-        if (answer !== ALLOW) return text('사용자가 거절해서 하지 않았습니다.');
+        if (answer !== ALLOW) return text('The user refused, so it was not done.');
       }
       const out = await a.run(parsed.data as never);
       return text(typeof out === 'string' ? out : JSON.stringify(out));

@@ -1,14 +1,15 @@
 import { z } from 'zod';
+import { baseKey } from '../../../shared';
 import type { Sdk } from '../claude/agent';
 import { text } from './text';
 import type { Chat } from '../../app/chat';
 import type { Member } from '../../domain/records';
 
-// Reading and writing the project wiki and one's own memory, for 통역 and members alike
+// Reading and writing the project wiki and one's own memory, for the interpreter and members alike
 export function wikiTools(sdk: Sdk, chat: Chat, member: Member, sessionId: number, taskId: number | null) {
   const { store, wiki } = chat;
   const projectId = store.projectOf(sessionId).id;
-  const by = () => ({ memberId: member.id, name: chat.crew.defOf(store.readMemberById(member.id)).role, taskId });
+  const by = () => ({ memberId: member.id, name: baseKey(member.key), taskId });
   // In the prompt from the first turn: a tool found only by searching is passed over for the files at hand
   const loaded = { alwaysLoad: true };
   // When this run began, and the titles it was already told overlap a newer document, which it may then write anyway
@@ -54,7 +55,7 @@ export function wikiTools(sdk: Sdk, chat: Chat, member: Member, sessionId: numbe
         }
         wiki.write(projectId, a.title, a.body, { ...by(), files: a.files });
         chat.emit('changed', { topic: 'wiki' });
-        return text(`${old ? '수정' : '작성'}: ${a.title}`);
+        return text(`${old ? 'Changed' : 'Written'}: ${a.title}`);
       },
       loaded,
     ),
@@ -65,7 +66,7 @@ export function wikiTools(sdk: Sdk, chat: Chat, member: Member, sessionId: numbe
       async (a) => {
         wiki.remember(projectId, member.id, a.text, { taskId, sessionId });
         chat.emit('changed', { topic: 'wiki' });
-        return text('기억했습니다.');
+        return text('Remembered.');
       },
       loaded,
     ),

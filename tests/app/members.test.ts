@@ -3,7 +3,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { expect, test } from 'vitest';
 import { loadCrew } from '../../src/backend/adapters/files/crew';
-import { CREW_DIR, openChat } from '../support';
+import { say } from '../../src/frontend/locale';
+import { CREW_DIR, openChat, words } from '../support';
 
 test('a permission change is recorded by name, never with the server settings it touches', () => {
   // A crew copy whose browser server carries a token in its environment
@@ -18,7 +19,7 @@ test('a permission change is recorded by name, never with the server settings it
   chat.members.setPermissions(tester.id, { mcp: [{ server: 'browser', access: 'read' }], skills: ['verify'] });
 
   const [change] = store.listPermissionChanges(tester.id);
-  expect(change.change).toBe('스킬 -verdict, MCP +browser(읽기만), MCP -browser(전체)');
+  expect(say(change.say!)).toBe('스킬 -verdict, MCP +browser(읽기만), MCP -browser(전체)');
   expect(JSON.stringify(store.listPermissionChanges(tester.id))).not.toContain('secret-123');
 });
 
@@ -26,7 +27,7 @@ test("a crew change is logged in the project's latest session, where the user is
   const { store, chat, p, s } = openChat();
   const latest = chat.createSession(p.id);
   chat.members.fire(store.readMember(p.id, 'tester').id);
-  expect([store.listEvents(s.id), store.listEvents(latest.id).map((e) => e.text)]).toEqual([[], ['시험(시우) 퇴장']]);
+  expect([store.listEvents(s.id), store.listEvents(latest.id).map(words)]).toEqual([[], ['시험(시우) 퇴장']]);
 });
 
 test('a reset brings a member back as shipped: nickname, model, hired, and no permission changes', () => {

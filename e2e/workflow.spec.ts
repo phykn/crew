@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { answerFolderDialog, launchApp, makeScratch, openProject } from './launch';
-import { WORKFLOW_LABELS } from '../src/shared';
+import { WORKFLOW_NAMES } from '../src/frontend/locale';
 
 // One task whose 조사 has no scripted answer, so its card stays (failed) while the editor is open and closed
 const SCRIPT = {
@@ -77,7 +77,7 @@ test('a version 통역 saves by talk shows in the editor that was already open',
   const scratch = makeScratch();
   // The rules as 통역 reads them: the crew's steps with their names on screen
   const shipped = JSON.parse(fs.readFileSync(path.join('crew', 'workflows', 'code.json'), 'utf-8'));
-  const names = WORKFLOW_LABELS.code;
+  const names = WORKFLOW_NAMES.code;
   const steps = shipped.steps.map((st: { id: string }) => ({ ...st, label: names.steps[st.id] }));
   const rules = { ...shipped, label: names.label, steps };
   const app = await launchApp(scratch.db, {
@@ -95,7 +95,7 @@ test('a version 통역 saves by talk shows in the editor that was already open',
   await page.getByRole('tab', { name: '대화' }).click();
   await page.getByLabel('메시지').fill('워크플로우 저장해줘');
   await page.getByLabel('메시지').press('Enter');
-  await expect(page.getByText('저장했습니다 (버전 1).')).toBeVisible();
+  await expect(page.getByText('Saved as version 1.')).toBeVisible();
   await page.getByRole('tab', { name: '워크플로우' }).click();
   await expect(editor.getByRole('button', { name: '저장' })).toHaveAttribute('title', '버전 1');
   await app.close();

@@ -8,7 +8,7 @@ test('"그거 다시 해줘" with two finished tasks waits on a card, then reope
   const [one, two] = ['검색', '정렬'].map((title) =>
     store.createTask({ sessionId: s.id, kind: 'code', title, request: 'r', workflow: code }),
   );
-  for (const t of [one, two]) store.writeTaskStatus(t.id, 'done', '', 'done');
+  for (const t of [one, two]) store.writeTaskStatus(t.id, 'done', '', { code: 'task.done', title: t.title });
   secretaryTools(fake.sdk, chat, s.id);
   const reopened = fake.tools.get('reopen_task')!({ change: '그거 다시 해줘' });
   await vi.waitFor(() =>
@@ -20,11 +20,11 @@ test('"그거 다시 해줘" with two finished tasks waits on a card, then reope
   expect([store.readTask(one.id).status, store.readTask(two.id).status]).toEqual(['done', 'running']);
 });
 
-test("start_task names the task with the particle its title's last sound takes, past the closing quote", async () => {
+test("start_task answers with the new task's number and title", async () => {
   const { fake, chat, s } = openChat({ 지휘: [never] });
   secretaryTools(fake.sdk, chat, s.id);
   expect(await toolText(fake, 'start_task', { kind: 'code', title: '검색 고치기', request: 'r', original: 'r' })).toBe(
-    '업무 #1 "검색 고치기"를 시작했습니다.',
+    'Started task #1 "검색 고치기".',
   );
 });
 
@@ -39,7 +39,7 @@ test('a question to a member at work is answered by a copy of its session, which
   const coder = store.readMember(p.id, 'coder');
   secretaryTools(fake.sdk, chat, s.id);
   expect(await toolText(fake, 'ask_member', { role: '코드 작성', question: '지금 뭐 해?' })).toBe(
-    '코드 작성은 이 세션에서 아직 일하지 않아 물어볼 대화가 없습니다.',
+    '코드 작성 has not worked in this session yet, so there is no conversation to ask.',
   );
   await chat.runs.run(coder, s.id, null, '검색 고쳐줘');
   void chat.runs.run(coder, s.id, null, '이어서 해줘');
@@ -81,7 +81,7 @@ test("change_workflow for one task takes only a task of this conversation and ki
       scope: 'once',
       task_id,
     });
-  expect(await change(foreign.id)).toContain('저장하지 않았습니다');
-  expect(await change(999)).toContain('저장하지 않았습니다');
+  expect(await change(foreign.id)).toContain('Not saved');
+  expect(await change(999)).toContain('Not saved');
   expect(store.readTask(foreign.id).workflow.label).toBe(code.label);
 });

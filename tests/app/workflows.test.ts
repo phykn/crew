@@ -35,7 +35,7 @@ test('rule versions: broken or stale saves are refused, and each scope reaches o
     ...base.rules,
     steps: base.rules.steps.map((x) => (x.id === 'plan' ? { ...x, after: ['test'] } : x)),
   };
-  expect(save(cyclic)).toMatchObject({ ok: false, problems: ['단계가 순환합니다'] });
+  expect(save(cyclic)).toMatchObject({ ok: false, problems: [{ code: 'wf.cycle' }] });
   const dangling = {
     ...base.rules,
     steps: [...base.rules.steps, { id: 'x', role: 'tester', label: 'x', does: 'x', after: ['nope'] }],

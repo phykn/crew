@@ -29,15 +29,16 @@ import {
   stuck,
   type TaskEvent,
   withoutPlan,
+  whyText,
 } from '../domain/task';
 
 import { REFUSE } from '../domain/answers';
-import { josa } from '../../korean';
-import { ACTIVE } from '../../shared';
+import { ACTIVE, type Say, baseKey } from '../../shared';
 const RETRIES = 3;
 // What runStep returns when the model's usage limit stopped it
-const LIMIT = 'usage limit';
-const STOPPED = '중단되었습니다';
+const LIMIT: Say = { code: 'limit' };
+const STOPPED: Say = { code: 'stopped' };
+const DONE: Say = { code: 'done' };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export class Tasks {
   // Each task's current drive; a loop or a queued step from an earlier drive sees it is no longer current and ends
@@ -57,7 +58,7 @@ export class Tasks {
     const writer = one && this.chat.members.settings(one).write === 'project' ? one : undefined;
     const rules =
       one && !writer
-        ? solo(this.chat.crew.defOf(one).role, one.key)
+        ? solo(this.chat.crew.defOf(one).role, one.key, this.chat.crew.soloStep(one))
         : this.chat.workflows.current(projectId, writer ? 'code' : kind).rules;
     const workflow = small || writer ? withoutPlan(rules) : rules;
     // Set by the app rather than left to the brief's wording, so every step reads the same scope
@@ -105,13 +106,13 @@ export class Tasks {
     return HALTED.includes(this.chat.store.readTask(taskId).status);
   }
 
-  // More from the user goes to 지휘's plan, or without one to every step that made the task: a finished task opens again, one at work redoes once its turn ends
+  // More from the user goes to the conductor's plan, or without one to every step that made the task: a finished task opens again, one at work redoes once its turn ends
   reopen(taskId: number, text: string) {
     const { store } = this.chat;
     const task = store.readTask(taskId);
     const working = ACTIVE.includes(task.status);
-    if (working) store.writeTaskStatus(taskId, task.status, task.stage, `${task.title} 업무 추가 요청: ${text}`);
-    else if (!this.move(taskId, 'REOPEN', '', `${task.title} 업무 다시 진행: ${text}`)) return false;
+    if (working) store.writeTaskStatus(taskId, task.status, task.stage, { code: 'task.more', title: task.title, text });
+    else if (!this.move(taskId, 'REOPEN', '', { code: 'task.reopen', title: task.title, text })) return false;
     store.appendRequest(taskId, text);
     const plan = planStep(task.workflow);
     for (const target of plan ? [plan] : makers(task.workflow))
@@ -124,13 +125,14 @@ export class Tasks {
   stop(taskId: number) {
     const { store } = this.chat;
     const task = store.readTask(taskId);
-    if (!this.move(taskId, 'STOP', '', `${task.title} 업무 중단 요청`)) return false;
+    if (!this.move(taskId, 'STOP', '', { code: 'task.stopRequest', title: task.title })) return false;
     for (const run of this.chat.runs.ofTask(taskId)) void run.stop();
     // A write waiting its turn is answered now, so the stopped run can end
     this.chat.runs.locksOf(this.projectOf(task)).cancel(taskId);
     for (const id of store.openQuestionIds(task.sessionId, taskId)) this.chat.questions.answer(id, REFUSE);
     // A task with nothing running reaches stopped at once; otherwise drive does when its runs end
-    if (!this.chat.runs.ofTask(taskId).length) this.move(taskId, 'STOPPED', '', `${task.title} 업무 중단됨`);
+    if (!this.chat.runs.ofTask(taskId).length)
+      this.move(taskId, 'STOPPED', '', { code: 'task.stopped', title: task.title });
     return true;
   }
 
@@ -144,17 +146,17 @@ export class Tasks {
   // Continues a stopped or failed task from the steps it has not finished
   resume(taskId: number) {
     const task = this.chat.store.readTask(taskId);
-    if (!this.move(taskId, 'RESUME', '', `${task.title} 업무 재개`)) return false;
+    if (!this.move(taskId, 'RESUME', '', { code: 'task.resume', title: task.title })) return false;
     void this.drive(taskId, true);
     return true;
   }
 
-  move(taskId: number, type: TaskEvent['type'], stage: string, log: string) {
+  move(taskId: number, type: TaskEvent['type'], stage: string, say: Say) {
     const { store } = this.chat;
     const task = store.readTask(taskId);
     const next = nextStatus(task.status, type);
     if (!next) return false;
-    store.writeTaskStatus(taskId, next, stage, log);
+    store.writeTaskStatus(taskId, next, stage, say);
     this.chat.emit('changed', { topic: 'tasks', sessionId: task.sessionId });
     return true;
   }
@@ -165,7 +167,7 @@ export class Tasks {
     const drive = ++this.drives;
     this.driving.set(taskId, drive);
     const current = () => this.driving.get(taskId) === drive;
-    if (!resumed) this.move(taskId, 'START', '', `${first.title} 업무 시작`);
+    if (!resumed) this.move(taskId, 'START', '', { code: 'task.start', title: first.title });
     try {
       await this.steps(taskId, current);
     } finally {
@@ -177,7 +179,8 @@ export class Tasks {
     const { store } = this.chat;
     while (current()) {
       const task = store.readTask(taskId);
-      if (task.status === 'stopping') return this.move(taskId, 'STOPPED', '', `${task.title} 업무 중단됨`);
+      if (task.status === 'stopping')
+        return this.move(taskId, 'STOPPED', '', { code: 'task.stopped', title: task.title });
       if (!DRIVEN.includes(task.status)) return;
       const w = task.workflow;
       const runs = store.listStepRuns(taskId);
@@ -197,7 +200,10 @@ export class Tasks {
       const ready = w.steps.filter((s) => !holds(s.id) && s.after.every(holds));
       const fixing = ready.some((s) => lastDone(runs, s.id) && sentBack(w, runs, s.id, lastDone(runs, s.id)!.id));
       const stage = ready.map((s) => s.label).join(', ');
-      this.move(taskId, fixing ? 'REWORK' : ready.every((s) => s.verdict) ? 'REVIEW' : 'WORK', stage, `${stage} 진행`);
+      this.move(taskId, fixing ? 'REWORK' : ready.every((s) => s.verdict) ? 'REVIEW' : 'WORK', stage, {
+        code: 'task.stage',
+        stage,
+      });
       // A member already at work in this session, or given another step of this round, works through a copy
       const taken = new Set<number>();
       for (const s of ready) {
@@ -208,27 +214,27 @@ export class Tasks {
       if (!current()) return;
       // A usage limit pauses the task instead of failing it: nothing is wrong with the work, it can resume later
       if (results.includes(LIMIT)) return this.pause(store.readTask(taskId));
-      const broken = results.find((r) => r !== 'done');
+      const broken = results.find((r) => r !== DONE);
       if (broken && store.readTask(taskId).status !== 'stopping') return this.fail(store.readTask(taskId), broken);
     }
   }
 
-  async runStep(task: Task, step: Step, current: () => boolean): Promise<string> {
-    const { store, crew } = this.chat;
+  async runStep(task: Task, step: Step, current: () => boolean): Promise<Say> {
+    const { store } = this.chat;
     const project = this.projectOf(task);
     const member = this.memberFor(task, step);
-    const role = crew.defOf(member).role;
-    // A member let go takes no new step; 통역 hears of it and can hand the step to someone else
-    const absent = `${josa(role, '이')} 고용되어 있지 않아 ${josa(step.label, '을')} 진행할 수 없습니다. 다른 담당자를 붙여야 합니다`;
+    const role = baseKey(member.key);
+    // A member let go takes no new step; the interpreter hears of it and can hand the step to someone else
+    const absent: Say = { code: 'absent', role, step: step.label };
     if (member.status !== 'hired' || member.leaving) return absent;
     let prompt = this.brief(task, step);
-    const log = (text: string, detail: unknown = null) =>
+    const log = (say: Say, detail: unknown = null) =>
       store.addEvent({
         sessionId: task.sessionId,
         taskId: task.id,
         memberId: member.id,
         kind: 'step',
-        text,
+        say,
         detail: detail ? JSON.stringify(detail) : null,
       });
     // Retries stay out of the log until the last one fails; that one line carries every error
@@ -279,7 +285,7 @@ export class Tasks {
       if (missing.length) {
         // An incomplete handoff goes back to the same member, in its own session, before anyone takes it
         store.finishStepRun(runId, 'failed', hb, `missing ${missing.join(', ')}`);
-        log(`${role}: ${step.label} 인계 보완 요청 — ${missing.join(', ')} 없음`, { missing });
+        log({ code: 'step.incomplete', role, step: step.label, missing }, { missing });
         prompt = `Your handback is missing ${missing.join(' and ')}, which the next step needs. Answer again with the complete handback.`;
         continue;
       }
@@ -293,14 +299,14 @@ export class Tasks {
       // The log line names its version only when git kept it, so only then does the window offer its diff
       const kept = version !== null && (await this.chat.versions.mark(project.path, task.id, `version-${version}`));
       log(
-        `${role}: ${step.label} ${hb.verdict === 'rework' ? '수정 요청' : '완료'}${hb.summary === step.label ? '' : ` — ${hb.summary}`}`,
+        { code: 'step.done', role, step: step.label, verdict: hb.verdict ?? null, summary: hb.summary },
         kept ? { ...hb, version } : hb,
       );
       this.chat.emit('changed', { topic: 'tasks', sessionId: task.sessionId });
-      return 'done';
+      return DONE;
     }
-    log(`${role}: ${step.label} 실패 (${RETRIES}번 다시 시도)`, { errors });
-    return `${josa(step.label, '이')} ${RETRIES}번 다시 시도해도 실패했습니다`;
+    log({ code: 'step.failed', role, step: step.label, n: RETRIES }, { errors });
+    return { code: 'retries', step: step.label, n: RETRIES };
   }
 
   // The task's versions that git kept, numbered as the user sees them; none outside a git repository
@@ -371,7 +377,7 @@ export class Tasks {
     );
     return [
       `[Task #${task.id}] ${task.title}`,
-      `The user's request, through 통역:\n${task.request}`,
+      `The user's request, through the interpreter:\n${task.request}`,
       `Your step: ${step.label}. ${step.does}`,
       `Project folder: ${project.path}\nYour output folder for files you produce: ${this.chat.runs.outputDir(project, `task-${task.id}`)}`,
       ...(earlier.length ? ['# Earlier steps', ...earlier] : []),
@@ -393,14 +399,14 @@ export class Tasks {
   }
 
   finish(task: Task) {
-    this.move(task.id, 'DONE', '', `${task.title} 업무 완료`);
+    this.move(task.id, 'DONE', '', { code: 'task.done', title: task.title });
     this.dismissTemps(task);
-    void this.chat.tell(task.sessionId, this.report(task, 'done'), [], task.id);
+    void this.chat.tell(task.sessionId, this.report(task, DONE), [], task.id);
   }
 
   pause(task: Task) {
-    if (!this.move(task.id, 'STOP', '', `${task.title} 업무 사용 한도로 멈춤`)) return;
-    this.move(task.id, 'STOPPED', '', `${task.title} 업무 중단됨`);
+    if (!this.move(task.id, 'STOP', '', { code: 'task.limit', title: task.title })) return;
+    this.move(task.id, 'STOPPED', '', { code: 'task.stopped', title: task.title });
     void this.chat.tell(task.sessionId, this.report(task, LIMIT));
   }
 
@@ -415,29 +421,29 @@ export class Tasks {
       members.find((x) => x.key === key) ??
       store.addMember(project.id, {
         key,
-        nickname: `${m.nickname}${n}`,
+        nickname: `${this.chat.crew.nicknameOf(m)}${n}`,
         model: m.model,
         temp: true,
       });
     if (copy.status !== 'hired') this.chat.members.rehire(copy.id);
-    if (Object.keys(m.config).length) store.writeConfig(copy.id, m.config, '원본 권한 복사');
+    if (Object.keys(m.config).length) store.writeConfig(copy.id, m.config, { code: 'perm.copied' });
     store.assign(task.id, step.id, copy.id);
     this.chat.emit('changed', { topic: 'members' });
     return copy;
   }
 
-  // A failing task goes back to 지휘 once, to plan the steps still left; a second failure stops it for the user
-  replan(task: Task, runs: StepRun[], why: string) {
+  // A failing task goes back to the conductor once, to plan the steps still left; a second failure stops it for the user
+  replan(task: Task, runs: StepRun[], why: Say) {
     const plan = planStep(task.workflow);
     if (!plan || runs.some((r) => isReplan(r))) return false;
     const { store } = this.chat;
-    store.addUserRework(task.id, this.memberFor(task, plan).id, plan.id, `${REPLAN}${why}`);
-    store.writeTaskStatus(task.id, task.status, task.stage, `${task.title} 다시 계획: ${why}`);
+    store.addUserRework(task.id, this.memberFor(task, plan).id, plan.id, `${REPLAN}${whyText(why)}`);
+    store.writeTaskStatus(task.id, task.status, task.stage, { code: 'task.replan', title: task.title, why });
     return true;
   }
 
-  fail(task: Task, why: string) {
-    if (!this.move(task.id, 'FAIL', '', `${task.title} 업무 실패: ${why}`)) return;
+  fail(task: Task, why: Say) {
+    if (!this.move(task.id, 'FAIL', '', { code: 'task.fail', title: task.title, why })) return;
     this.dismissTemps(task);
     void this.chat.tell(task.sessionId, this.report(task, why));
   }
@@ -453,27 +459,27 @@ export class Tasks {
     }
   }
 
-  // 통역 is told what happened and words the report to the user itself
-  report(task: Task, outcome: string) {
+  // The interpreter is told what happened and words the report to the user itself
+  report(task: Task, outcome: Say) {
     const runs = this.chat.store.listStepRuns(task.id);
     const steps = task.workflow.steps
       .filter((s) => lastDone(runs, s.id))
       .map((s) => section(`${s.label} (${this.roleOf(task, s)})`, lastDone(runs, s.id)!.handback!));
     const left = task.workflow.steps.filter((s) => !satisfied(task.workflow, runs, s.id)).map((s) => s.label);
     const head =
-      outcome === 'done'
+      outcome === DONE
         ? `[Task #${task.id} finished] "${task.title}" passed every check.`
         : outcome === LIMIT
           ? `[Task #${task.id} paused] "${task.title}" stopped at the model usage limit; it can resume once the limit resets.`
-          : `[Task #${task.id} stopped] "${task.title}" could not finish: ${outcome}.`;
+          : `[Task #${task.id} stopped] "${task.title}" could not finish: ${whyText(outcome)}.`;
     return [
       head,
       ...steps,
-      ...(outcome !== 'done' && left.length ? [`## Left to do\n${left.map((l) => `- ${l}`).join('\n')}`] : []),
+      ...(outcome !== DONE && left.length ? [`## Left to do\n${left.map((l) => `- ${l}`).join('\n')}`] : []),
     ].join('\n\n');
   }
 }
-const REPLAN = '다시 계획: ';
+const REPLAN = 'Re-plan: ';
 const isReplan = (r: StepRun) => r.stepId === '_user' && !!r.handback?.summary.startsWith(REPLAN);
 
 function section(title: string, hb: Handback) {

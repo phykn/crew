@@ -2,6 +2,7 @@ import path from 'node:path';
 import { expect, test } from 'vitest';
 import { checkCall } from '../../src/backend/domain/policy';
 
+import { say } from '../../src/frontend/locale';
 import { openChat } from '../support';
 
 const call = (tool: string, input: Record<string, unknown>) => [tool, input] as const;
@@ -39,10 +40,10 @@ test('a tool outside the role becomes an answer card, and the approval holds onl
   await tick();
   const card = store.listMessages(s.id).at(-1)!;
   expect(card.question?.kind).toBe('approval');
-  expect(card.question?.options).toEqual(['거절', '허용']);
+  expect(card.question?.options).toEqual(['refuse', 'allow']);
   // The member is named once, then what it lacks
-  expect(card.question?.prompt).toBe('통역 모아: Bash 도구가 역할에 없습니다.\nls');
-  chat.questions.answer(card.question!.id, '허용');
+  expect(say(card.question!.say!)).toBe('통역 모아: Bash 도구가 역할에 없습니다.\nls');
+  chat.questions.answer(card.question!.id, 'allow');
   expect((await pending)!.behavior).toBe('allow');
 
   // The same task asks no more; another task asks again
@@ -51,7 +52,7 @@ test('a tool outside the role becomes an answer card, and the approval holds onl
   await tick();
   const second = store.listMessages(s.id).at(-1)!;
   expect(second.question!.id).not.toBe(card.question!.id);
-  chat.questions.answer(second.question!.id, '거절');
+  chat.questions.answer(second.question!.id, 'refuse');
   expect((await other)!.behavior).toBe('deny');
 });
 
@@ -70,7 +71,7 @@ test('on one MCP server 코드 작성 may use every tool and 코드 검토 only 
   const click = reviewerGuard(...call('mcp__browser__browser_click', {}));
   await tick();
   expect(store.listMessages(s.id).at(-1)!.question?.kind).toBe('approval');
-  chat.questions.answer(store.listMessages(s.id).at(-1)!.question!.id, '거절');
+  chat.questions.answer(store.listMessages(s.id).at(-1)!.question!.id, 'refuse');
   expect((await click)!.behavior).toBe('deny');
 });
 
@@ -92,7 +93,7 @@ test('a permission revoked while a call waits blocks that call and the next call
   const waiting = older(...call('mcp__browser__browser_click', {}));
   await tick();
   chat.members.setPermissions(reviewer.id, { mcp: [] });
-  chat.questions.answer(store.listMessages(s.id).at(-1)!.question!.id, '허용');
+  chat.questions.answer(store.listMessages(s.id).at(-1)!.question!.id, 'allow');
   expect((await waiting)!.behavior).toBe('deny');
 
   // 코드 작성 had the shell approved in this task once; after the shell is revoked from its tools, the approval no longer holds
@@ -102,13 +103,13 @@ test('a permission revoked while a call waits blocks that call and the next call
   await tick();
   const card = store.listMessages(s.id).at(-1)!.question!;
   expect(card.payload).toMatchObject({ memberId: coder.id, tool: 'Bash' });
-  chat.questions.answer(card.id, '허용');
+  chat.questions.answer(card.id, 'allow');
   expect((await shell)!.behavior).toBe('allow');
   chat.members.setPermissions(coder.id, { tools: ['read', 'search'] });
   const again = chat.runs.guard(coder, p, s.id, task.id)(...call('Bash', { command: 'ls' }));
   await tick();
   expect(store.listMessages(s.id).at(-1)!.question!.id).not.toBe(card.id);
-  chat.questions.answer(store.listMessages(s.id).at(-1)!.question!.id, '거절');
+  chat.questions.answer(store.listMessages(s.id).at(-1)!.question!.id, 'refuse');
   expect((await again)!.behavior).toBe('deny');
 });
 

@@ -8,11 +8,14 @@ import type { Feed, Paths } from '../src/backend/app/ports';
 import { wire } from '../src/backend/wire';
 import type { Crew } from '../src/backend/domain/crew';
 import { loadCrew } from '../src/backend/adapters/files/crew';
-import { roleIn } from '../src/backend/adapters/claude/script';
+import { keyIn } from '../src/backend/adapters/claude/script';
+import { NAMES, ROLE_NAMES, say } from '../src/frontend/locale';
+import type { Event } from '../src/backend/domain/records';
 import { Store } from '../src/backend/adapters/sqlite/store';
 
 export const CREW_DIR = path.resolve(__dirname, '../crew');
 export const CREW = loadCrew(CREW_DIR);
+CREW.useNames(NAMES);
 
 // A scratch record and project folder per test, so tests never touch real data
 export function makeScratch(files: Record<string, string> = {}) {
@@ -119,7 +122,8 @@ export const never: Turn = () => new Promise(() => {});
 export function fakeCrew(scripts: Record<string, Turn[]>) {
   const calls: { role: string; prompt: string; options: Options }[] = [];
   const query: QueryFn = ({ prompt, options }) => {
-    const role = roleIn(options.systemPrompt);
+    const key = keyIn(options.systemPrompt);
+    const role = ROLE_NAMES[key] ?? key;
     // An interrupt ends the turn under way, as the real SDK does
     let cut = () => {};
     const cutOff = new Promise<SDKMessage[]>((resolve) => (cut = () => resolve([])));
@@ -189,3 +193,6 @@ export async function toolText(fake: ReturnType<typeof fakeCrew>, name: string, 
   const out = (await fake.tools.get(name)!(args)) as { content: { text: string }[] };
   return out.content[0].text;
 }
+
+// A log line as the window words it
+export const words = (e: Event) => (e.say ? say(e.say) : e.text);

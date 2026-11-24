@@ -31,7 +31,7 @@ test('no login on the computer is reported as not connected', async () => {
   const { sdk } = account({ tokenSource: 'none' });
   expect(await new ClaudeAgent(sdk, () => null).check(null)).toEqual({
     ok: false,
-    error: '이 컴퓨터에 Claude Code 로그인이 없습니다',
+    error: { code: 'account.noLogin' },
   });
 });
 
@@ -54,7 +54,7 @@ test("the API's check asks Anthropic whether the key is right", async () => {
   });
   expect(await new ClaudeAgent(sdk, () => null).check('sk-ant-wrong')).toEqual({
     ok: false,
-    error: '키가 맞지 않습니다',
+    error: { code: 'account.badKey' },
   });
   expect((fetched[0][1].headers as Record<string, string>)['x-api-key']).toBe('sk-ant-wrong');
   vi.unstubAllGlobals();

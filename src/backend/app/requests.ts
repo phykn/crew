@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Chat } from './chat';
 import type { Member, PeerLine, Task } from '../domain/records';
 import type { Step } from '../domain/workflow';
+import { baseKey } from '../../shared';
 
 const PeerAnswer = z.object({
   answer: z.string().describe('Your answer in Korean, or empty when you need to ask back first'),
@@ -55,7 +56,7 @@ export class Requests {
       taskId: task.id,
       memberId: member.id,
       kind: 'request',
-      text: `${from} → ${to}: ${a.message}`,
+      say: { code: 'request', from: baseKey(member.key), to: baseKey(peer.key), text: a.message },
       detail: JSON.stringify({ requestId: id, to: peer.id }),
     });
     const prompt = [
@@ -80,7 +81,7 @@ export class Requests {
       taskId: task.id,
       memberId: peer.id,
       kind: 'request',
-      text: `${to} → ${from}: ${line.text}`,
+      say: { code: 'request', from: baseKey(peer.key), to: baseKey(member.key), text: line.text },
       detail: JSON.stringify({ requestId: id, to: member.id, answer: true }),
     });
     return reply(id, line);

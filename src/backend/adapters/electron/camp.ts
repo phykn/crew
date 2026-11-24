@@ -1,6 +1,13 @@
 import type { Chat } from '../../app/chat';
 
-type CampLine = { id: number; who: string; to?: string; text: string; kind: 'work' | 'rework' | 'chat' };
+// scene names what plays, for the window to word: a report, a failed task, a note or its answer, a failed step, a redo
+type CampLine = {
+  id: number;
+  who: string;
+  to?: string;
+  scene: 'report' | 'failed' | 'note' | 'answer' | 'stepFailed' | 'rework';
+  kind: 'work' | 'rework' | 'chat';
+};
 
 // What the camp shows for one session: who is at work on what, and the record lines that play as scenes
 export function campState(chat: Chat, sessionId: number) {
@@ -14,29 +21,26 @@ export function campState(chat: Chat, sessionId: number) {
       const key = keyOf(r.memberId);
       if (!key) continue;
       tasks[key] = t.id;
-      if (r.status === 'running')
-        working[key] = `${t.workflow.steps.find((s) => s.id === r.stepId)?.label ?? '작업'} 중`;
+      if (r.status === 'running') working[key] = t.workflow.steps.find((s) => s.id === r.stepId)?.label ?? r.stepId;
     }
   }
-  // 통역 waits by the fire with a ? while a card waits for the user
+  // The interpreter waits by the fire with a ? while a card waits for the user
   if (store.listMessages(sessionId).some((m) => m.question && m.question.answer === null)) working.interpreter ??= '?';
   // Scenes are read from what each line records, never from its wording: a status, a handback's verdict, a request's addressee
   const log: CampLine[] = [];
   for (const e of store.listEvents(sessionId)) {
     const who = keyOf(e.memberId);
     if (e.kind === 'status') {
-      if (e.detail === 'done') log.push({ id: e.id, who: 'interpreter', text: '완료 보고', kind: 'work' });
-      if (e.detail === 'failed') log.push({ id: e.id, who: 'interpreter', text: '업무 실패', kind: 'rework' });
+      if (e.detail === 'done') log.push({ id: e.id, who: 'interpreter', scene: 'report', kind: 'work' });
+      if (e.detail === 'failed') log.push({ id: e.id, who: 'interpreter', scene: 'failed', kind: 'rework' });
       continue;
     }
     if (!who || !e.detail) continue;
     const d = JSON.parse(e.detail);
     const to = keyOf(d.to);
-    if (e.kind === 'request' && to)
-      log.push({ id: e.id, who, to, text: d.answer ? '답변' : '요청 메모', kind: 'chat' });
-    else if (e.kind === 'step' && d.errors) log.push({ id: e.id, who, text: '실패', kind: 'rework' });
-    else if (e.kind === 'step' && d.verdict === 'rework')
-      log.push({ id: e.id, who, text: '수정 요청', kind: 'rework' });
+    if (e.kind === 'request' && to) log.push({ id: e.id, who, to, scene: d.answer ? 'answer' : 'note', kind: 'chat' });
+    else if (e.kind === 'step' && d.errors) log.push({ id: e.id, who, scene: 'stepFailed', kind: 'rework' });
+    else if (e.kind === 'step' && d.verdict === 'rework') log.push({ id: e.id, who, scene: 'rework', kind: 'rework' });
   }
   return { working, tasks, log };
 }

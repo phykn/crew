@@ -1,8 +1,7 @@
 import type { Chat } from './chat';
 import type { Member } from '../domain/records';
 import { Config, KEPT, type Settings } from '../domain/crew';
-import { particle } from '../../korean';
-import { MEMBERS, baseKey } from '../../shared';
+import { MEMBERS, type Say, baseKey } from '../../shared';
 
 // A project's crew as hired: who is in it, what each may use, and who comes and goes
 export class Members {
@@ -12,7 +11,7 @@ export class Members {
     const { crew } = this.chat;
     this.chat.store.seedMembers(
       projectId,
-      crew.defs.map((d) => ({ key: d.key, nickname: MEMBERS[d.key].nickname, model: MEMBERS[d.key].model })),
+      crew.defs.map((d) => ({ key: d.key, nickname: '', model: MEMBERS[d.key].model })),
     );
   }
 
@@ -36,11 +35,6 @@ export class Members {
   }
 
   setPermissions(memberId: number, config: Config) {
-    this.writePermissions(memberId, config);
-    this.chat.emit('changed', { topic: 'members' });
-  }
-
-  writePermissions(memberId: number, config: Config) {
     const { store, crew } = this.chat;
     const member = store.readMemberById(memberId);
     crew.checkConfig(config);
@@ -51,16 +45,16 @@ export class Members {
       merged,
       describeChange(this.settings(member), this.settings({ ...member, config: merged })),
     );
+    this.chat.emit('changed', { topic: 'members' });
   }
 
-  // The one way the window and 통역 change a member's nickname, model, or hiring
+  // The one way the window and the interpreter change a member's nickname, model, or hiring
   update(memberId: number, change: { nickname?: string; model?: string; status?: Member['status'] }) {
-    const { store, crew } = this.chat;
+    const { store } = this.chat;
     const m = store.readMemberById(memberId);
-    // The crew stops working without 통역 or 지휘
+    // The crew stops working without the interpreter or the conductor
     if (change.status === 'unhired' && KEPT.includes(m.key)) {
-      const role = crew.defOf(m).role;
-      throw new Error(`${role}(${m.nickname})${particle(role, '은')} 내보낼 수 없습니다.`);
+      throw new Error(`${m.key} cannot be let go.`);
     }
     if (change.status === 'unhired') this.fire(memberId);
     if (change.status === 'hired') this.rehire(memberId);
@@ -76,8 +70,7 @@ export class Members {
     store.transact(() => {
       if (Object.keys(m.config).length)
         store.writeConfig(memberId, {}, describeChange(this.settings(m), this.settings({ ...m, config: {} })));
-      const shipped = MEMBERS[baseKey(m.key)];
-      store.updateMember(memberId, { nickname: m.temp ? m.nickname : shipped.nickname, model: shipped.model });
+      store.updateMember(memberId, { nickname: m.temp ? m.nickname : '', model: MEMBERS[baseKey(m.key)].model });
     });
     if (m.status !== 'hired' || m.leaving) this.rehire(memberId);
     this.chat.emit('changed', { topic: 'members' });
@@ -89,7 +82,7 @@ export class Members {
     if (m.status !== 'hired' || m.leaving) return;
     if (this.chat.runs.busy(memberId)) {
       this.chat.store.writeLeaving(memberId, true);
-      this.note(m, 'leave', `${this.chat.crew.defOf(m).role}(${m.nickname}) 퇴장 예정: 맡은 단계를 마치고 나갑니다`);
+      this.note(m, 'leave', { code: 'member.leaving', role: baseKey(m.key), nickname: this.chat.crew.nicknameOf(m) });
       this.chat.emit('changed', { topic: 'members' });
     } else this.leave(memberId);
   }
@@ -110,29 +103,31 @@ export class Members {
       store.writeLeaving(memberId, false);
       store.updateMember(memberId, { status: 'unhired' });
     });
-    this.note(m, 'leave', `${this.chat.crew.defOf(m).role}(${m.nickname}) 퇴장`);
+    this.note(m, 'leave', { code: 'member.left', role: baseKey(m.key), nickname: this.chat.crew.nicknameOf(m) });
     this.chat.emit('changed', { topic: 'members' });
   }
 
   // A crew change is logged in the project's latest session, where the user is looking
-  note(m: Member, kind: string, text: string) {
+  note(m: Member, kind: string, say: Say) {
     const [session] = this.chat.store.listSessions(m.projectId);
     if (session)
-      this.chat.store.addEvent({ sessionId: session.id, taskId: null, memberId: m.id, kind, text, detail: null });
+      this.chat.store.addEvent({ sessionId: session.id, taskId: null, memberId: m.id, kind, say, detail: null });
   }
 }
 
-function describeChange(before: Settings, after: Settings) {
-  const diff = (label: string, a: string[], b: string[]) => [
-    ...b.filter((x) => !a.includes(x)).map((x) => `${label} +${x}`),
-    ...a.filter((x) => !b.includes(x)).map((x) => `${label} -${x}`),
+function describeChange(before: Settings, after: Settings): Say {
+  const diff = (what: string, a: string[], b: string[]) => [
+    ...b.filter((x) => !a.includes(x)).map((name) => ({ what, sign: '+', name })),
+    ...a.filter((x) => !b.includes(x)).map((name) => ({ what, sign: '-', name })),
   ];
-  const mcp = (s: Settings) => s.mcp.map((m) => `${m.server}(${m.access === 'all' ? '전체' : '읽기만'})`);
-  const parts = [
-    ...diff('도구', before.tools, after.tools),
-    ...diff('스킬', before.skills, after.skills),
-    ...diff('MCP', mcp(before), mcp(after)),
-    ...(before.write !== after.write ? [`쓰기 ${before.write} → ${after.write}`] : []),
-  ];
-  return parts.join(', ') || '변경 없음';
+  const mcp = (s: Settings) => s.mcp.map((m) => `${m.server}:${m.access}`);
+  return {
+    code: 'perm.change',
+    parts: [
+      ...diff('tool', before.tools, after.tools),
+      ...diff('skill', before.skills, after.skills),
+      ...diff('mcp', mcp(before), mcp(after)),
+    ],
+    write: before.write !== after.write ? [before.write, after.write] : null,
+  };
 }

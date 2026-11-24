@@ -20,8 +20,6 @@ export type Sdk = {
   createSdkMcpServer: typeof import('@anthropic-ai/claude-agent-sdk').createSdkMcpServer;
 };
 
-type Usage = RunOutput['usage'];
-
 // Messages for a running agent: the first prompt, then anything said to it while it works
 export class Inbox implements AsyncIterable<SDKUserMessage> {
   queue: { text: string; images: Image[] }[] = [];
@@ -73,10 +71,10 @@ function content(text: string, images: Image[]) {
   ];
 }
 
-// Runs agents through the Claude Agent SDK, loaded on the first run
 // How long a connection check waits for the service before calling it unreachable
 const CHECK_MS = 20_000;
 
+// Runs agents through the Claude Agent SDK, loaded on the first run
 export class ClaudeAgent implements Agent {
   constructor(
     private sdk: () => Promise<Sdk>,
@@ -91,7 +89,7 @@ export class ClaudeAgent implements Agent {
     try {
       return await within(CHECK_MS, key ? checkKey(key) : this.checkLogin());
     } catch (err) {
-      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      return { ok: false, error: { code: 'account.other', text: err instanceof Error ? err.message : String(err) } };
     }
   }
 
@@ -103,7 +101,7 @@ export class ClaudeAgent implements Agent {
       const info = await q.accountInfo();
       const who = info.email ?? info.organization ?? '';
       if (!who && (!info.tokenSource || info.tokenSource === 'none'))
-        return { ok: false, error: '이 컴퓨터에 Claude Code 로그인이 없습니다' };
+        return { ok: false, error: { code: 'account.noLogin' } };
       return { ok: true, who, plan: info.subscriptionType };
     } finally {
       q.close();
@@ -125,7 +123,10 @@ async function checkKey(key: string): Promise<Account> {
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
   });
   if (res.ok) return { ok: true, who: '' };
-  return { ok: false, error: res.status === 401 ? '키가 맞지 않습니다' : `Anthropic이 ${res.status}로 답했습니다` };
+  return {
+    ok: false,
+    error: res.status === 401 ? { code: 'account.badKey' } : { code: 'account.status', status: res.status },
+  };
 }
 
 // A prompt that never comes, so the session starts and waits without asking the model anything
@@ -133,15 +134,15 @@ function silence(): AsyncIterable<SDKUserMessage> {
   return { [Symbol.asyncIterator]: () => ({ next: () => new Promise<never>(() => {}) }) };
 }
 
-function within<T>(ms: number, work: Promise<T>) {
+function within(ms: number, work: Promise<Account>) {
   return Promise.race([
     work,
-    new Promise<never>((_, fail) => setTimeout(() => fail(new Error('응답이 없습니다')), ms)),
+    new Promise<Account>((done) => setTimeout(() => done({ ok: false, error: { code: 'account.noAnswer' } }), ms)),
   ]);
 }
 
 // One agent's turn, from the first prompt to its result; the inbox may grow while it runs
-export class ClaudeRun implements AgentRun {
+class ClaudeRun implements AgentRun {
   inbox = new Inbox();
   query: Query | null = null;
   stopped = false;
@@ -163,7 +164,12 @@ export class ClaudeRun implements AgentRun {
   async run(prompt: string, images: Image[] = []): Promise<RunOutput> {
     const { input } = this;
     this.inbox.push(prompt, images);
-    let out: RunOutput = { claudeId: input.resume ?? null, text: '', status: 'failed', usage: emptyUsage() };
+    let out: RunOutput = {
+      claudeId: input.resume ?? null,
+      text: '',
+      status: 'failed',
+      usage: { turns: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 },
+    };
     try {
       const { query } = await this.sdk();
       if (this.stopped) return { ...out, claudeId: this.claudeId, status: 'stopped' };
@@ -241,10 +247,6 @@ export class ClaudeRun implements AgentRun {
     this.inbox.close();
     await this.query?.interrupt();
   }
-}
-
-function emptyUsage(): Usage {
-  return { turns: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 };
 }
 
 function sumUsage(models: Record<string, ModelUsage>, key: 'inputTokens' | 'outputTokens') {

@@ -1,12 +1,12 @@
 import { z } from 'zod';
 import type { Sdk } from '../claude/agent';
 import { text } from './text';
+import { problemText } from '../../domain/workflow';
 import type { Chat } from '../../app/chat';
 import type { Task } from '../../domain/records';
 import { wikiTools } from './wiki';
-import { josa } from '../../../korean';
 
-// The app's own tools for 통역 in one session; a call is how 통역 opens real work for the crew
+// The app's own tools for the interpreter in one session; a call is how it opens real work for the crew
 export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
   const projectId = () => chat.store.projectOf(sessionId).id;
   const secretary = chat.store.readMember(projectId(), 'interpreter');
@@ -49,7 +49,7 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
         },
         async (a) => {
           const one = a.role ? memberOf(a.role) : null;
-          if (a.role && !one) return text(`${josa(a.role, '은')} 지금 고용되어 있지 않습니다.`);
+          if (a.role && !one) return text(`${a.role} is not hired now.`);
           const task = chat.tasks.start(
             sessionId,
             a.kind,
@@ -61,7 +61,7 @@ ${a.original}`,
             one ?? undefined,
             a.size === 'small',
           );
-          return text(`업무 #${task.id} ${josa(`"${task.title}"`, '을')} 시작했습니다.`);
+          return text(`Started task #${task.id} "${task.title}".`);
         },
       ),
       sdk.tool(
@@ -73,13 +73,11 @@ ${a.original}`,
         },
         async (a) => {
           const member = memberOf(a.role);
-          if (!member) return text(`${josa(a.role, '은')} 지금 고용되어 있지 않습니다.`);
+          if (!member) return text(`${a.role} is not hired now.`);
           const role = chat.crew.defOf(member).role;
           const out = await chat.runs.ask(member, sessionId, a.question);
-          if (!out) return text(`${josa(role, '은')} 이 세션에서 아직 일하지 않아 물어볼 대화가 없습니다.`);
-          return text(
-            out.status === 'done' ? out.text : `${josa(role, '이')} 답하지 못했습니다: ${out.error ?? out.status}`,
-          );
+          if (!out) return text(`${role} has not worked in this session yet, so there is no conversation to ask.`);
+          return text(out.status === 'done' ? out.text : `${role} could not answer: ${out.error ?? out.status}`);
         },
       ),
       sdk.tool(
@@ -93,7 +91,7 @@ ${a.original}`,
       ),
       sdk.tool(
         'change_workflow',
-        'Save changed rules for a task kind, based on the version you read. scope: future (앞으로, new tasks), current (이번 업무에도: also the remaining steps of task_id), once (이번에만: task_id only, not saved for later).',
+        'Save changed rules for a task kind, based on the version you read. scope: future (from now on: new tasks), current (this task too: also the remaining steps of task_id), once (only this time: task_id only, not saved for later).',
         {
           kind: z.enum(kinds),
           base_version: z.number().int(),
@@ -103,19 +101,18 @@ ${a.original}`,
           reason: z.string().optional().describe("Why, in Korean; kept as the rule's decision document in the wiki"),
         },
         async (a) => {
-          if (a.task_id && !ownTask(a.task_id))
-            return text(`저장하지 않았습니다: 이 대화에 업무 #${a.task_id}이 없습니다.`);
+          if (a.task_id && !ownTask(a.task_id)) return text(`Not saved: this conversation has no task #${a.task_id}.`);
           const r = chat.workflows.save({
             projectId: projectId(),
             kind: a.kind,
             base: a.base_version,
             rules: a.rules,
-            by: { memberId: secretary.id, name: '통역' },
+            by: { memberId: secretary.id, name: 'interpreter' },
             scope: a.scope,
             taskId: a.task_id,
             reason: a.reason,
           });
-          return text(r.ok ? `저장했습니다 (버전 ${r.version}).` : `저장하지 않았습니다: ${r.problems.join('; ')}`);
+          return text(r.ok ? `Saved as version ${r.version}.` : `Not saved: ${r.problems.map(problemText).join('; ')}`);
         },
       ),
       sdk.tool(
@@ -128,39 +125,32 @@ ${a.original}`,
         },
         async (a) => {
           const to = memberOf(a.to_role);
-          if (!to) return text(`${josa(a.to_role, '은')} 지금 고용되어 있지 않습니다.`);
+          if (!to) return text(`${a.to_role} is not hired now.`);
           // The member who left is no longer hired, so it is looked up among everyone
           const from = chat.members.find(projectId(), a.from_role);
-          if (!from) return text(`${josa(a.from_role, '은')} 크루에 없습니다.`);
+          if (!from) return text(`${a.from_role} is not in the crew.`);
           const task = ownTask(a.task_id);
-          if (!task) return text(`업무 ${josa(`#${a.task_id}`, '은')} 이 세션에 없습니다.`);
+          if (!task) return text(`This session has no task #${a.task_id}.`);
           const moved = chat.tasks.reassign(task, chat.crew.defOf(from).role, to);
           return text(
-            moved.length
-              ? `${moved.join(', ')} 단계를 ${a.to_role}에게 넘겼습니다.`
-              : `${josa(a.from_role, '이')} 맡은 단계가 없습니다.`,
+            moved.length ? `Handed ${moved.join(', ')} to ${a.to_role}.` : `${a.from_role} holds no step of this task.`,
           );
         },
       ),
       sdk.tool(
         'reopen_task',
-        'When the user asks to change the result of a finished task, or adds to a task still at work ("아 그리고 ..."), reopen that same task with what they want changed instead of starting a new one; a task at work takes it in without stopping. ' +
-          'Leave task_id out when the user did not say which task ("그거 다시 해줘"): the app then asks the user with a card. A separate request is a new task.',
+        'When the user asks to change the result of a finished task, or adds to a task still at work ("and also ..."), reopen that same task with what they want changed instead of starting a new one; a task at work takes it in without stopping. ' +
+          'Leave task_id out when the user did not say which task ("redo that"): the app then asks the user with a card. A separate request is a new task.',
         {
           task_id: z.number().int().optional(),
           change: z.string().min(1).describe('What the user wants changed, in their words'),
         },
         async (a) => {
           const task = await pickTask(chat, sessionId, a.task_id, a.change);
-          if (!task)
-            return text(
-              a.task_id ? `업무 ${josa(`#${a.task_id}`, '은')} 이 세션에 없습니다.` : '다시 열 업무가 없습니다.',
-            );
+          if (!task) return text(a.task_id ? `This session has no task #${a.task_id}.` : 'There is no task to reopen.');
           const ok = chat.tasks.reopen(task.id, a.change);
           return text(
-            ok
-              ? `업무 ${josa(`#${task.id}`, '을')} 다시 진행합니다.`
-              : `업무 ${josa(`#${task.id}`, '은')} 지금 다시 열 수 없습니다 (${task.status}).`,
+            ok ? `Task #${task.id} is going again.` : `Task #${task.id} cannot be reopened now (${task.status}).`,
           );
         },
       ),
@@ -175,6 +165,6 @@ async function pickTask(chat: Chat, sessionId: number, id: number | undefined, c
   if (done.length <= 1) return done[0] ?? null;
   const label = (t: Task) => `#${t.id} ${t.title}`;
   // Held until the user answers: reopening the wrong task would redo finished work
-  const choice = await chat.questions.choose(sessionId, `어느 업무를 다시 할까요?\n${change}`, done.map(label));
+  const choice = await chat.questions.choose(sessionId, { code: 'card.redo', change }, done.map(label));
   return done.find((t) => label(t) === choice) ?? null;
 }

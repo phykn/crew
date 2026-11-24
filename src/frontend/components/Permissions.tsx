@@ -6,6 +6,7 @@ import { Choice } from '../ui/Choice';
 import { Chip, ChipButton, ToggleChip } from '../ui/Chip';
 import { KIT } from '../crew';
 import { KitIcon } from './Icons';
+import { say } from '../locale';
 
 type Data = Awaited<ReturnType<typeof call<'members.permissions'>>>;
 
@@ -120,7 +121,7 @@ export function Permissions({ memberId }: { memberId: number }) {
         <ul className="perm-changes" aria-label="권한 변경 기록">
           {data.changes.map((c, i) => (
             <li key={i}>
-              <time>{stamp(c.at)}</time> {c.change}
+              <time>{stamp(c.at)}</time> {c.say ? say(c.say) : c.text}
             </li>
           ))}
         </ul>

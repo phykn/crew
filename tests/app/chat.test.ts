@@ -1,4 +1,5 @@
 import { expect, test, vi } from 'vitest';
+import { say } from '../../src/frontend/locale';
 import { broken, handback, never, openChat, recordedRuns, reply, type Turn } from '../support';
 
 test('통역 answers in its own Claude session and runs on the model chosen last', async () => {
@@ -60,10 +61,10 @@ test("통역's replies and cards reach the notification feed, so a user in anoth
     { emit: (channel, payload) => channel === 'notify' && notes.push(payload) },
   );
   await chat.send(s.id, '어떻게 됐어?');
-  void chat.questions.choose(s.id, '어느 업무를 말씀하시나요?', ['#1', '#2']);
+  void chat.questions.choose(s.id, { code: 'card.whichTask' }, ['#1', '#2']);
   expect(notes).toEqual([
-    { sessionId: s.id, text: '끝났습니다.' },
-    { sessionId: s.id, text: '어느 업무를 말씀하시나요?' },
+    { sessionId: s.id, text: '끝났습니다.', say: null },
+    { sessionId: s.id, say: { code: 'card.whichTask' } },
   ]);
 });
 
@@ -90,22 +91,22 @@ test('stopping 통역 mid-answer ends that run, closes the card it left open, an
   const { store, chat, s } = openChat({ 통역: [never] });
   const answering = chat.send(s.id, '길게 설명해줘');
   await vi.waitFor(() => expect(chat.runs.live(s.id)).toBeDefined());
-  const picked = chat.questions.choose(s.id, '어느 업무를 다시 할까요?', ['#1', '#2']);
+  const picked = chat.questions.choose(s.id, { code: 'card.redo', change: '' }, ['#1', '#2']);
   await chat.runs.live(s.id)!.stop();
   await answering;
-  expect(await picked).toBe('취소');
+  expect(await picked).toBe('cancel');
   expect(
     store
       .listMessages(s.id)
-      .map((m) => m.question?.answer ?? m.text)
+      .map((m) => m.question?.answer ?? (m.say && say(m.say)))
       .slice(-2),
-  ).toEqual(['취소', '답변을 멈췄습니다.']);
+  ).toEqual(['cancel', '답변을 멈췄습니다.']);
 });
 
 test('an error before 통역 can run is said in the chat instead of leaving 통역 answering', async () => {
   const { store, chat, s } = openChat({}, { sdk: broken });
   await chat.send(s.id, '안녕');
-  expect(store.listMessages(s.id).at(-1)!.text).toBe('답하는 중 오류가 났습니다: SDK를 불러오지 못함');
+  expect(say(store.listMessages(s.id).at(-1)!.say!)).toBe('답하는 중 오류가 났습니다: SDK를 불러오지 못함');
 });
 
 test('a new session (/clear) starts an empty 통역 on the same crew while the old session works on; deleting counts what goes', async () => {

@@ -8,7 +8,7 @@ import type { RunSpend } from '../../domain/usage';
 import type { Author, Change, Doc, Memory } from '../../domain/wiki';
 import type { Records } from '../../app/ports';
 import { MIGRATIONS } from './migrations';
-import type { Image, Mode } from '../../../shared';
+import type { Image, Mode, Say } from '../../../shared';
 import type {
   Project,
   ListedProject,
@@ -36,7 +36,11 @@ const toMember = (r: MemberRow): Member => ({
   temp: r.temp === 1,
   leaving: r.leaving === 1,
 });
-type QuestionRow = Omit<Question, 'options' | 'payload'> & { options: string; payload: string };
+type QuestionRow = Omit<Question, 'options' | 'payload' | 'say'> & {
+  options: string;
+  payload: string;
+  say: string | null;
+};
 type TaskRow = Omit<Task, 'workflow'> & { workflow: string };
 const TASK =
   'SELECT id, session_id AS sessionId, kind, title, request, workflow, status, stage, created_at AS createdAt, updated_at AS updatedAt FROM tasks';
@@ -254,20 +258,25 @@ export class Store implements Records {
   }
 
   // The config and the record of what changed land together, so no change goes unrecorded
-  writeConfig(id: number, config: Record<string, unknown>, change: string) {
+  writeConfig(id: number, config: Record<string, unknown>, change: Say) {
     this.transact(() => {
       this.db.prepare('UPDATE members SET config = ? WHERE id = ?').run(JSON.stringify(config), id);
-      this.db.prepare('INSERT INTO permission_changes (member_id, change, at) VALUES (?, ?, ?)').run(id, change, now());
+      this.db
+        .prepare('INSERT INTO permission_changes (member_id, change, at) VALUES (?, ?, ?)')
+        .run(id, JSON.stringify(change), now());
     });
   }
 
-  listPermissionChanges(memberId: number): { change: string; at: string }[] {
-    return this.db
+  // A change from before codes keeps its words in text
+  listPermissionChanges(memberId: number): { say: Say | null; text: string; at: string }[] {
+    const rows = this.db
       .prepare('SELECT change, at FROM permission_changes WHERE member_id = ? ORDER BY id')
-      .all(memberId) as {
-      change: string;
-      at: string;
-    }[];
+      .all(memberId) as { change: string; at: string }[];
+    return rows.map((r) =>
+      r.change.startsWith('{')
+        ? { say: JSON.parse(r.change), text: '', at: r.at }
+        : { say: null, text: r.change, at: r.at },
+    );
   }
 
   openAgentSession(sessionId: number, memberId: number): AgentSession {
@@ -294,13 +303,14 @@ export class Store implements Records {
     questionId: number | null = null,
     images: Image[] = [],
     taskId: number | null = null,
+    say: Say | null = null,
   ) {
     this.transact(() => {
       const { lastInsertRowid } = this.db
         .prepare(
-          'INSERT INTO messages (session_id, author, text, created_at, question_id, task_id) VALUES (?, ?, ?, ?, ?, ?)',
+          'INSERT INTO messages (session_id, author, text, say, created_at, question_id, task_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
         )
-        .run(sessionId, author, text, now(), questionId, taskId);
+        .run(sessionId, author, text, say && JSON.stringify(say), now(), questionId, taskId);
       const add = this.db.prepare('INSERT INTO message_images (message_id, n, media_type, data) VALUES (?, ?, ?, ?)');
       images.forEach((i, n) => add.run(lastInsertRowid, n, i.mediaType, i.data));
     });
@@ -310,10 +320,14 @@ export class Store implements Records {
   listMessages(sessionId: number): Message[] {
     const rows = this.db
       .prepare(
-        'SELECT id, session_id AS sessionId, author, text, (SELECT COUNT(*) FROM message_images WHERE message_id = messages.id) AS imageCount, created_at AS createdAt, question_id AS questionId, task_id AS taskId FROM messages WHERE session_id = ? ORDER BY id',
+        'SELECT id, session_id AS sessionId, author, text, say, (SELECT COUNT(*) FROM message_images WHERE message_id = messages.id) AS imageCount, created_at AS createdAt, question_id AS questionId, task_id AS taskId FROM messages WHERE session_id = ? ORDER BY id',
       )
-      .all(sessionId) as (Omit<Message, 'question'> & { questionId: number | null })[];
-    return rows.map(({ questionId, ...m }) => ({ ...m, question: questionId ? this.readQuestion(questionId) : null }));
+      .all(sessionId) as (Omit<Message, 'question' | 'say'> & { questionId: number | null; say: string | null })[];
+    return rows.map(({ questionId, ...m }) => ({
+      ...m,
+      say: m.say ? JSON.parse(m.say) : null,
+      question: questionId ? this.readQuestion(questionId) : null,
+    }));
   }
 
   readImage(messageId: number, n: number): Image | null {
@@ -323,23 +337,36 @@ export class Store implements Records {
     return row ?? null;
   }
 
-  addQuestion(q: Omit<Question, 'id' | 'answer'>): number {
+  addQuestion(q: Omit<Question, 'id' | 'answer' | 'prompt'>): number {
     const { lastInsertRowid } = this.db
       .prepare(
-        'INSERT INTO questions (session_id, task_id, kind, prompt, options, payload, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        "INSERT INTO questions (session_id, task_id, kind, prompt, say, options, payload, created_at) VALUES (?, ?, ?, '', ?, ?, ?, ?)",
       )
-      .run(q.sessionId, q.taskId, q.kind, q.prompt, JSON.stringify(q.options), JSON.stringify(q.payload), now());
+      .run(
+        q.sessionId,
+        q.taskId,
+        q.kind,
+        JSON.stringify(q.say),
+        JSON.stringify(q.options),
+        JSON.stringify(q.payload),
+        now(),
+      );
     return Number(lastInsertRowid);
   }
 
   readQuestion(id: number): Question {
     const row = this.db
       .prepare(
-        'SELECT id, session_id AS sessionId, task_id AS taskId, kind, prompt, options, payload, answer FROM questions WHERE id = ?',
+        'SELECT id, session_id AS sessionId, task_id AS taskId, kind, say, prompt, options, payload, answer FROM questions WHERE id = ?',
       )
       .get(id) as QuestionRow | undefined;
     if (!row) throw new Error(`no question ${id}`);
-    return { ...row, options: JSON.parse(row.options), payload: JSON.parse(row.payload) };
+    return {
+      ...row,
+      say: row.say ? JSON.parse(row.say) : null,
+      options: JSON.parse(row.options),
+      payload: JSON.parse(row.payload),
+    };
   }
 
   // A task's open cards, or with no task those of the session's own conversation
@@ -358,7 +385,7 @@ export class Store implements Records {
         .prepare("SELECT id FROM tasks WHERE status IN ('running', 'reviewing', 'fixing', 'waiting', 'stopping')")
         .all() as { id: number }[];
       this.db.prepare("UPDATE step_runs SET status = 'stopped', error = ? WHERE status = 'running'").run(RESTARTED);
-      for (const { id } of cut) this.writeTaskStatus(id, 'stopped', '', '앱이 다시 시작되어 업무가 멈췄습니다');
+      for (const { id } of cut) this.writeTaskStatus(id, 'stopped', '', { code: 'task.restarted' });
     });
   }
 
@@ -380,20 +407,22 @@ export class Store implements Records {
     return !!row;
   }
 
-  addEvent(e: Omit<Event, 'id' | 'at'>) {
+  addEvent(e: Omit<Event, 'id' | 'at' | 'text'>) {
     this.db
       .prepare(
-        'INSERT INTO events (session_id, task_id, member_id, kind, text, detail, at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        "INSERT INTO events (session_id, task_id, member_id, kind, text, say, detail, at) VALUES (?, ?, ?, ?, '', ?, ?, ?)",
       )
-      .run(e.sessionId, e.taskId, e.memberId, e.kind, e.text, e.detail, now());
+      .run(e.sessionId, e.taskId, e.memberId, e.kind, e.say && JSON.stringify(e.say), e.detail, now());
   }
 
   listEvents(sessionId: number): Event[] {
-    return this.db
-      .prepare(
-        'SELECT id, session_id AS sessionId, task_id AS taskId, member_id AS memberId, kind, text, detail, at FROM events WHERE session_id = ? ORDER BY id',
-      )
-      .all(sessionId) as Event[];
+    return (
+      this.db
+        .prepare(
+          'SELECT id, session_id AS sessionId, task_id AS taskId, member_id AS memberId, kind, say, text, detail, at FROM events WHERE session_id = ? ORDER BY id',
+        )
+        .all(sessionId) as (Omit<Event, 'say'> & { say: string | null })[]
+    ).map((e) => ({ ...e, say: e.say ? JSON.parse(e.say) : null }));
   }
 
   startRun(agentSessionId: number, model: string, taskId: number | null = null, side = false): number {
@@ -447,7 +476,7 @@ export class Store implements Records {
   }
 
   // A status change and its log line are written together, so the log never disagrees with the card
-  writeTaskStatus(id: number, status: TaskStatus, stage: string, log: string) {
+  writeTaskStatus(id: number, status: TaskStatus, stage: string, say: Say) {
     this.transact(() => {
       this.db
         .prepare('UPDATE tasks SET status = ?, stage = ?, updated_at = ? WHERE id = ?')
@@ -458,7 +487,7 @@ export class Store implements Records {
         taskId: id,
         memberId: null,
         kind: 'status',
-        text: log,
+        say,
         detail: status,
       });
     });
@@ -543,7 +572,7 @@ export class Store implements Records {
   appendRequest(taskId: number, text: string) {
     this.db
       .prepare('UPDATE tasks SET request = request || char(10) || char(10) || ? WHERE id = ?')
-      .run(`추가 요청: ${text}`, taskId);
+      .run(`More from the user: ${text}`, taskId);
   }
 
   latestWorkflow(projectId: number, kind: string): { version: number; rules: Workflow; layout: unknown } | null {

@@ -11,6 +11,7 @@ import {
   reopenChat,
   reply,
   type Turn,
+  words,
 } from '../support';
 import { DiskFiles } from '../../src/backend/adapters/files/files';
 import { usage } from '../../src/backend/domain/usage';
@@ -90,7 +91,7 @@ test('지휘 → 코드 검토 (sent back once) → 지휘 → 코드 검토 →
   expect(report).toContain('npm test: 3 passed');
   // One log line per finished step: its start shows in the task's own status line
   const steps = store.listEvents(s.id).filter((e) => e.kind === 'step');
-  expect([steps.length, steps.filter((e) => e.text.endsWith(' 시작')).length]).toEqual([7, 0]);
+  expect([steps.length, steps.filter((e) => words(e).endsWith(' 시작')).length]).toEqual([7, 0]);
 });
 
 test('a small change and one given to a member who writes the project skip the plan and keep every check; others work alone', () => {
@@ -129,8 +130,8 @@ test('a task past its loop limit goes back to 지휘 once to re-plan, and stops 
   await chat.send(s.id, '검색 고쳐줘');
   await vi.waitFor(() => expect(store.listTasks(s.id)[0].status).toBe('failed'), { timeout: 3000 });
   const plans = fake.calls.filter((c) => c.role === '지휘');
-  expect([plans.length, plans[2].prompt]).toEqual([4, expect.stringContaining('다시 계획: 계획을 1번 고쳤지만')]);
-  expect(fake.calls.filter((c) => c.role === '통역')[1].prompt).toContain('계획을 1번 고쳤지만');
+  expect([plans.length, plans[2].prompt]).toEqual([4, expect.stringContaining('Re-plan: 계획 was fixed 1 times')]);
+  expect(fake.calls.filter((c) => c.role === '통역')[1].prompt).toContain('계획 was fixed 1 times');
 });
 
 test('a redo that changes no file and is sent back again stops the task for the user instead of looping', async () => {
@@ -154,7 +155,7 @@ test('a redo that changes no file and is sent back again stops the task for the 
   await chat.send(s.id, '고쳐줘');
   await vi.waitFor(() => expect(store.listTasks(s.id)[0].status).toBe('failed'), { timeout: 3000 });
   expect(store.listStepRuns(1).filter((r) => r.stepId === 'develop')).toHaveLength(2);
-  expect(fake.calls.filter((c) => c.role === '통역')[1].prompt).toContain('바뀐 것이 없는데 또 되돌려졌습니다');
+  expect(fake.calls.filter((c) => c.role === '통역')[1].prompt).toContain('was redone without changing anything');
 });
 
 test('a broken step fails after its retries; a stopped task leaves the other running; a restart is resumed', async () => {
@@ -191,7 +192,7 @@ test('a broken step fails after its retries; a stopped task leaves the other run
     fake: fresh,
     chat: again,
   } = reopenChat({ db, paths }, { 지휘: [handback('p', { summary: '계획' }), never], '코드 검토': [never] });
-  const recovered = after.listEvents(s.id).filter((e) => e.text === '앱이 다시 시작되어 업무가 멈췄습니다');
+  const recovered = after.listEvents(s.id).filter((e) => e.say?.code === 'task.restarted');
   expect([recovered.map((e) => e.taskId), after.readTask(three.id).status]).toEqual([[three.id], 'stopped']);
   expect(again.tasks.resume(three.id)).toBe(true);
   await vi.waitFor(() => expect(fresh.calls.map((c) => c.role)).toEqual(['지휘', '코드 검토']));
@@ -272,7 +273,7 @@ test('each change is a version the verdicts judge, and a follow-up reopens the s
   const v2 = store.latestVersion(task.id)!;
   const verdicts = store.listStepRuns(task.id).filter((r) => ['review', 'test'].includes(r.stepId));
   expect(verdicts.slice(-2).map((r) => r.versionId)).toEqual([v2.id, v2.id]);
-  expect(store.readTask(task.id).request).toContain('추가 요청: 대소문자 무시');
+  expect(store.readTask(task.id).request).toContain('More from the user: 대소문자 무시');
   expect(fake.calls.filter((c) => c.role === '지휘')[1].prompt).toContain('대소문자 무시');
   expect(store.listTasks(s.id)).toHaveLength(1);
 });
@@ -306,7 +307,7 @@ test('words added while 코드 작성 is at work join the task: 코드 작성 re
   const coder = fake.calls.filter((c) => c.role === '코드 작성');
   expect(coder).toHaveLength(2);
   expect(coder[1].prompt).toContain('에러 메시지는 영어로');
-  expect(store.readTask(task.id).request).toContain('추가 요청: 에러 메시지는 영어로');
+  expect(store.readTask(task.id).request).toContain('More from the user: 에러 메시지는 영어로');
   // Each check's last verdict is on the redo's version
   const v = store.latestVersion(task.id)!.id;
   const checks = store.listStepRuns(task.id).filter((r) => ['review', 'test'].includes(r.stepId));
@@ -340,7 +341,7 @@ test('a step cut off right after saving resumes from that step and checks the sa
     checks: [],
   });
   store.startStepRun(task.id, 'develop', member('coder'));
-  store.writeTaskStatus(task.id, 'running', '코드 작성', '코드 작성 진행');
+  store.writeTaskStatus(task.id, 'running', '코드 작성', { code: 'task.stage', stage: '코드 작성' });
   fs.writeFileSync(path.join(project, 'search.js'), 'v1');
 
   const { fake: fresh, chat: again } = reopenChat({ db, paths }, { '코드 작성': [never] });
@@ -358,7 +359,7 @@ test('reopening a task without a plan sends the change back to every step that m
     request: 'r',
     workflow: chat.workflows.shipped.find((w) => w.kind === 'improve')!,
   });
-  store.writeTaskStatus(task.id, 'done', '', '완료');
+  store.writeTaskStatus(task.id, 'done', '', { code: 'task.done', title: '개선' });
   expect(chat.tasks.reopen(task.id, '다시 봐줘')).toBe(true);
   expect(
     store

@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import type { Member } from './records';
 import { Workflow } from './workflow';
-import { MEMBERS, WORKFLOW_LABELS, baseKey } from '../../shared';
+import { MEMBERS, type Names, baseKey } from '../../shared';
 
-// The crew cannot run without these: 통역 takes every request and 지휘 plans every task
+// The crew cannot run without these: the interpreter takes every request and the conductor plans every task
 export const KEPT = ['interpreter', 'conductor'];
 
 // Each kind of tool a definition can ask for, and the Claude Code tools it opens
@@ -52,7 +52,7 @@ export type Definition = z.infer<typeof Agent> & { key: string; role: string; in
 export type CrewMember = Member & { role: string; base: string; kept: boolean };
 
 // What the crew folder holds, as the files say it; the Crew checks and reads it
-export type CrewData = {
+type CrewData = {
   agents: unknown;
   instructions: Record<string, string>;
   rules: string;
@@ -70,13 +70,15 @@ export class Crew {
   // The app's own server runs inside the app, so it has no command in mcp.json
   serverNames: string[];
   skillTexts: Record<string, string>;
-  workflows: Workflow[];
+  shipped: Workflow[];
+  // Until the window hands over its names, members and steps go by their keys
+  names: Names = { roles: {}, nicknames: {}, workflows: {}, modes: {} };
 
   constructor(data: CrewData) {
     this.defs = Object.entries(z.record(z.string(), Agent).parse(data.agents)).map(([key, agent]) => {
       if (!data.instructions[key]) throw new Error(`agents/${key}.md is missing`);
-      if (!MEMBERS[key]) throw new Error(`${key} has no name on screen`);
-      return { ...agent, key, role: MEMBERS[key].role, instructions: data.instructions[key].trim() };
+      if (!MEMBERS[key]) throw new Error(`${key} has no starting model`);
+      return { ...agent, key, role: key, instructions: data.instructions[key].trim() };
     });
     const stray = Object.keys(data.instructions).filter((key) => !this.defs.some((d) => d.key === key));
     if (stray.length) throw new Error(`agents.json has no entry for: ${stray.join(', ')}`);
@@ -86,7 +88,7 @@ export class Crew {
     this.readTools = mcp.readTools;
     this.serverNames = [...Object.keys(this.servers), 'app'];
     this.skillTexts = Object.fromEntries(Object.entries(data.skills).map(([name, text]) => [name, text.trim()]));
-    this.workflows = data.workflows.map((w) => Workflow.parse(labeled(w as Record<string, unknown>)));
+    this.shipped = data.workflows.map((w) => Workflow.parse(w));
     const missing = Object.keys(MEMBERS).filter((key) => !this.defs.some((d) => d.key === key));
     if (missing.length) throw new Error(`the crew folder has no agent for: ${missing.join(', ')}`);
     for (const d of this.defs) {
@@ -99,11 +101,37 @@ export class Crew {
     }
   }
 
-  // A member's definition: a copy has its original's
+  useNames(names: Names) {
+    this.names = names;
+  }
+
+  // A member's definition, with its name on screen: a copy has its original's
   defOf(member: Member): Definition {
-    const def = this.defs.find((d) => d.key === baseKey(member.key));
+    const base = baseKey(member.key);
+    const def = this.defs.find((d) => d.key === base);
     if (!def) throw new Error(`no definition ${member.key}`);
-    return def;
+    return { ...def, role: this.names.roles[base] ?? base };
+  }
+
+  // The nickname the user gave, or the one the window starts a member with
+  nicknameOf(member: Member) {
+    return member.nickname || this.names.nicknames[baseKey(member.key)] || member.key;
+  }
+
+  // The one step of a task given to a member alone, as the window names it
+  soloStep(member: Member) {
+    const role = this.defOf(member).role;
+    const work = this.names.workflows.solo?.steps.work;
+    return work ? `${role} ${work}` : role;
+  }
+
+  // The shipped workflows, with the window's names on steps nobody named
+  get workflows(): Workflow[] {
+    return this.shipped.map((w) => {
+      const names = this.names.workflows[w.kind];
+      const steps = w.steps.map((s) => ({ ...s, label: s.label || names?.steps[s.id] || s.id }));
+      return { ...w, label: w.label || names?.label || w.kind, steps };
+    });
   }
 
   settings(def: Definition, config: Config): Settings {
@@ -143,7 +171,13 @@ export class Crew {
       members
         // A temp is on the legend only while hired
         .filter((m) => !(m.temp && m.status !== 'hired'))
-        .map((m) => ({ ...m, role: this.defOf(m).role, base: baseKey(m.key), kept: KEPT.includes(m.key) }))
+        .map((m) => ({
+          ...m,
+          nickname: this.nicknameOf(m),
+          role: this.defOf(m).role,
+          base: baseKey(m.key),
+          kept: KEPT.includes(m.key),
+        }))
         .sort((a, b) => rank(a.key) - rank(b.key) || a.id - b.id)
     );
   }
@@ -151,12 +185,4 @@ export class Crew {
 
 export function toolsOf(settings: Settings): string[] {
   return settings.tools.flatMap((k) => TOOL_KINDS[k]);
-}
-
-// A shipped workflow with its names on screen; a saved one already carries its own
-function labeled(w: Record<string, unknown>) {
-  const names = WORKFLOW_LABELS[String(w.kind)];
-  if (!names || w.label) return w;
-  const steps = (w.steps as Record<string, unknown>[]).map((st) => ({ ...st, label: names.steps[String(st.id)] }));
-  return { ...w, label: names.label, steps };
 }

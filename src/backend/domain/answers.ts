@@ -1,4 +1,4 @@
-// The words on an answer card's buttons, which the app also reads back
-export const ALLOW = '허용';
-export const REFUSE = '거절';
-export const CANCEL = '취소';
+// The values of an answer card's buttons, which the app also reads back; the window words them
+export const ALLOW = 'allow';
+export const REFUSE = 'refuse';
+export const CANCEL = 'cancel';

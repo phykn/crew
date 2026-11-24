@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { josa } from '../src/korean';
+import { josa } from '../../src/frontend/korean';
 
 test('a particle follows the final sound of the word before it, digits read aloud', () => {
   expect(josa('계획', '으로')).toBe('계획으로');

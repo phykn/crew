@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Message, Question, Session, Task } from '../../backend/domain/records';
-import { IMAGE_TYPES, type Image, imageUrl, MODE_LABELS, type Mode } from '../../shared';
+import { IMAGE_TYPES, type Image, imageUrl, type Mode } from '../../shared';
+import { MODE_LABELS, answerLabel, say } from '../locale';
 import { call, onChanged, onStream } from '../api';
 import { Button } from '../ui/Button';
 import { Choice } from '../ui/Choice';
@@ -189,7 +190,7 @@ export function Chat({
           <Bubble
             key={m.id}
             author={m.author}
-            text={m.text}
+            text={m.say ? say(m.say) : m.text}
             pictures={Array.from({ length: m.imageCount }, (_, n) => imageUrl(m.id, n, m.createdAt))}
             question={m.question}
           >
@@ -464,10 +465,10 @@ function AnswerCard({ question }: { question: Question }) {
   const answer = question.answer ?? picked;
   return (
     <div className="answer-card" data-question={question.id} data-answered={answer !== null || undefined}>
-      <div className="answer-prompt">{renderInline(question.prompt)}</div>
+      <div className="answer-prompt">{renderInline(question.say ? say(question.say) : question.prompt)}</div>
       {answer !== null ? (
         <p className="answer-result" role="status">
-          ✓ {answer}
+          ✓ {answerLabel(answer)}
         </p>
       ) : (
         <div className="answer-options">
@@ -483,7 +484,7 @@ function AnswerCard({ question }: { question: Question }) {
                 call('questions.answer', { id: question.id, choice: o }).catch(() => setPicked(null));
               }}
             >
-              {o}
+              {answerLabel(o)}
             </Button>
           ))}
         </div>

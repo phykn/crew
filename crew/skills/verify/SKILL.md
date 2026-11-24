@@ -1,6 +1,6 @@
 # Verify
 
-1. Find how the project runs its tests: `CLAUDE.md`, README, `package.json` scripts, `pyproject.toml`, `Makefile`, or CI files. Use those exact commands. If it has no tests, say so and run the changed program plainly.
+1. Find how the project runs its tests: `CLAUDE.md`, README, `package.json` scripts, `pyproject.toml`, `Makefile`, or CI files. Use those exact commands, and never run tests that call a paid service, such as a real model, unless the request asks. If it has no tests, say so and run the changed program plainly.
 2. Run the whole test suite once, and note pass and fail counts and the time it took. When the change touched a command in the README, run it as written.
 3. When the change touches a screen, open it with the browser tools at the address the README gives and try what changed on the real screen. If nothing serves the page, say so instead of starting servers yourself.
 4. Check that the tests the coder added ran: name them and give their count from the output.

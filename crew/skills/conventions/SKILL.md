@@ -37,7 +37,7 @@ Backend code is split by what it talks to, and each level calls only inward:
 2. Use cases: the steps of one thing the program does. When they need the outside, they call an interface they define themselves.
 3. Connections: the code that actually talks to a database, files, HTTP, or another service, written to fit those interfaces.
 
-A use case that calls a database or a service directly, or a rule that imports a connection, breaks this. A small project needs only as many levels as its size calls for.
+A use case that calls a database or a service directly, or a rule that imports a connection, breaks this. Words the user reads, and anything that depends on their language, are made only in the screens; the backend passes codes and values. A small project needs only as many levels as its size calls for.
 
 ## Names
 
