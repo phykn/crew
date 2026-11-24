@@ -72,7 +72,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
   const { store, crew, members, wiki } = chat;
   const projectId = store.projectOf(sessionId).id;
   const task_id = z.number().int();
-  const role = z.string().describe('A member: its key or Korean role');
+  const role = z.string().describe('A member: its key or its role as the window names it');
   // Only this project's tasks and sessions exist for the caller; any other id is answered as missing
   const ownTask = (id: number) => {
     try {
@@ -409,7 +409,7 @@ export function appServer(sdk: Sdk, chat: Chat, sessionId: number) {
     tools: [
       sdk.tool(
         'app_find_actions',
-        'List what can be done in the crew app, optionally only actions whose id or Korean label has these words. Each comes with its kind (read: app_read, act: app_act), its arguments as JSON Schema, and whether the user approves it on a card first.',
+        'List what can be done in the crew app, optionally only actions whose id or on-screen label has these words. Each comes with its kind (read: app_read, act: app_act), its arguments as JSON Schema, and whether the user approves it on a card first.',
         { query: z.string().default('') },
         async (q) => {
           const words = q.query.split(/\s+/).filter(Boolean);

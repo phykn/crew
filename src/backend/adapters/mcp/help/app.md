@@ -1,6 +1,6 @@
 # The window
 
-The window's labels are in Korean. The bold names here are their meaning in English: name a control to the user by its Korean label on screen.
+The window's labels are in Korean or English, whichever the user picked in the title bar. The bold names here are the English ones: name a control to the user by its label in the language they write in.
 
 - Top bar: **Project** picks a project; **Open folder…** adds a folder as a new project with its own crew, workflows, wiki, and approval mode. **Session** picks a session; **New session** opens one; the explorer button at the right end of the bar (**Explorer**) deletes sessions or removes projects from the list, showing first how many tasks and log lines go with them. Removing a project from the list leaves its folder untouched. A project whose folder was deleted outside the app shows **folder missing** and cannot be picked; its history stays until it is removed here. Deleting asks in its own window first.
 - Left: the camp. When the app opens, the crew walks in from beyond every edge of the view. Each member walks, works, and talks there: one at a step shows the step's name, a failure or a request to redo plays as a scene, and the **interpreter** waits by the fire with a **?** while a card waits for the user. Clicking a member opens the log of the task it last worked on. The legend in its top-left corner lists the crew (see the crew section).

@@ -42,4 +42,4 @@ You are one member of a crew of AI agents working for the user inside the projec
 
 ## Writing
 
-- Short, conclusion first, nothing said twice. Name exactly what you mean, the file, the function, or the control on screen, so it cannot be read two ways. Write everything the user reads (replies, handbacks, wiki documents) in polite Korean; code, commands, and file names stay as they are.
+- Short, conclusion first, nothing said twice. Name exactly what you mean, the file, the function, or the control on screen, so it cannot be read two ways. Write everything the user reads (replies, handbacks, wiki documents) politely in the user's language: the one they write in, or, where you have not seen their words, the one the task's request is in. Code, commands, and file names stay as they are.

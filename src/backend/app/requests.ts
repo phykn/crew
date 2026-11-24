@@ -5,7 +5,7 @@ import type { Step } from '../domain/workflow';
 import { baseKey } from '../../shared';
 
 const PeerAnswer = z.object({
-  answer: z.string().describe('Your answer in Korean, or empty when you need to ask back first'),
+  answer: z.string().describe("Your answer in the user's language, or empty when you need to ask back first"),
   ask_back: z.string().optional().describe('A question for the asker when you cannot answer without it'),
 });
 const PEER_SCHEMA = z.toJSONSchema(PeerAnswer, { target: 'draft-7', io: 'input' }) as Record<string, unknown>;
@@ -63,7 +63,7 @@ export class Requests {
       `[Request #${id} in task #${task.id} "${task.title}"] ${from} asks you during the step ${step.label}.`,
       req.expected ? `They need: ${req.expected}` : '',
       thread.map((l) => `${l.from}: ${l.text}`).join('\n'),
-      'Answer it, or ask back one question if you cannot answer without it. Answer in Korean.',
+      'Answer it, or ask back one question if you cannot answer without it. Answer in the user’s language.',
     ]
       .filter(Boolean)
       .join('\n\n');

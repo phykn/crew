@@ -28,7 +28,11 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
           `The crew runs it on its own; you are told the result later and report it to the user then.`,
         {
           kind: z.enum(kinds),
-          title: z.string().min(1).max(40).describe('A few Korean words naming the task, shown on its card'),
+          title: z
+            .string()
+            .min(1)
+            .max(40)
+            .describe("A few words in the user's language naming the task, shown on its card"),
           request: z.string().min(1).describe("The user's request in full, with any scope you settled with them"),
           original: z
             .string()
@@ -39,7 +43,7 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
           role: z
             .string()
             .optional()
-            .describe('Give the whole request to this one member instead: its key or Korean role'),
+            .describe('Give the whole request to this one member instead: its key or its role as the window names it'),
           size: z
             .enum(['small', 'large'])
             .default('large')
@@ -68,7 +72,7 @@ ${a.original}`,
         'ask_member',
         'Ask a member about its work, such as what it is doing now, what it found, or why it chose something, without disturbing it: a copy of its session answers and its work goes on untouched. Words meant to change the work go to reopen_task instead.',
         {
-          role: z.string().describe("The member's key or Korean role"),
+          role: z.string().describe("The member's key or its role as the window names it"),
           question: z.string().min(1).describe("The user's question in their words"),
         },
         async (a) => {
@@ -98,7 +102,7 @@ ${a.original}`,
           rules: z.record(z.string(), z.unknown()),
           scope: z.enum(['future', 'current', 'once']),
           task_id: z.number().int().optional(),
-          reason: z.string().optional().describe('Why, in Korean; kept with the new version'),
+          reason: z.string().optional().describe("Why, in the user's language; kept with the new version"),
         },
         async (a) => {
           if (a.task_id && !ownTask(a.task_id)) return text(`Not saved: this conversation has no task #${a.task_id}.`);
@@ -120,8 +124,8 @@ ${a.original}`,
         "Give a task's steps from a member who left to another before reopening or resuming it. The new member gets the saved handback.",
         {
           task_id: z.number().int(),
-          from_role: z.string().describe('Key or Korean role'),
-          to_role: z.string().describe('Key or Korean role'),
+          from_role: z.string().describe('Key or role as the window names it'),
+          to_role: z.string().describe('Key or role as the window names it'),
         },
         async (a) => {
           const to = memberOf(a.to_role);

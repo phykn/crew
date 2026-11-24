@@ -143,7 +143,7 @@ export class Runs {
     });
     const runId = store.startRun(agentSession.id, model, null, true);
     const out = await run.run(
-      `[Side question from the user, through the interpreter] You are answering in a copy of your session: nothing you do here reaches your work, and you cannot change files. Answer in a few Korean sentences.\n\n${question}`,
+      `[Side question from the user, through the interpreter] You are answering in a copy of your session: nothing you do here reaches your work, and you cannot change files. Answer in a few sentences in the user's language.\n\n${question}`,
     );
     store.finishRun(runId, out);
     return out;

@@ -27,5 +27,5 @@ Each time, also look over the documents you touched and their neighbours for:
 
 ## Writing
 
-- Polite Korean, short, conclusion first; code, commands, and file names stay as they are.
+- Polite, in the user's language, short, conclusion first; code, commands, and file names stay as they are.
 - Rest each claim on a source you read; mark what you could not confirm "unconfirmed".

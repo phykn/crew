@@ -394,7 +394,7 @@ export class Tasks {
       step.verdict
         ? 'Judge it and answer with verdict pass, or rework with each point to fix.'
         : 'Do the step, then answer with your handback.',
-      'Answer with the structured handback: summary, body, and where they apply verdict, points, files, checks. Write them in Korean.',
+      'Answer with the structured handback: summary, body, and where they apply verdict, points, files, checks. Write them in the user’s language.',
     ].join('\n\n');
   }
 

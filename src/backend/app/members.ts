@@ -15,7 +15,7 @@ export class Members {
     );
   }
 
-  // A member as the crew names it: by key, as the rules say, or by its Korean role
+  // A member as the crew names it: by key, as the rules say, or by its role as the window names it
   find(projectId: number, name: string) {
     const { store, crew } = this.chat;
     return store.listMembers(projectId).find((m) => m.key === name || crew.defOf(m).role === name) ?? null;

@@ -64,8 +64,10 @@ export function nextStatus(status: TaskStatus, type: TaskEvent['type']): TaskSta
 }
 
 export const HandbackShape = z.object({
-  summary: z.string().describe('One Korean sentence: what you did and the outcome'),
-  body: z.string().describe('Your full result in Korean: the plan, the review, the test output, or the change made'),
+  summary: z.string().describe("One sentence in the user's language: what you did and the outcome"),
+  body: z
+    .string()
+    .describe("Your full result in the user's language: the plan, the review, the test output, or the change made"),
   verdict: z.enum(['pass', 'rework']).optional().describe('Review and test steps only: pass, or rework with points'),
   points: z.array(z.string()).default([]).describe('For rework: each point to fix, with file and line'),
   files: z.array(z.string()).default([]).describe('Project files you changed, relative to the project folder'),
