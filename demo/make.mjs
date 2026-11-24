@@ -80,17 +80,20 @@ const SCENES = {
     const test = stage('Code review', 1);
     return [
       ['intro', m.open + 1.8, m.ask, 1.2],
-      ['ask', m.ask + 0.1, build, 3],
+      ['ask', m.ask + 0.1, m.sent - 0.15, 3],
       ['build', build + 0.2, bounce, 1.8],
       ['bounce', bounce + 0.3, fix, 1.6],
       ['fix', fix + 0.2, test, 1.6],
       ['test', test + 0.3, m.done, 1.5],
-      ['report', m.done + 0.05, m.diff - 0.15, 2.6],
-      ['diff', m.diff + 0.05, m.log - 0.2, 2.3],
-      ['log', m.log, m.wiki - 0.15, 2.6],
-      ['wiki', m.wiki, m.workflow - 0.15, 3],
-      ['workflow', m.workflow, m.history - 0.15, 3.1],
-      ['history', m.history + 0.5, m.history + 2.6, 2.6],
+      ['report', null, null, 2.6],
+      ['diff', null, null, 2.3],
+      ['log', null, null, 2.6],
+      ['wiki', null, null, 1.2],
+      ['wiki-doc', null, null, 1.8],
+      ['workflow', null, null, 1.3],
+      ['workflow-owner', null, null, 1.8],
+      ['history', null, null, 1.1],
+      ['history-chat', null, null, 1.5],
       ['end', m.open + 2.6, m.ask, 1.3],
     ];
   },
@@ -110,6 +113,11 @@ if (Math.abs(claimed - total) > 0.01)
 fs.mkdirSync(clips, { recursive: true });
 for (const f of BESIDE) fs.copyFileSync(path.join(here, '..', 'node_modules', f), path.join(clips, path.basename(f)));
 for (const [name, from, to, length] of scenes) {
+  if (from === null) {
+    const file = `${name}.png`;
+    fs.copyFileSync(path.join(footage, file), path.join(clips, file));
+    continue;
+  }
   const span = Math.max(to - from, 0.3);
   const footageFilter =
     lang === 'en'

@@ -41,7 +41,7 @@
         inset: 0;
         overflow: hidden;
       }
-      #footage video {
+      #footage :is(video, img) {
         position: absolute;
         inset: 0;
         width: 100%;
@@ -263,60 +263,87 @@
           data-duration="1.5"
           data-track-index="0"
         ></video>
-        <video
+        <img
           id="v-report"
           class="clip panel-shot summary-shot"
-          src="assets/report.mp4"
-          muted
+          src="assets/report.png"
+          alt=""
           data-start="10.7"
           data-duration="2.6"
           data-track-index="0"
-        ></video>
-        <video
+        />
+        <img
           id="v-diff"
           class="clip diff-shot"
-          src="assets/diff.mp4"
-          muted
+          src="assets/diff.png"
+          alt=""
           data-start="13.3"
           data-duration="2.3"
           data-track-index="0"
-        ></video>
-        <video
+        />
+        <img
           id="v-log"
           class="clip panel-shot log-shot"
-          src="assets/log.mp4"
-          muted
+          src="assets/log.png"
+          alt=""
           data-start="15.6"
           data-duration="2.6"
           data-track-index="0"
-        ></video>
-        <video
+        />
+        <img
           id="v-wiki"
           class="clip panel-shot wiki-shot"
-          src="assets/wiki.mp4"
-          muted
+          src="assets/wiki.png"
+          alt=""
           data-start="18.2"
-          data-duration="3"
+          data-duration="1.2"
           data-track-index="0"
-        ></video>
-        <video
+        />
+        <img
+          id="v-wiki-doc"
+          class="clip panel-shot wiki-shot"
+          src="assets/wiki-doc.png"
+          alt=""
+          data-start="19.4"
+          data-duration="1.8"
+          data-track-index="0"
+        />
+        <img
           id="v-workflow"
           class="clip panel-shot settings-shot"
-          src="assets/workflow.mp4"
-          muted
+          src="assets/workflow.png"
+          alt=""
           data-start="21.2"
-          data-duration="3.1"
+          data-duration="1.3"
           data-track-index="0"
-        ></video>
-        <video
+        />
+        <img
+          id="v-workflow-owner"
+          class="clip panel-shot settings-shot"
+          src="assets/workflow-owner.png"
+          alt=""
+          data-start="22.5"
+          data-duration="1.8"
+          data-track-index="0"
+        />
+        <img
           id="v-history"
           class="clip panel-shot summary-shot"
-          src="assets/history.mp4"
-          muted
+          src="assets/history.png"
+          alt=""
           data-start="24.3"
-          data-duration="2.6"
+          data-duration="1.1"
           data-track-index="0"
-        ></video>
+        />
+        <img
+          id="v-history-chat"
+          class="clip panel-shot summary-shot"
+          src="assets/history-chat.png"
+          alt=""
+          data-start="25.4"
+          data-duration="1.5"
+          data-track-index="0"
+        />
         <video
           id="v-end"
           class="clip camp-shot"

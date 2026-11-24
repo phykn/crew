@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
+import path from 'node:path';
 import { launchApp, makeScratch, openProject } from '../e2e/launch';
-import { readStages, record, watchStages } from './record';
+import { ASSETS, readStages, record, watchStages } from './record';
 
 // The quest the user drops, in their own words
 const QUEST = 'Fix double charges at checkout. Add a regression test.';
@@ -174,25 +175,29 @@ test('record the English demo', async () => {
   await expect(legend).toHaveAttribute('aria-expanded', 'false');
 
   const take = await record(page);
+  const still = (name: string) =>
+    page.screenshot({ path: path.join(ASSETS, `${name}.png`), animations: 'disabled', scale: 'css' });
   await watchStages(page);
   take.mark('open');
   // The crew walks in from beyond the edges of the camp
   await page.waitForTimeout(4200);
   take.mark('ask');
   await page.getByLabel('Message').pressSequentially(QUEST, { delay: 34 });
+  await page.waitForTimeout(550);
   take.mark('sent');
   await page.getByLabel('Message').press('Enter');
   const report = page.getByText('Fixed the double charge.', { exact: false });
   await expect(report).toBeVisible({ timeout: 120_000 });
   take.mark('done');
-  await page.waitForTimeout(2300);
+  const changedFile = page.locator('.report-files').getByRole('button', { name: 'src/checkout.js', exact: true });
+  await expect(changedFile).toBeVisible();
+  await still('report');
 
-  await page.locator('.report-files').getByRole('button', { name: 'src/checkout.js', exact: true }).click();
+  await changedFile.click();
   const diff = page.getByRole('dialog');
   await expect(diff.getByRole('heading', { name: 'src/checkout.js', exact: true })).toBeVisible();
   await expect(diff.locator('.diff-line[data-kind="add"]').first()).toBeVisible();
-  take.mark('diff');
-  await page.waitForTimeout(2400);
+  await still('diff');
   await page.keyboard.press('Escape');
 
   await page.getByRole('tab', { name: 'Log' }).click();
@@ -201,33 +206,31 @@ test('record the English demo', async () => {
     .getByRole('button', { name: /Test done/ })
     .first();
   await testRun.scrollIntoViewIfNeeded();
-  take.mark('log');
-  await page.waitForTimeout(450);
   await testRun.click();
   const checks = page.getByText('npm test → 18 passed', { exact: false }).last();
   await expect(checks).toBeVisible();
   await checks.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(2100);
+  await still('log');
 
   await page.getByRole('tab', { name: 'Memory' }).click();
   await page.getByRole('button', { name: 'Graph', exact: true }).click();
   const paymentRetries = page.getByLabel('Document Payment retries', { exact: true });
   await expect(paymentRetries).toBeVisible();
-  take.mark('wiki');
-  await page.waitForTimeout(850);
+  await page.waitForTimeout(400);
+  await still('wiki');
   await paymentRetries.click();
   await expect(page.getByLabel('Wiki document').getByRole('heading', { name: 'Payment retries' })).toBeVisible();
-  await page.waitForTimeout(2150);
+  await still('wiki-doc');
 
   await page.getByRole('tab', { name: 'Workflow' }).click();
   const review = page.getByLabel('Step Code review', { exact: true });
   await expect(review).toBeVisible();
-  take.mark('workflow');
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(400);
+  await still('workflow');
   await review.click();
   await page.getByLabel('Owner role', { exact: true }).click();
   await expect(page.getByRole('option', { name: 'Tester Siu', exact: true })).toBeVisible();
-  await page.waitForTimeout(2300);
+  await still('workflow-owner');
   await page.keyboard.press('Escape');
 
   await page.getByRole('tab', { name: 'Chat' }).click();
@@ -238,11 +241,11 @@ test('record the English demo', async () => {
   await session.click();
   const previous = page.getByRole('option', { name: /^Fix double charges/ });
   await expect(previous).toBeVisible();
-  take.mark('history');
-  await page.waitForTimeout(800);
+  await still('history');
   await previous.click();
   await expect(report).toBeVisible();
-  await page.waitForTimeout(1900);
+  await expect(changedFile).toBeVisible();
+  await still('history-chat');
 
   const stages = await readStages(page);
   expect(stages.map(({ text }) => text).join('\n')).toMatch(
