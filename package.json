@@ -20,7 +20,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "oxlint && oxfmt --check",
     "test:live": "vitest run --project live",
-    "demo": "electron-forge package && node demo/make.mjs"
+    "demo": "electron-forge package && node demo/make.mjs",
+    "demo:en": "electron-forge package && node demo/make.mjs --lang en"
   },
   "devDependencies": {
     "@electron-forge/cli": "^8.0.1",

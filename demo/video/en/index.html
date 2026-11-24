@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: Galmuri11;
+        font-weight: 400;
+        src: url('assets/Galmuri11.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: Galmuri11;
+        font-weight: 700;
+        src: url('assets/Galmuri11-Bold.woff2') format('woff2');
+      }
+      /* The window's own palette, so the film and the app read as one thing */
+      :root {
+        --ink: #4a2a12;
+        --wood: #5c3213;
+        --rim: #8a4f22;
+        --paper: #fff9e8;
+        --paper-2: #fdebc6;
+        --butter: #fbe39a;
+        --green: #3e7a33;
+        --green-2: #86c477;
+      }
+      body {
+        margin: 0;
+        background: #1a120b;
+      }
+      #root {
+        position: relative;
+        width: 1280px;
+        height: 720px;
+        overflow: hidden;
+        background: #1a120b;
+        font-family: Galmuri11, sans-serif;
+        color: var(--paper);
+      }
+      /* The camera moves the whole window; a focus point is given as a fraction of it */
+      #cam {
+        position: absolute;
+        inset: 0;
+        transform-origin: 0 0;
+      }
+      #cam video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      /* Darker at the edges and along the bottom, so words sit on the picture instead of over it */
+      #grade {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          linear-gradient(to top, rgba(20, 12, 6, 0.62) 0%, rgba(20, 12, 6, 0.28) 16%, rgba(20, 12, 6, 0) 32%),
+          radial-gradient(120% 90% at 50% 45%, rgba(20, 12, 6, 0) 55%, rgba(20, 12, 6, 0.45) 100%);
+      }
+
+      /* A line of the story: outlined so it reads over grass, parchment, or code alike */
+      .caption {
+        position: absolute;
+        left: 46px;
+        bottom: 38px;
+        max-width: 780px;
+        font-size: 31px;
+        font-weight: 700;
+        line-height: 1.15;
+        letter-spacing: 0.5px;
+        color: var(--paper);
+        text-shadow:
+          2px 0 var(--wood),
+          -2px 0 var(--wood),
+          0 2px var(--wood),
+          0 -2px var(--wood),
+          2px 2px var(--wood),
+          -2px 2px var(--wood),
+          2px -2px var(--wood),
+          -2px -2px var(--wood),
+          0 5px 0 rgba(20, 12, 6, 0.45);
+        z-index: 10;
+      }
+      /* Who is at work, in the party's own words */
+      .badge {
+        position: absolute;
+        right: 40px;
+        bottom: 36px;
+        padding: 9px 16px 10px;
+        background: var(--paper);
+        color: var(--ink);
+        border: 3px solid var(--rim);
+        box-shadow: 0 5px 0 var(--wood);
+        font-size: 19px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        white-space: nowrap;
+        opacity: 0;
+        z-index: 11;
+      }
+      .badge b {
+        color: var(--rim);
+        margin-right: 8px;
+      }
+      #stamp {
+        position: absolute;
+        right: 40px;
+        bottom: 34px;
+        padding: 10px 18px 12px;
+        background: var(--paper);
+        color: var(--green);
+        border: 3px solid var(--green);
+        box-shadow: 0 5px 0 #2f5a28;
+        font-size: 25px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        white-space: nowrap;
+        transform: rotate(-3deg);
+        z-index: 12;
+      }
+
+      /* The quest the crew is on, kept short enough to read at a glance */
+      #quest {
+        position: absolute;
+        top: 18px;
+        left: 50%;
+        width: 470px;
+        margin-left: -235px;
+        padding: 7px 12px 10px;
+        background: rgba(31, 20, 10, 0.86);
+        border: 2px solid var(--rim);
+        opacity: 0;
+        z-index: 11;
+      }
+      #quest .q {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: var(--butter);
+      }
+      #quest .t {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--paper);
+        margin-left: 6px;
+      }
+      #quest .track {
+        margin-top: 6px;
+        height: 5px;
+        background: rgba(255, 249, 232, 0.22);
+      }
+      #quest .fill {
+        height: 5px;
+        width: 0;
+        background: var(--green-2);
+      }
+
+      /* The title cards: a wordmark, a line under it, and the app's own flame */
+      .card {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        background:
+          radial-gradient(70% 70% at 50% 50%, rgba(12, 7, 3, 0.22) 0%, rgba(12, 7, 3, 0.5) 100%), rgba(12, 7, 3, 0.6);
+        text-align: center;
+        z-index: 20;
+      }
+      #end {
+        opacity: 0;
+      }
+      .card svg {
+        width: 64px;
+        height: 64px;
+        image-rendering: pixelated;
+      }
+      /* A short rule under the wordmark keeps the lockup from floating in the picture */
+      .card .rule {
+        width: 210px;
+        height: 6px;
+        background: var(--butter);
+        opacity: 0.9;
+      }
+      .card h1 {
+        margin: 0;
+        font-size: 112px;
+        line-height: 1;
+        letter-spacing: 2px;
+        color: var(--butter);
+        text-shadow: 0 8px 0 var(--wood);
+      }
+      .card p {
+        margin: 0;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: var(--paper);
+      }
+      /* What the user typed, on a slip of parchment under the line that says so */
+      #slip {
+        position: absolute;
+        left: 46px;
+        bottom: 92px;
+        max-width: 560px;
+        padding: 10px 14px;
+        background: var(--paper-2);
+        color: var(--ink);
+        border: 3px solid var(--rim);
+        box-shadow: 0 5px 0 var(--wood);
+        font-size: 20px;
+        font-weight: 700;
+        line-height: 1.3;
+        z-index: 12;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-width="1280"
+      data-height="720"
+      data-duration="38.4"
+      data-fps="30"
+    >
+      <div id="cam">
+        <video
+          id="v-intro"
+          class="clip"
+          src="assets/intro.mp4"
+          muted
+          data-start="0"
+          data-duration="2.6"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-camp"
+          class="clip"
+          src="assets/camp.mp4"
+          muted
+          data-start="2.6"
+          data-duration="2.8"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-ask"
+          class="clip"
+          src="assets/ask.mp4"
+          muted
+          data-start="5.4"
+          data-duration="3.8"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-plan"
+          class="clip"
+          src="assets/plan.mp4"
+          muted
+          data-start="9.2"
+          data-duration="2.4"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-build"
+          class="clip"
+          src="assets/build.mp4"
+          muted
+          data-start="11.6"
+          data-duration="3.4"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-bounce"
+          class="clip"
+          src="assets/bounce.mp4"
+          muted
+          data-start="15"
+          data-duration="2.8"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-fix"
+          class="clip"
+          src="assets/fix.mp4"
+          muted
+          data-start="17.8"
+          data-duration="2.8"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-test"
+          class="clip"
+          src="assets/test.mp4"
+          muted
+          data-start="20.6"
+          data-duration="3"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-report"
+          class="clip"
+          src="assets/report.mp4"
+          muted
+          data-start="23.6"
+          data-duration="3.2"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-diff"
+          class="clip"
+          src="assets/diff.mp4"
+          muted
+          data-start="26.8"
+          data-duration="2.6"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-wiki"
+          class="clip"
+          src="assets/wiki.mp4"
+          muted
+          data-start="29.4"
+          data-duration="2.2"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-workflow"
+          class="clip"
+          src="assets/workflow.mp4"
+          muted
+          data-start="31.6"
+          data-duration="2.2"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-connect"
+          class="clip"
+          src="assets/connect.mp4"
+          muted
+          data-start="33.8"
+          data-duration="2"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-end"
+          class="clip"
+          src="assets/end.mp4"
+          muted
+          data-start="35.8"
+          data-duration="2.6"
+          data-track-index="0"
+        ></video>
+      </div>
+
+      <div id="grade"></div>
+
+      <div id="c-camp" class="caption clip" data-start="2.6" data-duration="2.8" data-track-index="1">
+        Nine specialists. One campfire.
+      </div>
+      <div id="c-ask" class="caption clip" data-start="5.4" data-duration="3.8" data-track-index="1">Drop a quest.</div>
+      <div id="c-work" class="caption clip" data-start="9.2" data-duration="5.8" data-track-index="1">
+        The party takes it from there.
+      </div>
+      <div id="c-bounce" class="caption clip" data-start="15" data-duration="2.8" data-track-index="1">
+        The reviewer and the tester bounce it.
+      </div>
+      <div id="c-fix" class="caption clip" data-start="17.8" data-duration="2.8" data-track-index="1">
+        Fixed before it ever shipped.
+      </div>
+      <div id="c-test" class="caption clip" data-start="20.6" data-duration="3" data-track-index="1">
+        Nothing ships broken.
+      </div>
+      <div id="c-report" class="caption clip" data-start="23.6" data-duration="3.2" data-track-index="1">
+        Then you get the straight story.
+      </div>
+      <div id="c-diff" class="caption clip" data-start="26.8" data-duration="2.6" data-track-index="1">
+        A clean diff. Nothing else touched.
+      </div>
+      <div id="c-wiki" class="caption clip" data-start="29.4" data-duration="2.2" data-track-index="1">
+        Knowledge compounds.
+      </div>
+      <div id="c-workflow" class="caption clip" data-start="31.6" data-duration="2.2" data-track-index="1">
+        Workflows bend to your team.
+      </div>
+      <div id="c-connect" class="caption clip" data-start="33.8" data-duration="2" data-track-index="1">
+        Your model. Your keys.
+      </div>
+
+      <div id="b-plan" class="badge"><b>PLAN</b>Daon the Conductor</div>
+      <div id="b-build" class="badge"><b>BUILD</b>Moru the Coder</div>
+      <div id="b-bounce" class="badge"><b>REVIEW</b>Serin the Reviewer</div>
+      <div id="b-fix" class="badge"><b>FIX</b>Moru the Coder</div>
+      <div id="stamp" class="clip" data-start="20.6" data-duration="3" data-track-index="2">
+        ✓ ALL GREEN · 18 PASSED
+      </div>
+
+      <div id="slip" class="clip" data-start="6" data-duration="3.2" data-track-index="2">
+        ▸ Fix the checkout double charge and add a test for it
+      </div>
+
+      <div id="quest">
+        <span class="q">QUEST</span><span class="t">Fix the double charge</span>
+        <div class="track"><div class="fill"></div></div>
+      </div>
+
+      <div id="intro" class="card">
+        <h1>crew</h1>
+        <div class="rule"></div>
+        <p>Your pixel dev party by the campfire.</p>
+      </div>
+
+      <div id="end" class="card">
+        <h1>crew</h1>
+        <div class="rule"></div>
+        <p>Small pixels. Serious shipping.</p>
+      </div>
+    </div>
+
+    <script>
+      const W = 1280;
+      const H = 720;
+      const tl = gsap.timeline({ paused: true });
+      // A shot gives the point of the window it is about, as a fraction of it, and a zoom; the camera is moved by
+      // arithmetic instead of transform-origin, and never past the window's edge, so every frame stays filled
+      const clamp = (v, size, zoom) => Math.min(0, Math.max(size - size * zoom, v));
+      const aim = (fx, fy, zoom) => ({
+        scale: zoom,
+        x: clamp(W / 2 - fx * W * zoom, W, zoom),
+        y: clamp(H / 2 - fy * H * zoom, H, zoom),
+      });
+      const shot = (at, length, from, to) => {
+        // The camera settles into its framing in half a second and then holds: the camp and the window do the moving,
+        // and a still frame is what keeps a GIF of the same scene small
+        tl.fromTo(
+          '#cam',
+          { scale: aim(...from).scale, x: aim(...from).x, y: aim(...from).y },
+          { ...aim(...to), duration: Math.min(0.55, length * 0.4), ease: 'power3.out', immediateRender: false },
+          at,
+        );
+      };
+
+      // The camp, then the quest, then each member taking their turn, then what the work leaves behind
+      tl.fromTo('#cam', aim(0.5, 0.5, 1.06), { ...aim(0.5, 0.5, 1.12), duration: 2.2, ease: 'sine.inOut' }, 0);
+      shot(2.6, 2.8, [0.3, 0.52, 1.5], [0.31, 0.5, 1.54]);
+      shot(5.4, 3.8, [0.79, 0.84, 1.33], [0.8, 0.8, 1.37]);
+      shot(9.2, 2.4, [0.32, 0.46, 1.42], [0.33, 0.48, 1.48]);
+      shot(11.6, 3.4, [0.3, 0.5, 1.46], [0.31, 0.48, 1.52]);
+      shot(15, 2.8, [0.34, 0.46, 1.44], [0.36, 0.48, 1.48]);
+      shot(17.8, 2.8, [0.3, 0.5, 1.46], [0.32, 0.48, 1.52]);
+      shot(20.6, 3, [0.8, 0.56, 1.31], [0.8, 0.52, 1.35]);
+      shot(23.6, 3.2, [0.8, 0.52, 1.32], [0.8, 0.5, 1.36]);
+      shot(26.8, 2.6, [0.5, 0.5, 1.18], [0.5, 0.5, 1.22]);
+      shot(29.4, 2.2, [0.84, 0.4, 1.34], [0.85, 0.42, 1.38]);
+      shot(31.6, 2.2, [0.82, 0.46, 1.32], [0.83, 0.48, 1.36]);
+      shot(33.8, 2, [0.82, 0.44, 1.32], [0.83, 0.46, 1.36]);
+      tl.fromTo('#cam', aim(0.5, 0.5, 1.12), { ...aim(0.5, 0.5, 1.04), duration: 2.4, ease: 'sine.inOut' }, 35.8);
+
+      // Words come in a beat after their scene and lift away before the cut. A clip's visibility belongs to the
+      // page's own timeline, so only opacity and position are animated here
+      const LINES = [
+        ['#c-camp', 2.6, 2.8],
+        ['#c-ask', 5.4, 3.8],
+        ['#c-work', 9.2, 5.8],
+        ['#c-bounce', 15, 2.8],
+        ['#c-fix', 17.8, 2.8],
+        ['#c-test', 20.6, 3],
+        ['#c-report', 23.6, 3.2],
+        ['#c-diff', 26.8, 2.6],
+        ['#c-wiki', 29.4, 2.2],
+        ['#c-workflow', 31.6, 2.2],
+        ['#c-connect', 33.8, 2],
+      ];
+      for (const [id, at, length] of LINES) {
+        tl.fromTo(id, { y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: 0.34, ease: 'power3.out' }, at + 0.08);
+        tl.to(id, { y: -10, opacity: 0, duration: 0.26, ease: 'power2.in' }, at + length - 0.28);
+      }
+
+      // The slip of parchment with the user's own words arrives with the line above it
+      tl.fromTo('#slip', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power3.out' }, 6.1);
+
+      // Who is at work comes in from the edge of the frame, like a name plate dropped in a game
+      const CAST = [
+        ['#b-plan', 9.2, 2.4],
+        ['#b-build', 11.6, 3.4],
+        ['#b-bounce', 15, 2.8],
+        ['#b-fix', 17.8, 2.8],
+      ];
+      for (const [id, at, length] of CAST) {
+        tl.fromTo(id, { x: 26, opacity: 0 }, { x: 0, opacity: 1, duration: 0.3, ease: 'power3.out' }, at + 0.1);
+        tl.to(id, { opacity: 0, duration: 0.22 }, at + length - 0.24);
+      }
+
+      // The stamp lands like a verdict
+      tl.fromTo(
+        '#stamp',
+        { scale: 1.6, opacity: 0, rotate: -10 },
+        { scale: 1, opacity: 1, rotate: -3, duration: 0.34, ease: 'back.out(2.2)' },
+        20.72,
+      );
+
+      // The bar under the quest shows how much of the party's work is done
+      tl.fromTo('#quest', { opacity: 0, y: -8 }, { opacity: 1, y: 0, duration: 0.3 }, 9.25);
+      tl.fromTo('#quest .fill', { width: 0 }, { width: '100%', duration: 14, ease: 'none' }, 9.3);
+      tl.to('#quest', { opacity: 0, duration: 0.3 }, 23.5);
+
+      // The title cards
+      tl.fromTo('#intro .rule', { scaleX: 0 }, { scaleX: 1, duration: 0.4, ease: 'power3.out' }, 0.32);
+      tl.fromTo('#intro h1', { y: 34, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: 'back.out(2)' }, 0.18);
+      tl.fromTo('#intro p', { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45 }, 0.55);
+      tl.to('#intro', { opacity: 0, duration: 0.4 }, 2.15);
+
+      tl.fromTo('#end', { opacity: 0 }, { opacity: 1, duration: 0.45 }, 35.85);
+      tl.fromTo('#end h1', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: 'back.out(2)' }, 35.95);
+      tl.fromTo('#end .rule', { scaleX: 0 }, { scaleX: 1, duration: 0.4, ease: 'power3.out' }, 36.15);
+      tl.fromTo('#end p', { y: 12, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45 }, 36.3);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines.main = tl;
+    </script>
+  </body>
+</html>

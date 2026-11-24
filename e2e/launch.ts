@@ -11,7 +11,11 @@ export function makeScratch(files: Record<string, string> = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crew-e2e-'));
   const project = path.join(dir, 'demo');
   fs.mkdirSync(project);
-  for (const [name, text] of Object.entries(files)) fs.writeFileSync(path.join(project, name), text);
+  for (const [name, text] of Object.entries(files)) {
+    const file = path.join(project, name);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, text);
+  }
   return { db: path.join(dir, 'crew.db'), project };
 }
 
@@ -63,10 +67,14 @@ export async function answerFolderDialog(app: ElectronApplication, folder: strin
   }, folder);
 }
 
-export async function openProject(app: ElectronApplication, folder: string) {
+export async function openProject(
+  app: ElectronApplication,
+  folder: string,
+  words: { project: string; openMore: string } = { project: '프로젝트', openMore: '폴더 열기…' },
+) {
   const page = await app.firstWindow();
   await answerFolderDialog(app, folder);
-  await page.getByLabel('프로젝트').click();
-  await page.getByRole('option', { name: '폴더 열기…' }).click();
+  await page.getByLabel(words.project).click();
+  await page.getByRole('option', { name: words.openMore }).click();
   return page;
 }
