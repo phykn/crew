@@ -159,7 +159,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
         return store
           .listEvents(t.sessionId)
           .filter((e) => e.taskId === t.id)
-          .map((e) => ({ at: e.at, kind: e.kind, text: e.text }));
+          .map((e) => ({ at: e.at, kind: e.kind, ...e.say }));
       },
     }),
     action({

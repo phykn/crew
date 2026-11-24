@@ -4,6 +4,7 @@ import { wire } from '../../src/backend/wire';
 import { Store } from '../../src/backend/adapters/sqlite/store';
 import { ALLOW } from '../../src/backend/domain/answers';
 import { CREW, MemorySecrets, makeScratch, recordedAgents, recordedRuns } from '../support';
+import { say as words } from '../../src/frontend/locale';
 
 test('real Claude: 통역 lists files itself, remembers after a restart, and switches model', async () => {
   const scratch = makeScratch({ 'notes.txt': 'hello', 'todo.md': '- buy milk' });
@@ -70,7 +71,7 @@ test('real Claude: 통역 works the app itself, asking on cards only for what ne
   const answering = setInterval(() => {
     for (const m of store.listMessages(s.id))
       if (m.question && m.question.answer === null) {
-        cards.push(m.question.prompt);
+        cards.push(words(m.question.say));
         chat.questions.answer(m.question.id, m.question.options.includes(ALLOW) ? ALLOW : m.question.options[0]);
       }
   }, 200);

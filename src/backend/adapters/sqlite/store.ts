@@ -39,7 +39,7 @@ const toMember = (r: MemberRow): Member => ({
 type QuestionRow = Omit<Question, 'options' | 'payload' | 'say'> & {
   options: string;
   payload: string;
-  say: string | null;
+  say: string;
 };
 type TaskRow = Omit<Task, 'workflow'> & { workflow: string };
 const TASK =
@@ -267,16 +267,11 @@ export class Store implements Records {
     });
   }
 
-  // A change from before codes keeps its words in text
-  listPermissionChanges(memberId: number): { say: Say | null; text: string; at: string }[] {
+  listPermissionChanges(memberId: number): { say: Say; at: string }[] {
     const rows = this.db
       .prepare('SELECT change, at FROM permission_changes WHERE member_id = ? ORDER BY id')
       .all(memberId) as { change: string; at: string }[];
-    return rows.map((r) =>
-      r.change.startsWith('{')
-        ? { say: JSON.parse(r.change), text: '', at: r.at }
-        : { say: null, text: r.change, at: r.at },
-    );
+    return rows.map((r) => ({ say: JSON.parse(r.change), at: r.at }));
   }
 
   openAgentSession(sessionId: number, memberId: number): AgentSession {
@@ -337,10 +332,10 @@ export class Store implements Records {
     return row ?? null;
   }
 
-  addQuestion(q: Omit<Question, 'id' | 'answer' | 'prompt'>): number {
+  addQuestion(q: Omit<Question, 'id' | 'answer'>): number {
     const { lastInsertRowid } = this.db
       .prepare(
-        "INSERT INTO questions (session_id, task_id, kind, prompt, say, options, payload, created_at) VALUES (?, ?, ?, '', ?, ?, ?, ?)",
+        'INSERT INTO questions (session_id, task_id, kind, say, options, payload, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
       )
       .run(
         q.sessionId,
@@ -357,13 +352,13 @@ export class Store implements Records {
   readQuestion(id: number): Question {
     const row = this.db
       .prepare(
-        'SELECT id, session_id AS sessionId, task_id AS taskId, kind, say, prompt, options, payload, answer FROM questions WHERE id = ?',
+        'SELECT id, session_id AS sessionId, task_id AS taskId, kind, say, options, payload, answer FROM questions WHERE id = ?',
       )
       .get(id) as QuestionRow | undefined;
     if (!row) throw new Error(`no question ${id}`);
     return {
       ...row,
-      say: row.say ? JSON.parse(row.say) : null,
+      say: JSON.parse(row.say),
       options: JSON.parse(row.options),
       payload: JSON.parse(row.payload),
     };
@@ -407,22 +402,22 @@ export class Store implements Records {
     return !!row;
   }
 
-  addEvent(e: Omit<Event, 'id' | 'at' | 'text'>) {
+  addEvent(e: Omit<Event, 'id' | 'at'>) {
     this.db
       .prepare(
-        "INSERT INTO events (session_id, task_id, member_id, kind, text, say, detail, at) VALUES (?, ?, ?, ?, '', ?, ?, ?)",
+        'INSERT INTO events (session_id, task_id, member_id, kind, say, detail, at) VALUES (?, ?, ?, ?, ?, ?, ?)',
       )
-      .run(e.sessionId, e.taskId, e.memberId, e.kind, e.say && JSON.stringify(e.say), e.detail, now());
+      .run(e.sessionId, e.taskId, e.memberId, e.kind, JSON.stringify(e.say), e.detail, now());
   }
 
   listEvents(sessionId: number): Event[] {
     return (
       this.db
         .prepare(
-          'SELECT id, session_id AS sessionId, task_id AS taskId, member_id AS memberId, kind, say, text, detail, at FROM events WHERE session_id = ? ORDER BY id',
+          'SELECT id, session_id AS sessionId, task_id AS taskId, member_id AS memberId, kind, say, detail, at FROM events WHERE session_id = ? ORDER BY id',
         )
-        .all(sessionId) as (Omit<Event, 'say'> & { say: string | null })[]
-    ).map((e) => ({ ...e, say: e.say ? JSON.parse(e.say) : null }));
+        .all(sessionId) as (Omit<Event, 'say'> & { say: string })[]
+    ).map((e) => ({ ...e, say: JSON.parse(e.say) }));
   }
 
   startRun(agentSessionId: number, model: string, taskId: number | null = null, side = false): number {

@@ -465,7 +465,7 @@ function AnswerCard({ question }: { question: Question }) {
   const answer = question.answer ?? picked;
   return (
     <div className="answer-card" data-question={question.id} data-answered={answer !== null || undefined}>
-      <div className="answer-prompt">{renderInline(question.say ? say(question.say) : question.prompt)}</div>
+      <div className="answer-prompt">{renderInline(say(question.say))}</div>
       {answer !== null ? (
         <p className="answer-result" role="status">
           ✓ {answerLabel(answer)}

@@ -66,7 +66,7 @@ interface MemberRecords {
   writeLeaving(id: number, leaving: boolean): void;
   updateMember(id: number, change: { nickname?: string; model?: string; status?: Member['status'] }): void;
   writeConfig(id: number, config: Record<string, unknown>, change: Say): void;
-  listPermissionChanges(memberId: number): { say: Say | null; text: string; at: string }[];
+  listPermissionChanges(memberId: number): { say: Say; at: string }[];
 }
 
 export interface ConversationRecords {
@@ -81,12 +81,12 @@ export interface ConversationRecords {
   ): void;
   listMessages(sessionId: number): Message[];
   readImage(messageId: number, n: number): Image | null;
-  addQuestion(q: Omit<Question, 'id' | 'answer' | 'prompt'>): number;
+  addQuestion(q: Omit<Question, 'id' | 'answer'>): number;
   readQuestion(id: number): Question;
   openQuestionIds(sessionId: number, taskId: number | null): number[];
   answerQuestion(id: number, answer: string): void;
   isGranted(sessionId: number, taskId: number | null, memberId: number, tool: string): boolean;
-  addEvent(e: Omit<Event, 'id' | 'at' | 'text'>): void;
+  addEvent(e: Omit<Event, 'id' | 'at'>): void;
   listEvents(sessionId: number): Event[];
 }
 

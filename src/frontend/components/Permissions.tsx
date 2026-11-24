@@ -121,7 +121,7 @@ export function Permissions({ memberId }: { memberId: number }) {
         <ul className="perm-changes" aria-label="권한 변경 기록">
           {data.changes.map((c, i) => (
             <li key={i}>
-              <time>{stamp(c.at)}</time> {c.say ? say(c.say) : c.text}
+              <time>{stamp(c.at)}</time> {say(c.say)}
             </li>
           ))}
         </ul>

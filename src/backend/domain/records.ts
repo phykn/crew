@@ -30,9 +30,8 @@ export type Question = {
   sessionId: number;
   taskId: number | null;
   kind: 'approval' | 'choice';
-  // What the card asks; a card from before codes keeps its words in prompt instead
-  say: Say | null;
-  prompt: string;
+  // What the card asks, as a code the window words
+  say: Say;
   options: string[];
   payload: Record<string, unknown>;
   answer: string | null;
@@ -56,9 +55,8 @@ export type Event = {
   taskId: number | null;
   memberId: number | null;
   kind: string;
-  // What happened; a line from before codes keeps its words in text instead
-  say: Say | null;
-  text: string;
+  // What happened, as a code the window words
+  say: Say;
   detail: string | null;
   at: string;
 };
@@ -102,7 +100,7 @@ export type Handback = {
   points: string[];
   files: string[];
   checks: string[];
-  // What the step kept in the wiki, or why nothing; empty on handbacks from before it was asked
+  // What the step kept in the wiki, or why nothing; a rework the user asked for has none
   wiki?: string;
   // Set on a rework the user asked for: the step it sends back to
   target?: string;

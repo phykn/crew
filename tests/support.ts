@@ -195,4 +195,4 @@ export async function toolText(fake: ReturnType<typeof fakeCrew>, name: string, 
 }
 
 // A log line as the window words it
-export const words = (e: Event) => (e.say ? say(e.say) : e.text);
+export const words = (e: Event) => say(e.say);

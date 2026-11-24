@@ -5,6 +5,7 @@ import { wire } from '../../src/backend/wire';
 import type { Chat } from '../../src/backend/app/chat';
 import { Store } from '../../src/backend/adapters/sqlite/store';
 import { CREW, MemorySecrets, makeScratch, recordedRuns } from '../support';
+import { say } from '../../src/frontend/locale';
 
 const SEARCH = `export function search(items, query) {
   if (!query) return [];
@@ -38,7 +39,7 @@ test('real Claude: 통역 opens a code task and the crew changes and verifies it
       if (channel !== 'changed' || (topic as { topic: string }).topic !== 'messages') return;
       for (const m of store.listMessages(s.id)) {
         if (m.question && m.question.answer === null) {
-          asked.push(m.question.prompt);
+          asked.push(say(m.question.say));
           chat.questions.answer(m.question.id, m.question.options.at(-1)!);
         }
       }
@@ -83,7 +84,7 @@ test('real Claude: 통역 opens a code task and the crew changes and verifies it
     },
   );
   expect(JSON.parse(out)).toEqual(['a', 'b']);
-  expect(store.listEvents(s.id).some((e) => e.kind === 'step' && e.text.includes('코드 작성: 코드 작성 완료'))).toBe(
-    true,
-  );
+  expect(
+    store.listEvents(s.id).some((e) => e.kind === 'step' && say(e.say).includes('코드 작성: 코드 작성 완료')),
+  ).toBe(true);
 }, 1_200_000);

@@ -12,7 +12,7 @@ export class Questions {
     public emit: Feed,
   ) {}
 
-  ask(q: Omit<Question, 'id' | 'answer' | 'prompt' | 'say'> & { say: Say }): Promise<string> {
+  ask(q: Omit<Question, 'id' | 'answer'>): Promise<string> {
     const id = this.store.addQuestion(q);
     this.store.addMessage(q.sessionId, 'secretary', '', id);
     // The waiter is in place before anyone hears of the card, so an instant answer is not lost
