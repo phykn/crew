@@ -4,8 +4,12 @@ out/
 test-results/
 playwright-report/
 *.log
-docs/groove/shots/
-docs/groove/numstat.txt
+
+# Local project notes and bundle imports
+/docs/
+/CLAUDE.md
+/sample.zip
+/sample/crew-1-3-9.bundle
 
 # Recorded app footage and renders, made again by the demo script
 demo/video/assets/
