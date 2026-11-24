@@ -27,8 +27,11 @@ textarea.ui-field {
   background: var(--disabled-bg);
   color: var(--text-muted);
 }
+/* Grows with its lines from one control height; the screen caps how tall */
 .ui-field--bare {
-  padding: var(--sp-2) 0;
+  min-height: var(--h-lg);
+  padding: calc((var(--h-lg) - 1lh) / 2) var(--sp-2);
+  field-sizing: content;
   background: transparent;
   border: none;
   outline: none;
@@ -40,6 +43,20 @@ textarea.ui-field {
 }
 .ui-field--bare::placeholder,
 .ui-field::placeholder {
+  color: var(--text-muted);
+}
+
+/* A field's name over it; inline puts a switch beside its name */
+.ui-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+.ui-label--inline {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--sp-2);
   color: var(--text-muted);
 }
 

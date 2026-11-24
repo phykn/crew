@@ -31,7 +31,7 @@ function KindIcon({ kind }: { kind: string }) {
 }
 
 function TaskLink(props: Parameters<typeof Button>[0]) {
-  return <Button variant="link" className="task-link" {...props} />;
+  return <Button variant="link" size="sm" className="task-link" {...props} />;
 }
 
 // One pinned row per task still open; a finished task's row goes and its report stays in the chat

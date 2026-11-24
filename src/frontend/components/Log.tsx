@@ -74,6 +74,8 @@ export function Log({
           <ToolbarEnd>
             <Button
               variant="link"
+              tone="muted"
+              size="sm"
               className="usage-toggle"
               aria-expanded={showUsage}
               title="사용량"
@@ -190,7 +192,7 @@ function HandbackView({ hb, onFile }: { hb: Logged; onFile: ((file: string) => v
             {hb.files.map((f) => (
               <li key={f}>
                 {onFile ? (
-                  <Button variant="link" className="file-link" title="변경 내용 보기" onClick={() => onFile(f)}>
+                  <Button variant="link" title="변경 내용 보기" onClick={() => onFile(f)}>
                     <code>{f}</code>
                   </Button>
                 ) : (

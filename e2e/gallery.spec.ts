@@ -8,8 +8,8 @@ test('the parts gallery opens only with CREW_GALLERY=1, and every part matches i
   const page = await app.firstWindow();
   await page.mouse.move(0, 0);
   const sections = page.locator('.gallery-section');
-  await expect(sections).toHaveCount(5);
-  for (const name of ['버튼', '고르기', '입력과 표시', '색 역할', '척도'])
+  await expect(sections).toHaveCount(6);
+  for (const name of ['버튼', '묶기', '고르기', '입력과 표시', '색 역할', '척도'])
     await expect(page.getByRole('region', { name })).toHaveScreenshot(`${name}.png`);
 
   // Pointed at and reached by keyboard: the two states a still picture cannot show

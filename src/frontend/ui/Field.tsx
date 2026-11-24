@@ -21,6 +21,26 @@ export function TextArea({
   return <textarea className={bare ? ['ui-field--bare', className].join(' ') : classes(size, className)} {...rest} />;
 }
 
+export function Label({
+  text,
+  inline,
+  className,
+  children,
+}: {
+  text: ReactNode;
+  inline?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  const classes = ['ui-label', inline && 'ui-label--inline', className].filter(Boolean).join(' ');
+  return (
+    <label className={classes}>
+      {text}
+      {children}
+    </label>
+  );
+}
+
 export function Checkbox({ children, ...rest }: Omit<ComponentProps<'input'>, 'type'> & { children: ReactNode }) {
   return (
     <label className="ui-check">

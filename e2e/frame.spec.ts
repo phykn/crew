@@ -8,7 +8,7 @@ test('the tabs stand on one frame line, the open one hides it, and the folder sp
   const page = await openProject(app, scratch.project);
   const edges = await page.evaluate(() => {
     const box = (sel: string) => document.querySelector(sel)!.getBoundingClientRect();
-    const list = document.querySelector('.tab-list')!;
+    const list = document.querySelector('.ui-tab-list')!;
     const tabs = [...list.querySelectorAll('button')];
     const open = tabs.find((t) => t.dataset.state === 'active')!;
     return {
@@ -70,7 +70,7 @@ test('every tab shows its name on one line, the open one in bold too', async () 
   for (const name of ['대화', '로그', '메모리', '워크플로우']) {
     await page.getByRole('tab', { name }).click();
     const fits = await page
-      .locator('.tab-list button .tab-name')
+      .locator('.ui-tab .ui-tab-name')
       .evaluateAll((spans) =>
         spans.every((s) => s.getClientRects().length === 1 && s.scrollWidth <= s.parentElement!.clientWidth),
       );

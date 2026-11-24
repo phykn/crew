@@ -2,6 +2,8 @@ import { type ReactNode, useEffect, useState } from 'react';
 import type { CrewMember } from '../../backend/domain/crew';
 import { MODELS } from '../../shared';
 import { type Args, call } from '../api';
+import { Fold } from '../ui/Fold';
+import { Label } from '../ui/Field';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Choice } from '../ui/Choice';
@@ -37,19 +39,24 @@ export function Legend({ members, onMemory }: { members: CrewMember[]; onMemory:
   }
 
   return (
-    <div className="legend" data-open={open || undefined}>
-      <Button variant="row" className="legend-head" onClick={() => setOpen(!open)} aria-expanded={open}>
-        크루 <Badge>{members.filter((m) => m.status === 'hired').length}명 고용</Badge>
-        <svg viewBox="0 0 20 20" className="icon legend-chevron" aria-hidden="true">
-          <path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2.2" />
-        </svg>
-      </Button>
-      {open && (
+    <div className="legend">
+      <Fold
+        size="lg"
+        label={
+          <>
+            크루 <Badge>{members.filter((m) => m.status === 'hired').length}명 고용</Badge>
+          </>
+        }
+        open={open}
+        onOpenChange={setOpen}
+      >
         <ul className="legend-list">
           {members.map((m) => (
             <li key={m.id}>
               <Button
                 variant="row"
+                size="md"
+                tone={m.status === 'unhired' ? 'muted' : undefined}
                 className="legend-row"
                 data-unhired={m.status === 'unhired' || undefined}
                 aria-label={`${m.role} 설정`}
@@ -63,7 +70,7 @@ export function Legend({ members, onMemory }: { members: CrewMember[]; onMemory:
             </li>
           ))}
         </ul>
-      )}
+      </Fold>
       <Dialog open={!!shown} onClose={() => setShown(null)} keepFocus>
         <DialogHead>
           <DialogTitle>{shown?.role}</DialogTitle>
@@ -78,23 +85,21 @@ export function Legend({ members, onMemory }: { members: CrewMember[]; onMemory:
               onChange={(model) => update(current, { model: model as Args<'members.update'>['model'] })}
             />
             {!current.kept && (
-              <label className="hire">
-                고용
+              <Label inline text="고용" className="hire">
                 <Switch
                   checked={current.status === 'hired'}
                   label={`${current.role} 고용`}
                   onChange={(on) => update(current, { status: on ? 'hired' : 'unhired' })}
                 />
-              </label>
+              </Label>
             )}
           </div>
         )}
         {shown && <Permissions memberId={shown.id} />}
         {/* The instructions are the model's own prompt, kept in English; few people need to read them */}
-        <details className="def-fold">
-          <summary>지시문</summary>
+        <Fold label="지시문" className="def-fold">
           <Prose className="def-body" text={shown?.instructions ?? ''} />
-        </details>
+        </Fold>
         <DialogActions>
           <Button className="member-reset" onClick={() => setResetting(true)}>
             초기화

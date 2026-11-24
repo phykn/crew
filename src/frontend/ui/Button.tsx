@@ -5,7 +5,8 @@ export type ButtonProps = Omit<ComponentProps<'button'>, 'aria-pressed'> & {
   // secondary: a bordered control; primary: the one green action; quiet: muted until pointed at;
   // row: a whole line that opens or picks something; link: words that act
   variant?: 'secondary' | 'primary' | 'quiet' | 'row' | 'link';
-  tone?: 'danger';
+  // danger: a removal or a stop; muted: a minor row or link that should not draw the eye
+  tone?: 'danger' | 'muted';
   size?: 'sm' | 'md' | 'lg';
   iconOnly?: boolean;
   pressed?: boolean;
@@ -14,6 +15,7 @@ export type ButtonProps = Omit<ComponentProps<'button'>, 'aria-pressed'> & {
 };
 
 const SIZED = ['secondary', 'primary', 'quiet'];
+const TEXT = ['row', 'link'];
 
 export function Button({
   variant = 'secondary',
@@ -27,10 +29,13 @@ export function Button({
   ...rest
 }: ButtonProps) {
   const sized = SIZED.includes(variant) ? (size ?? (variant === 'quiet' ? 'sm' : 'md')) : null;
+  // A link takes its context's type size unless told otherwise
+  const text = TEXT.includes(variant) ? (size ?? (variant === 'row' ? 'sm' : null)) : null;
   const classes = [
     'ui-button',
     `ui-button--${variant}`,
     sized && `ui-button--${sized}`,
+    text && `ui-button--text-${text}`,
     iconOnly && 'ui-button--icon',
     tone && `ui-button--${tone}`,
     className,

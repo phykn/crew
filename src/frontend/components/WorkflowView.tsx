@@ -26,7 +26,7 @@ import { call, onChanged } from '../api';
 import { Button } from '../ui/Button';
 import { Choice } from '../ui/Choice';
 import { Confirm } from '../ui/Confirm';
-import { Checkbox, Input, TextArea } from '../ui/Field';
+import { Checkbox, Input, Label, TextArea } from '../ui/Field';
 import { Segmented } from '../ui/Segmented';
 import { Toolbar, ToolbarEnd } from '../ui/Toolbar';
 import { HIDE_MARK } from './WikiGraph';
@@ -278,17 +278,15 @@ export function WorkflowView({
         </div>
         {step && (
           <aside className="workflow-side" aria-label="단계 설정">
-            <label className="side-field">
-              이름
+            <Label text="이름">
               <Input
                 size="md"
                 aria-label="단계 이름"
                 value={step.label}
                 onChange={(e) => edit(step.id, { label: e.target.value })}
               />
-            </label>
-            <label className="side-field">
-              담당
+            </Label>
+            <Label text="담당">
               <Choice
                 label="담당 역할"
                 wide
@@ -298,22 +296,20 @@ export function WorkflowView({
                   .map((m) => ({ value: m.key, label: `${m.role} ${m.nickname}` }))}
                 onChange={(role) => edit(step.id, { role })}
               />
-            </label>
-            <label className="side-field">
-              할 일
+            </Label>
+            <Label text="할 일">
               <TextArea
                 className="side-text"
                 aria-label="할 일"
                 value={step.does}
                 onChange={(e) => edit(step.id, { does: e.target.value })}
               />
-            </label>
+            </Label>
             <Checkbox checked={step.verdict} onChange={(e) => edit(step.id, { verdict: e.target.checked })}>
               통과 못 하면 되돌려 보내기
             </Checkbox>
             {step.verdict && (
-              <label className="side-field">
-                최대 횟수
+              <Label text="최대 횟수">
                 <Input
                   size="md"
                   type="number"
@@ -323,7 +319,7 @@ export function WorkflowView({
                   value={step.loops}
                   onChange={(e) => edit(step.id, { loops: Math.min(9, Math.max(1, Number(e.target.value) || 1)) })}
                 />
-              </label>
+              </Label>
             )}
           </aside>
         )}

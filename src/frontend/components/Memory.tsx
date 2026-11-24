@@ -114,7 +114,6 @@ function WikiView({ projectId, graph, onList }: { projectId: number; graph: bool
               <li key={d.title}>
                 <Button
                   variant="row"
-                  className="wiki-toc-item"
                   aria-current={d.title === doc?.title || undefined}
                   onClick={() => setPicked(d.title)}
                 >
@@ -137,8 +136,7 @@ function WikiView({ projectId, graph, onList }: { projectId: number; graph: bool
                     <Button
                       key={i}
                       variant="link"
-                      className="wiki-link"
-                      data-missing={!docs.some((d) => d.title === title) || undefined}
+                      tone={docs.some((d) => d.title === title) ? undefined : 'muted'}
                       onClick={() => openTitle(title)}
                     >
                       {title}
@@ -155,7 +153,7 @@ function WikiView({ projectId, graph, onList }: { projectId: number; graph: bool
                   {links.edges
                     .filter((e) => e.to === doc.title)
                     .map((e) => (
-                      <Button key={e.from} variant="link" className="wiki-link" onClick={() => openTitle(e.from)}>
+                      <Button key={e.from} variant="link" onClick={() => openTitle(e.from)}>
                         {e.from}
                       </Button>
                     ))}
@@ -170,7 +168,7 @@ function WikiView({ projectId, graph, onList }: { projectId: number; graph: bool
       {changes.length > 0 && (
         <ol className="wiki-timeline" aria-label="변경 타임라인">
           {changes.map((c, i) => (
-            <li key={i} className="log-line">
+            <li key={i} className="wiki-change">
               <time>{stamp(c.at)}</time>
               <span className="wiki-kind" data-kind={c.kind}>
                 {KIND[c.kind]}

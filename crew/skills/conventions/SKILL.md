@@ -22,6 +22,12 @@ Screens are built in three levels, each using only the one below it:
 2. Parts: shared controls such as buttons, inputs, and dialogs use only those named values, and each has one look for hover, pressed, disabled, and focus.
 3. Screens: they place parts. A screen that draws its own control, or writes a raw color or pixel size, breaks this. A look no part has is first added to a part as a variant.
 
+Where this slips:
+
+- Every control is a part, including tabs, folds, and the label over a field, not only buttons and inputs. A screen that uses a component library's control directly has drawn its own.
+- A class a screen gives a part may only place it: position, size in the layout, gaps. Color, background, border, padding, font, and underline belong to the part, so a screen that sets them has made a variant only that screen knows.
+- A passing check is not proof. Before saying screens follow the parts, read each class a screen hands a part and what its style sets.
+
 What the user sees follows the user's taste:
 
 - Every word earns its place: no title, label, or explanation the context already says. A row's action is an icon with its name kept for screen readers. Labels are short words, and words side by side are of even length.

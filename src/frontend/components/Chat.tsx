@@ -212,7 +212,7 @@ export function Chat({
                 <Pictures srcs={q.images.map(src)} />
                 {q.text}
               </div>
-              <Button variant="link" className="send-now" onClick={() => sendQueued(q)}>
+              <Button variant="link" tone="muted" size="sm" onClick={() => sendQueued(q)}>
                 지금 보내기
               </Button>
             </div>
@@ -448,7 +448,6 @@ function ReportFiles({
         <Button
           key={file}
           variant="link"
-          className="file-link"
           title="변경 내용 보기"
           onClick={() => onChanges({ taskId, title, versionId: last.id, file })}
         >

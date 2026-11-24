@@ -101,24 +101,53 @@
 /* Row: a whole line; the screen lays out what is inside */
 .ui-button--row {
   justify-content: flex-start;
+  width: 100%;
+  padding: var(--sp-1) var(--sp-2);
   border-radius: var(--r-sm);
+  color: var(--text);
   text-align: left;
 }
+/* Hover, the picked row, and an opened row share the butter highlight */
 .ui-button--row:hover:not(:disabled),
-.ui-button--row[aria-current='true'] {
+.ui-button--row[aria-current='true'],
+.ui-button--row[aria-expanded='true'] {
   background: var(--highlight);
 }
+.ui-button--row[aria-current='true'] {
+  font-weight: var(--fw-bold);
+}
 
-/* Link: words that act, underlined when pointed at */
+/* Link: words that open something, always underlined; muted and danger ones only when pointed at */
 .ui-button--link {
   display: inline;
+  color: var(--text-link);
   text-align: inherit;
+  text-decoration: underline;
+}
+.ui-button--link.ui-button--muted,
+.ui-button--link.ui-button--danger {
+  text-decoration: none;
 }
 .ui-button--link:hover:not(:disabled) {
   text-decoration: underline;
 }
 .ui-button--link.ui-button--danger {
   color: var(--status-bad);
+}
+.ui-button--row.ui-button--muted,
+.ui-button--link.ui-button--muted {
+  color: var(--text-muted);
+}
+
+/* Rows and links have no frame to size, so their size is only the type size */
+.ui-button--text-sm {
+  font-size: var(--fs-sm);
+}
+.ui-button--text-md {
+  font-size: var(--fs-md);
+}
+.ui-button--text-lg {
+  font-size: var(--fs-lg);
 }
 
 /* Unsaved changes: a dot after the label */

@@ -6,12 +6,14 @@ import { Choice } from './ui/Choice';
 import { Confirm } from './ui/Confirm';
 import { Dialog, DialogActions, DialogClose, DialogHead, DialogTitle } from './ui/Dialog';
 import { Empty } from './ui/Empty';
-import { Checkbox, Input, TextArea } from './ui/Field';
+import { Checkbox, Input, Label, TextArea } from './ui/Field';
+import { Fold } from './ui/Fold';
+import { Tab, TabList, Tabs } from './ui/Tabs';
 import { ListMenu, ListOption } from './ui/Menu';
 import { Segmented } from './ui/Segmented';
 import { Switch } from './ui/Switch';
 import { Toolbar, ToolbarEnd } from './ui/Toolbar';
-import { PencilIcon, TrashIcon } from './components/Icons';
+import { PencilIcon, TabIcon, TrashIcon } from './components/Icons';
 
 const OPTIONS = [
   { value: 'a', label: '첫째', hint: '설명이 붙은 항목' },
@@ -26,6 +28,8 @@ export function Gallery() {
   const [chip, setChip] = useState(true);
   const [pick, setPick] = useState('a');
   const [open, setOpen] = useState<'dialog' | 'confirm' | null>(null);
+  const [tab, setTab] = useState('a');
+  const [fold, setFold] = useState(true);
   return (
     <main className="gallery">
       <Section title="버튼">
@@ -71,12 +75,48 @@ export function Gallery() {
           <Button variant="row" className="gallery-row" aria-current>
             고른 줄
           </Button>
+          <Button variant="row" className="gallery-row" aria-expanded>
+            펼친 줄
+          </Button>
+          <Button variant="row" size="md" tone="muted" className="gallery-row">
+            흐린 줄
+          </Button>
         </Row>
         <Row label="link">
           <Button variant="link">글자 버튼</Button>
+          <Button variant="link" size="sm" tone="muted">
+            흐린 글자
+          </Button>
           <Button variant="link" tone="danger">
             중단
           </Button>
+        </Row>
+      </Section>
+
+      <Section title="묶기">
+        <Row label="tabs">
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabList>
+              <Tab value="a" name="대화" icon={<TabIcon tab="chat" />} />
+              <Tab value="b" name="로그" icon={<TabIcon tab="log" />} waiting />
+            </TabList>
+          </Tabs>
+        </Row>
+        <Row label="fold">
+          <Fold size="lg" label="크게" open={fold} onOpenChange={setFold}>
+            <span>펼친 내용</span>
+          </Fold>
+          <Fold label="작게">
+            <span>펼친 내용</span>
+          </Fold>
+        </Row>
+        <Row label="label">
+          <Label text="이름">
+            <Input aria-label="이름" />
+          </Label>
+          <Label inline text="고용">
+            <Switch label="고용" checked={on} onChange={setOn} />
+          </Label>
         </Row>
       </Section>
 

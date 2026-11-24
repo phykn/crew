@@ -68,12 +68,50 @@ test('screens draw controls only through ui/: no raw button, input, or textarea,
     ...fs.readdirSync(path.join(dir, 'components')).map((f) => `components/${f}`),
   ].filter((f) => f.endsWith('.tsx'));
   const raw = screens.flatMap((f) =>
-    [...read(f).matchAll(/<(button|input|textarea|select)\b|@radix-ui\/react-(dialog|switch)|['"` ]ui-[\w-]+/g)].map(
-      (m) => `${f}: ${m[0]}`,
-    ),
+    [
+      ...read(f).matchAll(
+        /<(button|input|textarea|select|label|details)\b|@radix-ui\/react-(dialog|switch|tabs)|['"` ]ui-[\w-]+/g,
+      ),
+    ].map((m) => `${f}: ${m[0]}`),
   );
   expect(raw).toEqual([]);
   expect(read('styles.css').match(/\.ui-[\w-]+/g) ?? []).toEqual([]);
+
+  // A class a screen hands a part only places it: the part alone decides how it looks
+  const parts = new Set(
+    screens.flatMap((f) =>
+      [...read(f).matchAll(/import \{([^}]+)\} from '\.{1,2}\/ui\/\w+'/g)].flatMap((m) =>
+        m[1].split(',').map((n) => n.replace(/^type /, '').trim()),
+      ),
+    ),
+  );
+  const placed = new Set(
+    screens.flatMap((f) =>
+      [...read(f).matchAll(/<([A-Z]\w*)\b[^>]*?\bclassName="([\w -]+)"/g)].flatMap((m) =>
+        parts.has(m[1]) ? m[2].split(' ') : [],
+      ),
+    ),
+  );
+  const look = /^(color|background|border|padding|font|text-decoration|box-shadow|outline|opacity|cursor)/;
+  const restyled = [...read('styles.css').matchAll(/([^{}]+)\{([^{}]*)\}/g)].flatMap(([, selectors, body]) => {
+    // Only the selector's last step lands on the part itself; `.x .child` styles the screen's own child
+    const hits = selectors
+      .split(',')
+      .map(
+        (sel) =>
+          sel
+            .trim()
+            .split(/[\s>+~]+/)
+            .pop() ?? '',
+      )
+      .flatMap((last) => [...placed].filter((c) => new RegExp(`\\.${c}(?![\\w-])`).test(last)));
+    const props = body
+      .split(';')
+      .map((d) => d.trim().split(':')[0])
+      .filter((p) => look.test(p));
+    return hits.length && props.length ? [`${hits.join(' ')}: ${props.join(', ')}`] : [];
+  });
+  expect(restyled).toEqual([]);
 });
 
 test('sizes come in few steps: five font sizes, three corners, and three control heights', () => {

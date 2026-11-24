@@ -1,0 +1,74 @@
+/* The open tab's sheet, framed on three sides under the list; a panel kept mounted is hidden while another tab is open */
+.ui-tab-panel {
+  padding: var(--sp-3);
+  background: var(--surface-field);
+  border: var(--bw-frame) solid var(--border-control);
+  border-top: none;
+  border-radius: 0 0 var(--r) var(--r);
+}
+.ui-tab-panel[data-state='inactive'] {
+  display: none;
+}
+/* Only the list draws the frame line and every tab stands on it, so the line cannot step */
+.ui-tab-list {
+  display: flex;
+  gap: var(--sp-1);
+  border-bottom: var(--bw-frame) solid var(--border-control);
+}
+.ui-tab {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+  width: var(--w-tab);
+  height: var(--h-lg);
+  background: var(--surface-control);
+  border: var(--bw-frame) solid var(--border-control);
+  border-bottom: none;
+  border-radius: var(--r) var(--r) 0 0;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+.ui-tab:hover:not([data-state='active']) {
+  background: var(--highlight);
+}
+.ui-tab[data-state='active'] {
+  background: var(--surface-field);
+  color: var(--text-heading);
+  font-weight: var(--fw-bold);
+}
+.ui-tab-name {
+  font-size: var(--fs-xs);
+  line-height: 1;
+  white-space: nowrap;
+}
+.ui-tab:focus-visible {
+  outline: var(--bw) solid var(--focus-ring);
+  outline-offset: calc(-1 * var(--bw-frame));
+}
+.ui-tab-list[data-pointer] .ui-tab:focus-visible {
+  outline: none;
+}
+/* The open tab hides the line between its sides; a strip longer than the drawn line falls on the frame's own colour */
+.ui-tab[data-state='active']::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: var(--bw-frame);
+  background: var(--surface-field);
+}
+.ui-tab[data-waiting]::after {
+  content: '';
+  position: absolute;
+  top: var(--sp-1);
+  right: var(--sp-1);
+  width: var(--mark);
+  height: var(--mark);
+  background: var(--status-wait-edge);
+  border-radius: 50%;
+}

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import * as Tabs from '@radix-ui/react-tabs';
 import { onNavigate } from './api';
 import { useWorkspace } from './workspace';
 import { TitleBar } from './components/TitleBar';
@@ -14,6 +13,7 @@ import { Camp } from './components/Camp';
 import { TabIcon } from './components/Icons';
 import { Changes, type ChangesTarget } from './components/Changes';
 import { Connections } from './components/Connections';
+import { Tab, TabList, TabPanel, Tabs } from './ui/Tabs';
 import { Confirm } from './ui/Confirm';
 import { Empty } from './ui/Empty';
 
@@ -99,31 +99,24 @@ export function App() {
             onNewSession={ws.newSession}
             onExplorer={() => setTree(true)}
           />
-          <Tabs.Root className="tabs" value={tab} onValueChange={setTab}>
-            {/* An icon with its name under it: small enough for five tabs, and readable without a hover */}
-            {/* A tab picked from a text field would inherit its keyboard ring, so the list remembers whether the last pick was by pointer */}
-            <Tabs.List
-              className="tab-list"
-              onPointerDown={(e) => (e.currentTarget.dataset.pointer = '')}
-              onKeyDown={(e) => delete e.currentTarget.dataset.pointer}
-            >
+          <Tabs className="tabs" value={tab} onValueChange={setTab}>
+            <TabList>
               {TABS.map(([value, name]) => {
                 const marked = value === 'chat' && waiting && !!session;
                 return (
-                  <Tabs.Trigger
+                  <Tab
                     key={value}
                     value={value}
+                    icon={<TabIcon tab={value} />}
+                    name={name}
+                    waiting={marked}
                     aria-label={marked ? `${name}, 대답 대기` : name}
-                    data-waiting={marked || undefined}
-                  >
-                    <TabIcon tab={value} />
-                    <span className="tab-name">{name}</span>
-                  </Tabs.Trigger>
+                  />
                 );
               })}
-            </Tabs.List>
+            </TabList>
             {/* Kept mounted so a reply streaming in keeps its first words while another tab is open */}
-            <Tabs.Content value="chat" className="tab-body" forceMount>
+            <TabPanel value="chat" className="tab-body" forceMount>
               {session ? (
                 <Chat
                   session={session}
@@ -143,19 +136,19 @@ export function App() {
               ) : (
                 <Empty>폴더를 열어 프로젝트를 시작하세요.</Empty>
               )}
-            </Tabs.Content>
-            <Tabs.Content value="log" className="tab-body">
+            </TabPanel>
+            <TabPanel value="log" className="tab-body">
               {session && (
                 <Log session={session} members={members} taskId={logTask} onTask={setLogTask} onChanges={setChanges} />
               )}
-            </Tabs.Content>
-            <Tabs.Content value="memory" className="tab-body">
+            </TabPanel>
+            <TabPanel value="memory" className="tab-body">
               {project && (
                 <Memory projectId={project.id} members={members} memberId={memoryOf} onMember={setMemoryOf} />
               )}
-            </Tabs.Content>
+            </TabPanel>
             {/* Kept mounted so unsaved edits survive a look at another tab */}
-            <Tabs.Content value="workflow" className="tab-body" forceMount>
+            <TabPanel value="workflow" className="tab-body" forceMount>
               {project && (
                 <WorkflowView
                   project={project}
@@ -166,11 +159,11 @@ export function App() {
                   onDirty={setWorkflowDirty}
                 />
               )}
-            </Tabs.Content>
-            <Tabs.Content value="connect" className="tab-body">
+            </TabPanel>
+            <TabPanel value="connect" className="tab-body">
               <Connections />
-            </Tabs.Content>
-          </Tabs.Root>
+            </TabPanel>
+          </Tabs>
         </aside>
       </main>
       {leaving && (

@@ -77,11 +77,6 @@ code {
   outline: none;
 }
 
-/* Hover and the picked row share the butter highlight */
-.tab-list button:hover:not([data-state='active']) {
-  background: var(--highlight);
-}
-
 /* Red is only for failure and delete */
 .task-confirm,
 .log-row[data-bad] .log-text,
@@ -91,10 +86,8 @@ code {
 }
 
 /* Headings */
-.legend-head,
 .wiki-doc h3,
-.tree-name,
-.tab-list button[data-state='active'] {
+.tree-name {
   color: var(--text-heading);
   font-weight: var(--fw-bold);
 }
@@ -231,82 +224,16 @@ code {
   flex-direction: column;
   min-height: 0;
 }
-.tab-list {
-  display: flex;
-  gap: var(--sp-1);
-  border-bottom: var(--bw-frame) solid var(--border-control);
-}
-.tab-list button {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--sp-1);
-  width: var(--w-tab);
-  height: var(--h-lg);
-  background: var(--surface-control);
-  border: var(--bw-frame) solid var(--border-control);
-  border-bottom: none;
-  border-radius: var(--r) var(--r) 0 0;
-  color: var(--text-muted);
-  cursor: pointer;
-}
-/* Only the row draws the frame line and every tab stands on it, so the line cannot step */
-.tab-list button[data-state='active'] {
-  background: var(--surface-field);
-}
-.tab-name {
-  font-size: var(--fs-xs);
-  line-height: 1;
-  white-space: nowrap;
-}
-.tab-list button:focus-visible {
-  outline: var(--bw) solid var(--focus-ring);
-  outline-offset: calc(-1 * var(--bw-frame));
-}
-.tab-list[data-pointer] button:focus-visible {
-  outline: none;
-}
-/* The open tab hides the line between its sides; a strip longer than the drawn line falls on the frame's own colour */
-.tab-list button[data-state='active']::before {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  height: var(--bw-frame);
-  background: var(--surface-field);
-}
 .tab-icon,
 .tab-icon svg {
   display: block;
   width: var(--icon-lg);
   height: var(--icon-lg);
 }
-/* A card waits for the user's answer */
-.tab-list button[data-waiting]::after {
-  content: '';
-  position: absolute;
-  top: var(--sp-1);
-  right: var(--sp-1);
-  width: var(--mark);
-  height: var(--mark);
-  background: var(--status-wait-edge);
-  border-radius: 50%;
-}
 .tab-body {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: var(--sp-3);
-  background: var(--surface-field);
-  border: var(--bw-frame) solid var(--border-control);
-  border-top: none;
-  border-radius: 0 0 var(--r) var(--r);
-}
-.tab-body[data-state='inactive'] {
-  display: none;
 }
 .tab-body[data-state='active']:has(.chat),
 .tab-body[data-state='active']:has(.log),
@@ -454,9 +381,6 @@ code {
 /* Grows with wrapped and broken lines, up to the cap, then scrolls; sized to its content, it would also widen past the box, so it may shrink to the room left */
 .composer-text {
   min-width: 0;
-  min-height: var(--h-lg);
-  padding: calc((var(--h-lg) - 1lh) / 2) var(--sp-2);
-  field-sizing: content;
   max-height: var(--h-compose-max);
 }
 .composer-tools,
@@ -535,11 +459,6 @@ code {
   border-style: dashed;
   opacity: 0.7;
 }
-.send-now {
-  padding: 0 var(--sp-1);
-  color: var(--text-muted);
-  font-size: var(--fs-sm);
-}
 
 /* Pinned tasks: a notice strip, rows split by lines instead of boxed */
 .task-cards {
@@ -606,13 +525,6 @@ code {
 }
 .task-link {
   flex: none;
-  padding: var(--bw) var(--sp-1);
-  color: var(--text-emphasis);
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-bold);
-}
-.usage-toggle:hover {
-  text-decoration: underline;
 }
 .task-confirm {
   display: flex;
@@ -632,40 +544,14 @@ code {
   overflow: auto;
   padding: var(--sp-2);
 }
-.legend-head {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-  padding: 0 var(--sp-1) var(--sp-1);
-  font-size: var(--fs-lg);
-}
-.legend-head .legend-chevron {
-  width: var(--icon-sm);
-  height: var(--icon-sm);
-  transition: transform var(--t-fast);
-}
-.legend:not([data-open]) .legend-chevron {
-  transform: rotate(-90deg);
-}
-.legend:not([data-open]) .legend-head {
-  padding-bottom: 0;
-}
 .legend-row {
   display: grid;
   grid-template-columns: var(--mark) var(--w-legend-role) var(--w-legend-nick) auto;
   align-items: center;
   gap: var(--sp-2);
-  width: 100%;
-  padding: var(--sp-1) var(--sp-2);
-  border-radius: var(--r-sm);
-  color: var(--text);
-  font-size: var(--fs-md);
 }
 .legend-row .role {
   font-weight: var(--fw-bold);
-}
-.legend-row[data-unhired] {
-  color: var(--text-muted);
 }
 .hired-dot {
   width: var(--mark);
@@ -692,15 +578,6 @@ code {
   flex-direction: column;
   height: var(--h-dialog-max);
   overflow: hidden;
-}
-
-.file-link {
-  cursor: pointer;
-}
-/* A file name that opens its diff reads as a link */
-.file-link {
-  color: var(--text-link);
-  text-decoration: underline;
 }
 
 /* The file name and where it comes from share one line */
@@ -759,11 +636,7 @@ code {
   margin-right: auto;
 }
 .hire {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
   margin-left: auto;
-  color: var(--text-muted);
 }
 
 /* Permissions: labels in one column, their items wrap in the other */
@@ -813,14 +686,9 @@ code {
 .def-fold {
   margin: 0 0 var(--sp-3);
 }
-.def-fold summary {
-  color: var(--text-emphasis);
-  font-weight: var(--fw-bold);
-  cursor: pointer;
-}
 .def-body {
   max-height: var(--h-def-max);
-  margin: var(--sp-2) 0 0;
+  margin: 0;
   overflow: auto;
   padding: var(--sp-3);
   font-size: var(--fs-sm);
@@ -849,8 +717,6 @@ code {
 .usage-toggle {
   display: inline-flex;
   gap: var(--sp-3);
-  color: var(--text-muted);
-  font-size: var(--fs-xs);
 }
 
 .usage {
@@ -870,16 +736,13 @@ code {
   font-weight: normal;
 }
 .usage td,
-.log-line time {
+.log-line time,
+.wiki-change time {
   font-variant-numeric: tabular-nums;
 }
 .log-list {
   display: flex;
   flex-direction: column;
-}
-/* An opened line stays marked while its detail shows under it */
-.log-line[aria-expanded='true'] {
-  background: var(--highlight);
 }
 /* Time first, then what became of the line, then who did what */
 .log-line {
@@ -888,11 +751,6 @@ code {
   grid-template-columns: max-content var(--icon-md) var(--w-col) 1fr;
   align-items: start;
   gap: var(--sp-2);
-  width: 100%;
-  padding: var(--sp-1) var(--sp-2);
-  border-radius: var(--r-sm);
-  color: var(--text);
-  font-size: var(--fs-sm);
 }
 
 /* Green is done, red is failure, butter is waiting or sent back, wood is at work */
@@ -931,7 +789,8 @@ code {
   border-color: var(--frame-rim);
   color: var(--text-on-wood);
 }
-.log-line time {
+.log-line time,
+.wiki-change time {
   color: var(--text-muted);
 }
 .log-who {
@@ -993,17 +852,6 @@ code {
   overflow-y: auto;
   padding: var(--sp-1);
 }
-.wiki-toc-item {
-  width: 100%;
-  padding: var(--sp-1) var(--sp-2);
-  border-radius: var(--r-sm);
-  color: var(--text);
-  font-size: var(--fs-sm);
-}
-
-.wiki-toc-item[aria-current='true'] {
-  font-weight: var(--fw-bold);
-}
 .wiki-doc {
   display: flex;
   flex-direction: column;
@@ -1059,14 +907,6 @@ code {
   margin: 0;
   font-size: var(--fs-sm);
 }
-.wiki-link {
-  color: var(--action-primary-edge);
-  text-decoration: underline;
-}
-.wiki-link[data-missing] {
-  color: var(--text-muted);
-  text-decoration-style: dashed;
-}
 .wiki-body {
   margin: 0;
   font-size: var(--fs-md);
@@ -1084,8 +924,13 @@ code {
   max-height: var(--timeline-share);
   overflow-y: auto;
 }
-.wiki-timeline .log-line {
+.wiki-change {
+  display: grid;
   grid-template-columns: var(--w-wiki-time) var(--w-col) 1fr;
+  align-items: start;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--fs-sm);
 }
 .wiki-kind {
   background: var(--highlight);
@@ -1189,15 +1034,8 @@ code {
 .workflow-side > :nth-child(n + 3) {
   grid-column: 1 / -1;
 }
-.side-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-}
-
 .side-text {
   min-height: var(--h-side-textarea);
-  resize: vertical;
 }
 
 /* Explorer: one card per project, its sessions as rows inside */
@@ -1321,7 +1159,9 @@ code {
   align-items: center;
   gap: var(--sp-2);
 }
-.gallery-row,
+.gallery-row {
+  width: var(--w-answer);
+}
 .gallery-wide {
   width: var(--w-answer);
   padding: var(--sp-1) var(--sp-2);
