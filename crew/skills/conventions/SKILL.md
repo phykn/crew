@@ -30,9 +30,9 @@ Where this slips:
 
 What the user sees follows the user's taste:
 
-- Every word earns its place: no title, label, or explanation the context already says. A row's action is an icon with its name kept for screen readers. Labels are short words, and words side by side are of even length.
+- Every word earns its place: no title, label, or explanation the context already says. Labels are short words, and words side by side are of even length.
 - Nothing jumps: no control moves or changes size when its state, text, or data changes.
-- Lines are drawn once and look the same on every side; no seams, double borders, or solid offset shadows.
+- Lines are drawn once and look the same on every side; no seams or double borders.
 - Plain and tidy: no library's default look or browser-default control left showing, and no dots between words.
 
 ## Backend
