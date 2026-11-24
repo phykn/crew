@@ -55,15 +55,15 @@ export function guardMember({
     return answer === ALLOW;
   };
   return async (tool, input) => {
-    const { mode } = policy();
-    if (mode === 'bypass') return allow(tool, input);
-    const verdict = checkCall(policy(), tool, input);
+    const now = policy();
+    if (now.mode === 'bypass') return allow(tool, input);
+    const verdict = checkCall(now, tool, input);
     if (verdict.kind === 'allow') return allow(tool, input);
     if (verdict.kind === 'deny') {
       record('denied', { code: 'guard.denied', tool, reason: verdict.reason });
       return { behavior: 'deny', message: refused(verdict.reason) };
     }
-    if (mode === 'auto') {
+    if (now.mode === 'auto') {
       record('approved', { code: 'guard.auto', tool, reason: verdict.say });
       return allow(tool, input);
     }
@@ -76,8 +76,8 @@ export function guardMember({
       reason: verdict.say,
     });
     // The permissions may have changed while the user was deciding; the approval answered the question as it was asked
-    const now = checkCall(policy(), tool, input);
-    if (ok && now.kind !== 'allow' && !(now.kind === 'ask' && now.reason === verdict.reason)) {
+    const after = checkCall(policy(), tool, input);
+    if (ok && after.kind !== 'allow' && !(after.kind === 'ask' && after.reason === verdict.reason)) {
       return { behavior: 'deny', message: refused('permissions changed while waiting for approval') };
     }
     return ok ? allow(tool, input) : { behavior: 'deny', message: refused('the user did not allow it') };

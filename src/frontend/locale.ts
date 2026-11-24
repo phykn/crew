@@ -47,8 +47,6 @@ function namesIn(dict: Dict) {
 }
 // The Korean names, which tests and scripts name members by
 export const NAMES = namesIn(KO);
-export const ROLE_NAMES = NAMES.roles;
-export const WORKFLOW_NAMES = NAMES.workflows;
 export const names = () => (lang() === 'en' ? namesIn(EN) : NAMES);
 
 export const roleName = (key: unknown) => tOr(`role.${baseKey(String(key))}`);

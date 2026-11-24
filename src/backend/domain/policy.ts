@@ -1,7 +1,6 @@
 import path from 'node:path';
-import type { Mode } from '../../shared';
+import type { Mode, Say } from '../../shared';
 import type { Settings } from './crew';
-import type { Say } from '../../shared';
 
 // What one member may do right now; read fresh on every call so a revoked permission applies at once
 export type Policy = {

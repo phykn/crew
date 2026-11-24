@@ -2,9 +2,9 @@ import { _electron as electron, type ElectronApplication } from '@playwright/tes
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { ROLE_NAMES } from '../src/frontend/locale';
+import { NAMES } from '../src/frontend/locale';
 
-const KEY_OF = Object.fromEntries(Object.entries(ROLE_NAMES).map(([key, role]) => [role, key]));
+const KEY_OF = Object.fromEntries(Object.entries(NAMES.roles).map(([key, role]) => [role, key]));
 
 // A scratch record and a scratch project folder per test, so the real app data is never touched
 export function makeScratch(files: Record<string, string> = {}) {

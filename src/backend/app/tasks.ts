@@ -31,15 +31,17 @@ import {
   withoutPlan,
   whyText,
 } from '../domain/task';
-
 import { REFUSE } from '../domain/answers';
 import { ACTIVE, type Say, baseKey } from '../../shared';
+
+// Transient failures of one step are retried this many times
 const RETRIES = 3;
 // What runStep returns when the model's usage limit stopped it
 const LIMIT: Say = { code: 'limit' };
 const STOPPED: Say = { code: 'stopped' };
 const DONE: Say = { code: 'done' };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export class Tasks {
   // Each task's current drive; a loop or a queued step from an earlier drive sees it is no longer current and ends
   driving = new Map<number, number>();
@@ -61,7 +63,6 @@ export class Tasks {
         ? solo(this.chat.crew.defOf(one).role, one.key, this.chat.crew.soloStep(one))
         : this.chat.workflows.current(projectId, writer ? 'code' : kind).rules;
     const workflow = small || writer ? withoutPlan(rules) : rules;
-    // Set by the app rather than left to the brief's wording, so every step reads the same scope
     const task = store.createTask({
       sessionId,
       kind: one && !writer ? kind : workflow.kind,

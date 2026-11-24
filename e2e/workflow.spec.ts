@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { answerFolderDialog, launchApp, makeScratch, openProject } from './launch';
-import { WORKFLOW_NAMES } from '../src/frontend/locale';
+import { NAMES } from '../src/frontend/locale';
 
 // One task whose 조사 has no scripted answer, so its card stays (failed) while the editor is open and closed
 const SCRIPT = {
@@ -77,7 +77,7 @@ test('a version 통역 saves by talk shows in the editor that was already open',
   const scratch = makeScratch();
   // The rules as 통역 reads them: the crew's steps with their names on screen
   const shipped = JSON.parse(fs.readFileSync(path.join('crew', 'workflows', 'code.json'), 'utf-8'));
-  const names = WORKFLOW_NAMES.code;
+  const names = NAMES.workflows.code;
   const steps = shipped.steps.map((st: { id: string }) => ({ ...st, label: names.steps[st.id] }));
   const rules = { ...shipped, label: names.label, steps };
   const app = await launchApp(scratch.db, {

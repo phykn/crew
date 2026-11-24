@@ -152,7 +152,7 @@ class ClaudeRun implements AgentRun {
   constructor(
     private sdk: () => Promise<Sdk>,
     public input: AgentInput,
-    private env?: Record<string, string>,
+    private env: Record<string, string>,
   ) {
     this.claudeId = input.fork ? null : (input.resume ?? null);
   }

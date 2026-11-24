@@ -79,8 +79,6 @@ export const HANDBACK_SCHEMA = z.toJSONSchema(HandbackShape, { target: 'draft-7'
   unknown
 >;
 
-// Transient failures of one step are retried this many times
-
 // Set by the app rather than left to the brief's wording, so every step of a code task reads the same scope
 export const CODE_SCOPE =
   'Always in scope (set by the app): a test for each new behavior or fixed bug, and the README or documents that describe what changed. This overrides any line above that leaves them out.';

@@ -171,6 +171,8 @@
   --w-session-min: 144px;
   /* One crew member in the explorer: role, nickname, and run count */
   --w-tree-agent: 168px;
+  /* The longest role in either language, so every explorer row's columns start at the same place */
+  --w-tree-role: 6.5em;
   --w-field-sm: 76px;
   /* Narrow label and data columns, and the switch */
   --w-col: 40px;

@@ -1128,9 +1128,16 @@ code {
 }
 .tree-agent {
   display: grid;
-  grid-template-columns: minmax(var(--w-legend-role), max-content) minmax(var(--w-legend-nick), max-content) auto;
+  grid-template-columns: var(--w-tree-role) minmax(0, 1fr) var(--w-col);
   align-items: center;
   justify-items: start;
+}
+.tree-agent > b,
+.tree-agent > .muted {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* A report's changed files sit on their own line under its words */

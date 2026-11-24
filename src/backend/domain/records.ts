@@ -115,11 +115,8 @@ export type StepRun = {
   error: string | null;
   versionId: number | null;
 };
-export type RunResult = {
-  status: string;
-  usage: { turns: number; inputTokens: number; outputTokens: number; costUsd: number };
-  error?: string;
-};
+export type RunUsage = { turns: number; inputTokens: number; outputTokens: number; costUsd: number };
+export type RunResult = { status: string; usage: RunUsage; error?: string };
 
 // Every file's content hash, so changes made before a task and by it can be told apart with or without git
 export type Snapshot = Record<string, string>;
@@ -145,7 +142,7 @@ export type RunOutput = {
   claudeId: string | null;
   text: string;
   status: 'done' | 'failed' | 'stopped' | 'limit';
-  usage: { turns: number; inputTokens: number; outputTokens: number; costUsd: number };
+  usage: RunUsage;
   structured?: unknown;
   error?: string;
 };

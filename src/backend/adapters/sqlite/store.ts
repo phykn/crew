@@ -27,6 +27,8 @@ import type {
   RunResult,
 } from '../../domain/records';
 
+const PROJECT = 'SELECT id, path, name, mode FROM projects';
+const SESSION = 'SELECT id, project_id AS projectId, number, created_at AS createdAt, title FROM sessions';
 type MemberRow = Omit<Member, 'config' | 'temp' | 'leaving'> & { config: string; temp: number; leaving: number };
 const MEMBER = 'SELECT id, project_id AS projectId, key, nickname, model, status, config, temp, leaving FROM members';
 const toMember = (r: MemberRow): Member => ({
@@ -46,7 +48,7 @@ const TASK =
 const toTask = (r: TaskRow): Task => ({ ...r, workflow: JSON.parse(r.workflow) });
 type StepRunRow = Omit<StepRun, 'handback'> & { handback: string | null };
 
-export function now() {
+function now() {
   return new Date().toISOString();
 }
 
@@ -89,14 +91,15 @@ export class Store implements Records {
     this.db
       .prepare('INSERT OR IGNORE INTO projects (path, name, added_at) VALUES (?, ?, ?)')
       .run(full, path.basename(full), now());
-    return this.db.prepare('SELECT id, path, name, mode FROM projects WHERE path = ?').get(full) as Project;
+    return this.db.prepare(`${PROJECT} WHERE path = ?`).get(full) as Project;
   }
 
   // A folder deleted outside the app keeps its project and history until the user removes it
   listProjects(): ListedProject[] {
-    return (
-      this.db.prepare('SELECT id, path, name, mode FROM projects ORDER BY added_at DESC, id DESC').all() as Project[]
-    ).map((p) => ({ ...p, missing: !fs.existsSync(p.path) }));
+    return (this.db.prepare(`${PROJECT} ORDER BY added_at DESC, id DESC`).all() as Project[]).map((p) => ({
+      ...p,
+      missing: !fs.existsSync(p.path),
+    }));
   }
 
   setMode(id: number, mode: Mode) {
@@ -104,9 +107,7 @@ export class Store implements Records {
   }
 
   readProject(id: number): Project {
-    const row = this.db.prepare('SELECT id, path, name, mode FROM projects WHERE id = ?').get(id) as
-      | Project
-      | undefined;
+    const row = this.db.prepare(`${PROJECT} WHERE id = ?`).get(id) as Project | undefined;
     if (!row) throw new Error(`no project ${id}`);
     return row;
   }
@@ -130,9 +131,7 @@ export class Store implements Records {
   }
 
   readSession(id: number): Session {
-    const row = this.db
-      .prepare('SELECT id, project_id AS projectId, number, created_at AS createdAt, title FROM sessions WHERE id = ?')
-      .get(id) as Session | undefined;
+    const row = this.db.prepare(`${SESSION} WHERE id = ?`).get(id) as Session | undefined;
     if (!row) throw new Error(`no session ${id}`);
     return row;
   }
@@ -188,11 +187,7 @@ export class Store implements Records {
   }
 
   listSessions(projectId: number): Session[] {
-    return this.db
-      .prepare(
-        'SELECT id, project_id AS projectId, number, created_at AS createdAt, title FROM sessions WHERE project_id = ? ORDER BY number DESC',
-      )
-      .all(projectId) as Session[];
+    return this.db.prepare(`${SESSION} WHERE project_id = ? ORDER BY number DESC`).all(projectId) as Session[];
   }
 
   seedMembers(projectId: number, defs: { key: string; nickname: string; model: string }[]) {

@@ -13,7 +13,7 @@ type Tree = Awaited<ReturnType<typeof call<'tree.list'>>>;
 type Target = { kind: 'session'; id: number; name: string } | { kind: 'project'; id: number; name: string };
 type Impact = { sessions: number; tasks: number; events: number; messages: number };
 
-// 프로젝트 → 세션 → 에이전트 세션, with removal that says what it takes before it happens
+// Project → session → agent session, with removal that says what it takes before it happens
 export function ProjectTree({
   open,
   onClose,

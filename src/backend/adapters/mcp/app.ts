@@ -57,13 +57,12 @@ export const OFF_CATALOG: Record<string, string> = {
   'questions.answer': 'only the user answers cards',
   'camp.state': 'the camp is drawn from the record, not acted on',
   'workflows.save': 'the interpreter saves workflows with change_workflow, filing the reason',
-  'connections.list': 'keys and logins are the user’s to manage in the Connections tab',
-  'connections.saveKey': 'keys and logins are the user’s to manage in the Connections tab',
-  'connections.removeKey': 'keys and logins are the user’s to manage in the Connections tab',
-  'connections.check': 'keys and logins are the user’s to manage in the Connections tab',
+  'connections.list': 'keys and logins are the user’s to manage in the Connect tab',
+  'connections.saveKey': 'keys and logins are the user’s to manage in the Connect tab',
+  'connections.removeKey': 'keys and logins are the user’s to manage in the Connect tab',
+  'connections.check': 'keys and logins are the user’s to manage in the Connect tab',
   'crew.names': 'the window hands over the names it shows when it starts; there is nothing to change by talk',
-  'connections.use':
-    'which service the crew runs on, and so what it costs, is the user’s to pick in the Connections tab',
+  'connections.use': 'which service the crew runs on, and so what it costs, is the user’s to pick in the Connect tab',
   'changes.file': 'a diff opens from a file the user clicks in the log; the interpreter reads files itself',
 };
 
@@ -209,7 +208,7 @@ export function appActions(chat: Chat, sessionId: number): Action[] {
     }),
     action({
       id: 'wiki.list',
-      label: 'Read a wiki document',
+      label: 'Read the wiki documents',
       kind: 'read',
       args: z.object({}),
       ui: ['wiki.list', 'wiki.graph'],
@@ -409,7 +408,7 @@ export function appServer(sdk: Sdk, chat: Chat, sessionId: number) {
     tools: [
       sdk.tool(
         'app_find_actions',
-        'List what can be done in the crew app, optionally only actions whose id or on-screen label has these words. Each comes with its kind (read: app_read, act: app_act), its arguments as JSON Schema, and whether the user approves it on a card first.',
+        'List what can be done in the crew app, optionally only actions whose id or label has these words. Each comes with its kind (read: app_read, act: app_act), its arguments as JSON Schema, and whether the user approves it on a card first.',
         { query: z.string().default('') },
         async (q) => {
           const words = q.query.split(/\s+/).filter(Boolean);

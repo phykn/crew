@@ -9,7 +9,7 @@ import { wire } from '../src/backend/wire';
 import type { Crew } from '../src/backend/domain/crew';
 import { loadCrew } from '../src/backend/adapters/files/crew';
 import { keyIn } from '../src/backend/adapters/claude/script';
-import { NAMES, ROLE_NAMES, say } from '../src/frontend/locale';
+import { NAMES, say } from '../src/frontend/locale';
 import type { Event } from '../src/backend/domain/records';
 import { Store } from '../src/backend/adapters/sqlite/store';
 
@@ -123,7 +123,7 @@ export function fakeCrew(scripts: Record<string, Turn[]>) {
   const calls: { role: string; prompt: string; options: Options }[] = [];
   const query: QueryFn = ({ prompt, options }) => {
     const key = keyIn(options.systemPrompt);
-    const role = ROLE_NAMES[key] ?? key;
+    const role = NAMES.roles[key] ?? key;
     // An interrupt ends the turn under way, as the real SDK does
     let cut = () => {};
     const cutOff = new Promise<SDKMessage[]>((resolve) => (cut = () => resolve([])));
