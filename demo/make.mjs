@@ -79,8 +79,7 @@ const SCENES = {
     ['end', m.open + 0.5, m.open + 2.5, 2.5],
   ],
   en: () => {
-    // The task card names every step of its round, and a round of two steps names both: "Code review, Test"
-    const stage = (step, nth = 0) => (m.stages ?? []).filter((s) => s.text.split(', ').includes(step))[nth]?.at;
+    const stage = (step, nth = 0) => (m.stages ?? []).filter((s) => s.text === step)[nth]?.at;
     const t = fill([
       m.open,
       m.ask,
@@ -89,7 +88,7 @@ const SCENES = {
       stage('Plan review'),
       stage('Develop', 0),
       stage('Code review', 0),
-      stage('Develop', 1),
+      stage('Fixing'),
       stage('Code review', 1),
       m.done,
       m.diff,
@@ -106,7 +105,7 @@ const SCENES = {
       ['bounce', t[6], t[7], 2.8],
       ['fix', t[7], t[8], 2.8],
       ['test', t[8], t[9] - 0.2, 3],
-      ['report', t[9] - 0.3, t[10] - 0.2, 3.2],
+      ['report', t[9], t[10] - 0.2, 3.2],
       ['diff', t[10], t[11] - 0.2, 2.6],
       ['wiki', t[11] + 0.2, t[12] - 0.2, 2.2],
       ['workflow', t[12] + 0.2, t[13] - 0.2, 2.2],
@@ -171,13 +170,13 @@ const CUTS = {
     [30.1, 32.6],
   ],
   en: [
-    [0, 23.6],
+    [0, 26.8],
     [35.8, 38.4],
   ],
 };
-const width = Number(flag('gif-width', 960));
-const fps = Number(flag('gif-fps', 12));
-const colors = Number(flag('gif-colors', 200));
+const width = Number(flag('gif-width', lang === 'en' ? 800 : 960));
+const fps = Number(flag('gif-fps', lang === 'en' ? 10 : 12));
+const colors = Number(flag('gif-colors', lang === 'en' ? 160 : 200));
 const cuts = has('gif-full') ? [[0, total]] : CUTS[lang];
 // No smoothing and no blur: the app is pixel art and every sharp edge is the point. A palette built for motion keeps
 // the camp's texture from banding, and a rectangle diff leaves the parts of a frame that did not move alone

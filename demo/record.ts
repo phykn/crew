@@ -68,13 +68,11 @@ export async function record(page: Page) {
 // Read by polling instead of watching one event, since a stage that lasts a second must still be caught
 export async function watchStages(page: Page) {
   await page.evaluate(() => {
-    const seen = new Set<string>();
     const stages: { text: string; at: number }[] = [];
     Object.assign(window, { crewStages: stages });
     setInterval(() => {
       const text = document.querySelector('.task-pill')?.textContent?.trim();
-      if (text && !seen.has(text)) {
-        seen.add(text);
+      if (text && text !== stages.at(-1)?.text) {
         stages.push({ text, at: Date.now() / 1000 });
       }
     }, 100);

@@ -203,6 +203,8 @@ test('record the English demo', async () => {
     }
     await page.waitForTimeout(2400);
   }
-  take.marks.stages = await readStages(page);
+  const stages = await readStages(page);
+  expect(stages.map(({ text }) => text).join('\n')).toMatch(/(?:^|\n)Code review\nFixing\nCode review(?:\n|$)/);
+  take.marks.stages = stages;
   await take.finish(app);
 });

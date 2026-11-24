@@ -397,7 +397,7 @@
       <div id="b-build" class="badge"><b>BUILD</b>Moru the Coder</div>
       <div id="b-bounce" class="badge"><b>REVIEW</b>Serin the Reviewer</div>
       <div id="b-fix" class="badge"><b>FIX</b>Moru the Coder</div>
-      <div id="stamp" class="clip" data-start="20.6" data-duration="3" data-track-index="2">
+      <div id="stamp" class="clip" data-start="23.6" data-duration="3.2" data-track-index="2">
         ✓ ALL GREEN · 18 PASSED
       </div>
 
@@ -448,7 +448,7 @@
 
       // The camp, then the quest, then each member taking their turn, then what the work leaves behind
       tl.fromTo('#cam', aim(0.5, 0.5, 1.06), { ...aim(0.5, 0.5, 1.12), duration: 2.2, ease: 'sine.inOut' }, 0);
-      shot(2.6, 2.8, [0.3, 0.52, 1.5], [0.31, 0.5, 1.54]);
+      shot(2.6, 2.8, [0.3, 0.34, 1.5], [0.31, 0.36, 1.54]);
       shot(5.4, 3.8, [0.79, 0.84, 1.33], [0.8, 0.8, 1.37]);
       shot(9.2, 2.4, [0.32, 0.46, 1.42], [0.33, 0.48, 1.48]);
       shot(11.6, 3.4, [0.3, 0.5, 1.46], [0.31, 0.48, 1.52]);
@@ -502,13 +502,13 @@
         '#stamp',
         { scale: 1.6, opacity: 0, rotate: -10 },
         { scale: 1, opacity: 1, rotate: -3, duration: 0.34, ease: 'back.out(2.2)' },
-        20.72,
+        23.72,
       );
 
       // The bar under the quest shows how much of the party's work is done
       tl.fromTo('#quest', { opacity: 0, y: -8 }, { opacity: 1, y: 0, duration: 0.3 }, 9.25);
-      tl.fromTo('#quest .fill', { width: 0 }, { width: '100%', duration: 14, ease: 'none' }, 9.3);
-      tl.to('#quest', { opacity: 0, duration: 0.3 }, 23.5);
+      tl.fromTo('#quest .fill', { width: 0 }, { width: '100%', duration: 11, ease: 'none' }, 9.3);
+      tl.to('#quest', { opacity: 0, duration: 0.3 }, 20.3);
 
       // The title cards
       tl.fromTo('#intro .rule', { scaleX: 0 }, { scaleX: 1, duration: 0.4, ease: 'power3.out' }, 0.32);
