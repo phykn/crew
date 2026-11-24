@@ -167,9 +167,14 @@ test('record the English demo', async () => {
 
   const app = await launchApp(scratch.db, SCRIPT);
   const page = await app.firstWindow();
+  await openProject(app, scratch.project, { project: 'Project', openMore: 'Open folder…' });
+  const legend = page.locator('.legend .ui-fold-head');
+  await expect(legend).toBeVisible();
+  if ((await legend.getAttribute('aria-expanded')) === 'true') await legend.click();
+  await expect(legend).toHaveAttribute('aria-expanded', 'false');
+
   const take = await record(page);
   await watchStages(page);
-  await openProject(app, scratch.project, { project: 'Project', openMore: 'Open folder…' });
   take.mark('open');
   // The crew walks in from beyond the edges of the camp
   await page.waitForTimeout(4200);
