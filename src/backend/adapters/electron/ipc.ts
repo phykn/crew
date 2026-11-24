@@ -70,6 +70,9 @@ export function createHandlers(chat: Chat, win: () => BrowserWindow | null) {
     'last.write': handle(z.object({ projectId: id.optional(), sessionId: id.optional() }), (a) =>
       store.writeSetting('last', JSON.stringify(a)),
     ),
+    // The window's language, kept with the record so it opens the way it was left
+    'lang.read': handle(z.undefined(), () => (store.readSetting('lang') === 'en' ? 'en' : 'ko')),
+    'lang.write': handle(z.enum(['ko', 'en']), (a) => store.writeSetting('lang', a)),
     'messages.list': handle(z.object({ sessionId: id }), (a) => store.listMessages(a.sessionId)),
     // A window coming back to a session learns whether the interpreter is still answering there
     'messages.busy': handle(z.object({ sessionId: id }), (a) => !!chat.runs.live(a.sessionId)),

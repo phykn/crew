@@ -9,6 +9,7 @@ import { Toolbar, ToolbarEnd } from '../ui/Toolbar';
 import { MarkIcon } from './Icons';
 import type { ChangesTarget } from './Changes';
 import { say } from '../locale';
+import { t } from '../lang';
 
 const ALL = 'all';
 // A making step's log line also names its version when git kept it
@@ -62,10 +63,10 @@ export function Log({
     <div className="log">
       <Toolbar>
         <Choice
-          label="업무 선택"
+          label={t('log.task')}
           value={taskId ? String(taskId) : ALL}
           options={[
-            { value: ALL, label: '모든 업무' },
+            { value: ALL, label: t('log.allTasks') },
             ...tasks.map((t) => ({ value: String(t.id), label: `#${t.id} ${t.title}` })),
           ]}
           onChange={(v) => onTask(v === ALL ? null : Number(v))}
@@ -78,10 +79,10 @@ export function Log({
               size="sm"
               className="usage-toggle"
               aria-expanded={showUsage}
-              title="사용량"
+              title={t('log.usage')}
               onClick={() => setShowUsage(!showUsage)}
             >
-              <span>{runs}회 실행</span>
+              <span>{t('log.runs', { n: runs })}</span>
               <span>{duration(seconds)}</span>
               <span>${cost.toFixed(3)}</span>
             </Button>
@@ -89,15 +90,15 @@ export function Log({
         )}
       </Toolbar>
       {showUsage && (
-        <table className="usage" aria-label="사용량">
+        <table className="usage" aria-label={t('log.usage')}>
           <thead>
             <tr>
-              <th>역할</th>
-              <th>모델</th>
-              <th>횟수</th>
-              <th>시간</th>
-              <th>토큰</th>
-              <th>비용</th>
+              <th>{t('log.role')}</th>
+              <th>{t('log.model')}</th>
+              <th>{t('log.count')}</th>
+              <th>{t('log.time')}</th>
+              <th>{t('log.tokens')}</th>
+              <th>{t('log.cost')}</th>
             </tr>
           </thead>
           <tbody>
@@ -116,7 +117,7 @@ export function Log({
           </tbody>
         </table>
       )}
-      <ol className="log-list" aria-label="업무 로그">
+      <ol className="log-list" aria-label={t('log.list')}>
         {shown.map((e) => {
           const m = who(e.memberId);
           const hb = e.kind === 'step' ? readHandback(e.detail) : null;
@@ -142,7 +143,7 @@ export function Log({
                 >
                   <MarkIcon state={mark.state} />
                 </span>
-                <span className="log-who">{m ? m.role : '앱'}</span>
+                <span className="log-who">{m ? m.role : t('log.app')}</span>
                 <span className="log-text">{m ? say(e.say).replace(new RegExp(`^${m.role}: `), '') : say(e.say)}</span>
               </Button>
               {hb && open === e.id && (
@@ -187,12 +188,12 @@ function HandbackView({ hb, onFile }: { hb: Logged; onFile: ((file: string) => v
     <div className="log-detail">
       {hb.files.length > 0 && (
         <section>
-          <h4>바뀐 파일</h4>
+          <h4>{t('diff.files')}</h4>
           <ul className="files">
             {hb.files.map((f) => (
               <li key={f}>
                 {onFile ? (
-                  <Button variant="link" title="변경 내용 보기" onClick={() => onFile(f)}>
+                  <Button variant="link" title={t('diff.show')} onClick={() => onFile(f)}>
                     <code>{f}</code>
                   </Button>
                 ) : (
@@ -205,7 +206,7 @@ function HandbackView({ hb, onFile }: { hb: Logged; onFile: ((file: string) => v
       )}
       {hb.points.length > 0 && (
         <section>
-          <h4>검토 의견</h4>
+          <h4>{t('log.notes')}</h4>
           <ul>
             {hb.points.map((p) => (
               <li key={p}>{p}</li>
@@ -215,7 +216,7 @@ function HandbackView({ hb, onFile }: { hb: Logged; onFile: ((file: string) => v
       )}
       {hb.checks.length > 0 && (
         <section>
-          <h4>검사</h4>
+          <h4>{t('log.checks')}</h4>
           <pre>{hb.checks.join('\n')}</pre>
         </section>
       )}
@@ -228,20 +229,20 @@ function HandbackView({ hb, onFile }: { hb: Logged; onFile: ((file: string) => v
 function markOf(e: Event, hb: Handback | null, errors: string[] | null) {
   const mark = (state: 'ok' | 'bad' | 'wait' | 'work' | 'info', label: string) => ({ state, label });
   if (e.kind === 'status') {
-    if (e.detail === 'done') return mark('ok', '완료');
-    if (e.detail === 'failed') return mark('bad', '실패');
-    if (e.detail === 'stopping' || e.detail === 'stopped') return mark('wait', '중단');
-    if (e.detail === 'waiting') return mark('wait', '대기');
-    return mark('work', '진행');
+    if (e.detail === 'done') return mark('ok', t('mark.done'));
+    if (e.detail === 'failed') return mark('bad', t('mark.failed'));
+    if (e.detail === 'stopping' || e.detail === 'stopped') return mark('wait', t('mark.stopped'));
+    if (e.detail === 'waiting') return mark('wait', t('mark.waiting'));
+    return mark('work', t('mark.working'));
   }
-  if (errors) return mark('bad', '실패');
-  if (hb) return hb.verdict === 'rework' ? mark('wait', '수정 요청') : mark('ok', '완료');
-  if (e.kind === 'step') return e.detail ? mark('wait', '보완 요청') : mark('work', '시작');
-  if (e.kind === 'denied') return mark('bad', '거부');
-  if (e.kind === 'approved') return mark('ok', '승인');
-  if (e.kind === 'refused') return mark('wait', '거절');
-  if (e.kind === 'waiting' || e.kind === 'stale') return mark('wait', '대기');
-  return mark('info', '기록');
+  if (errors) return mark('bad', t('mark.failed'));
+  if (hb) return hb.verdict === 'rework' ? mark('wait', t('mark.rework')) : mark('ok', t('mark.done'));
+  if (e.kind === 'step') return e.detail ? mark('wait', t('mark.incomplete')) : mark('work', t('mark.started'));
+  if (e.kind === 'denied') return mark('bad', t('mark.denied'));
+  if (e.kind === 'approved') return mark('ok', t('mark.approved'));
+  if (e.kind === 'refused') return mark('wait', t('mark.refused'));
+  if (e.kind === 'waiting' || e.kind === 'stale') return mark('wait', t('mark.waiting'));
+  return mark('info', t('mark.note'));
 }
 
 // The same error repeated across retries shows once with its count

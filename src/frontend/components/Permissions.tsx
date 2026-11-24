@@ -7,26 +7,27 @@ import { Chip, ChipButton, ToggleChip } from '../ui/Chip';
 import { KIT } from '../crew';
 import { KitIcon } from './Icons';
 import { say } from '../locale';
+import { type Key, t } from '../lang';
 
 type Data = Awaited<ReturnType<typeof call<'members.permissions'>>>;
 
-const TOOL_LABELS: Record<string, string> = {
-  read: '읽기',
-  search: '검색',
-  write: '쓰기',
-  edit: '편집',
-  shell: '셸',
-  web: '웹',
+const TOOL_LABELS: Record<string, Key> = {
+  read: 'tool.read',
+  search: 'tool.search',
+  write: 'tool.write',
+  edit: 'tool.edit',
+  shell: 'tool.shell',
+  web: 'tool.web',
 };
-const WRITE = [
-  { value: 'project', label: '프로젝트 폴더' },
-  { value: 'output', label: '자기 산출물 폴더' },
-  { value: 'none', label: '없음' },
+const WRITE: { value: string; label: Key }[] = [
+  { value: 'project', label: 'scope.project' },
+  { value: 'output', label: 'scope.output' },
+  { value: 'none', label: 'perm.none' },
 ];
-const ACCESS = [
-  { value: 'none', label: '없음' },
-  { value: 'read', label: '읽기만' },
-  { value: 'all', label: '전체' },
+const ACCESS: { value: string; label: Key }[] = [
+  { value: 'none', label: 'perm.none' },
+  { value: 'read', label: 'perm.read' },
+  { value: 'all', label: 'perm.all' },
 ];
 
 // One member's tools, write scope, skills, and MCP access; each change saves at once and applies to the next tool call
@@ -57,8 +58,8 @@ export function Permissions({ memberId }: { memberId: number }) {
     .map((name) => [name, KIT[name]] as const);
 
   return (
-    <section className="permissions" aria-label="권한">
-      <span className="perm-label">도구</span>
+    <section className="permissions" aria-label={t('perm.label')}>
+      <span className="perm-label">{t('perm.tools')}</span>
       <div className="perm-items">
         {Object.entries(TOOL_LABELS).map(([kind, label]) => (
           <ToggleChip
@@ -66,33 +67,33 @@ export function Permissions({ memberId }: { memberId: number }) {
             checked={settings.tools.includes(kind as never)}
             onChange={() => save({ tools: toggle(settings.tools, kind as never) })}
           >
-            {label}
+            {t(label)}
           </ToggleChip>
         ))}
       </div>
-      <span className="perm-label">쓰는 곳</span>
+      <span className="perm-label">{t('perm.writes')}</span>
       <div className="perm-items">
         <Choice
-          label="쓰기 범위"
+          label={t('perm.scope')}
           value={settings.write}
-          options={WRITE}
+          options={WRITE.map((o) => ({ ...o, label: t(o.label) }))}
           onChange={(v) => save({ write: v as Config['write'] })}
         />
       </div>
-      <span className="perm-label">스킬</span>
+      <span className="perm-label">{t('perm.skills')}</span>
       <div className="perm-items">
         {skills.map(([name, item]) => (
           <ToggleChip
             key={name}
-            title={item.use}
+            title={t(item.use)}
             checked={settings.skills.includes(name)}
             onChange={() => save({ skills: toggle(settings.skills, name) })}
           >
-            <KitIcon icon={item.icon} label={item.label} />
-            {item.label}
+            <KitIcon icon={item.icon} label={t(item.label)} />
+            {t(item.label)}
           </ToggleChip>
         ))}
-        <ChipButton onClick={() => setAllSkills(!allSkills)}>{allSkills ? '접기' : '+ 스킬'}</ChipButton>
+        <ChipButton onClick={() => setAllSkills(!allSkills)}>{allSkills ? t('perm.less') : t('perm.more')}</ChipButton>
       </div>
       <span className="perm-label">MCP</span>
       <div className="perm-items">
@@ -100,14 +101,14 @@ export function Permissions({ memberId }: { memberId: number }) {
           const item = KIT[server];
           const held = settings.mcp.find((m) => m.server === server);
           return (
-            <Chip key={server} title={item.use}>
-              <KitIcon icon={item.icon} label={item.label} />
-              {item.label}
+            <Chip key={server} title={t(item.use)}>
+              <KitIcon icon={item.icon} label={t(item.label)} />
+              {t(item.label)}
               <Choice
-                label={`${item.label} 접근`}
+                label={t('perm.access', { label: t(item.label) })}
                 size="sm"
                 value={held?.access ?? 'none'}
-                options={ACCESS}
+                options={ACCESS.map((o) => ({ ...o, label: t(o.label) }))}
                 onChange={(v) => {
                   const rest = settings.mcp.filter((m) => m.server !== server);
                   save({ mcp: v === 'none' ? rest : [...rest, { server, access: v as 'all' | 'read' }] });
@@ -118,7 +119,7 @@ export function Permissions({ memberId }: { memberId: number }) {
         })}
       </div>
       {data.changes.length > 0 && (
-        <ul className="perm-changes" aria-label="권한 변경 기록">
+        <ul className="perm-changes" aria-label={t('perm.changes')}>
           {data.changes.map((c, i) => (
             <li key={i}>
               <time>{stamp(c.at)}</time> {say(c.say)}

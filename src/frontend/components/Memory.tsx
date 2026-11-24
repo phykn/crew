@@ -10,8 +10,9 @@ import { Empty } from '../ui/Empty';
 import { Segmented } from '../ui/Segmented';
 import { Toolbar, ToolbarEnd } from '../ui/Toolbar';
 import { type Graph, WikiGraph } from './WikiGraph';
+import { type Key, t } from '../lang';
 
-const KIND: Record<Change['kind'], string> = { create: '생성', edit: '수정', delete: '삭제' };
+const KIND: Record<Change['kind'], Key> = { create: 'diff.created', edit: 'diff.changed', delete: 'diff.deleted' };
 const ALL = 'all';
 
 // The memory tab: the project wiki everyone shares, and each member's own notes
@@ -35,25 +36,25 @@ export function Memory({
     <div className="memory">
       <Toolbar>
         <Segmented
-          label="메모리 종류"
+          label={t('memory.kind')}
           value={view}
           options={[
-            { value: 'wiki', label: '위키' },
-            { value: 'agents', label: '기억' },
+            { value: 'wiki', label: t('memory.wiki') },
+            { value: 'agents', label: t('memory.agents') },
           ]}
           onChange={setView}
         />
         <ToolbarEnd>
           {view === 'wiki' ? (
             <Button pressed={graph} onClick={() => setGraph(!graph)}>
-              그래프
+              {t('memory.graph')}
             </Button>
           ) : (
             <Choice
-              label="담당자"
+              label={t('memory.member')}
               value={memberId ? String(memberId) : ALL}
               options={[
-                { value: ALL, label: '모든 담당자' },
+                { value: ALL, label: t('memory.allMembers') },
                 ...members.map((m) => ({ value: String(m.id), label: `${m.role} ${m.nickname}` })),
               ]}
               onChange={(v) => onMember(v === ALL ? null : Number(v))}
@@ -109,7 +110,7 @@ function WikiView({ projectId, graph, onList }: { projectId: number; graph: bool
     <div className="wiki">
       <div className="wiki-top" data-single={!docs.length || undefined}>
         {docs.length > 0 && (
-          <ul className="wiki-toc" aria-label="위키 목차">
+          <ul className="wiki-toc" aria-label={t('memory.toc')}>
             {docs.map((d) => (
               <li key={d.title}>
                 <Button
@@ -123,7 +124,7 @@ function WikiView({ projectId, graph, onList }: { projectId: number; graph: bool
             ))}
           </ul>
         )}
-        <div className="wiki-doc" aria-label="위키 본문">
+        <div className="wiki-doc" aria-label={t('memory.doc')}>
           {doc ? (
             <>
               <header className="wiki-doc-head">
@@ -148,8 +149,8 @@ function WikiView({ projectId, graph, onList }: { projectId: number; graph: bool
               </pre>
               {/* The graph's lines into this document, followed from the list */}
               {links.edges.some((e) => e.to === doc.title) && (
-                <p className="wiki-backlinks" aria-label="이 문서를 가리키는 문서">
-                  <span className="muted">가리키는 문서</span>
+                <p className="wiki-backlinks" aria-label={t('memory.backlinks')}>
+                  <span className="muted">{t('memory.linkedFrom')}</span>
                   {links.edges
                     .filter((e) => e.to === doc.title)
                     .map((e) => (
@@ -161,21 +162,21 @@ function WikiView({ projectId, graph, onList }: { projectId: number; graph: bool
               )}
             </>
           ) : (
-            <Empty>아직 문서가 없습니다</Empty>
+            <Empty>{t('memory.noDocs')}</Empty>
           )}
         </div>
       </div>
       {changes.length > 0 && (
-        <ol className="wiki-timeline" aria-label="변경 타임라인">
+        <ol className="wiki-timeline" aria-label={t('memory.timeline')}>
           {changes.map((c, i) => (
             <li key={i} className="wiki-change">
               <time>{stamp(c.at)}</time>
               <span className="wiki-kind" data-kind={c.kind}>
-                {KIND[c.kind]}
+                {t(KIND[c.kind])}
               </span>
               <span className="log-text">
-                {c.title} <span className="muted">{c.author === 'user' ? '사용자' : roleName(c.author)}</span>
-                {c.taskId && <span className="muted"> 업무 #{c.taskId}</span>}
+                {c.title} <span className="muted">{c.author === 'user' ? t('memory.user') : roleName(c.author)}</span>
+                {c.taskId && <span className="muted"> {t('memory.task', { id: c.taskId })}</span>}
               </span>
             </li>
           ))}
@@ -202,9 +203,9 @@ function Notes({
       (t) => t === 'wiki',
     );
   }, [projectId, memberId]);
-  if (!notes.length) return <Empty>아직 기억이 없습니다</Empty>;
+  if (!notes.length) return <Empty>{t('memory.noNotes')}</Empty>;
   return (
-    <ul className="notes" aria-label="에이전트 기억">
+    <ul className="notes" aria-label={t('memory.notes')}>
       {notes.flatMap((n) =>
         n.text.split('\n').map((line, i) => (
           <li key={`${n.key}-${i}`} className="note">

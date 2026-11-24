@@ -3,6 +3,7 @@ import { ReactFlow, Background, Controls, Handle, Position, type Edge, type Node
 import '@xyflow/react/dist/style.css';
 import type { call } from '../api';
 import { Empty } from '../ui/Empty';
+import { t } from '../lang';
 
 export type Graph = Awaited<ReturnType<typeof call<'wiki.graph'>>>;
 type DocNode = Node<{ title: string; missing: boolean }, 'doc'>;
@@ -26,9 +27,9 @@ export function WikiGraph({ graph, onOpen }: { graph: Graph; onOpen: (title: str
   }, [graph]);
   const edges: Edge[] = graph.edges.map((e) => ({ id: `${e.from}->${e.to}`, source: e.from, target: e.to }));
 
-  if (!graph.nodes.length) return <Empty>아직 문서가 없습니다</Empty>;
+  if (!graph.nodes.length) return <Empty>{t('memory.noDocs')}</Empty>;
   return (
-    <div className="wiki-graph" aria-label="위키 그래프">
+    <div className="wiki-graph" aria-label={t('memory.graphLabel')}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -50,7 +51,11 @@ export function WikiGraph({ graph, onOpen }: { graph: Graph; onOpen: (title: str
 
 function DocDot({ data }: NodeProps<DocNode>) {
   return (
-    <div className="wiki-dot" data-missing={data.missing || undefined} aria-label={`문서 ${data.title}`}>
+    <div
+      className="wiki-dot"
+      data-missing={data.missing || undefined}
+      aria-label={t('memory.docNode', { title: data.title })}
+    >
       <Handle type="target" position={Position.Top} className="wiki-dot-end" />
       {data.title}
       <Handle type="source" position={Position.Top} className="wiki-dot-end" />

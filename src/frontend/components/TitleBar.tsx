@@ -1,4 +1,16 @@
+import { call } from '../api';
+import { LANGS, type Lang, lang, setLang, t } from '../lang';
+import { names } from '../locale';
+import { Segmented } from '../ui/Segmented';
+
 declare const __APP_VERSION__: string;
+
+// The main process words nothing, so a language change only hands it the names the window now shows
+async function pick(next: Lang) {
+  setLang(next);
+  await call('lang.write', next);
+  await call('crew.names', names());
+}
 
 export function TitleBar() {
   return (
@@ -12,6 +24,9 @@ export function TitleBar() {
         <span className="title">crew</span>
         <span className="version">v{__APP_VERSION__}</span>
       </span>
+      <div className="titlebar-lang">
+        <Segmented label={t('lang.label')} size="sm" even value={lang()} options={LANGS} onChange={pick} />
+      </div>
     </header>
   );
 }

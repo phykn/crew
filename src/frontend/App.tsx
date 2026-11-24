@@ -16,16 +16,18 @@ import { Connections } from './components/Connections';
 import { Tab, TabList, TabPanel, Tabs } from './ui/Tabs';
 import { Confirm } from './ui/Confirm';
 import { Empty } from './ui/Empty';
+import { t, useLang } from './lang';
 
 const TABS = [
-  ['chat', '대화'],
-  ['log', '로그'],
-  ['memory', '메모리'],
-  ['workflow', '워크플로우'],
-  ['connect', '연결'],
+  ['chat', 'tab.chat'],
+  ['log', 'tab.log'],
+  ['memory', 'tab.memory'],
+  ['workflow', 'tab.workflow'],
+  ['connect', 'tab.connect'],
 ] as const;
 
 export function App() {
+  useLang();
   const ws = useWorkspace();
   const { project, session, members } = ws;
   const [tab, setTab] = useState('chat');
@@ -74,7 +76,7 @@ export function App() {
       <TitleBar />
       <ProjectTree open={tree} onClose={() => setTree(false)} onDeleted={ws.afterDelete} />
       <main className="body">
-        <section className="camp" aria-label="캠프">
+        <section className="camp" aria-label={t('app.camp')}>
           <Camp members={members} session={session} onPick={openLog} />
           {project && (
             <Legend
@@ -108,9 +110,9 @@ export function App() {
                     key={value}
                     value={value}
                     icon={<TabIcon tab={value} />}
-                    name={name}
+                    name={t(name)}
                     waiting={marked}
-                    aria-label={marked ? `${name}, 대답 대기` : name}
+                    aria-label={marked ? t('tab.waiting', { name: t(name) }) : t(name)}
                   />
                 );
               })}
@@ -124,7 +126,7 @@ export function App() {
                   onMode={ws.setMode}
                   onWaiting={setWaiting}
                   commands={[
-                    { name: 'clear', label: '새 세션', run: ws.newSession },
+                    { name: 'clear', label: t('chat.newSession'), run: ws.newSession },
                     { name: 'log', run: () => setTab('log') },
                     { name: 'memory', run: () => setTab('memory') },
                     { name: 'workflow', run: () => setTab('workflow') },
@@ -134,7 +136,7 @@ export function App() {
                   onChanges={setChanges}
                 />
               ) : (
-                <Empty>폴더를 열어 프로젝트를 시작하세요.</Empty>
+                <Empty>{t('app.noProject')}</Empty>
               )}
             </TabPanel>
             <TabPanel value="log" className="tab-body">
@@ -168,11 +170,11 @@ export function App() {
       </main>
       {leaving && (
         <Confirm
-          label="저장 안 한 변경"
-          text="저장 안 한 워크플로우 변경이 사라집니다. 다른 프로젝트로 바꿀까요?"
+          label={t('app.unsaved')}
+          text={t('app.unsavedSwitch')}
           actions={[
             {
-              label: '바꾸기',
+              label: t('action.switch'),
               danger: true,
               run: () => {
                 leaving();

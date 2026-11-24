@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Button } from './Button';
 import { Dialog, DialogActions, DialogClose, DialogTitle } from './Dialog';
+import { t } from '../lang';
 
 type Action = { label: string; danger?: boolean; run: () => void };
 
@@ -21,7 +22,7 @@ export function Confirm({
       <DialogTitle hidden>{label}</DialogTitle>
       <p>{text}</p>
       <DialogActions>
-        <DialogClose>취소</DialogClose>
+        <DialogClose>{t('action.cancel')}</DialogClose>
         {actions.map((a) => (
           <Button
             key={a.label}

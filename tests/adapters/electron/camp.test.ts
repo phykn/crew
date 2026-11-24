@@ -1,7 +1,7 @@
 import { expect, test, vi } from 'vitest';
 import { campState } from '../../../src/backend/adapters/electron/camp';
 import { createWalkers } from '../../../src/frontend/camp/walkers.js';
-import { CAMP_SCENES, doing } from '../../../src/frontend/locale';
+import { campScene, doing } from '../../../src/frontend/locale';
 import { handback, openChat, reply, type Turn } from '../../support';
 
 const staff = (keys: string[], working: Record<string, string>) =>
@@ -31,7 +31,7 @@ test('the record plays in the camp: assignment, work, request, waiting, failure,
     x.applyStaff(staff(team, st.working));
     // Worded as the window words them
     x.applyNow(Object.fromEntries(Object.entries(st.working).map(([k, v]) => [k, doing(v)])));
-    x.applyLog(st.log.map((l) => ({ ...l, text: CAMP_SCENES[l.scene] })));
+    x.applyLog(st.log.map((l) => ({ ...l, text: campScene(l.scene) })));
     return st;
   };
   feed(w);

@@ -131,6 +131,17 @@ export function Gallery() {
             ]}
             onChange={setView}
           />
+          <Segmented
+            label="같은 너비"
+            size="sm"
+            even
+            value={view}
+            options={[
+              { value: 'a', label: 'ENG' },
+              { value: 'b', label: '한국어' },
+            ]}
+            onChange={setView}
+          />
         </Row>
         <Row label="choice">
           <Choice label="작게" size="sm" value={pick} options={OPTIONS} onChange={setPick} />

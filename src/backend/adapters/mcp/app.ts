@@ -46,6 +46,8 @@ export const OFF_CATALOG: Record<string, string> = {
   'last.read': 'window state, not an action',
   'tasks.versions': 'feeds the file links under a report; the interpreter reads a task’s files from its log',
   'last.write': 'window state, not an action',
+  'lang.read': 'window state, not an action',
+  'lang.write': 'the window’s language is the user’s to pick in the title bar',
   'messages.list': 'the interpreter is the conversation itself',
   'messages.busy': 'the interpreter is the conversation itself',
   'messages.send': 'the interpreter is the conversation itself',

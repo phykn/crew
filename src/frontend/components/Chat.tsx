@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Message, Question, Session, Task } from '../../backend/domain/records';
 import { IMAGE_TYPES, type Image, imageUrl, type Mode } from '../../shared';
-import { MODE_LABELS, answerLabel, say } from '../locale';
+import { answerLabel, modeLabels, say } from '../locale';
 import { call, onChanged, onStream } from '../api';
 import { Button } from '../ui/Button';
 import { Choice } from '../ui/Choice';
@@ -9,15 +9,16 @@ import { FileInput, TextArea } from '../ui/Field';
 import { ListMenu, ListOption } from '../ui/Menu';
 import type { ChangesTarget } from './Changes';
 import { TaskCards } from './TaskCards';
+import { type Key, t } from '../lang';
 
 // The window's own commands: typed after a slash, they act here and never reach 통역
 // A label only where the name alone does not say it
 type Command = { name: string; label?: string; run: () => void };
 // What each approval mode lets a member do without asking
-const MODE_HINTS: Record<Mode, string> = {
-  manual: '역할 밖 도구는 카드로 확인',
-  auto: '역할 밖 도구도 바로 허용',
-  bypass: '아무것도 검사하지 않음',
+const MODE_HINTS: Record<Mode, Key> = {
+  manual: 'mode.manual.hint',
+  auto: 'mode.auto.hint',
+  bypass: 'mode.bypass.hint',
 };
 // A message held back until 통역 is done answering
 type Queued = { id: number; sessionId: number; text: string; images: Image[] };
@@ -130,7 +131,7 @@ export function Chat({
     // A refused send never ends its stream, so the thinking state is cleared here
     call('messages.send', { sessionId: session.id, text, images: pictures }).catch(() => {
       setStreaming(null);
-      setNotice('보내지 못했습니다. 다시 보내 주세요.');
+      setNotice(t('chat.sendFailed'));
     });
   }
 
@@ -170,7 +171,11 @@ export function Chat({
     const left = list.length - kept.length;
     setNotice(
       left
-        ? `그림 ${left}장은 넣지 못했습니다. PNG, JPEG, GIF, WEBP 형식에 ${MAX_IMAGE_BYTES / 1024 / 1024}MB 이하, ${MAX_IMAGES}장까지 넣을 수 있습니다.`
+        ? t('chat.badImages', {
+            left,
+            mb: MAX_IMAGE_BYTES / 1024 / 1024,
+            max: MAX_IMAGES,
+          })
         : null,
     );
   }
@@ -180,7 +185,7 @@ export function Chat({
       <TaskCards tasks={tasks} messages={messages} onLog={onLog} onAnswer={showQuestion} />
       <div
         className="messages"
-        aria-label="대화"
+        aria-label={t('tab.chat')}
         onScroll={(e) => {
           const el = e.currentTarget;
           stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < STICK_PX;
@@ -207,13 +212,13 @@ export function Chat({
         {queued
           .filter((q) => q.sessionId === session.id)
           .map((q) => (
-            <div key={q.id} className="message user queued" aria-label="대기 중">
+            <div key={q.id} className="message user queued" aria-label={t('chat.queued')}>
               <div className="bubble">
                 <Pictures srcs={q.images.map(src)} />
                 {q.text}
               </div>
               <Button variant="link" tone="muted" size="sm" onClick={() => sendQueued(q)}>
-                지금 보내기
+                {t('chat.sendNow')}
               </Button>
             </div>
           ))}
@@ -237,15 +242,15 @@ export function Chat({
           </p>
         )}
         {images.length > 0 && (
-          <ul className="attachments" aria-label="첨부한 그림">
+          <ul className="attachments" aria-label={t('chat.attached')}>
             {images.map((img, n) => (
               <li key={n}>
-                <img src={src(img)} alt={`그림 ${n + 1}`} />
+                <img src={src(img)} alt={t('chat.picture', { n: n + 1 })} />
                 <Button
                   size="sm"
                   iconOnly
                   className="attachment-remove"
-                  aria-label={`그림 ${n + 1} 빼기`}
+                  aria-label={t('chat.removePicture', { n: n + 1 })}
                   onClick={() => setImages((have) => have.filter((_, k) => k !== n))}
                 >
                   ×
@@ -255,7 +260,7 @@ export function Chat({
           </ul>
         )}
         {picked && (
-          <ListMenu label="명령" className="slash-menu">
+          <ListMenu label={t('chat.commands')} className="slash-menu">
             {matches.map((m) => (
               <ListOption
                 key={m.name}
@@ -274,8 +279,8 @@ export function Chat({
           bare
           className="composer-text"
           value={draft}
-          placeholder={streaming !== null ? 'Ctrl+Enter 키로 대기열에 추가하기' : '통역에게 할 일을 말하세요'}
-          aria-label="메시지"
+          placeholder={streaming !== null ? t('chat.queueHint') : t('chat.placeholder')}
+          aria-label={t('chat.message')}
           rows={1}
           onChange={(e) => {
             setDraft(e.target.value);
@@ -316,8 +321,8 @@ export function Chat({
             variant="quiet"
             size="lg"
             iconOnly
-            aria-label="그림 첨부"
-            title="그림 첨부"
+            aria-label={t('chat.attach')}
+            title={t('chat.attach')}
             disabled={images.length >= MAX_IMAGES}
             onClick={() => picker.current?.click()}
           >
@@ -329,7 +334,7 @@ export function Chat({
             ref={picker}
             accept={IMAGE_TYPES.join(',')}
             multiple
-            aria-label="그림 파일"
+            aria-label={t('chat.pictureFile')}
             onChange={(e) => {
               void attach(e.target.files ?? []);
               e.target.value = '';
@@ -337,13 +342,13 @@ export function Chat({
           />
           <span className="composer-send">
             <Choice
-              label="승인 모드"
+              label={t('chat.mode')}
               size="lg"
               value={mode}
-              options={Object.entries(MODE_LABELS).map(([value, label]) => ({
+              options={Object.entries(modeLabels()).map(([value, label]) => ({
                 value,
                 label,
-                hint: MODE_HINTS[value as Mode],
+                hint: t(MODE_HINTS[value as Mode]),
               }))}
               onChange={(m) => onMode(m as Mode)}
             />
@@ -353,7 +358,7 @@ export function Chat({
                 tone="danger"
                 size="lg"
                 iconOnly
-                aria-label="중지"
+                aria-label={t('chat.stop')}
                 onClick={() => call('messages.stop', { sessionId: session.id })}
               >
                 <svg viewBox="0 0 20 20" aria-hidden="true">
@@ -366,7 +371,7 @@ export function Chat({
                 variant="primary"
                 size="lg"
                 iconOnly
-                aria-label="보내기"
+                aria-label={t('chat.send')}
                 disabled={!draft.trim() && !images.length}
               >
                 <svg viewBox="0 0 20 20" aria-hidden="true">
@@ -395,7 +400,7 @@ function Pictures({ srcs }: { srcs: string[] }) {
   return (
     <div className="pictures">
       {srcs.map((s, n) => (
-        <img key={n} src={s} alt={`첨부 그림 ${n + 1}`} loading="lazy" />
+        <img key={n} src={s} alt={t('chat.sentPicture', { n: n + 1 })} loading="lazy" />
       ))}
     </div>
   );
@@ -407,7 +412,7 @@ function Bubble({ author, text, pictures = [], pending, question, children }: Bu
     <div
       className={`message ${author}`}
       data-pending={pending || undefined}
-      aria-label={author === 'user' ? '나' : '통역'}
+      aria-label={author === 'user' ? t('chat.me') : t('chat.interpreter')}
     >
       {question ? (
         <AnswerCard question={question} />
@@ -443,12 +448,12 @@ function ReportFiles({
   if (!last?.files.length) return null;
   return (
     <div className="report-files">
-      <span className="muted">바뀐 파일</span>
+      <span className="muted">{t('diff.files')}</span>
       {last.files.map((file) => (
         <Button
           key={file}
           variant="link"
-          title="변경 내용 보기"
+          title={t('diff.show')}
           onClick={() => onChanges({ taskId, title, versionId: last.id, file })}
         >
           {file}

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Button } from './Button';
 import './Dialog.css';
 import './VisuallyHidden.css';
+import { t } from '../lang';
 
 // A parchment sheet in a wood frame over a veiled window; sm is a question, md everything else
 export function Dialog({
@@ -57,7 +58,7 @@ export function DialogActions({ children }: { children: ReactNode }) {
   return <div className="ui-dialog-actions">{children}</div>;
 }
 
-export function DialogClose({ children = '닫기' }: { children?: ReactNode }) {
+export function DialogClose({ children = t('action.close') }: { children?: ReactNode }) {
   return (
     <RDialog.Close asChild>
       <Button>{children}</Button>

@@ -166,6 +166,14 @@ code {
   color: var(--text-emphasis);
   font-size: var(--fs-xs);
 }
+/* Beside the window's own buttons: the overlay's box says where they start, on the right on Windows and the left on a Mac */
+.titlebar {
+  padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) + var(--sp-2));
+}
+.titlebar-lang {
+  margin-left: auto;
+  -webkit-app-region: no-drag;
+}
 
 /* Layout */
 .body {
@@ -544,11 +552,22 @@ code {
   overflow: auto;
   padding: var(--sp-2);
 }
+/* The rows share one set of columns, each as wide as its longest name in either language; a row's own left padding sits in the first */
+.legend-list {
+  display: grid;
+  grid-template-columns:
+    calc(var(--mark) + var(--sp-2)) minmax(var(--w-legend-role), max-content) minmax(var(--w-legend-nick), max-content)
+    auto;
+  column-gap: var(--sp-2);
+}
+.legend-list > li {
+  display: contents;
+}
 .legend-row {
   display: grid;
-  grid-template-columns: var(--mark) var(--w-legend-role) var(--w-legend-nick) auto;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: center;
-  gap: var(--sp-2);
 }
 .legend-row .role {
   font-weight: var(--fw-bold);
@@ -1109,7 +1128,7 @@ code {
 }
 .tree-agent {
   display: grid;
-  grid-template-columns: var(--w-legend-role) var(--w-legend-nick) auto;
+  grid-template-columns: minmax(var(--w-legend-role), max-content) minmax(var(--w-legend-nick), max-content) auto;
   align-items: center;
   justify-items: start;
 }

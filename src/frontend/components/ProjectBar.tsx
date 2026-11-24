@@ -6,6 +6,7 @@ import { Button } from '../ui/Button';
 import { ChoiceTrigger, ChoiceValue } from '../ui/Choice';
 import { SelectItem, SelectMenu, SelectSeparator } from '../ui/Menu';
 import { ExplorerIcon, FolderIcon } from './Icons';
+import { t } from '../lang';
 
 const OPEN = 'open';
 const NEW = 'new';
@@ -27,7 +28,7 @@ type Props = {
 export function sessionLabel(s: Session) {
   if (s.title) return s.title;
   const d = new Date(s.createdAt);
-  return `새 대화 ${d.getMonth() + 1}/${d.getDate()} ${clock(s.createdAt)}`;
+  return t('session.new', { date: `${d.getMonth() + 1}/${d.getDate()} ${clock(s.createdAt)}` });
 }
 
 export function ProjectBar(props: Props) {
@@ -42,11 +43,11 @@ export function ProjectBar(props: Props) {
           v === OPEN ? props.onOpenFolder() : props.onProject(projects.find((p) => String(p.id) === v)!)
         }
       >
-        <ChoiceTrigger label="프로젝트" size="lg" className="project-picker">
+        <ChoiceTrigger label={t('project.label')} size="lg" className="project-picker">
           <FolderIcon />
           {/* The value is the title of what is open */}
           <ChoiceValue>
-            <b>{project?.name ?? '폴더 열기'}</b>
+            <b>{project?.name ?? t('project.open')}</b>
           </ChoiceValue>
         </ChoiceTrigger>
         <SelectMenu>
@@ -59,13 +60,13 @@ export function ProjectBar(props: Props) {
                 value={String(p.id)}
                 title={p.path}
                 disabled={p.missing}
-                aside={p.missing && <Badge tone="bad">폴더 없음</Badge>}
+                aside={p.missing && <Badge tone="bad">{t('project.missing')}</Badge>}
               >
                 {p.name}
               </SelectItem>
             ))}
           <SelectItem value={OPEN} action>
-            폴더 열기…
+            {t('project.openMore')}
           </SelectItem>
         </SelectMenu>
       </Select.Root>
@@ -76,9 +77,9 @@ export function ProjectBar(props: Props) {
           v === NEW ? props.onNewSession() : props.onSession(sessions.find((s) => String(s.id) === v)!)
         }
       >
-        <ChoiceTrigger label="세션" size="lg" className="session-picker">
+        <ChoiceTrigger label={t('session.label')} size="lg" className="session-picker">
           <ChoiceValue>
-            <b>{session ? sessionLabel(session) : '세션'}</b>
+            <b>{session ? sessionLabel(session) : t('session.label')}</b>
           </ChoiceValue>
         </ChoiceTrigger>
         <SelectMenu align="end">
@@ -89,12 +90,12 @@ export function ProjectBar(props: Props) {
           ))}
           {others.length > 0 && <SelectSeparator />}
           <SelectItem value={NEW} action>
-            새 세션
+            {t('chat.newSession')}
           </SelectItem>
         </SelectMenu>
       </Select.Root>
       {/* Folders and sessions both, so it sits beside the two pickers rather than in either; it also clears projects whose folder is gone */}
-      <Button size="lg" iconOnly aria-label="탐색기" title="탐색기" onClick={props.onExplorer}>
+      <Button size="lg" iconOnly aria-label={t('tree.title')} title={t('tree.title')} onClick={props.onExplorer}>
         <ExplorerIcon />
       </Button>
     </div>

@@ -6,7 +6,7 @@ import type { CrewMember } from '../../backend/domain/crew';
 import type { Session } from '../../backend/domain/records';
 import { call, follow } from '../api';
 import { LOOKS } from '../crew';
-import { CAMP_SCENES, doing } from '../locale';
+import { campScene, doing } from '../locale';
 import { CAMP, iso } from '../camp/projection.js';
 import { createWalkers } from '../camp/walkers.js';
 import { createScene } from '../camp/stage/scene';
@@ -48,7 +48,7 @@ export function Camp({
   useEffect(() => {
     if (!state) return;
     walkers.current!.applyLog(
-      state.log.map((l) => ({ ...l, text: CAMP_SCENES[l.scene] })),
+      state.log.map((l) => ({ ...l, text: campScene(l.scene) })),
       fresh.current,
     );
     fresh.current = false;

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { josa } from '../korean';
 import { call } from '../api';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -8,6 +7,7 @@ import { Dialog, DialogClose, DialogHead, DialogTitle } from '../ui/Dialog';
 import { Empty } from '../ui/Empty';
 import { FolderIcon, TrashIcon } from './Icons';
 import { sessionLabel } from './ProjectBar';
+import { t } from '../lang';
 
 type Tree = Awaited<ReturnType<typeof call<'tree.list'>>>;
 type Target = { kind: 'session'; id: number; name: string } | { kind: 'project'; id: number; name: string };
@@ -53,11 +53,11 @@ export function ProjectTree({
   return (
     <Dialog open={open} onClose={onClose} className="tree-dialog">
       <DialogHead>
-        <DialogTitle>탐색기</DialogTitle>
+        <DialogTitle>{t('tree.title')}</DialogTitle>
         <DialogClose />
       </DialogHead>
-      {tree.length === 0 && <Empty>열어 둔 프로젝트가 없습니다.</Empty>}
-      <ul className="tree" aria-label="프로젝트 목록">
+      {tree.length === 0 && <Empty>{t('tree.empty')}</Empty>}
+      <ul className="tree" aria-label={t('tree.list')}>
         {tree.map(({ project, sessions }) => (
           <li key={project.id} className="tree-project" data-missing={project.missing || undefined}>
             <div className="tree-project-head">
@@ -68,14 +68,14 @@ export function ProjectTree({
                   {project.path}
                 </span>
               </div>
-              {project.missing && <Badge tone="bad">폴더 없음</Badge>}
+              {project.missing && <Badge tone="bad">{t('project.missing')}</Badge>}
               <Button
                 variant="quiet"
                 tone="danger"
                 iconOnly
                 onClick={() => ask({ kind: 'project', id: project.id, name: project.name })}
-                aria-label={`${project.name} 삭제`}
-                title="삭제"
+                aria-label={t('tree.delete', { name: project.name })}
+                title={t('action.delete')}
               >
                 <TrashIcon />
               </Button>
@@ -91,8 +91,8 @@ export function ProjectTree({
                         tone="danger"
                         iconOnly
                         onClick={() => ask({ kind: 'session', id: session.id, name: sessionLabel(session) })}
-                        aria-label={`${sessionLabel(session)} 삭제`}
-                        title="삭제"
+                        aria-label={t('tree.delete', { name: sessionLabel(session) })}
+                        title={t('action.delete')}
                       >
                         <TrashIcon />
                       </Button>
@@ -103,7 +103,7 @@ export function ProjectTree({
                           <li key={a.id} className="tree-agent">
                             <b>{a.role}</b>
                             <span className="muted">{a.nickname}</span>
-                            <Badge>실행 {a.runs}회</Badge>
+                            <Badge>{t('tree.runs', { n: a.runs })}</Badge>
                           </li>
                         ))}
                       </ul>
@@ -117,15 +117,16 @@ export function ProjectTree({
       </ul>
       {target && impact && (
         <Confirm
-          label="삭제 확인"
+          label={t('tree.confirm')}
           text={
             <>
-              {josa(target.name, '을')} 삭제합니다. {target.kind === 'project' && `세션 ${impact.sessions}개, `}
-              업무 {impact.tasks}건, 로그 {impact.events}건, 메시지 {impact.messages}건이 지워집니다.
-              {target.kind === 'project' && ' 폴더의 파일은 그대로 둡니다.'}
+              {t('tree.deletes', { name: target.name })}{' '}
+              {target.kind === 'project' && t('tree.sessions', { n: impact.sessions })}
+              {t('tree.records', impact)}
+              {target.kind === 'project' && t('tree.filesStay')}
             </>
           }
-          actions={[{ label: '삭제', danger: true, run: confirm }]}
+          actions={[{ label: t('action.delete'), danger: true, run: confirm }]}
           onCancel={() => setTarget(null)}
         />
       )}

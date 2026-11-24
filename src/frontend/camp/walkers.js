@@ -2,16 +2,17 @@ import { FIRE, GROUND, SEATS, blocked } from './layout.js';
 import { findPath } from './route.js';
 import { CAMP, TW, iso } from './projection.js';
 import { headTop } from './figure.js';
+import { t } from '../lang';
 
 // 통역 hands work out, so assignments walk from them
 const LEAD = 'interpreter';
 
 // Small talk follows the user's clock, so a camp at midnight does not plan lunch
 const CHAT = {
-  morning: ['아침 잘 먹었어요?', '오늘 할 일이 많네요', '커피 한 잔 할까요?'],
-  day: ['점심은 뭐 먹을까요?', '오늘도 수고 많아요', '잠깐 쉬었다 할게요'],
-  evening: ['저녁은 뭐 먹을까요?', '오늘 하루 길었네요', '모닥불 따뜻하네요'],
-  night: ['이제 좀 쉬어야지.', '밤이 깊었네요', '모닥불 따뜻하네요'],
+  morning: ['camp.morning1', 'camp.morning2', 'camp.morning3'],
+  day: ['camp.day1', 'camp.day2', 'camp.day3'],
+  evening: ['camp.evening1', 'camp.evening2', 'camp.fire'],
+  night: ['camp.night1', 'camp.night2', 'camp.fire'],
 };
 export function smallTalk(hour) {
   if (hour >= 5 && hour < 11) return CHAT.morning;
@@ -135,8 +136,8 @@ export function createWalkers() {
       const q = others(p).find((o) => o.state !== 'working' && !o.path.length && Math.hypot(o.x - p.x, o.y - p.y) < 3);
       if (q) {
         const talk = smallTalk(new Date().getHours());
-        speak(p, pick(talk), 'idle');
-        speak(q, pick(talk), 'idle');
+        speak(p, t(pick(talk)), 'idle');
+        speak(q, t(pick(talk)), 'idle');
         return;
       }
     }
@@ -262,7 +263,7 @@ export function createWalkers() {
         if (p.leaving) Object.assign(p, { leaving: null, path: [] });
         p.room = s;
         if (before && leading && s.team !== LEAD && s.state === 'working' && was !== 'working')
-          handOff(LEAD, s.team, `${s.name}에게 업무 배정`, 'work');
+          handOff(LEAD, s.team, t('camp.handOff', { name: s.name }), 'work');
         if (before && was === 'working' && s.state === 'idle') p.checkUntil = now + 3000;
         if (s.state === 'working' && was !== 'working') {
           // Work starts where the person is: someone strolling stops, someone on a bench stands up

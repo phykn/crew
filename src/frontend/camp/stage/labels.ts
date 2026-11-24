@@ -4,6 +4,7 @@ import { CAMP, iso } from '../projection.js';
 import { COLOR as C, FONT } from '../tokens.js';
 import { headTop } from '../figure.js';
 import type { Person } from './people';
+import { t } from '../../lang';
 
 // One line per person, the name and what they say together, centred over the head
 const LINE = 16;
@@ -17,7 +18,7 @@ type Rect = { l: number; r: number; t: number; b: number };
 // A passing remark wins for its three seconds; otherwise a worker shows the step they are on
 function speechOf(p: Person, now: number) {
   if (p.bubble && p.bubble.until > now) return p.bubble;
-  if (p.state === 'working') return { text: p.doing || '작업 중…', kind: 'work' };
+  if (p.state === 'working') return { text: p.doing || t('camp.working'), kind: 'work' };
   // 통역 waiting on the user's answer keeps a ? over the head until it comes
   return p.doing ? { text: p.doing, kind: 'chat' } : null;
 }

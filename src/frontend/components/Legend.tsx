@@ -12,6 +12,7 @@ import { Dialog, DialogActions, DialogClose, DialogHead, DialogTitle } from '../
 import { Input } from '../ui/Field';
 import { Switch } from '../ui/Switch';
 import { Permissions } from './Permissions';
+import { t } from '../lang';
 
 // The stacked layout of a narrow window in styles.css, where an open legend would cover the camp
 const STACKED = '(max-width: 1000px)';
@@ -44,7 +45,8 @@ export function Legend({ members, onMemory }: { members: CrewMember[]; onMemory:
         size="lg"
         label={
           <>
-            크루 <Badge>{members.filter((m) => m.status === 'hired').length}명 고용</Badge>
+            {t('legend.crew')}{' '}
+            <Badge>{t('legend.hired', { n: members.filter((m) => m.status === 'hired').length })}</Badge>
           </>
         }
         open={open}
@@ -59,13 +61,13 @@ export function Legend({ members, onMemory }: { members: CrewMember[]; onMemory:
                 tone={m.status === 'unhired' ? 'muted' : undefined}
                 className="legend-row"
                 data-unhired={m.status === 'unhired' || undefined}
-                aria-label={`${m.role} 설정`}
+                aria-label={t('legend.settings', { role: m.role })}
                 onClick={async () => setShown({ ...(await call('members.definition', { id: m.id })), id: m.id })}
               >
                 <span className="hired-dot" aria-hidden="true" />
                 <span className="role">{m.role}</span>
                 <span className="nick">{m.nickname}</span>
-                <span className="model-tag">{m.status === 'hired' ? modelLabel(m.model) : '미고용'}</span>
+                <span className="model-tag">{m.status === 'hired' ? modelLabel(m.model) : t('legend.unhired')}</span>
               </Button>
             </li>
           ))}
@@ -79,16 +81,16 @@ export function Legend({ members, onMemory }: { members: CrewMember[]; onMemory:
           <div className="member-basics">
             <Nickname member={current} onSave={(nickname) => update(current, { nickname })} />
             <Choice
-              label={`${current.role} 모델`}
+              label={t('legend.model', { role: current.role })}
               value={current.model}
               options={MODEL_OPTIONS}
               onChange={(model) => update(current, { model: model as Args<'members.update'>['model'] })}
             />
             {!current.kept && (
-              <Label inline text="고용" className="hire">
+              <Label inline text={t('legend.hire')} className="hire">
                 <Switch
                   checked={current.status === 'hired'}
-                  label={`${current.role} 고용`}
+                  label={t('legend.hireRole', { role: current.role })}
                   onChange={(on) => update(current, { status: on ? 'hired' : 'unhired' })}
                 />
               </Label>
@@ -97,12 +99,12 @@ export function Legend({ members, onMemory }: { members: CrewMember[]; onMemory:
         )}
         {shown && <Permissions memberId={shown.id} />}
         {/* The instructions are the model's own prompt, kept in English; few people need to read them */}
-        <Fold label="지시문" className="def-fold">
+        <Fold label={t('legend.instructions')} className="def-fold">
           <Prose className="def-body" text={shown?.instructions ?? ''} />
         </Fold>
         <DialogActions>
           <Button className="member-reset" onClick={() => setResetting(true)}>
-            초기화
+            {t('legend.reset')}
           </Button>
           <Button
             onClick={() => {
@@ -110,17 +112,17 @@ export function Legend({ members, onMemory }: { members: CrewMember[]; onMemory:
               setShown(null);
             }}
           >
-            메모리
+            {t('tab.memory')}
           </Button>
           <DialogClose />
         </DialogActions>
         {resetting && current && (
           <Confirm
-            label="초기화"
-            text="별명, 모델, 고용, 권한을 처음 설정으로 되돌립니다."
+            label={t('legend.reset')}
+            text={t('legend.resetText')}
             actions={[
               {
-                label: '되돌리기',
+                label: t('legend.resetDo'),
                 danger: true,
                 run: async () => {
                   setResetting(false);
@@ -147,7 +149,7 @@ function Nickname({ member, onSave }: { member: CrewMember; onSave: (n: string) 
     <Input
       size="md"
       className="nickname"
-      aria-label={`${member.role} 별명`}
+      aria-label={t('legend.nickname', { role: member.role })}
       value={draft ?? member.nickname}
       maxLength={12}
       onChange={(e) => setDraft(e.target.value)}

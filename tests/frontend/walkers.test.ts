@@ -36,10 +36,10 @@ test('idle members stroll only on open ground and chat among themselves without 
 });
 
 test('small talk follows the hour: breakfast in the morning, no lunch plans at midnight', () => {
-  expect(smallTalk(8)).toContain('아침 잘 먹었어요?');
-  expect(smallTalk(13)).toContain('점심은 뭐 먹을까요?');
-  expect(smallTalk(0)).toContain('이제 좀 쉬어야지.');
-  expect(smallTalk(0).join()).not.toContain('점심');
+  expect(smallTalk(8)).toContain('camp.morning1');
+  expect(smallTalk(13)).toContain('camp.day1');
+  expect(smallTalk(0)).toContain('camp.night1');
+  expect(smallTalk(0).join()).not.toContain('camp.day');
 });
 
 test('the crew the app opens with walks in from out of sight on every side, even after the empty list before it', () => {

@@ -30,8 +30,8 @@ import { Checkbox, Input, Label, TextArea } from '../ui/Field';
 import { Segmented } from '../ui/Segmented';
 import { Toolbar, ToolbarEnd } from '../ui/Toolbar';
 import { HIDE_MARK } from './WikiGraph';
-import { josa } from '../korean';
 import { say } from '../locale';
+import { t } from '../lang';
 
 type Read = Awaited<ReturnType<typeof call<'workflows.read'>>>;
 type StepNode = Node<{ step: Step; member?: CrewMember; back?: string }, 'step'>;
@@ -172,7 +172,7 @@ export function WorkflowView({
     const role = members.find((m) => m.status === 'hired' && !m.kept)?.key ?? members[0].key;
     setSteps((all) => [
       ...all,
-      { id, role, label: '새 단계', does: '', after: [], verdict: false, loops: 3, requires: [] },
+      { id, role, label: t('wf.newStep'), does: '', after: [], verdict: false, loops: 3, requires: [] },
     ]);
     setNodes((ns) => [
       ...ns,
@@ -191,7 +191,7 @@ export function WorkflowView({
     };
     const r = await call('workflows.save', { projectId: project.id, kind, base: w!.version, rules, layout });
     if (r.ok) {
-      setNote({ ok: true, text: `버전 ${r.version} 저장, 새 업무부터 적용` });
+      setNote({ ok: true, text: t('wf.saved', { v: r.version }) });
       setDirty(false);
       const read = await call('workflows.read', { projectId: project.id, kind });
       setW(read);
@@ -204,34 +204,34 @@ export function WorkflowView({
     requestAnimationFrame(() => flow && fit(flow));
   }, [!!step]);
   return (
-    <section className="workflow-view" aria-label="워크플로우 편집">
+    <section className="workflow-view" aria-label={t('wf.editor')}>
       <Toolbar>
         <Segmented
-          label="업무 종류"
+          label={t('wf.kind')}
           value={kind}
           options={kinds.map((k) => ({ value: k.kind, label: k.label }))}
           onChange={(k) => (dirty && k !== kind ? setLeaveFor(k) : onKind(k))}
         />
         <ToolbarEnd>
-          <Button onClick={tidy}>정렬</Button>
-          <Button onClick={addStep}>단계 추가</Button>
+          <Button onClick={tidy}>{t('wf.tidy')}</Button>
+          <Button onClick={addStep}>{t('wf.addStep')}</Button>
           <Button
             variant="primary"
             dirty={dirty}
-            title={dirty ? '저장 안 한 변경이 있습니다' : `버전 ${w?.version ?? 0}`}
+            title={dirty ? t('wf.dirty') : t('wf.version', { v: w?.version ?? 0 })}
             onClick={save}
           >
-            저장
+            {t('action.save')}
           </Button>
         </ToolbarEnd>
       </Toolbar>
       {leaveFor && (
         <Confirm
-          label="저장 안 한 변경"
-          text="저장 안 한 변경이 사라집니다. 다른 업무 종류로 바꿀까요?"
+          label={t('app.unsaved')}
+          text={t('wf.unsavedSwitch')}
           actions={[
             {
-              label: '바꾸기',
+              label: t('action.switch'),
               danger: true,
               run: () => {
                 onKind(leaveFor);
@@ -277,18 +277,18 @@ export function WorkflowView({
           )}
         </div>
         {step && (
-          <aside className="workflow-side" aria-label="단계 설정">
-            <Label text="이름">
+          <aside className="workflow-side" aria-label={t('wf.step')}>
+            <Label text={t('wf.name')}>
               <Input
                 size="md"
-                aria-label="단계 이름"
+                aria-label={t('wf.stepName')}
                 value={step.label}
                 onChange={(e) => edit(step.id, { label: e.target.value })}
               />
             </Label>
-            <Label text="담당">
+            <Label text={t('wf.owner')}>
               <Choice
-                label="담당 역할"
+                label={t('wf.ownerRole')}
                 wide
                 value={step.role}
                 options={members
@@ -297,23 +297,23 @@ export function WorkflowView({
                 onChange={(role) => edit(step.id, { role })}
               />
             </Label>
-            <Label text="할 일">
+            <Label text={t('wf.does')}>
               <TextArea
                 className="side-text"
-                aria-label="할 일"
+                aria-label={t('wf.does')}
                 value={step.does}
                 onChange={(e) => edit(step.id, { does: e.target.value })}
               />
             </Label>
             <Checkbox checked={step.verdict} onChange={(e) => edit(step.id, { verdict: e.target.checked })}>
-              통과 못 하면 되돌려 보내기
+              {t('wf.verdict')}
             </Checkbox>
             {step.verdict && (
-              <Label text="최대 횟수">
+              <Label text={t('wf.loops')}>
                 <Input
                   size="md"
                   type="number"
-                  aria-label="최대 횟수"
+                  aria-label={t('wf.loops')}
                   min={1}
                   max={9}
                   value={step.loops}
@@ -331,18 +331,14 @@ export function WorkflowView({
 function StepBox({ data }: NodeProps<StepNode>) {
   const { step, member, back } = data;
   return (
-    <div className="workflow-node" aria-label={`단계 ${step.label}`}>
+    <div className="workflow-node" aria-label={t('wf.node', { label: step.label })}>
       <Handle type="target" position={Position.Top} />
       {/* The role shows only when the step's name does not already say it */}
       {!step.label.startsWith(member?.role ?? step.role) && (
         <div className="workflow-role">{member?.role ?? step.role}</div>
       )}
       <div>{step.label}</div>
-      {step.verdict && (
-        <div className="muted">
-          {back ? `안 되면 ${josa(back, '으로')} ${step.loops}번까지` : '앞 단계에 이어 주세요'}
-        </div>
-      )}
+      {step.verdict && <div className="muted">{back ? t('wf.back', { back, n: step.loops }) : t('wf.connect')}</div>}
       <Handle type="source" position={Position.Bottom} />
     </div>
   );
@@ -386,7 +382,7 @@ function LinkLine({
             iconOnly
             className="workflow-unlink nodrag nopan"
             style={{ transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }}
-            aria-label="연결 끊기"
+            aria-label={t('wf.disconnect')}
             onClick={data?.remove}
           >
             ×

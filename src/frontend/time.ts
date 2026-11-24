@@ -1,3 +1,5 @@
+import { t } from './lang';
+
 const pad = (n: number) => String(n).padStart(2, '0');
 
 // The record keeps UTC ISO times, so slicing the string would show UTC; these read it in the user's time zone
@@ -15,7 +17,7 @@ export function stamp(iso: string) {
 // Runs last seconds to hours; past a minute the seconds stop mattering much
 export function duration(seconds: number) {
   const s = Math.round(seconds);
-  if (s < 60) return `${s}초`;
-  if (s < 3600) return `${Math.floor(s / 60)}분 ${s % 60}초`;
-  return `${Math.floor(s / 3600)}시간 ${Math.floor((s % 3600) / 60)}분`;
+  if (s < 60) return t('time.s', { s });
+  if (s < 3600) return t('time.ms', { m: Math.floor(s / 60), s: s % 60 });
+  return t('time.hm', { h: Math.floor(s / 3600), m: Math.floor((s % 3600) / 60) });
 }
