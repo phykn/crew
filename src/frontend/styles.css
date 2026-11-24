@@ -570,6 +570,8 @@ code {
   align-items: center;
 }
 .legend-row .role {
+  /* A wider gap between role and nickname than between the other columns, so the two names read apart */
+  padding-right: var(--sp-2);
   font-weight: var(--fw-bold);
 }
 .hired-dot {
