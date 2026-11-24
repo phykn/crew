@@ -61,12 +61,6 @@ if (!has('no-record'))
 // Each scene: where it starts in the footage, where it ends, and how long it lasts in the video. The page holds the
 // same lengths, so a mark only decides which part of the footage a scene shows, never where the scene sits.
 const m = JSON.parse(fs.readFileSync(path.join(footage, 'marks.json'), 'utf-8'));
-// A missing mark borrows the moment after the one before it, so one step that never showed cannot leave a cut without a start
-const fill = (list) => {
-  let last = 0;
-  return list.map((v) => (Number.isFinite(v) ? (last = v) : (last += 1)));
-};
-
 const SCENES = {
   ko: () => [
     ['intro', m.open + 0.5, m.open + 3.5, 3],
@@ -79,38 +73,25 @@ const SCENES = {
     ['end', m.open + 0.5, m.open + 2.5, 2.5],
   ],
   en: () => {
-    const stage = (step, nth = 0) => (m.stages ?? []).filter((s) => s.text === step)[nth]?.at;
-    const t = fill([
-      m.open,
-      m.ask,
-      m.sent,
-      stage('Plan'),
-      stage('Plan review'),
-      stage('Develop', 0),
-      stage('Code review', 0),
-      stage('Fixing'),
-      stage('Code review', 1),
-      m.done,
-      m.diff,
-      m.wiki,
-      m.workflow,
-      m.connect,
-    ]);
+    const stage = (step, nth = 0) => m.stages.filter((s) => s.text === step)[nth].at;
+    const build = stage('Develop');
+    const bounce = stage('Code review');
+    const fix = stage('Fixing');
+    const test = stage('Code review', 1);
     return [
-      ['intro', t[0] + 0.3, t[0] + 2.9, 2.6],
-      ['camp', t[0] + 1.4, t[1] - 0.1, 2.8],
-      ['ask', t[1] - 0.1, t[2] + 0.7, 3.8],
-      ['plan', t[3] + 0.1, t[4], 2.4],
-      ['build', t[5] + 0.1, t[6], 3.4],
-      ['bounce', t[6] + 0.1, t[7], 2.8],
-      ['fix', t[7] + 0.1, t[8], 2.8],
-      ['test', t[8] + 0.1, t[9] - 0.1, 3],
-      ['report', t[9] + 0.1, t[10] - 0.1, 3.2],
-      ['diff', t[10], t[11] - 0.2, 2.6],
-      ['wiki', t[11] + 0.2, t[12] - 0.2, 2.2],
-      ['workflow', t[12] + 0.2, t[13] - 0.2, 2.2],
-      ['connect', t[13] + 0.2, t[13] + 2, 2],
-      ['end', t[0] + 2, t[1] - 0.1, 2.6],
+      ['intro', m.open + 1.8, m.ask, 1.2],
+      ['ask', m.ask + 0.1, build, 3],
+      ['build', build + 0.2, bounce, 1.8],
+      ['bounce', bounce + 0.3, fix, 1.6],
+      ['fix', fix + 0.2, test, 1.6],
+      ['test', test + 0.3, m.done, 1.5],
+      ['report', m.done + 0.05, m.diff - 0.15, 2.6],
+      ['diff', m.diff + 0.05, m.log - 0.2, 2.3],
+      ['log', m.log, m.wiki - 0.15, 2.6],
+      ['wiki', m.wiki, m.workflow - 0.15, 3],
+      ['workflow', m.workflow, m.history - 0.15, 3.1],
+      ['history', m.history + 0.5, m.history + 2.6, 2.6],
+      ['end', m.open + 2.6, m.ask, 1.3],
     ];
   },
 };
@@ -163,31 +144,16 @@ const film = `renders/crew-${lang}.mp4`;
 run('npx', ['--yes', 'hyperframes', 'lint'], project);
 run('npx', ['--yes', 'hyperframes', 'render', '-o', film, '-q', 'high'], project);
 
-// The GIF opens the README, so it carries the hook, the party at work, the green result and the sign-off;
-// the film itself has the rest. Cutting it is what keeps a sharper GIF inside a README's size
-const CUTS = {
-  // The hook, the crew at work, the result, then the sign-off. A README cannot take the whole film at a sharp size,
-  // so the places the work lands are left to the film; --gif-full puts them back
-  ko: [
-    [0, 21.5],
-    [30.1, 32.6],
-  ],
-  en: [
-    [0.4, 2.6],
-    [3, 8.8],
-    [9.3, 11.2],
-    [11.8, 14.6],
-    [15.2, 17.4],
-    [18, 20.2],
-    [20.8, 23.3],
-    [23.8, 26.2],
-    [36, 38.1],
-  ],
-};
-const width = Number(flag('gif-width', lang === 'en' ? 800 : 960));
-const fps = Number(flag('gif-fps', lang === 'en' ? 10 : 12));
+const width = Number(flag('gif-width', 960));
+const fps = Number(flag('gif-fps', 12));
 const colors = Number(flag('gif-colors', lang === 'en' ? 160 : 200));
-const cuts = has('gif-full') ? [[0, total]] : CUTS[lang];
+const cuts =
+  has('gif-full') || lang === 'en'
+    ? [[0, total]]
+    : [
+        [0, 21.5],
+        [30.1, 32.6],
+      ];
 // No smoothing and no blur: the app is pixel art and every sharp edge is the point. A palette built for motion keeps
 // the camp's texture from banding, and a rectangle diff leaves the parts of a frame that did not move alone
 const trimmed = cuts.map(([a, b], i) => `[0:v]trim=start=${a}:end=${b},setpts=PTS-STARTPTS[v${i}]`).join(';');

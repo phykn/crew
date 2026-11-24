@@ -4,7 +4,7 @@ import { launchApp, makeScratch, openProject } from '../e2e/launch';
 import { readStages, record, watchStages } from './record';
 
 // The quest the user drops, in their own words
-const QUEST = 'Fix the checkout double charge and add a test for it';
+const QUEST = 'Fix double charges at checkout. Add a regression test.';
 
 // A plain shop API, with the kind of wiki a project builds up after a few tasks
 const FILES: Record<string, string> = {
@@ -56,7 +56,7 @@ const SCRIPT = {
       text: 'On it. Opening the quest for the crew.',
     },
     {
-      text: 'Shipped. A double click now charges once, the second request gets "sold out", and 18 tests pass, the new double-click test among them.',
+      text: 'Fixed the double charge. A second request gets "sold out" without another charge. All 18 tests pass, including the double-click regression.',
     },
   ],
   conductor: [
@@ -182,34 +182,72 @@ test('record the English demo', async () => {
   await page.getByLabel('Message').pressSequentially(QUEST, { delay: 34 });
   take.mark('sent');
   await page.getByLabel('Message').press('Enter');
-  await expect(page.getByText('A double click now charges once', { exact: false })).toBeVisible({ timeout: 120_000 });
+  const report = page.getByText('Fixed the double charge.', { exact: false });
+  await expect(report).toBeVisible({ timeout: 120_000 });
   take.mark('done');
-  await page.waitForTimeout(2200);
-  // The files the task changed hang under its report; the first opens its diff
-  const chip = page.getByRole('button', { name: /checkout\.js$/ }).first();
-  if (await chip.count()) {
-    take.mark('diff');
-    await chip.click();
-    await page.waitForTimeout(2600);
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(400);
-  }
-  // A glimpse of each place the work lands, not a tour of them
-  for (const [name, tab, then] of [
-    ['wiki', 'Memory', 'Graph'],
-    ['workflow', 'Workflow', ''],
-    ['connect', 'Connect', ''],
-  ] as const) {
-    take.mark(name);
-    await page.getByRole('tab', { name: tab }).click();
-    if (then) {
-      await page.waitForTimeout(300);
-      await page.getByRole('button', { name: then }).first().click();
-    }
-    await page.waitForTimeout(2400);
-  }
+  await page.waitForTimeout(2300);
+
+  await page.locator('.report-files').getByRole('button', { name: 'src/checkout.js', exact: true }).click();
+  const diff = page.getByRole('dialog');
+  await expect(diff.getByRole('heading', { name: 'src/checkout.js', exact: true })).toBeVisible();
+  await expect(diff.locator('.diff-line[data-kind="add"]').first()).toBeVisible();
+  take.mark('diff');
+  await page.waitForTimeout(2400);
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('tab', { name: 'Log' }).click();
+  const testRun = page
+    .getByLabel('Task log')
+    .getByRole('button', { name: /Test done/ })
+    .first();
+  await testRun.scrollIntoViewIfNeeded();
+  take.mark('log');
+  await page.waitForTimeout(450);
+  await testRun.click();
+  const checks = page.getByText('npm test → 18 passed', { exact: false }).last();
+  await expect(checks).toBeVisible();
+  await checks.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(2100);
+
+  await page.getByRole('tab', { name: 'Memory' }).click();
+  await page.getByRole('button', { name: 'Graph', exact: true }).click();
+  const paymentRetries = page.getByLabel('Document Payment retries', { exact: true });
+  await expect(paymentRetries).toBeVisible();
+  take.mark('wiki');
+  await page.waitForTimeout(850);
+  await paymentRetries.click();
+  await expect(page.getByLabel('Wiki document').getByRole('heading', { name: 'Payment retries' })).toBeVisible();
+  await page.waitForTimeout(2150);
+
+  await page.getByRole('tab', { name: 'Workflow' }).click();
+  const review = page.getByLabel('Step Code review', { exact: true });
+  await expect(review).toBeVisible();
+  take.mark('workflow');
+  await page.waitForTimeout(800);
+  await review.click();
+  await page.getByLabel('Owner role', { exact: true }).click();
+  await expect(page.getByRole('option', { name: 'Tester Siu', exact: true })).toBeVisible();
+  await page.waitForTimeout(2300);
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('tab', { name: 'Chat' }).click();
+  const session = page.getByLabel('Session', { exact: true });
+  await session.click();
+  await page.getByRole('option', { name: 'New session', exact: true }).click();
+  await expect(report).toHaveCount(0);
+  await session.click();
+  const previous = page.getByRole('option', { name: /^Fix double charges/ });
+  await expect(previous).toBeVisible();
+  take.mark('history');
+  await page.waitForTimeout(800);
+  await previous.click();
+  await expect(report).toBeVisible();
+  await page.waitForTimeout(1900);
+
   const stages = await readStages(page);
-  expect(stages.map(({ text }) => text).join('\n')).toMatch(/(?:^|\n)Code review\nFixing\nCode review(?:\n|$)/);
+  expect(stages.map(({ text }) => text).join('\n')).toMatch(
+    /(?:^|\n)Develop\nCode review\nFixing\nCode review(?:\n|$)/,
+  );
   take.marks.stages = stages;
   await take.finish(app);
 });
