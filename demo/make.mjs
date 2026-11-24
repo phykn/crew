@@ -97,20 +97,20 @@ const SCENES = {
       m.connect,
     ]);
     return [
-      ['intro', t[0] - 0.4, t[0] + 0.4, 2.6],
-      ['camp', t[0] + 0.8, t[0] + 2.6, 2.8],
-      ['ask', t[1] - 1, t[2] + 0.7, 3.8],
-      ['plan', t[3], t[4], 2.4],
-      ['build', t[5], t[6], 3.4],
-      ['bounce', t[6], t[7], 2.8],
-      ['fix', t[7], t[8], 2.8],
-      ['test', t[8], t[9] - 0.2, 3],
-      ['report', t[9], t[10] - 0.2, 3.2],
+      ['intro', t[0] + 0.3, t[0] + 2.9, 2.6],
+      ['camp', t[0] + 1.4, t[1] - 0.1, 2.8],
+      ['ask', t[1] - 0.1, t[2] + 0.7, 3.8],
+      ['plan', t[3] + 0.1, t[4], 2.4],
+      ['build', t[5] + 0.1, t[6], 3.4],
+      ['bounce', t[6] + 0.1, t[7], 2.8],
+      ['fix', t[7] + 0.1, t[8], 2.8],
+      ['test', t[8] + 0.1, t[9] - 0.1, 3],
+      ['report', t[9] + 0.1, t[10] - 0.1, 3.2],
       ['diff', t[10], t[11] - 0.2, 2.6],
       ['wiki', t[11] + 0.2, t[12] - 0.2, 2.2],
       ['workflow', t[12] + 0.2, t[13] - 0.2, 2.2],
       ['connect', t[13] + 0.2, t[13] + 2, 2],
-      ['end', t[0] + 0.6, t[0] + 2.4, 2.6],
+      ['end', t[0] + 2, t[1] - 0.1, 2.6],
     ];
   },
 };
@@ -130,6 +130,10 @@ fs.mkdirSync(clips, { recursive: true });
 for (const f of BESIDE) fs.copyFileSync(path.join(here, '..', 'node_modules', f), path.join(clips, path.basename(f)));
 for (const [name, from, to, length] of scenes) {
   const span = Math.max(to - from, 0.3);
+  const footageFilter =
+    lang === 'en'
+      ? `fps=30,tpad=stop_mode=clone:stop_duration=${length},trim=duration=${length}`
+      : `setpts=PTS*${(length / span).toFixed(4)},fps=30,tpad=stop_mode=clone:stop_duration=0.5`;
   run(
     'ffmpeg',
     [
@@ -143,9 +147,8 @@ for (const [name, from, to, length] of scenes) {
       '-i',
       path.join(footage, 'app.mp4'),
       '-an',
-      // The cut is stretched to the scene's length; a cut that runs past the footage holds its last frame
       '-vf',
-      `setpts=PTS*${(length / span).toFixed(4)},fps=30,tpad=stop_mode=clone:stop_duration=0.5`,
+      footageFilter,
       '-c:v',
       'libx264',
       '-crf',
@@ -170,8 +173,15 @@ const CUTS = {
     [30.1, 32.6],
   ],
   en: [
-    [0, 26.8],
-    [35.8, 38.4],
+    [0.4, 2.6],
+    [3, 8.8],
+    [9.3, 11.2],
+    [11.8, 14.6],
+    [15.2, 17.4],
+    [18, 20.2],
+    [20.8, 23.3],
+    [23.8, 26.2],
+    [36, 38.1],
   ],
 };
 const width = Number(flag('gif-width', lang === 'en' ? 800 : 960));
