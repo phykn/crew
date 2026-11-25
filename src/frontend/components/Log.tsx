@@ -64,6 +64,12 @@ export function Log({
   }, [session.id, taskId]);
 
   useLayoutEffect(() => {
+    if (open !== null) {
+      scroll.current?.querySelector('[aria-expanded="true"]')?.scrollIntoView({ block: 'start' });
+    }
+  }, [open]);
+
+  useLayoutEffect(() => {
     const el = scroll.current;
     if (!el) return;
     const follow = () => {
@@ -165,7 +171,10 @@ export function Log({
                 className="log-line"
                 disabled={!opens}
                 aria-expanded={opens ? open === e.id : undefined}
-                onClick={() => setOpen(open === e.id ? null : e.id)}
+                onClick={() => {
+                  if (open !== e.id) stick.current = false;
+                  setOpen(open === e.id ? null : e.id);
+                }}
               >
                 <time>{clock(e.at, true)}</time>
                 <span
