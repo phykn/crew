@@ -1,42 +1,43 @@
-# crew
+<h1 align="center">crew</h1>
 
-**Tell one interpreter what you need. A team of AI agents does the work, and you watch them in a pixel camp.**
+<p align="center"><b>Tell one interpreter what you need. A team of AI agents does the work, and you watch them in a pixel camp.</b></p>
 
-![Electron](https://img.shields.io/badge/Electron-45-47848F) ![React](https://img.shields.io/badge/React-19-61DAFB) ![Claude Agent SDK](https://img.shields.io/badge/Claude_Agent_SDK-0.3-D97757) ![PixiJS](https://img.shields.io/badge/PixiJS-8-E72264) ![SQLite](https://img.shields.io/badge/node:sqlite-builtin-003B57)
+<p align="center">
+  <img src="https://img.shields.io/badge/Electron-45-47848F" alt="Electron">
+  <img src="https://img.shields.io/badge/React-19-61DAFB" alt="React">
+  <img src="https://img.shields.io/badge/Claude_Agent_SDK-0.3-D97757" alt="Claude Agent SDK">
+  <img src="https://img.shields.io/badge/PixiJS-8-E72264" alt="PixiJS">
+  <img src="https://img.shields.io/badge/node:sqlite-builtin-003B57" alt="SQLite">
+</p>
 
-![crew at work](assets/demo.gif)
-
-## How it works
-
-1. **Ask**: describe the task in the chat
-2. **Assign**: a conductor picks the kind of work and who does it, and plans a code change for a reviewer to check
-3. **Build**: a coder or a writer makes the change
-4. **Check**: review and tests run side by side, and each problem comes back in detail
-5. **Report**: the conductor judges whether the goal is met, and you get a summary; every step stays in the log
+<p align="center"><img src="assets/demo.gif" alt="crew at work"></p>
 
 ## Features
 
-| Feature                 | What it does                                                                                            |
-| ----------------------- | ------------------------------------------------------------------------------------------------------- |
-| **One chat**            | Ask in plain words, attach pictures, queue a message with Ctrl+Enter                                    |
-| **Copies on demand**    | A member needed twice at once works through a copy that leaves when the task ends                       |
-| **Guarded tools**       | Dangerous commands and writes outside a member's scope are blocked; anything unusual is asked on a card |
-| **Your rules**          | Change each member's nickname, model, tools, skills, and MCP access, and edit the workflow              |
-| **Memory**              | What the crew learns goes into a project wiki with a graph; every step leaves a log                     |
-| **The camp**            | Members walk, sit by the fire, and cast spells while they work; click one to open its log               |
-| **Subscription or API** | Run on your Claude Code login or an Anthropic API key, kept encrypted on your computer                  |
+- **One chat**: ask in plain words and attach pictures; a conductor assigns the work, and you get a report once review and tests pass
+- **Copies on demand**: a member needed twice at once works through a copy that leaves when the task ends
+- **Guarded tools**: dangerous commands and writes outside a member's scope are blocked, and anything unusual is asked on a card
+- **Your rules**: change each member's nickname, model, tools, skills, and MCP access, and edit the workflow
+- **Memory**: what the crew learns goes into a project wiki, and every step leaves a log
+- **The camp**: members walk, sit by the fire, and cast spells while they work; click one to open its log
+- **Subscription or API**: run on your [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) login or an Anthropic API key, kept encrypted on your computer
 
-## Quick start
+## Install
 
-You need **Node.js 24+** and either a [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) login or an Anthropic API key.
+You need Node.js 24+.
 
 ```bat
 npm install
 git config core.hooksPath scripts/hooks
-npm start
 ```
 
-The hooks bump the version on each commit and keep one repository bundle in `out/`.
+The hooks bump the version on each commit.
+
+## Run
+
+```bat
+npm start
+```
 
 ## Build
 
@@ -46,12 +47,8 @@ npm run package
 
 The app lands at `out/crew-win32-x64/crew.exe`.
 
-For Apple Silicon Macs, `npm run package:mac` makes an unsigned zip of the app in `out/make/` on any computer. `npm run make:mac` also makes a `.pkg` installer, which works only on a Mac.
-
 ## Test
 
-| Command             | What it runs                            |
-| ------------------- | --------------------------------------- |
-| `npm test`          | Unit tests with a fake SDK              |
-| `npm run test:live` | Live tests against real Claude (billed) |
-| `npm run test:e2e`  | Window tests on the packaged app        |
+```bat
+npm test
+```
