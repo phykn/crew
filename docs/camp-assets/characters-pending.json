@@ -1,0 +1,142 @@
+{
+  "completed_jobs": [
+    {
+      "role": "reviewer",
+      "action": "cast-loop",
+      "prompt": "reviewer-cast-loop-pack-prompt.md",
+      "status": "generated, exported and reviewed",
+      "references": [
+        "candidates/reviewer-master-v1.png",
+        "reference/reviewer-held-pack.png"
+      ]
+    },
+    {
+      "role": "reviewer",
+      "action": "cast-end",
+      "prompt": "reviewer-cast-end-pack-prompt.md",
+      "status": "generated, exported and reviewed",
+      "references": [
+        "candidates/reviewer-master-v1.png",
+        "reference/reviewer-held-pack.png"
+      ]
+    },
+    {
+      "role": "proofreader",
+      "action": "cast-loop",
+      "prompt": "proofreader-cast-loop-pack-prompt.md",
+      "status": "generated, exported and reviewed",
+      "references": [
+        "candidates/proofreader-master-v1.png",
+        "reference/proofreader-held-pack.png"
+      ]
+    },
+    {
+      "role": "proofreader",
+      "action": "cast-end",
+      "prompt": "proofreader-cast-end-pack-prompt.md",
+      "status": "generated, exported and reviewed",
+      "references": [
+        "candidates/proofreader-master-v1.png",
+        "reference/proofreader-held-pack.png"
+      ]
+    },
+    {
+      "role": "tester",
+      "action": "cast-loop",
+      "prompt": "tester-cast-loop-pack-prompt.md",
+      "status": "generated, exported and reviewed",
+      "references": [
+        "candidates/tester-master-v1.png",
+        "reference/tester-held-pack.png"
+      ]
+    },
+    {
+      "role": "tester",
+      "action": "cast-end",
+      "prompt": "tester-cast-end-pack-prompt.md",
+      "status": "generated, exported and reviewed",
+      "references": [
+        "candidates/tester-master-v1.png",
+        "reference/tester-held-pack.png"
+      ]
+    },
+    {
+      "role": "images",
+      "action": "cast-loop",
+      "prompt": "images-cast-loop-pack-prompt.md",
+      "status": "generated, exported and reviewed",
+      "references": [
+        "candidates/images-master-v1.png",
+        "reference/images-held-pack.png"
+      ]
+    },
+    {
+      "role": "images",
+      "action": "cast-end",
+      "prompt": "images-cast-end-pack-prompt.md",
+      "status": "generated, exported and reviewed",
+      "references": [
+        "candidates/images-master-v1.png",
+        "reference/images-held-pack.png"
+      ]
+    },
+    {
+      "role": "librarian",
+      "action": "sit",
+      "prompt": "librarian-sit-pack-prompt.md",
+      "status": "generated, exported and reviewed",
+      "references": [
+        "candidates/librarian-master-v1.png"
+      ]
+    },
+    {
+      "role": "librarian",
+      "action": "cast-start",
+      "prompt": "librarian-cast-start-pack-prompt.md",
+      "status": "generated, exported and reviewed",
+      "references": [
+        "candidates/librarian-master-v1.png"
+      ]
+    },
+    {
+      "role": "librarian",
+      "action": "cast-loop",
+      "prompt": "librarian-cast-loop-pack-prompt.md",
+      "status": "generated, exported and reviewed",
+      "references": [
+        "candidates/librarian-master-v1.png",
+        "reference/librarian-held-pack.png"
+      ],
+      "dependency": "Generate cast-start first, then crop fourth cell as held reference."
+    },
+    {
+      "role": "librarian",
+      "action": "cast-end",
+      "prompt": "librarian-cast-end-pack-prompt.md",
+      "status": "generated, exported and reviewed",
+      "references": [
+        "candidates/librarian-master-v1.png",
+        "reference/librarian-held-pack.png"
+      ],
+      "dependency": "Generate cast-start first, then crop fourth cell as held reference."
+    }
+  ],
+  "completed_repairs": [
+    {
+      "role": "tester",
+      "action": "walk",
+      "reason": "Contact poses repeat the same leading-leg impression; opposite arm/leg phase requires a targeted repair.",
+      "prompt": "tester-walk-pack-repair-prompt.md",
+      "output": "candidates/tester-walk-pack-v2.png",
+      "status": "generated, exported and reviewed"
+    }
+  ],
+  "pending": [],
+  "repairs": [],
+  "status": "complete",
+  "completed_at_date_kst": "2026-11-26",
+  "history": {
+    "reason": "Built-in image generation usage_limit_reached (HTTP 429). No automatic CLI/API fallback or fabricated frames.",
+    "reset_at_kst": "2026-11-26T07:18:10+09:00"
+  }
+}

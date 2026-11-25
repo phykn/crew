@@ -1,0 +1,184 @@
+{
+  "shared_effect": "shared/ward-circle.png",
+  "shared_sha256": "02979a11f104e5c801fcd8b658afcbff420f8e67b1642bc08a7593323a944b79",
+  "roles": {
+    "interpreter": {
+      "pack": "interpreter",
+      "manifest": "interpreter/manifest.json",
+      "actions": [
+        "idle",
+        "walk",
+        "sit",
+        "cast-start",
+        "cast-loop",
+        "cast-end"
+      ],
+      "missing": [],
+      "quality_issues": {},
+      "complete": true,
+      "frames": 22
+    },
+    "conductor": {
+      "pack": "conductor",
+      "manifest": "conductor/manifest.json",
+      "actions": [
+        "idle",
+        "walk",
+        "sit",
+        "cast-start",
+        "cast-loop",
+        "cast-end"
+      ],
+      "missing": [],
+      "quality_issues": {},
+      "complete": true,
+      "frames": 22
+    },
+    "researcher": {
+      "pack": "researcher",
+      "manifest": "researcher/manifest.json",
+      "actions": [
+        "idle",
+        "walk",
+        "sit",
+        "cast-start",
+        "cast-loop",
+        "cast-end"
+      ],
+      "missing": [],
+      "quality_issues": {},
+      "complete": true,
+      "frames": 22
+    },
+    "coder": {
+      "pack": "adventurer",
+      "manifest": "adventurer/manifest.json",
+      "actions": [
+        "idle",
+        "walk",
+        "sit",
+        "cast-start",
+        "cast-loop",
+        "cast-end"
+      ],
+      "missing": [],
+      "quality_issues": {},
+      "complete": true,
+      "frames": 22
+    },
+    "writer": {
+      "pack": "writer",
+      "manifest": "writer/manifest.json",
+      "actions": [
+        "idle",
+        "walk",
+        "sit",
+        "cast-start",
+        "cast-loop",
+        "cast-end"
+      ],
+      "missing": [],
+      "quality_issues": {},
+      "complete": true,
+      "frames": 22
+    },
+    "reviewer": {
+      "pack": "reviewer",
+      "manifest": "reviewer/manifest.json",
+      "actions": [
+        "idle",
+        "walk",
+        "sit",
+        "cast-start",
+        "cast-loop",
+        "cast-end"
+      ],
+      "missing": [],
+      "quality_issues": {},
+      "complete": true,
+      "frames": 22
+    },
+    "proofreader": {
+      "pack": "proofreader",
+      "manifest": "proofreader/manifest.json",
+      "actions": [
+        "idle",
+        "walk",
+        "sit",
+        "cast-start",
+        "cast-loop",
+        "cast-end"
+      ],
+      "missing": [],
+      "quality_issues": {},
+      "complete": true,
+      "frames": 22
+    },
+    "tester": {
+      "pack": "tester",
+      "manifest": "tester/manifest.json",
+      "actions": [
+        "idle",
+        "walk",
+        "sit",
+        "cast-start",
+        "cast-loop",
+        "cast-end"
+      ],
+      "missing": [],
+      "quality_issues": {},
+      "complete": true,
+      "frames": 22
+    },
+    "images": {
+      "pack": "images",
+      "manifest": "images/manifest.json",
+      "actions": [
+        "idle",
+        "walk",
+        "sit",
+        "cast-start",
+        "cast-loop",
+        "cast-end"
+      ],
+      "missing": [],
+      "quality_issues": {},
+      "complete": true,
+      "frames": 22
+    },
+    "librarian": {
+      "pack": "librarian",
+      "manifest": "librarian/manifest.json",
+      "actions": [
+        "idle",
+        "walk",
+        "sit",
+        "cast-start",
+        "cast-loop",
+        "cast-end"
+      ],
+      "missing": [],
+      "quality_issues": {},
+      "complete": true,
+      "frames": 22
+    }
+  },
+  "body_frames": 220,
+  "complete": true,
+  "working_gif": {
+    "size": [
+      1200,
+      600
+    ],
+    "frames": 4,
+    "duration_ms": 720
+  },
+  "preview_gif": {
+    "size": [
+      1200,
+      600
+    ],
+    "frames": 60,
+    "duration_ms": 16320
+  }
+}

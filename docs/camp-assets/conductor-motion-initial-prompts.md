@@ -1,0 +1,34 @@
+# Initial Motion Prompts
+
+Historical first-pass contract. Idle, walk and sit selected; cast-start v1 rejected for changing the tool hand. Initial cast-loop/end blocks below were not used; see final casting prompts instead.
+
+Use case: identity-preserve. Production transparent pixel-art sprite sheet for the EXISTING conductor mage from image 1. This reference is the exact accepted identity, not inspiration for redesign.
+IDENTITY: Keep the ink-blue compact bob and original fringe, brass hair clip, warm skin, plum-brown expressive modest eyes, friendly adult feminine face, original head/body ratio (roughly 3 to 3.5 heads, never inflate the head), visible neck, compact substantial torso, actual knees and sturdy boots. Match exact navy short coat, gold piping and small chest clasps, ivory blouse and broad cuffs, plum sash, brown belt, charcoal trousers, brown/navy cuffed boots. No hat, cape, skirt, armor or additional accessories. Same palette, pixel groups, hair silhouette and clothes in EVERY frame.
+ONE TOOL: exactly ONE slender ivory baton with brass grip, at the visible near/screen-right belt loop when not held. Keep size and attachment as master. On drawing the baton, loop remains EMPTY and visible, never duplicate tool, never erase belt loop. No orb. Empty hands outside casting.
+CAMERA: same slightly elevated front THREE-QUARTER facing LOWER-LEFT, both eyes visible, far eye narrower, show chest front and narrow side, crown and boot tops. Head, chest, pelvis, knees, toes all share this heading. No profile/frontal camera changes, mirroring or rotating within sheet. Near limb starts screen-right; far starts screen-left and is occluded behind. Preserve shoulder-elbow-hand and hip-knee-ankle-boot anatomical ownership, especially crossing limbs.
+REGISTRATION: exact requested equal cells in row-major order. One whole figure per cell. Identical body dimensions, head width, limb lengths, neutral pelvis position and camera. Standing crown near 7% cell height, soles near 90%; leave margin, no cropping. Pose changes must not trigger scale changes. Seated figure is naturally shorter, not enlarged. Small walk bob permitted; never independently recenter moving silhouettes or lower lifted feet to floor.
+MEDIUM: crisp deliberately grouped pixel art, stepped contours, coherent coarse grid readable at 96x96 logical cells, neutral upper-left shading. Actual transparent RGBA background, opaque body pixels and transparent limb gaps. No floor/shadow, gradient, checkerboard drawing, captions, grids, text, watermarks, guide bones/colors, smooth painterly/3D shading, fringe/colored noise. ABSOLUTELY NO magic circles, light, sparks, aura or effects in body sheets: common ward circle is separate. Keep face and physical hand/tool contacts legible.
+
+## idle
+
+FOUR frames, 2x2 square cells. Standing idle: 1 canonical relaxed stance exactly like master, both eyes open, both hands relaxed empty, baton secured; 2 same planted stance, gentle exhale and slightly lowered eyelids; 3 brief natural closed-eye blink, same skeleton; 4 eyes open again, faint breath returns to 1. Tiny movement only, no waving, touching baton, arm swing or hair growth. Soles, belt and head base remain fixed.
+
+## walk
+
+FOUR frames, 2x2 square cells. Image 2 is a code-projected anatomy guide ONLY; copy phases and joint ownership, never colors or labels. Lower-left ordinary WALK, baton secured. 1 NEAR CONTACT: near leg from screen-right hip leads down-left, heel lands, far leg trails up-right toe contact. Near arm back, far arm forward. 2 FAR PASSING: near support below pelvis, FAR knee advances and boot lifts beside support shin; arms pass neutral. 3 FAR CONTACT: FAR leg from screen-left hip leads down-left, near leg trails up-right. Opposite anatomical lead from frame1, near arm forward far arm back. 4 NEAR PASSING: far foot supports, NEAR knee advances with lifted boot passing support shin. Opposite lifted limb from2. Narrow parallel depth tracks, forward includes left AND toward viewer; backward includes right AND away. No crab walk, sideways straddle, kicks, backwards knees, whole-body jumping, running. Modest stride, tiny bob, stable hair and coat. Exactly contact/pass/opposite contact/opposite pass.
+
+## sit
+
+TWO frames, 2 columns x1 row, wide sheet with equal SQUARE cells. Resting seated directly on invisible ground, folded bent legs comfortably in front, upper body same head/body dimensions as standing, crown lower in cell because seated. Same lower-left 3/4 camera. Belt baton secured; hands empty resting naturally on thighs. 1 relaxed open eyes gentle smile; 2 short calm closed-eye blink with subtle breath. No chair, stump, cushions, floor, props or floating feet. Do not scale up seated body to fill cell.
+
+## cast-start
+
+FOUR frames, 2x2 square cells. Begin chanting, feet planted at fixed ground/root. 1 exact canonical standing empty-handed idle, baton secured in near belt loop. 2 near hand reaches down and closes fingers around baton brass grip while far hand stays relaxed; tool still seated in loop. 3 near hand has lifted the SAME baton clear, elbow bent near waist; belt loop now empty. Far hand begins open supporting gesture. 4 established casting stance: near hand holds baton by brass grip at lower chest height, pointing diagonally forward/upper-left; relaxed elbow below wrist, tool clearly separated from face. Far palm gently open near waist, not cupping an orb. Eyes focused, mouth a small chanting shape. One baton only, straight consistent length, no light effect. Hold this endpoint as later loop reference.
+
+## cast-loop
+
+FOUR frames, 2x2 square cells. Image 2 is the casting-start endpoint identity/pose reference. Copy its established casting stance precisely. Exactly ONE baton in near hand, belt loop visibly EMPTY. Both feet remain planted, pelvis and crown fixed, far hand OPEN supporting at waist (no orb). Near elbow stable, wrist makes tiny conducting downbeat/upbeat: 1 canonical held pose; 2 baton tip small downstroke, mouth slightly open; 3 tip rises modestly, focused eyes; 4 returns nearly to 1, small eyelid/mouth change. Read as gentle rhythmic magical coordination, no huge swing, raised arms, body swaying or weapon attack. No emissions or circle drawn into body. Strict physical tool contact and persistent empty belt loop.
+
+## cast-end
+
+FOUR frames, 2x2 square cells. Image 2 is canonical casting-start endpoint. 1 exact established held casting pose from image2, ONE baton in near hand and EMPTY belt loop, supporting far palm open. 2 near wrist lowers baton toward belt, far hand relaxes. 3 near hand seats the SAME baton into its original belt loop, fingers release grip, tool secured; no second tool. 4 canonical relaxed idle matching image1 standing master: both hands empty down at sides, baton secured, eyes open friendly smile. Fixed feet, body scale and camera, no bow or step, no glow. Seamlessly ends at idle.

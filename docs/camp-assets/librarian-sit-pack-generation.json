@@ -1,0 +1,12 @@
+{
+  "role": "librarian",
+  "action": "sit",
+  "prompt": "librarian-sit-pack-prompt.md",
+  "status": "generated",
+  "references": [
+    "candidates/librarian-master-v1.png"
+  ],
+  "source": "/Users/kn/.codex/generated_images/01a20653-4eb4-7653-8f47-c8282da58494/exec-d6223bd3-343a-4896-9661-eb62e9b41d77.png",
+  "mode": "built-in",
+  "candidate": "/Volumes/E/code/ai-crew/docs/camp-assets/candidates/librarian-sit-pack-v1.png"
+}

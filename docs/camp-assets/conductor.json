@@ -1,0 +1,17 @@
+{
+  "source": "candidates/conductor-base-v1.png",
+  "size": [
+    1086,
+    1448
+  ],
+  "mode": "RGBA",
+  "alpha_extrema": [
+    0,
+    255
+  ],
+  "master_candidate": true,
+  "shared_effect": "exports/shared/ward-circle.png",
+  "motion_manifest": "exports/conductor/manifest.json",
+  "motion_preview": "previews/conductor-motion.gif",
+  "production_prompt": "conductor-motion-prompts.md"
+}

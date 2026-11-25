@@ -1,0 +1,66 @@
+[
+  {
+    "name": "idle",
+    "mode": "built-in",
+    "source": "/Users/kn/.codex/generated_images/01a20653-4eb4-7653-8f47-c8282da58494/exec-dbd35700-0b55-4610-83fc-7cfc4d451af7.png",
+    "candidate": "candidates/conductor-idle-v1.png",
+    "status": "selected",
+    "prompt_file": "conductor-motion-initial-prompts.md"
+  },
+  {
+    "name": "walk",
+    "mode": "built-in",
+    "source": "/Users/kn/.codex/generated_images/01a20653-4eb4-7653-8f47-c8282da58494/exec-101a1b57-110a-4dfe-8e37-51b86d4e5c35.png",
+    "candidate": "candidates/conductor-walk-v1.png",
+    "status": "selected",
+    "prompt_file": "conductor-motion-initial-prompts.md"
+  },
+  {
+    "name": "sit",
+    "mode": "built-in",
+    "source": "/Users/kn/.codex/generated_images/01a20653-4eb4-7653-8f47-c8282da58494/exec-2e40e8fa-9783-4722-961f-83f947190550.png",
+    "candidate": "candidates/conductor-sit-v1.png",
+    "status": "selected",
+    "prompt_file": "conductor-motion-initial-prompts.md"
+  },
+  {
+    "name": "cast-start",
+    "mode": "built-in",
+    "source": "/Users/kn/.codex/generated_images/01a20653-4eb4-7653-8f47-c8282da58494/exec-4edffef7-db3a-49f2-8a50-82c0908ee77f.png",
+    "candidate": "candidates/conductor-cast-start-v1.png",
+    "status": "rejected: tool switches gripping hands",
+    "prompt_file": "conductor-motion-initial-prompts.md"
+  },
+  {
+    "name": "cast-start-v2",
+    "mode": "built-in",
+    "source": "/Users/kn/.codex/generated_images/01a20653-4eb4-7653-8f47-c8282da58494/exec-f064df6c-caaa-410a-85d4-aeecd07bf50a.png",
+    "candidate": "candidates/conductor-cast-start-v2.png",
+    "status": "rejected: tool switches gripping hands",
+    "prompt_file": "conductor-cast-start-repair-prompt.md"
+  },
+  {
+    "name": "cast-start-v3",
+    "mode": "built-in",
+    "source": "/Users/kn/.codex/generated_images/01a20653-4eb4-7653-8f47-c8282da58494/exec-5022bd67-1c2e-4b08-aaa0-374582304717.png",
+    "candidate": "candidates/conductor-cast-start-v3.png",
+    "status": "selected",
+    "prompt_file": "conductor-cross-draw-prompt.md"
+  },
+  {
+    "name": "cast-loop",
+    "mode": "built-in",
+    "source": "/Users/kn/.codex/generated_images/01a20653-4eb4-7653-8f47-c8282da58494/exec-b0105e1d-d6f1-489c-b529-ae652f474e5b.png",
+    "candidate": "candidates/conductor-cast-loop-v1.png",
+    "status": "selected",
+    "prompt_file": "conductor-casting-prompts.md"
+  },
+  {
+    "name": "cast-end",
+    "mode": "built-in",
+    "source": "/Users/kn/.codex/generated_images/01a20653-4eb4-7653-8f47-c8282da58494/exec-a940a4d7-568b-4398-9de0-4f66115b1109.png",
+    "candidate": "candidates/conductor-cast-end-v1.png",
+    "status": "selected",
+    "prompt_file": "conductor-casting-prompts.md"
+  }
+]

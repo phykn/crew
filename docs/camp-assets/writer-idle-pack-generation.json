@@ -1,0 +1,11 @@
+{
+  "role": "writer",
+  "action": "idle",
+  "mode": "built-in",
+  "source": "/Users/kn/.codex/generated_images/01a20653-4eb4-7653-8f47-c8282da58494/exec-81c4ffc3-4c25-40ca-9415-bd674e3d6896.png",
+  "candidate": "/Volumes/E/code/ai-crew/docs/camp-assets/candidates/writer-idle-pack-v1.png",
+  "prompt": "writer-idle-pack-prompt.md",
+  "references": [
+    "/Volumes/E/code/ai-crew/docs/camp-assets/candidates/writer-master-v1.png"
+  ]
+}

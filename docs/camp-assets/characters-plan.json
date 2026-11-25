@@ -1,0 +1,58 @@
+{
+  "roles": [
+    {
+      "id": "interpreter",
+      "name": "Interpreter / Envoy Mage",
+      "design": "An approachable young adult male envoy with warm chestnut skin, short soft silver hair swept to one side, expressive amber eyes and a small kind smile. Teal short travel coat with ivory collar and sleeves, muted coral neck scarf, dark navy trousers, brown boots. One small brass speech-shell brooch on upper chest and a tiny CLOSED message-scroll case fixed at the SCREEN-RIGHT belt. No large cape or hat. Lean gentle face but same substantial compact body.",
+      "gesture": "Open palms toward an unseen listener, gentle conversational chanting."
+    },
+    {
+      "id": "researcher",
+      "name": "Researcher / Diviner",
+      "design": "A curious young adult male diviner with medium warm skin, chestnut wavy short hair, moss-hazel eyes, rounded modest spectacles with visible eyes. Ochre short shoulder mantle ending above elbows over an ivory blouse and olive sleeveless tunic, cocoa trousers, sturdy dark boots. One SMALL amber lens in a bronze CLOSED belt cradle at SCREEN-RIGHT, always attached. No held orb, no giant hat. Thoughtful friendly expression.",
+      "gesture": "Palms frame a small empty space before waist, gazing thoughtfully; no orb drawn."
+    },
+    {
+      "id": "writer",
+      "name": "Writer / Storyweaver",
+      "design": "A bright young adult female storyweaver with warm light-medium skin, copper-red hair in one short low side braid, green eyes and friendly smile. Muted brick-red knee-above split coat, cream blouse with rolled broad cuffs, plum waist sash, dark brown trousers, tan cuffed boots. One short ivory quill tucked firmly into a small CLOSED leather belt pen case at SCREEN-RIGHT, never held. Small round brass collar pin. No dress, tall hat or long flowing hair.",
+      "gesture": "One open hand makes a tiny tracing gesture in empty air at chest height, other hand supports at waist. No letters or ink trails."
+    },
+    {
+      "id": "reviewer",
+      "name": "Reviewer / Ward Inspector",
+      "design": "A calm adult male inspector with warm tan skin, straight charcoal hair swept back in short layers, subtle gray streak at one temple, violet-brown eyes, slightly angular eyebrows and kindly composed expression; no beard. Deep aubergine short coat with muted silver edging over ash-ivory shirt, dark teal waist sash, charcoal trousers and dark brown boots. One SMALL rectangular sealed silver inspection token fixed at SCREEN-RIGHT belt. No armor, weapon, hood or cape.",
+      "gesture": "One open palm faces gently outward near chest as if testing a ward; other open hand low and relaxed."
+    },
+    {
+      "id": "proofreader",
+      "name": "Proofreader / Rune Corrector",
+      "design": "A meticulous young adult female rune corrector with pale warm skin, dusty rose short hair with neat rounded side locks and a small cream hair ribbon, expressive muted blue eyes, thin oval brass spectacles with clear eyes. Sage-gray short tunic coat with ivory cuffs, dusty rose waist sash, brown fitted trousers, cocoa boots. One tiny CLOSED wooden correction-stamp case fixed at SCREEN-RIGHT belt; nothing held. Gentle attentive expression. No school uniform, giant bow, skirt or hat.",
+      "gesture": "Open hands make small precise pinching gestures near lower chest without touching; both palms visible, no held object."
+    },
+    {
+      "id": "tester",
+      "name": "Tester / Field Alchemist",
+      "design": "An energetic young adult female field alchemist with medium brown skin, short sandy-blond hair in a tiny stubby ponytail, hazel eyes and a confident cheerful face. Muted mustard short practical vest over an ivory broad-cuffed shirt, petrol-blue neckerchief, dark olive trousers, brown sturdy boots and simple brown belt. One tiny CLOSED turquoise test-vial holder at SCREEN-RIGHT belt, vial stays sealed and attached. No goggles over eyes, armor, large bag or hat.",
+      "gesture": "Palms held asymmetrically at waist and chest as if carefully testing a spell, small focused finger changes."
+    },
+    {
+      "id": "images",
+      "name": "Images / Illusion Painter",
+      "design": "A playful young adult male illusion painter with golden tan skin, short tousled dark indigo hair with one muted turquoise lock, warm plum eyes and slight charming smile. Muted turquoise short open coat with plum lining, ivory shirt and cuffs, ochre narrow sash, charcoal trousers, brown/navy cuffed boots. One SMALL capped paintbrush inside a CLOSED narrow leather belt case at SCREEN-RIGHT; never held. No beret, huge brush, cape or paint splashes.",
+      "gesture": "Two open hands frame a small imagined composition in empty air at lower chest, tiny wrist changes; no drawing, image panel or emitted trail."
+    },
+    {
+      "id": "librarian",
+      "name": "Librarian / Archive Keeper",
+      "design": "A gentle adult female archive keeper with warm dark brown skin, dark plum hair in a compact low bun with two short cheek locks, amber eyes and small round brass spectacles with clearly visible eyes. Deep moss-green short split coat over ivory high-collar blouse with wide cuffs, muted burgundy sash, dark brown trousers, sturdy brown boots. One SMALL CLOSED tan book secured flush in a leather SCREEN-RIGHT belt cradle, no loose pages. Calm soft smile. No robe, giant book, hat or flowing cape.",
+      "gesture": "Open palms held comfortably like supporting an invisible open book at waist, but no physical book or orb appears in hands."
+    }
+  ],
+  "master_common": "Use case: stylized-concept. Asset type: original classic fantasy camp character master, matching the accepted pixel-art family.\nINPUT REFERENCES: image1 adventurer supplies ONLY actual head/body balance, substantial compact anatomy, original coarse pixel grouping, warm face appeal and elevated lower-left camera. Image2 conductor supplies the same female/male family scale and crisp material craft. Do NOT copy either character's face, hairstyle, outfit or props.\nCHARACTER DESIGN: {DESIGN}\nCAMERA AND PROPORTION: full body, front THREE-QUARTER facing LOWER-LEFT, elevated 20-25 degrees, BOTH eyes visible, far eye narrower, see chest front and narrow side plane, crown, shoulder tops and boot tops. One coherent head/chest/pelvis/knee/toe heading. Roughly 3 to 3.5 heads, match actual refs; head moderately enlarged but not baby/giant chibi. Visible short neck, substantial torso, actual knees, sturdy boots, cute expressive adult JRPG appeal. No realistic long limbs or angular portrait face. Standing relaxed, BOTH hands EMPTY down beside body, feet planted naturally.\nCOSTUME/PROP LOCK: use exactly listed clothing cuts, palette and one attached small role prop. The prop is secured at SCREEN-RIGHT belt and remains there for later walking/resting/casting; magic is chanted using empty hands. Do not hold or duplicate it. No extra weapons, staff, floating books, familiar or accessories. Keep silhouettes compact for camp readability.\nPIXEL ART: deliberate chunky stepped contours, coherent coarse pixel grid, grouped colors and neutral upper-left material shading. Cute classic fantasy sprite, readable at 96x96 logical cell. No glossy 3D, smooth painted anime portrait, fine-texture noise, dithering fog, thick sticker border or giant eyes/highlights. Warm approachable face.\nFRAMING AND CUTOUT: exactly ONE complete character, generous transparent margins, crown around 7% height, feet near90%, entire silhouette inside. Actual transparent RGBA outside body and inside limb gaps, opaque body. No backdrop, shadow, floor, pedestal, labels, captions, grids, checkerboard drawing or watermark. No aura, light, magic circle, sparks or emitted magic: shared effect is a separate layer. No colored fringe or contour blur.",
+  "existing": {
+    "coder": "adventurer",
+    "conductor": "conductor"
+  },
+  "status": "complete: ten appearances, six body actions per role, 220 exported body frames"
+}

@@ -1,0 +1,14 @@
+{
+  "role": "tester",
+  "action": "cast-end",
+  "prompt": "tester-cast-end-pack-v2-prompt.md",
+  "references": [
+    "candidates/tester-master-v1.png",
+    "reference/tester-held-pack.png"
+  ],
+  "source": "/Users/kn/.codex/generated_images/01a20653-4eb4-7653-8f47-c8282da58494/exec-adef7dbe-18d7-4f23-9b3c-ec69ac07a853.png",
+  "mode": "built-in",
+  "correction": "Remove opaque textured backdrop and drop shadow.",
+  "candidate": "/Volumes/E/code/ai-crew/docs/camp-assets/candidates/tester-cast-end-pack-v2.png",
+  "status": "generated"
+}

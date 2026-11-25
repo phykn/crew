@@ -1,0 +1,722 @@
+{
+  "cell": 96,
+  "targets": {
+    "height": 81.54696132596685,
+    "head": 29.579430231382318
+  },
+  "registration": "One uniform scale per source sheet, matching median standing height or seated head width to master. Planted-pose grid column origins align median head centers and row origins align planted boot baselines. Walk uses one shared offset to retain stride depth. No per-pose scaling, silhouette fitting, anisotropic stretch or limb reconstruction.",
+  "motions": {
+    "idle": {
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_alpha": [
+        0,
+        255
+      ],
+      "cell_size": 96,
+      "frames": 4,
+      "scale": 0.14990250243743905,
+      "offset": [
+        -0.04375203119921878,
+        5.579257393565172
+      ],
+      "measurements": [
+        {
+          "box": [
+            224,
+            12,
+            417,
+            556
+          ],
+          "head_width": 187,
+          "head_x": 323.5,
+          "logical_bounds": [
+            33,
+            7,
+            62,
+            89
+          ],
+          "offset": [
+            -0.26860578485537445,
+            5.654208644783893
+          ]
+        },
+        {
+          "box": [
+            219,
+            12,
+            409,
+            556
+          ],
+          "head_width": 186,
+          "head_x": 316.0,
+          "logical_bounds": [
+            33,
+            7,
+            61,
+            89
+          ],
+          "offset": [
+            0.2935285992850254,
+            5.654208644783893
+          ]
+        },
+        {
+          "box": [
+            224,
+            13,
+            413,
+            557
+          ],
+          "head_width": 185,
+          "head_x": 320.5,
+          "logical_bounds": [
+            33,
+            7,
+            61,
+            89
+          ],
+          "offset": [
+            -0.26860578485537445,
+            5.504306142346451
+          ]
+        },
+        {
+          "box": [
+            224,
+            13,
+            414,
+            557
+          ],
+          "head_width": 187,
+          "head_x": 320.5,
+          "logical_bounds": [
+            34,
+            7,
+            62,
+            89
+          ],
+          "offset": [
+            0.2935285992850254,
+            5.504306142346451
+          ]
+        }
+      ]
+    },
+    "walk": {
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_alpha": [
+        0,
+        255
+      ],
+      "cell_size": 96,
+      "frames": 4,
+      "scale": 0.139277474510618,
+      "offset": [
+        5.764105854655092,
+        6.060263928926972
+      ],
+      "measurements": [
+        {
+          "box": [
+            183,
+            9,
+            427,
+            598
+          ],
+          "head_width": 204,
+          "head_x": 303.0,
+          "logical_bounds": [
+            31,
+            7,
+            65,
+            89
+          ],
+          "offset": [
+            5.764105854655092,
+            6.060263928926972
+          ]
+        },
+        {
+          "box": [
+            202,
+            9,
+            405,
+            585
+          ],
+          "head_width": 203,
+          "head_x": 303.5,
+          "logical_bounds": [
+            34,
+            7,
+            62,
+            88
+          ],
+          "offset": [
+            5.764105854655092,
+            6.060263928926972
+          ]
+        },
+        {
+          "box": [
+            176,
+            10,
+            415,
+            598
+          ],
+          "head_width": 204,
+          "head_x": 303.0,
+          "logical_bounds": [
+            30,
+            7,
+            64,
+            89
+          ],
+          "offset": [
+            5.764105854655092,
+            6.060263928926972
+          ]
+        },
+        {
+          "box": [
+            202,
+            10,
+            424,
+            593
+          ],
+          "head_width": 203,
+          "head_x": 303.5,
+          "logical_bounds": [
+            34,
+            7,
+            65,
+            89
+          ],
+          "offset": [
+            5.764105854655092,
+            6.060263928926972
+          ]
+        }
+      ]
+    },
+    "sit": {
+      "source_size": [
+        1774,
+        887
+      ],
+      "source_alpha": [
+        0,
+        255
+      ],
+      "cell_size": 96,
+      "frames": 2,
+      "scale": 0.08355771251802915,
+      "offset": [
+        8.01763456012305,
+        18.059502072193254
+      ],
+      "measurements": [
+        {
+          "box": [
+            234,
+            151,
+            656,
+            849
+          ],
+          "head_width": 354,
+          "head_x": 479.0,
+          "logical_bounds": [
+            28,
+            31,
+            63,
+            89
+          ],
+          "offset": [
+            7.975855703864035,
+            18.059502072193254
+          ]
+        },
+        {
+          "box": [
+            235,
+            162,
+            655,
+            849
+          ],
+          "head_width": 354,
+          "head_x": 478.0,
+          "logical_bounds": [
+            28,
+            32,
+            63,
+            89
+          ],
+          "offset": [
+            8.059413416382064,
+            18.059502072193254
+          ]
+        }
+      ]
+    },
+    "cast-start": {
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_alpha": [
+        0,
+        255
+      ],
+      "cell_size": 96,
+      "frames": 4,
+      "scale": 0.1464038802979656,
+      "offset": [
+        1.1873592747254946,
+        5.476586290010616
+      ],
+      "measurements": [
+        {
+          "box": [
+            231,
+            14,
+            433,
+            570
+          ],
+          "head_width": 201,
+          "head_x": 332.5,
+          "logical_bounds": [
+            33,
+            8,
+            63,
+            89
+          ],
+          "offset": [
+            -0.6792901990735629,
+            5.549788230159606
+          ],
+          "export_bounds": [
+            33,
+            7,
+            62,
+            89
+          ]
+        },
+        {
+          "box": [
+            185,
+            13,
+            407,
+            570
+          ],
+          "head_width": 200,
+          "head_x": 307.0,
+          "logical_bounds": [
+            30,
+            7,
+            63,
+            89
+          ],
+          "offset": [
+            3.0540087485245593,
+            5.549788230159606
+          ],
+          "export_bounds": [
+            30,
+            7,
+            63,
+            89
+          ]
+        },
+        {
+          "box": [
+            209,
+            14,
+            433,
+            571
+          ],
+          "head_width": 201,
+          "head_x": 332.5,
+          "logical_bounds": [
+            30,
+            7,
+            63,
+            89
+          ],
+          "offset": [
+            -0.6792901990735629,
+            5.403384349861639
+          ],
+          "export_bounds": [
+            30,
+            7,
+            63,
+            89
+          ]
+        },
+        {
+          "box": [
+            182,
+            14,
+            407,
+            571
+          ],
+          "head_width": 200,
+          "head_x": 307.0,
+          "logical_bounds": [
+            30,
+            7,
+            63,
+            89
+          ],
+          "offset": [
+            3.0540087485245593,
+            5.403384349861639
+          ],
+          "export_bounds": [
+            30,
+            7,
+            63,
+            89
+          ]
+        }
+      ]
+    },
+    "cast-loop": {
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_alpha": [
+        0,
+        255
+      ],
+      "cell_size": 96,
+      "frames": 4,
+      "scale": 0.1401150538246853,
+      "offset": [
+        3.023067722276018,
+        6.47223329726036
+      ],
+      "measurements": [
+        {
+          "box": [
+            195,
+            7,
+            421,
+            589
+          ],
+          "head_width": 200,
+          "head_x": 321.0,
+          "logical_bounds": [
+            30,
+            7,
+            62,
+            89
+          ],
+          "offset": [
+            3.023067722276018,
+            6.47223329726036
+          ],
+          "export_bounds": [
+            30,
+            7,
+            63,
+            89
+          ]
+        },
+        {
+          "box": [
+            193,
+            7,
+            421,
+            589
+          ],
+          "head_width": 200,
+          "head_x": 321.0,
+          "logical_bounds": [
+            30,
+            7,
+            62,
+            89
+          ],
+          "offset": [
+            3.023067722276018,
+            6.47223329726036
+          ],
+          "export_bounds": [
+            30,
+            7,
+            62,
+            89
+          ]
+        },
+        {
+          "box": [
+            195,
+            7,
+            421,
+            589
+          ],
+          "head_width": 200,
+          "head_x": 321.0,
+          "logical_bounds": [
+            30,
+            7,
+            62,
+            89
+          ],
+          "offset": [
+            3.023067722276018,
+            6.47223329726036
+          ],
+          "export_bounds": [
+            30,
+            7,
+            62,
+            89
+          ]
+        },
+        {
+          "box": [
+            196,
+            7,
+            421,
+            589
+          ],
+          "head_width": 200,
+          "head_x": 321.0,
+          "logical_bounds": [
+            30,
+            7,
+            62,
+            89
+          ],
+          "offset": [
+            3.023067722276018,
+            6.47223329726036
+          ],
+          "export_bounds": [
+            30,
+            7,
+            62,
+            89
+          ]
+        }
+      ]
+    },
+    "cast-end": {
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_alpha": [
+        0,
+        255
+      ],
+      "cell_size": 96,
+      "frames": 4,
+      "scale": 0.14666719662943678,
+      "offset": [
+        1.6164990659406158,
+        5.253030724591596
+      ],
+      "measurements": [
+        {
+          "box": [
+            225,
+            15,
+            450,
+            571
+          ],
+          "head_width": 198,
+          "head_x": 351.0,
+          "logical_bounds": [
+            29,
+            7,
+            62,
+            89
+          ],
+          "offset": [
+            -3.5535196152470263,
+            5.253030724591596
+          ],
+          "export_bounds": [
+            30,
+            7,
+            63,
+            89
+          ]
+        },
+        {
+          "box": [
+            155,
+            15,
+            379,
+            571
+          ],
+          "head_width": 197,
+          "head_x": 280.5,
+          "logical_bounds": [
+            30,
+            7,
+            62,
+            89
+          ],
+          "offset": [
+            6.786517747128265,
+            5.253030724591596
+          ],
+          "export_bounds": [
+            30,
+            7,
+            62,
+            89
+          ]
+        },
+        {
+          "box": [
+            233,
+            15,
+            451,
+            571
+          ],
+          "head_width": 198,
+          "head_x": 352.0,
+          "logical_bounds": [
+            31,
+            7,
+            63,
+            89
+          ],
+          "offset": [
+            -3.5535196152470263,
+            5.253030724591596
+          ],
+          "export_bounds": [
+            31,
+            7,
+            63,
+            89
+          ]
+        },
+        {
+          "box": [
+            178,
+            15,
+            380,
+            571
+          ],
+          "head_width": 197,
+          "head_x": 281.5,
+          "logical_bounds": [
+            33,
+            7,
+            63,
+            89
+          ],
+          "offset": [
+            6.786517747128265,
+            5.253030724591596
+          ],
+          "export_bounds": [
+            33,
+            7,
+            62,
+            89
+          ]
+        }
+      ]
+    },
+    "magic": {
+      "source": "exports/shared/ward-circle.png",
+      "shared": true,
+      "cell_size": 128,
+      "frames": 4
+    }
+  },
+  "gifs": {
+    "idle": {
+      "size": [
+        440,
+        440
+      ],
+      "frames": 4,
+      "duration_ms": 1880
+    },
+    "walk": {
+      "size": [
+        440,
+        440
+      ],
+      "frames": 4,
+      "duration_ms": 880
+    },
+    "sit": {
+      "size": [
+        440,
+        440
+      ],
+      "frames": 2,
+      "duration_ms": 1130
+    },
+    "cast-start": {
+      "size": [
+        440,
+        440
+      ],
+      "frames": 4,
+      "duration_ms": 1000
+    },
+    "cast-loop": {
+      "size": [
+        440,
+        440
+      ],
+      "frames": 4,
+      "duration_ms": 720
+    },
+    "cast-end": {
+      "size": [
+        440,
+        440
+      ],
+      "frames": 4,
+      "duration_ms": 1140
+    },
+    "magic": {
+      "size": [
+        440,
+        440
+      ],
+      "frames": 4,
+      "duration_ms": 720
+    },
+    "all": {
+      "size": [
+        440,
+        440
+      ],
+      "frames": 60,
+      "duration_ms": 16320
+    }
+  },
+  "boundary_reuse": {
+    "cast-start:1": "idle:1",
+    "cast-loop:1": "cast-start:4",
+    "cast-end:1": "cast-start:4",
+    "cast-end:4": "idle:1"
+  },
+  "shared_effect": {
+    "source": "exports/shared/ward-circle.png",
+    "sha256": "02979a11f104e5c801fcd8b658afcbff420f8e67b1642bc08a7593323a944b79",
+    "ground_anchor": [
+      64,
+      86
+    ]
+  }
+}

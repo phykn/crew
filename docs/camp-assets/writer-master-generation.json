@@ -1,0 +1,11 @@
+{
+  "role": "writer",
+  "mode": "built-in",
+  "source": "/Users/kn/.codex/generated_images/01a20653-4eb4-7653-8f47-c8282da58494/exec-7a25322a-c1d0-42df-9679-f67e2acd781e.png",
+  "candidate": "/Volumes/E/code/ai-crew/docs/camp-assets/candidates/writer-master-v1.png",
+  "prompt": "writer-master-prompt.md",
+  "references": [
+    "/Volumes/E/code/ai-crew/docs/camp-assets/candidates/adventurer-classic-v1.png",
+    "/Volumes/E/code/ai-crew/docs/camp-assets/candidates/conductor-base-v1.png"
+  ]
+}

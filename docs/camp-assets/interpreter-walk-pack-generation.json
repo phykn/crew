@@ -1,0 +1,12 @@
+{
+  "role": "interpreter",
+  "action": "walk",
+  "mode": "built-in",
+  "source": "/Users/kn/.codex/generated_images/01a20653-4eb4-7653-8f47-c8282da58494/exec-6ef33cbb-2ba0-4f34-afa9-139506efe22e.png",
+  "candidate": "/Volumes/E/code/ai-crew/docs/camp-assets/candidates/interpreter-walk-pack-v1.png",
+  "prompt": "interpreter-walk-pack-prompt.md",
+  "references": [
+    "/Volumes/E/code/ai-crew/docs/camp-assets/candidates/interpreter-master-v1.png",
+    "/Volumes/E/code/ai-crew/docs/camp-assets/reference/adventurer-walk-guide.png"
+  ]
+}

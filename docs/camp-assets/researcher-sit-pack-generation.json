@@ -1,0 +1,11 @@
+{
+  "role": "researcher",
+  "action": "sit",
+  "mode": "built-in",
+  "source": "/Users/kn/.codex/generated_images/01a20653-4eb4-7653-8f47-c8282da58494/exec-1367838e-ca16-42b3-8fcf-1a5b9ad5537e.png",
+  "candidate": "/Volumes/E/code/ai-crew/docs/camp-assets/candidates/researcher-sit-pack-v1.png",
+  "prompt": "researcher-sit-pack-prompt.md",
+  "references": [
+    "/Volumes/E/code/ai-crew/docs/camp-assets/candidates/researcher-master-v1.png"
+  ]
+}

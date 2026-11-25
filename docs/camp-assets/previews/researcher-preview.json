@@ -1,0 +1,179 @@
+{
+  "duration_ms": 16220,
+  "frames": 94,
+  "measurements": {
+    "idle": {
+      "count": 4,
+      "scale": 0.434,
+      "bounds": [
+        [
+          187,
+          12,
+          446,
+          587
+        ],
+        [
+          155,
+          12,
+          415,
+          587
+        ],
+        [
+          187,
+          19,
+          447,
+          596
+        ],
+        [
+          155,
+          18,
+          415,
+          596
+        ]
+      ]
+    },
+    "walk": {
+      "count": 8,
+      "method": "Two-bone leg preview rig from idle art; alternating support/swing halves, fixed hip/root, no per-frame recentering. Generated walk-v2 is retained as a rejected candidate, not used."
+    },
+    "sit": {
+      "count": 2,
+      "scale": 0.2831,
+      "bounds": [
+        [
+          279,
+          64,
+          661,
+          848
+        ],
+        [
+          279,
+          78,
+          661,
+          848
+        ]
+      ]
+    },
+    "cast-start": {
+      "count": 4,
+      "scale": 0.384,
+      "bounds": [
+        [
+          130,
+          41,
+          412,
+          692
+        ],
+        [
+          102,
+          41,
+          383,
+          692
+        ],
+        [
+          131,
+          42,
+          415,
+          693
+        ],
+        [
+          102,
+          42,
+          384,
+          693
+        ]
+      ]
+    },
+    "cast-loop": {
+      "count": 4,
+      "scale": 0.4405,
+      "bounds": [
+        [
+          211,
+          12,
+          451,
+          579
+        ],
+        [
+          181,
+          12,
+          421,
+          579
+        ],
+        [
+          211,
+          22,
+          451,
+          590
+        ],
+        [
+          181,
+          21,
+          422,
+          591
+        ]
+      ]
+    },
+    "cast-end": {
+      "count": 4,
+      "scale": 0.3737,
+      "bounds": [
+        [
+          127,
+          43,
+          423,
+          712
+        ],
+        [
+          108,
+          43,
+          402,
+          712
+        ],
+        [
+          127,
+          43,
+          424,
+          712
+        ],
+        [
+          108,
+          43,
+          402,
+          712
+        ]
+      ]
+    },
+    "magic": {
+      "count": 4,
+      "scale": 0.3455,
+      "bounds": [
+        [
+          177,
+          87,
+          701,
+          356
+        ],
+        [
+          168,
+          57,
+          704,
+          355
+        ],
+        [
+          184,
+          46,
+          702,
+          358
+        ],
+        [
+          184,
+          82,
+          701,
+          356
+        ]
+      ]
+    }
+  },
+  "processing": "Source PNGs unchanged. Preview alpha threshold 220, per-sheet median-height scale, per-frame bounds centered at shared floor baseline. Seated height is independently proposed. Ground magic is registered by its bright ring center at the foot anchor and drawn behind the body. Walking uses an articulated preview rig from the idle sprite; source walk sheets remain unchanged."
+}

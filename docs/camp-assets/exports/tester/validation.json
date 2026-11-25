@@ -1,0 +1,219 @@
+{
+  "shared_circle_sha256": "02979a11f104e5c801fcd8b658afcbff420f8e67b1642bc08a7593323a944b79",
+  "shared_circle_unchanged": true,
+  "character_bounds": {
+    "idle": [
+      [
+        33,
+        7,
+        62,
+        89
+      ],
+      [
+        33,
+        7,
+        61,
+        89
+      ],
+      [
+        33,
+        7,
+        61,
+        89
+      ],
+      [
+        34,
+        7,
+        62,
+        89
+      ]
+    ],
+    "walk": [
+      [
+        31,
+        7,
+        65,
+        89
+      ],
+      [
+        34,
+        7,
+        62,
+        88
+      ],
+      [
+        30,
+        7,
+        64,
+        89
+      ],
+      [
+        34,
+        7,
+        65,
+        89
+      ]
+    ],
+    "sit": [
+      [
+        28,
+        31,
+        63,
+        89
+      ],
+      [
+        28,
+        32,
+        63,
+        89
+      ]
+    ],
+    "cast-start": [
+      [
+        33,
+        7,
+        62,
+        89
+      ],
+      [
+        30,
+        7,
+        63,
+        89
+      ],
+      [
+        30,
+        7,
+        63,
+        89
+      ],
+      [
+        30,
+        7,
+        63,
+        89
+      ]
+    ],
+    "cast-loop": [
+      [
+        30,
+        7,
+        63,
+        89
+      ],
+      [
+        30,
+        7,
+        62,
+        89
+      ],
+      [
+        30,
+        7,
+        62,
+        89
+      ],
+      [
+        30,
+        7,
+        62,
+        89
+      ]
+    ],
+    "cast-end": [
+      [
+        30,
+        7,
+        63,
+        89
+      ],
+      [
+        30,
+        7,
+        62,
+        89
+      ],
+      [
+        31,
+        7,
+        63,
+        89
+      ],
+      [
+        33,
+        7,
+        62,
+        89
+      ]
+    ]
+  },
+  "no_clipping": true,
+  "binary_character_alpha": true,
+  "canonical_boundaries_identical": true,
+  "gifs": {
+    "idle": {
+      "size": [
+        440,
+        440
+      ],
+      "frames": 4,
+      "duration_ms": 1880
+    },
+    "walk": {
+      "size": [
+        440,
+        440
+      ],
+      "frames": 4,
+      "duration_ms": 880
+    },
+    "sit": {
+      "size": [
+        440,
+        440
+      ],
+      "frames": 2,
+      "duration_ms": 1130
+    },
+    "cast-start": {
+      "size": [
+        440,
+        440
+      ],
+      "frames": 4,
+      "duration_ms": 1000
+    },
+    "cast-loop": {
+      "size": [
+        440,
+        440
+      ],
+      "frames": 4,
+      "duration_ms": 720
+    },
+    "cast-end": {
+      "size": [
+        440,
+        440
+      ],
+      "frames": 4,
+      "duration_ms": 1140
+    },
+    "magic": {
+      "size": [
+        440,
+        440
+      ],
+      "frames": 4,
+      "duration_ms": 720
+    },
+    "all": {
+      "size": [
+        440,
+        440
+      ],
+      "frames": 60,
+      "duration_ms": 16320
+    }
+  }
+}
