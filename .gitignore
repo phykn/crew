@@ -6,8 +6,6 @@ playwright-report/
 *.log
 
 # Local project notes and bundle imports
-/docs/
-/CLAUDE.md
 /sample.zip
 /sample/*.bundle
 
