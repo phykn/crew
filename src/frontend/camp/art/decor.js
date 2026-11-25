@@ -223,56 +223,72 @@ function bench(ctx, d) {
   );
 }
 
-// One boulder with a lit face and a shaded flank; stacked slabs read as a heap
+// A low boulder: a broad lit top whose edge catches the light over a shaded front, and a brighter facet toward the
+// upper left
 function rock(ctx, d) {
   const b = iso(d.x, d.y),
     s = d.size ?? 1;
   const at = (pts) => pts.map(([x, y]) => ({ x: b.x + x * s, y: b.y + y * s }));
+  const stroke = (pts, color, width = 0.8) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width * s;
+    ctx.beginPath();
+    at(pts).forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+    ctx.stroke();
+  };
   shadow(ctx, d.x + 0.2, d.y + 0.2, 15 * s, 5 * s, 14 * s);
   poly(
     ctx,
     at([
-      [-13, 1],
-      [-12, -5],
-      [-7, -11],
-      [1, -13],
+      [-14, 1],
+      [-13, -4],
+      [-10, -8],
+      [-5, -11],
+      [2, -12],
       [8, -10],
-      [13, -4],
-      [12, 2],
+      [12, -6],
+      [14, -1],
+      [12, 3],
       [4, 4],
-      [-7, 4],
+      [-8, 4],
     ]),
     C.rockDark,
   );
+  const top = [
+    [-13, -4],
+    [-10, -8],
+    [-5, -11],
+    [2, -12],
+    [8, -10],
+    [12, -6],
+    [13, -4],
+    [6, -5],
+    [-1, -3],
+    [-8, -1],
+    [-13, 0],
+  ];
+  poly(ctx, at(top), C.rock);
   poly(
     ctx,
     at([
-      [-12, -5],
-      [-7, -11],
-      [1, -13],
-      [5, -8],
-      [-1, -3],
-      [-9, -1],
-    ]),
-    C.rock,
-  );
-  poly(
-    ctx,
-    at([
-      [-7, -11],
-      [1, -13],
-      [-1, -9],
-      [-6, -8],
+      [-10, -8],
+      [-5, -11],
+      [2, -12],
+      [0, -9],
+      [-4, -7],
+      [-9, -5],
     ]),
     C.rockLight,
   );
-  pixels(
-    ctx,
-    at([
-      [3, -2],
-      [-10, 0],
-    ]).map((p) => [p.x, p.y, 3 * s, 1]),
-    C.mossDark,
+  // Only the middle of the top's front edge turns to the sky; its ends roll away into the flank
+  stroke(
+    [
+      [-8, -1],
+      [-1, -3],
+      [6, -5],
+    ],
+    C.rockLight,
+    0.6,
   );
 }
 
