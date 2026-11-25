@@ -123,11 +123,6 @@ function drum(ctx, d) {
     ctx.beginPath();
     ctx.ellipse(b.x, y, hw, ry, 0, 0, Math.PI);
     ctx.stroke();
-    ctx.lineWidth = 0.5;
-    ctx.strokeStyle = C.muted;
-    ctx.beginPath();
-    ctx.ellipse(b.x, y - 0.8, hw, ry, 0, Math.PI * 0.45, Math.PI * 0.85);
-    ctx.stroke();
   }
   ctx.restore();
   oval(ctx, b.x, b.y - h, rx, ry, C.woodDeep);
