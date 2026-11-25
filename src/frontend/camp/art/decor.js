@@ -83,6 +83,7 @@ function log(ctx, d) {
 }
 
 // The staves bulge at the middle and the foot and hoops follow the round; a flat-cut rectangle reads as a box
+// A barrel: bulging staves, lit on the left and shaded on the right, two iron hoops, and a lit lid of planks in its rim
 function drum(ctx, d) {
   const b = iso(d.x, d.y),
     h = 20,
@@ -99,25 +100,42 @@ function drum(ctx, d) {
   ctx.fill();
   ctx.save();
   ctx.clip();
-  pixels(ctx, [[b.x + 2, b.y - h - 1, rx + 2, h + ry + 2]], C.woodDark);
-  pixels(
-    ctx,
-    [
-      [b.x - 4, b.y - h, 1, h + ry],
-      [b.x, b.y - h, 1, h + ry],
-    ],
-    C.woodDeep,
-  );
-  ctx.strokeStyle = C.iron;
-  ctx.lineWidth = 2;
-  for (const z of [h - 4, 5]) {
+  pixels(ctx, [[b.x - rx - 2, b.y - h - 1, 2.5, h + ry + 2]], C.woodLight);
+  pixels(ctx, [[b.x + 3, b.y - h - 1, rx, h + ry + 2]], C.woodDark);
+  // Each stave line bows out with the barrel and dips with its curved front
+  ctx.strokeStyle = C.woodDeep;
+  ctx.lineWidth = 0.6;
+  for (const k of [-0.62, -0.2, 0.2, 0.62]) {
+    const x = b.x + k * rx,
+      dip = ry * Math.sqrt(1 - k * k);
     ctx.beginPath();
-    ctx.ellipse(b.x, b.y - z, rx + 1, ry, 0, 0, Math.PI);
+    ctx.moveTo(x, b.y - h + dip);
+    ctx.quadraticCurveTo(x + k * 3, b.y - h / 2 + dip, x, b.y + dip);
+    ctx.stroke();
+  }
+  for (const z of [h - 5, 5]) {
+    ctx.strokeStyle = C.iron;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(b.x, b.y - z, rx + 2, ry, 0, 0, Math.PI);
+    ctx.stroke();
+    ctx.strokeStyle = C.rockDark;
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.ellipse(b.x, b.y - z - 1, rx + 2, ry, 0, 0.3, Math.PI - 0.3);
     ctx.stroke();
   }
   ctx.restore();
   oval(ctx, b.x, b.y - h, rx, ry, C.woodDeep);
-  oval(ctx, b.x, b.y - h, rx - 1.5, ry - 1, C.woodDark);
+  oval(ctx, b.x, b.y - h, rx - 1.2, ry - 0.8, C.woodLight);
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(b.x, b.y - h, rx - 1.2, ry - 0.8, 0, 0, TAU);
+  ctx.clip();
+  // The lid's planks run across it, as the crate's do
+  for (const k of [-2.2, 2.2])
+    line(ctx, { x: b.x + k - 4, y: b.y - h + 3 }, { x: b.x + k + 4, y: b.y - h - 3 }, C.woodDark, 0.6);
+  ctx.restore();
 }
 
 function well(ctx, d) {
