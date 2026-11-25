@@ -9,10 +9,10 @@
 ## How it works
 
 1. **Ask**: describe the task in the chat
-2. **Plan**: a conductor writes the plan and a code reviewer checks it
+2. **Assign**: a conductor picks the kind of work and who does it, and plans a code change for a reviewer to check
 3. **Build**: a coder or a writer makes the change
 4. **Check**: review and tests run side by side, and each problem comes back in detail
-5. **Report**: you get a summary, and every step stays in the log
+5. **Report**: the conductor judges whether the goal is met, and you get a summary; every step stays in the log
 
 ## Features
 
