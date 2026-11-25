@@ -12,6 +12,7 @@ import { roleName, say } from '../locale';
 import { t } from '../lang';
 
 const ALL = 'all';
+const STICK_PX = 24;
 // A making step's log line also names its version when git kept it
 type Logged = Handback & { version?: number };
 
@@ -35,6 +36,7 @@ export function Log({
   const [usage, setUsage] = useState<Awaited<ReturnType<typeof call<'usage.list'>>>>([]);
   const [showUsage, setShowUsage] = useState(false);
   const scroll = useRef<HTMLOListElement>(null);
+  const stick = useRef(true);
 
   useEffect(() => {
     // Crew changes are logged too, such as a hire or a member leaving
@@ -58,8 +60,12 @@ export function Log({
   const shown = events.filter((e) => taskId === null || e.taskId === taskId);
   const latest = shown.at(-1)?.id;
   useLayoutEffect(() => {
+    stick.current = true;
+  }, [session.id, taskId]);
+
+  useLayoutEffect(() => {
     const el = scroll.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (el && stick.current) el.scrollTop = el.scrollHeight;
   }, [session.id, taskId, latest]);
 
   const who = (id: number | null) => members.find((m) => m.id === id);
@@ -125,7 +131,14 @@ export function Log({
           </tbody>
         </table>
       )}
-      <ol ref={scroll} className="log-list" aria-label={t('log.list')}>
+      <ol
+        ref={scroll}
+        className="log-list"
+        aria-label={t('log.list')}
+        onScroll={({ currentTarget: el }) => {
+          stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < STICK_PX;
+        }}
+      >
         {shown.map((e) => {
           // A copy that left is gone from the list, so its line falls back to the role it says
           const role = who(e.memberId)?.role ?? (e.memberId && e.say.role ? roleName(e.say.role) : null);
