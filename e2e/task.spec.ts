@@ -54,14 +54,20 @@ test('a message opens a pinned task card, the answer card lets it go on, and the
   await expect(page.getByRole('tab', { name: '대화, 대답 대기' })).toHaveCount(0);
 
   await page.getByRole('tab', { name: '로그' }).click();
-  const developed = page.locator('.log-row', { hasText: '코드 작성 완료' });
+  // A step named for its role says the role once: 코드 작성 in the who column, then 완료
+  const done = (role: string) =>
+    page
+      .locator('.log-row')
+      .filter({ has: page.locator('.log-who', { hasText: new RegExp(`^${role}$`) }) })
+      .filter({ has: page.locator('.log-mark[aria-label="완료"]') });
+  const developed = done('코드 작성');
   await expect(developed).not.toHaveAttribute('data-bad', 'true');
   // Each line reads its time, then what became of it, then who did what
   await expect(developed.locator('.log-line > *').first()).toHaveText(/^\d\d:\d\d:\d\d$/);
   await expect(developed.locator('.log-mark')).toHaveAttribute('aria-label', '완료');
-  await page.getByRole('button', { name: /코드 작성 완료/ }).click();
+  await developed.locator('.log-line').click();
   await expect(page.getByLabel('업무 로그')).toContainText('search.js');
-  await page.getByRole('button', { name: /시험 완료/ }).click();
+  await done('시험').locator('.log-line').click();
   await expect(page.getByLabel('업무 로그')).toContainText('npm test → 3 passed');
 
   await page.getByRole('tab', { name: '대화' }).click();

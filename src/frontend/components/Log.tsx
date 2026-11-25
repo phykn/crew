@@ -177,15 +177,23 @@ function LogList({
     };
   }, [followBottom]);
 
-  const entries = useMemo(
-    () =>
-      events.map((event) => {
+  const entries = useMemo(() => {
+    // A start line is past once its task has a later status line: the next start, or the task's end
+    const past = new Set<number>();
+    const later = new Set<number | null>();
+    for (const e of [...events].reverse()) {
+      if (e.kind !== 'status') continue;
+      if (e.say.code === 'task.stage' && later.has(e.taskId)) past.add(e.id);
+      later.add(e.taskId);
+    }
+    return events
+      .filter((event) => !past.has(event.id))
+      .map((event) => {
         const detail = event.kind === 'step' && event.detail ? JSON.parse(event.detail) : null;
         const handback = readHandback(detail);
         return { event, handback, errors: handback ? null : readErrors(detail) };
-      }),
-    [events],
-  );
+      });
+  }, [events]);
   const shown = entries.filter(({ event }) => taskId === null || event.taskId === taskId);
   const latest = shown.at(-1)?.event.id;
   useLayoutEffect(() => {
