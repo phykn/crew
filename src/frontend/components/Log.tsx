@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Event, Handback, Session, Task } from '../../backend/domain/records';
 import type { CrewMember } from '../../backend/domain/crew';
 import { call, follow } from '../api';
@@ -34,6 +34,7 @@ export function Log({
   const [open, setOpen] = useState<number | null>(null);
   const [usage, setUsage] = useState<Awaited<ReturnType<typeof call<'usage.list'>>>>([]);
   const [showUsage, setShowUsage] = useState(false);
+  const scroll = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Crew changes are logged too, such as a hire or a member leaving
@@ -55,12 +56,18 @@ export function Log({
   }, [session.id]);
 
   const shown = events.filter((e) => taskId === null || e.taskId === taskId);
+  const latest = shown.at(-1)?.id;
+  useLayoutEffect(() => {
+    const el = scroll.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [session.id, taskId, latest]);
+
   const who = (id: number | null) => members.find((m) => m.id === id);
   const runs = usage.reduce((n, u) => n + u.runs, 0);
   const cost = usage.reduce((n, u) => n + u.costUsd, 0);
   const seconds = usage.reduce((n, u) => n + u.seconds, 0);
   return (
-    <div className="log">
+    <div className="log" ref={scroll}>
       <Toolbar>
         <Choice
           label={t('log.task')}
