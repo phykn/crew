@@ -223,19 +223,12 @@ function bench(ctx, d) {
   );
 }
 
-// A low boulder: a broad lit top whose edge catches the light over a shaded front, and a brighter facet toward the
-// upper left
+// A low boulder: a broad lit top over a shaded front, and a brighter facet toward the upper left
 function rock(ctx, d) {
   const b = iso(d.x, d.y),
     s = d.size ?? 1;
   const at = (pts) => pts.map(([x, y]) => ({ x: b.x + x * s, y: b.y + y * s }));
-  const stroke = (pts, color, width = 0.8) => {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width * s;
-    ctx.beginPath();
-    at(pts).forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
-    ctx.stroke();
-  };
+
   shadow(ctx, d.x + 0.2, d.y + 0.2, 15 * s, 5 * s, 14 * s);
   poly(
     ctx,
@@ -279,16 +272,6 @@ function rock(ctx, d) {
       [-9, -5],
     ]),
     C.rockLight,
-  );
-  // Only the middle of the top's front edge turns to the sky; its ends roll away into the flank
-  stroke(
-    [
-      [-8, -1],
-      [-1, -3],
-      [6, -5],
-    ],
-    C.rockLight,
-    0.6,
   );
 }
 
