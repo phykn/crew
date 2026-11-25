@@ -466,86 +466,51 @@ function crates(ctx, d) {
   box(d.x - 0.35, d.y - 0.3, 10);
 }
 
-// A hay bale: loose straw scattered along each face, lighter on the lit top and rounded where the faces meet, stray
-// straws past its edges, and two twine bands pressed into it
+// A hay bale: a soft bumpy outline where loose straw rounds over its top edges, straw layers as a few broken lines
+// along each face, and two twine bands
 function hay(ctx, d) {
   const x = d.x - 0.5,
     y = d.y - 0.3,
     L = 1,
     W = 0.6,
     H = 10;
-  // A fixed seed, so the straw lies the same way every time the camp is drawn
-  let seed = 11;
-  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const pick = (colors) => colors[Math.floor(rnd() * colors.length)];
   const top = (u, v) => iso(x + u * L, y + v * W, H),
     near = (u, z) => iso(x + u * L, y + W, z),
     end = (v, z) => iso(x + L, y + v * W, z);
+  // A layer of straw: short runs with small gaps between them, from a to b along a face
+  const layer = (at, a, b, across, color) => {
+    for (let s0 = a + (across % 2) * 0.06; s0 < b - 0.05; s0 += 0.2)
+      line(ctx, at(s0, across), at(Math.min(b, s0 + 0.14), across), color, 0.6);
+  };
+  // Half-round bumps along an edge, up past it (up) or down over the face below it
+  const bumps = (pts, ry, up, fill) => {
+    ctx.fillStyle = fill;
+    for (const p of pts) {
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, 1, ry, 0, up ? Math.PI : 0, up ? TAU : Math.PI);
+      ctx.fill();
+    }
+  };
+  const along = (at, a, b, across, n) => [...Array(n)].map((_, k) => at(a + ((b - a) * (k + 0.5)) / n, across));
   shadow(ctx, d.x + 0.25, d.y + 0.25, 18, 6, 15);
   prism(ctx, { x, y, w: L, h: W, z: H }, C.hay, C.hayDark, C.hayDeep, () => {
-    // The near face rounds into the top above and into its own shade below
-    poly(ctx, [near(0, H), near(1, H), near(1, H - 1.5), near(0, H - 1.5)], C.hay);
-    poly(ctx, [near(0, 1.5), near(1, 1.5), near(1, 0), near(0, 0)], C.hayDeep);
-    for (let n = 0; n < 45; n++) {
-      const u = rnd() * 0.9,
-        v = 0.08 + rnd() * 0.84,
-        len = 0.06 + rnd() * 0.1;
-      line(ctx, top(u, v), top(u + len, v + (rnd() - 0.5) * 0.08), pick([C.hayLight, C.hayLight, C.hayDark]), 0.5);
-    }
-    for (let n = 0; n < 50; n++) {
-      const u = rnd() * 0.9,
-        z = 0.8 + rnd() * (H - 1.6),
-        len = 0.05 + rnd() * 0.1;
-      line(ctx, near(u, z), near(u + len, z + (rnd() - 0.5) * 1.2), pick([C.hay, C.hayDeep, C.hayDeep]), 0.5);
-    }
-    // The cut end shows straw ends, short and every way
-    for (let n = 0; n < 28; n++) {
-      const v = 0.1 + rnd() * 0.8,
-        z = 1 + rnd() * (H - 2),
-        a = rnd() * Math.PI;
-      const p = end(v, z);
-      line(ctx, p, { x: p.x + Math.cos(a) * 1.2, y: p.y + Math.sin(a) * 0.8 }, pick([C.hayDark, C.woodDark]), 0.5);
-    }
+    for (const v of [0.35, 0.7]) layer(top, 0.06, 0.94, v, C.hayLight);
+    for (const z of [2.5, 5, 7.5]) layer(near, 0.04, 0.96, z, C.hayDeep);
+    for (const z of [3, 6]) layer(end, 0.1, 0.9, z, C.hayDark);
+    bumps(along(top, 0, 1, 0, 10), 0.8, true, C.hay);
+    bumps(
+      along((v, u) => top(u, v), 0, 1, 0, 6),
+      0.8,
+      true,
+      C.hay,
+    );
+    bumps(along(top, 0, 1, 1, 10), 0.5, false, C.hay);
     for (const u of [0.3, 0.7]) {
       const t = x + u * L;
-      for (const [w, color, dx] of [
-        [0.5, C.hayDeep, 0.6],
-        [0.9, C.woodDark, 0],
-      ]) {
-        line(
-          ctx,
-          { x: iso(t, y, H).x + dx, y: iso(t, y, H).y },
-          { x: iso(t, y + W, H).x + dx, y: iso(t, y + W, H).y },
-          color,
-          w,
-        );
-        line(
-          ctx,
-          { x: iso(t, y + W, H).x + dx, y: iso(t, y + W, H).y },
-          { x: iso(t, y + W, 0).x + dx, y: iso(t, y + W, 0).y },
-          color,
-          w,
-        );
-      }
+      line(ctx, iso(t, y, H + 0.6), iso(t, y + W, H), C.woodDark, 0.8);
+      line(ctx, iso(t, y + W, H), iso(t, y + W, 0), C.woodDark, 0.8);
     }
   });
-  // Stray straws stick out past the top's edges and lie at the foot
-  for (let n = 0; n < 14; n++) {
-    const u = 0.05 + rnd() * 0.9,
-      p = n % 2 ? top(u, 1) : top(u, 0),
-      a = -Math.PI / 2 + (rnd() - 0.5) * 1.6;
-    line(ctx, p, { x: p.x + Math.cos(a) * 1.6, y: p.y + Math.sin(a) * 1.6 }, pick([C.hay, C.hayLight]), 0.5);
-  }
-  for (let n = 0; n < 6; n++) {
-    const p = end(0.1 + rnd() * 0.8, H),
-      a = -Math.PI / 2 + (rnd() - 0.2) * 1.4;
-    line(ctx, p, { x: p.x + Math.cos(a) * 1.5, y: p.y + Math.sin(a) * 1.5 }, C.hay, 0.5);
-  }
-  for (let n = 0; n < 8; n++) {
-    const p = near(rnd(), 0),
-      a = (rnd() - 0.5) * 0.8;
-    line(ctx, p, { x: p.x + Math.cos(a) * 2, y: p.y + 0.6 + Math.sin(a) }, C.hayDark, 0.5);
-  }
 }
 
 function woodpile(ctx, d) {
