@@ -83,58 +83,106 @@ function log(ctx, d) {
 }
 
 // The staves bulge at the middle and the foot and hoops follow the round; a flat-cut rectangle reads as a box
-// A barrel: bulging staves, lit on the left and shaded on the right, two iron hoops, and a lit lid of planks in its rim
+// A barrel: round-bellied staves with grain, lit on the left and shaded on the right, two riveted iron hoops, and a
+// lit lid of planks sunk in its rim
 function drum(ctx, d) {
   const b = iso(d.x, d.y),
     h = 20,
     rx = 7,
-    ry = 3;
-  shadow(ctx, d.x + 0.15, d.y + 0.15, 10, 4, 22);
+    ry = 3,
+    belly = 5;
+  // Half the barrel's width at t, from its foot (0) to its lid (1)
+  const half = (t) => rx + 2 * t * (1 - t) * belly;
+  // A point on the barrel's front at t, k of the way from its middle to its edge
+  const front = (k, t) => ({ x: b.x + k * half(t), y: b.y - t * h + ry * Math.sqrt(1 - k * k) });
+  const trace = (k, t0, t1) => {
+    ctx.beginPath();
+    for (let n = 0; n <= 8; n++) {
+      const p = front(k, t0 + ((t1 - t0) * n) / 8);
+      n ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y);
+    }
+    ctx.stroke();
+  };
+  shadow(ctx, d.x + 0.15, d.y + 0.15, 12, 4.5, 22);
   ctx.beginPath();
   ctx.moveTo(b.x - rx, b.y - h);
-  ctx.quadraticCurveTo(b.x - rx - 2, b.y - h / 2, b.x - rx, b.y);
+  ctx.quadraticCurveTo(b.x - rx - belly, b.y - h / 2, b.x - rx, b.y);
   ctx.ellipse(b.x, b.y, rx, ry, 0, Math.PI, 0, true);
-  ctx.quadraticCurveTo(b.x + rx + 2, b.y - h / 2, b.x + rx, b.y - h);
+  ctx.quadraticCurveTo(b.x + rx + belly, b.y - h / 2, b.x + rx, b.y - h);
   ctx.closePath();
   ctx.fillStyle = C.wood;
   ctx.fill();
   ctx.save();
   ctx.clip();
-  pixels(ctx, [[b.x - rx - 2, b.y - h - 1, 2.5, h + ry + 2]], C.woodLight);
-  pixels(ctx, [[b.x + 3, b.y - h - 1, rx, h + ry + 2]], C.woodDark);
-  // Each stave line bows out with the barrel and dips with its curved front
-  ctx.strokeStyle = C.woodDeep;
-  ctx.lineWidth = 0.6;
-  for (const k of [-0.62, -0.2, 0.2, 0.62]) {
-    const x = b.x + k * rx,
-      dip = ry * Math.sqrt(1 - k * k);
-    ctx.beginPath();
-    ctx.moveTo(x, b.y - h + dip);
-    ctx.quadraticCurveTo(x + k * 3, b.y - h / 2 + dip, x, b.y + dip);
-    ctx.stroke();
+  const w = rx + belly;
+  pixels(ctx, [[b.x - w, b.y - h - 1, 3.5, h + ry + 2]], C.woodLight);
+  pixels(ctx, [[b.x + 2.5, b.y - h - 1, w, h + ry + 2]], C.woodDark);
+  pixels(ctx, [[b.x + 7, b.y - h - 1, w, h + ry + 2]], C.woodDeep);
+  // A stave's seam, with the next stave's lit edge just past it
+  const staves = [-0.78, -0.45, -0.15, 0.15, 0.45, 0.78];
+  for (const k of staves) {
+    ctx.lineWidth = 0.6;
+    ctx.strokeStyle = C.woodDeep;
+    trace(k, 0, 1);
+    if (k < 0.5) {
+      ctx.lineWidth = 0.35;
+      ctx.strokeStyle = k < 0 ? C.woodLight : C.wood;
+      trace(k + 0.06, 0.05, 0.95);
+    }
   }
-  for (const z of [h - 5, 5]) {
+  // Grain runs along the staves in short streaks, with one knot
+  ctx.lineWidth = 0.4;
+  ctx.strokeStyle = C.woodDark;
+  for (const [k, t0, t1] of [
+    [-0.6, 0.42, 0.58],
+    [-0.3, 0.6, 0.7],
+    [0, 0.35, 0.5],
+    [0.3, 0.55, 0.68],
+    [-0.6, 0.12, 0.2],
+  ])
+    trace(k, t0, t1);
+  const knot = front(-0.32, 0.45);
+  oval(ctx, knot.x, knot.y, 0.7, 0.5, C.woodDeep);
+  // The foot sits in its own shade
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = C.woodDeep;
+  ctx.beginPath();
+  ctx.ellipse(b.x, b.y - 0.5, rx, ry, 0, 0, Math.PI);
+  ctx.stroke();
+  for (const t of [0.22, 0.75]) {
+    const hw = half(t) + 0.3,
+      y = b.y - t * h;
+    ctx.lineWidth = 2.2;
     ctx.strokeStyle = C.iron;
-    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.ellipse(b.x, b.y - z, rx + 2, ry, 0, 0, Math.PI);
+    ctx.ellipse(b.x, y, hw, ry, 0, 0, Math.PI);
     ctx.stroke();
-    ctx.strokeStyle = C.rockDark;
     ctx.lineWidth = 0.5;
+    ctx.strokeStyle = C.muted;
     ctx.beginPath();
-    ctx.ellipse(b.x, b.y - z - 1, rx + 2, ry, 0, 0.3, Math.PI - 0.3);
+    ctx.ellipse(b.x, y - 0.9, hw, ry, 0, 0.35, Math.PI * 0.6);
     ctx.stroke();
+    ctx.strokeStyle = C.barkDark;
+    ctx.beginPath();
+    ctx.ellipse(b.x, y + 1, hw, ry, 0, 0.1, Math.PI - 0.1);
+    ctx.stroke();
+    for (const k of [-0.55, 0.05, 0.6]) {
+      const r = { x: b.x + k * hw, y: y + ry * Math.sqrt(1 - k * k) };
+      oval(ctx, r.x, r.y, 0.45, 0.45, C.barkDark);
+    }
   }
   ctx.restore();
   oval(ctx, b.x, b.y - h, rx, ry, C.woodDeep);
-  oval(ctx, b.x, b.y - h, rx - 1.2, ry - 0.8, C.woodLight);
+  oval(ctx, b.x, b.y - h, rx - 1, ry - 0.7, C.woodDark);
+  oval(ctx, b.x + 0.4, b.y - h + 0.3, rx - 1.6, ry - 1, C.woodLight);
   ctx.save();
   ctx.beginPath();
-  ctx.ellipse(b.x, b.y - h, rx - 1.2, ry - 0.8, 0, 0, TAU);
+  ctx.ellipse(b.x, b.y - h, rx - 1, ry - 0.7, 0, 0, TAU);
   ctx.clip();
-  // The lid's planks run across it, as the crate's do
-  for (const k of [-2.2, 2.2])
-    line(ctx, { x: b.x + k - 4, y: b.y - h + 3 }, { x: b.x + k + 4, y: b.y - h - 3 }, C.woodDark, 0.6);
+  // The lid's planks run across it, as the crate's do, and the bung sits in one
+  for (const k of [-2.3, 0, 2.3])
+    line(ctx, { x: b.x + k - 4, y: b.y - h + 3 }, { x: b.x + k + 4, y: b.y - h - 3 }, C.woodDark, 0.5);
+  oval(ctx, b.x + 2.6, b.y - h + 0.8, 0.7, 0.4, C.woodDeep);
   ctx.restore();
 }
 
