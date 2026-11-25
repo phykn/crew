@@ -77,8 +77,10 @@ export function WorkflowView({
     return () => watch.disconnect();
   }, [flow]);
 
+  // The names follow a language change, which the main process announces as a workflows change
   useEffect(() => {
     call('workflows.kinds').then(setKinds);
+    return onChanged((topic) => topic === 'workflows' && call('workflows.kinds').then(setKinds));
   }, []);
   // The project and kind last asked for; a reply for an earlier pick is dropped
   const asked = useRef('');

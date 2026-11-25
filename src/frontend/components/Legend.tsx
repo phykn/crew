@@ -13,10 +13,10 @@ import { Input } from '../ui/Field';
 import { Switch } from '../ui/Switch';
 import { Permissions } from './Permissions';
 import { t } from '../lang';
+import { modelLabel } from '../locale';
 
 // The stacked layout of a narrow window in styles.css, where an open legend would cover the camp
 const STACKED = '(max-width: 1000px)';
-const modelLabel = (m: string) => m[0].toUpperCase() + m.slice(1);
 // The strongest model first
 const MODEL_OPTIONS = [...MODELS].reverse().map((m) => ({ value: m, label: modelLabel(m) }));
 

@@ -8,7 +8,7 @@ import { Choice } from '../ui/Choice';
 import { Toolbar, ToolbarEnd } from '../ui/Toolbar';
 import { MarkIcon } from './Icons';
 import type { ChangesTarget } from './Changes';
-import { roleName, say } from '../locale';
+import { modelLabel, roleName, say } from '../locale';
 import { t } from '../lang';
 
 const ALL = 'all';
@@ -99,7 +99,7 @@ export function Log({
             {usage.map((u) => (
               <tr key={`${u.memberId}-${u.model}`}>
                 <td>{who(u.memberId)?.role ?? u.role}</td>
-                <td>{u.model}</td>
+                <td>{modelLabel(u.model)}</td>
                 <td>{u.runs}</td>
                 <td>{duration(u.seconds)}</td>
                 <td>
@@ -223,7 +223,8 @@ function LogList({
     >
       {shown.map(({ event: e, handback: hb, errors }) => {
         const role = who(e.memberId)?.role ?? (e.memberId && e.say.role ? roleName(e.say.role) : null);
-        const opens = !!(hb || errors);
+        // A handback with nothing past its summary, as an assignment's, has nothing to open
+        const opens = !!((hb && hasDetail(hb)) || errors);
         const mark = markOf(e, hb, errors);
         return (
           <li
@@ -249,7 +250,7 @@ function LogList({
                 <MarkIcon state={mark.state} />
               </span>
               <span className="log-who">{role ?? t('log.app')}</span>
-              <span className="log-text">{role ? say(e.say).replace(`${role}: `, '') : say(e.say)}</span>
+              <span className="log-text">{wordsOf(say(e.say), role)}</span>
             </Button>
             {hb && open === e.id && (
               <HandbackView
@@ -355,6 +356,17 @@ function markOf(e: Event, hb: Handback | null, errors: string[] | null) {
   if (e.kind === 'refused') return mark('wait', t('mark.refused'));
   if (e.kind === 'waiting' || e.kind === 'stale') return mark('wait', t('mark.waiting'));
   return mark('info', t('mark.note'));
+}
+
+// A line already led by its role drops the role from its words, and a step named for its role, as 코드 작성 is, says it once
+function wordsOf(text: string, role: string | null) {
+  if (!role) return text;
+  const words = text.replace(`${role}: `, '');
+  return words.startsWith(`${role} `) ? words.slice(role.length + 1) : words;
+}
+
+function hasDetail(hb: Logged) {
+  return !!(hb.files.length || hb.points.length || hb.checks.length || hb.notes?.length || hb.body);
 }
 
 function group(errors: string[]): [string, number][] {

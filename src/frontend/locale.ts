@@ -52,6 +52,8 @@ export const NAMES = namesIn(KO);
 export const names = () => (lang() === 'en' ? namesIn(EN) : NAMES);
 
 export const roleName = (key: unknown) => tOr(`role.${baseKey(String(key))}`);
+// A model as the window names it everywhere: Sonnet, not sonnet
+export const modelLabel = (m: string) => m[0].toUpperCase() + m.slice(1);
 export const modeLabels = () => Object.fromEntries(MODES.map((m) => [m, t(`mode.${m}`)])) as Record<Mode, string>;
 // An answer card's buttons; a pick-one card's options are task names and show as they are
 export const answerLabel = (o: string) => (`answer.${o}` in KO ? t(`answer.${o}` as Key) : o);

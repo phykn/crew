@@ -57,7 +57,8 @@ export class Chat {
   async send(sessionId: number, text: string, images: Image[] = []) {
     this.store.addMessage(sessionId, 'user', text, null, images);
     const name = text.replace(/\s+/g, ' ').trim();
-    if (name) this.store.nameSession(sessionId, name.length > 18 ? `${name.slice(0, 18)}…` : name);
+    // Long enough to tell sessions apart; each screen cuts it to the room it has
+    if (name) this.store.nameSession(sessionId, name.length > 80 ? `${name.slice(0, 80)}…` : name);
     this.emit('changed', { topic: 'sessions' });
     this.emit('changed', { topic: 'messages', sessionId });
     await this.tell(sessionId, text, images);
