@@ -10,6 +10,7 @@ export const COLOR = {
   wood: '#6b4a2c',
   woodDark: '#4a321d',
   woodDeep: '#3d2918',
+  woodLight: '#8a5c38',
   bark: '#3e2c1d',
   barkDark: '#281c12',
   leaf: '#33402a',

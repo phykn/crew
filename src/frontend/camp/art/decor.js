@@ -394,24 +394,56 @@ function wagon(ctx, d) {
   wheel(at(L - 0.4, W / 2 + 0.05, 7));
 }
 
+// A crate as the approved art draws it: a lit lid of three planks, plank faces held in a paler frame, a brace on
+// the near face, and a nail where frame pieces meet
 function crates(ctx, d) {
   shadow(ctx, d.x + 0.3, d.y + 0.3, 20, 7, 20);
+  const S = 0.6,
+    H = 10;
   const box = (x, y, z0) => {
-    const z = z0 + 10;
-    prism(ctx, { x, y, w: 0.6, h: 0.6, z, z0 }, C.wood, C.woodDark, C.woodDeep);
-    // Frame edges and a brace make a box read as a crate
-    ctx.strokeStyle = C.woodDeep;
-    ctx.lineWidth = 1;
-    for (const face of [
-      [iso(x, y + 0.6, z0), iso(x + 0.6, y + 0.6, z0), iso(x + 0.6, y + 0.6, z), iso(x, y + 0.6, z)],
-      [iso(x + 0.6, y, z0), iso(x + 0.6, y + 0.6, z0), iso(x + 0.6, y + 0.6, z), iso(x + 0.6, y, z)],
-    ]) {
-      ctx.beginPath();
-      face.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
-      ctx.closePath();
-      ctx.stroke();
-    }
-    line(ctx, iso(x + 0.05, y + 0.6, z0 + 1), iso(x + 0.55, y + 0.6, z - 1), C.woodDeep);
+    const z = z0 + H;
+    // u runs along a surface and v across it, both from 0 to 1
+    const lid = (u, v) => iso(x + u * S, y + v * S, z),
+      near = (u, v) => iso(x + u * S, y + S, z0 + v * H),
+      side = (u, v) => iso(x + S, y + u * S, z0 + v * H);
+    const patch = (at, u0, u1, v0, v1, fill) => poly(ctx, [at(u0, v0), at(u1, v0), at(u1, v1), at(u0, v1)], fill);
+    const nail = (at, u, v) => {
+      const p = at(u, v);
+      ctx.fillStyle = C.iron;
+      ctx.fillRect(p.x - 0.4, p.y - 0.4, 0.8, 0.8);
+    };
+    prism(ctx, { x, y, w: S, h: S, z, z0 }, C.woodLight, C.woodDark, C.woodDeep, () => {
+      for (const v of [1 / 3, 2 / 3]) patch(lid, 0.04, 0.96, v - 0.025, v + 0.025, C.woodDark);
+      for (const [at, frame, seam] of [
+        [near, C.wood, C.woodDeep],
+        [side, C.woodDark, C.barkDark],
+      ]) {
+        for (const v of [0.37, 0.63]) patch(at, 0, 1, v - 0.03, v + 0.03, seam);
+        if (at === near) {
+          // The brace runs from the top of the far post down to the foot of the near one
+          poly(ctx, [at(0.08, 0.8), at(0.22, 0.88), at(0.92, 0.2), at(0.78, 0.12)], frame);
+          poly(ctx, [at(0.78, 0.12), at(0.92, 0.2), at(0.92, 0.15), at(0.8, 0.08)], seam);
+        }
+        patch(at, 0, 1, 0.86, 1, frame);
+        patch(at, 0, 1, 0, 0.14, frame);
+        patch(at, 0, 0.1, 0, 1, frame);
+        patch(at, 0.9, 1, 0, 1, frame);
+        for (const [u, v] of [
+          [0.05, 0.07],
+          [0.95, 0.07],
+          [0.05, 0.93],
+          [0.95, 0.93],
+        ])
+          nail(at, u, v);
+      }
+      for (const [u, v] of [
+        [0.08, 0.08],
+        [0.92, 0.08],
+        [0.08, 0.92],
+        [0.92, 0.92],
+      ])
+        nail(lid, u, v);
+    });
   };
   box(d.x - 0.65, d.y - 0.3, 0);
   box(d.x, d.y - 0.3, 0);

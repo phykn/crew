@@ -20,14 +20,16 @@ export function oval(ctx, x, y, rx, ry, fill, end = TAU) {
   ctx.fill();
 }
 
-// A box b = { x, y, w, h, z, z0 } from height z0 (the floor by default) up to z, with its top and the two faces the camera sees
-export function prism(ctx, b, top, left, right) {
+// A box b = { x, y, w, h, z, z0 } from height z0 (the floor by default) up to z, with its top and the two faces the camera sees;
+// detail paints over the faces before the fire lights them
+export function prism(ctx, b, top, left, right, detail) {
   const { x, y, w, h, z, z0 = 0 } = b;
   const near = [iso(x, y + h, z0), iso(x + w, y + h, z0), iso(x + w, y + h, z), iso(x, y + h, z)],
     side = [iso(x + w, y, z0), iso(x + w, y + h, z0), iso(x + w, y + h, z), iso(x + w, y, z)];
   poly(ctx, near, left);
   poly(ctx, side, right);
   poly(ctx, [iso(x, y, z), iso(x + w, y, z), iso(x + w, y + h, z), iso(x, y + h, z)], top);
+  detail?.(ctx);
   // The near face looks along +y and the side face along +x: whichever turns to the fire takes its light
   const dx = FIRE.x - (x + w / 2),
     dy = FIRE.y - (y + h / 2),
