@@ -122,7 +122,7 @@ export function Log({
         {shown.map((e) => {
           // A copy that left is gone from the list, so its line falls back to the role it says
           const role = who(e.memberId)?.role ?? (e.memberId && e.say.role ? roleName(e.say.role) : null);
-          const detail = e.detail ? JSON.parse(e.detail) : null;
+          const detail = e.kind === 'step' && e.detail ? JSON.parse(e.detail) : null;
           const hb = e.kind === 'step' ? readHandback(detail) : null;
           const errors = e.kind === 'step' && !hb ? readErrors(detail) : null;
           const opens = !!(hb || errors);
