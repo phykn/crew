@@ -1,4 +1,4 @@
-// Each commit raises the version by 0.0.1, each place rolling over after 9 (0.0.9 -> 0.1.0), and leaves one bundle of the repo in out/
+// Each commit raises the version by 0.0.1, each place rolling over after 9 (0.0.9 -> 0.1.0)
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -35,15 +35,6 @@ function bump() {
   git('add', 'package.json', 'package-lock.json');
 }
 
-// post-commit: only the bundle of the newest commit is kept
-function bundle() {
-  const out = path.join(root, 'out');
-  fs.mkdirSync(out, { recursive: true });
-  for (const f of fs.readdirSync(out)) if (/^crew-.*\.bundle$/.test(f)) fs.rmSync(path.join(out, f));
-  const file = path.join(out, `crew-${read('package.json').version.replaceAll('.', '-')}.bundle`);
-  git('bundle', 'create', file, '--all');
-}
-
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  ({ bump, bundle })[process.argv[2]]?.();
+  ({ bump })[process.argv[2]]?.();
 }

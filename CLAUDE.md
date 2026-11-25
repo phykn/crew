@@ -71,6 +71,6 @@ A new screen picks parts first; a look no part has becomes a variant of one, sho
 
 - Prompts, code, and comments are written in English; on-screen text is Korean or English, from `ko.ts` and `en.ts` only (`tests/frontend/words.test.ts` fails on Hangul anywhere else in `src/frontend` but the gallery).
 - Comments say only why, in one line.
-- Git: commit on main and push to GitHub by URL (`git push https://github.com/phykn/crew main`); pull the same way; add no remote and never force-push. The hooks in `scripts/hooks` (`core.hooksPath`) bump the version in `scripts/version.mjs` on each commit and keep only the newest `out/crew-X-Y-Z.bundle`.
+- Git: commit on main and push to GitHub by URL (`git push https://github.com/phykn/crew main`); pull the same way; add no remote and never force-push. The hooks in `scripts/hooks` (`core.hooksPath`) bump the version in `scripts/version.mjs` on each commit.
 - Tests never touch the real record: point `CREW_DB` at a scratch file.
 - Shells opened by editors may set `ELECTRON_RUN_AS_NODE=1`; unset it before starting Electron.
