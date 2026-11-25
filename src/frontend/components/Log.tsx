@@ -97,10 +97,10 @@ export function Log({
   useLayoutEffect(() => {
     if (open === null) return;
     const el = scroll.current;
-    const line = expanded.current?.firstElementChild;
-    if (!el || !line) return;
+    const row = expanded.current;
+    if (!el || !row) return;
     const viewport = el.getBoundingClientRect();
-    const bounds = line.getBoundingClientRect();
+    const bounds = row.getBoundingClientRect();
     const top = viewport.top + el.clientTop;
     if (bounds.top < top || bounds.bottom > top + el.clientHeight) {
       el.scrollTop += bounds.top - top;
