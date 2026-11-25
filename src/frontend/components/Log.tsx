@@ -34,7 +34,7 @@ export function Log({
   const [open, setOpen] = useState<number | null>(null);
   const [usage, setUsage] = useState<Awaited<ReturnType<typeof call<'usage.list'>>>>([]);
   const [showUsage, setShowUsage] = useState(false);
-  const scroll = useRef<HTMLDivElement>(null);
+  const scroll = useRef<HTMLOListElement>(null);
 
   useEffect(() => {
     // Crew changes are logged too, such as a hire or a member leaving
@@ -67,7 +67,7 @@ export function Log({
   const cost = usage.reduce((n, u) => n + u.costUsd, 0);
   const seconds = usage.reduce((n, u) => n + u.seconds, 0);
   return (
-    <div className="log" ref={scroll}>
+    <div className="log">
       <Toolbar>
         <Choice
           label={t('log.task')}
@@ -125,7 +125,7 @@ export function Log({
           </tbody>
         </table>
       )}
-      <ol className="log-list" aria-label={t('log.list')}>
+      <ol ref={scroll} className="log-list" aria-label={t('log.list')}>
         {shown.map((e) => {
           // A copy that left is gone from the list, so its line falls back to the role it says
           const role = who(e.memberId)?.role ?? (e.memberId && e.say.role ? roleName(e.say.role) : null);

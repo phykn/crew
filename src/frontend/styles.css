@@ -731,9 +731,6 @@ code {
 }
 
 /* Log */
-.log {
-  overflow-y: auto;
-}
 /* Runs, time, and cost sit apart by space alone, without separators */
 .usage-toggle {
   display: inline-flex;
@@ -764,6 +761,10 @@ code {
 }
 .log-list {
   display: grid;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  align-content: start;
   /* Time, mark, who, what: the who column fits the longest role in either language, and every row shares it */
   grid-template-columns: max-content var(--icon-md) max-content 1fr;
   column-gap: var(--sp-2);
