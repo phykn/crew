@@ -494,27 +494,43 @@ function hay(ctx, d) {
   });
 }
 
+// A woodpile: round logs, three under two, each a bark body lit along its top and shaded beneath, with a pale cut
+// end toward the camera that darkens toward its lower right
 function woodpile(ctx, d) {
-  shadow(ctx, d.x + 0.25, d.y + 0.25, 18, 6, 15);
-  prism(ctx, { x: d.x - 0.25, y: d.y - 0.6, w: 0.5, h: 1.2, z: 12 }, C.bark, C.bark, C.barkDark);
-  // Log ends face the camera in a stack of three under two
-  for (const [t, z] of [
-    [0.2, 3],
-    [0.6, 3],
-    [1, 3],
-    [0.4, 9],
-    [0.8, 9],
-  ]) {
-    // A cut end is pale wood inside dark bark, with a growth ring; a square centre reads as a bolt
-    const p = iso(d.x + 0.25, d.y - 0.6 + t, z);
-    oval(ctx, p.x, p.y, 3.2, 3.2, C.barkDark);
-    oval(ctx, p.x, p.y, 2.4, 2.4, C.wood);
-    ctx.strokeStyle = C.woodDark;
-    ctx.lineWidth = 0.8;
+  shadow(ctx, d.x - 0.05, d.y + 0.2, 20, 7, 15);
+  const r = 3.2,
+    x0 = d.x - 0.45,
+    x1 = d.x + 0.25;
+  const log = (t, z) => {
+    const y = d.y - 0.6 + t,
+      a = iso(x0, y, z),
+      b = iso(x1, y, z);
+    const along = (k, dy) => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k + dy });
+    oval(ctx, a.x, a.y, r, r, C.bark);
+    line(ctx, a, b, C.barkDark, r * 2);
+    line(ctx, along(0, -0.5), along(1, -0.5), C.bark, r * 2 - 1.6);
+    line(ctx, along(0, -r + 1.3), along(1, -r + 1.3), C.woodDark, 1.4);
+    // Two short ridges in the bark, the same on every log
+    line(ctx, along(0.15, -0.4), along(0.45, -0.4), C.barkDark, 0.6);
+    line(ctx, along(0.5, 1.2), along(0.8, 1.2), C.barkDark, 0.6);
+    oval(ctx, b.x, b.y, r, r, C.barkDark);
+    oval(ctx, b.x, b.y, r - 0.7, r - 0.7, C.wood);
+    oval(ctx, b.x - 0.35, b.y - 0.35, r - 1.1, r - 1.1, C.woodLight);
+    ctx.strokeStyle = C.wood;
+    ctx.lineWidth = 0.45;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 1.3, 0, TAU);
+    ctx.arc(b.x - 0.2, b.y - 0.2, 1.2, 0, TAU);
     ctx.stroke();
-  }
+  };
+  // Back to front, so each nearer log covers the one it leans on
+  for (const [t, z] of [
+    [0.2, r],
+    [0.4, r * 2.8],
+    [0.6, r],
+    [0.8, r * 2.8],
+    [1, r],
+  ])
+    log(t, z);
 }
 
 function lantern(ctx, d) {
