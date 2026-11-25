@@ -466,8 +466,7 @@ function crates(ctx, d) {
   box(d.x - 0.35, d.y - 0.3, 10);
 }
 
-// A hay bale: a soft bumpy outline where loose straw rounds over its top edges, straw layers as a few broken lines
-// along each face, and two twine bands
+// A hay bale: straw layers as a few broken lines along each face, and two twine bands
 function hay(ctx, d) {
   const x = d.x - 0.5,
     y = d.y - 0.3,
@@ -482,32 +481,14 @@ function hay(ctx, d) {
     for (let s0 = a + (across % 2) * 0.06; s0 < b - 0.05; s0 += 0.2)
       line(ctx, at(s0, across), at(Math.min(b, s0 + 0.14), across), color, 0.6);
   };
-  // Half-round bumps along an edge, up past it (up) or down over the face below it
-  const bumps = (pts, ry, up, fill) => {
-    ctx.fillStyle = fill;
-    for (const p of pts) {
-      ctx.beginPath();
-      ctx.ellipse(p.x, p.y, 1, ry, 0, up ? Math.PI : 0, up ? TAU : Math.PI);
-      ctx.fill();
-    }
-  };
-  const along = (at, a, b, across, n) => [...Array(n)].map((_, k) => at(a + ((b - a) * (k + 0.5)) / n, across));
   shadow(ctx, d.x + 0.25, d.y + 0.25, 18, 6, 15);
   prism(ctx, { x, y, w: L, h: W, z: H }, C.hay, C.hayDark, C.hayDeep, () => {
     for (const v of [0.35, 0.7]) layer(top, 0.06, 0.94, v, C.hayLight);
     for (const z of [2.5, 5, 7.5]) layer(near, 0.04, 0.96, z, C.hayDeep);
     for (const z of [3, 6]) layer(end, 0.1, 0.9, z, C.hayDark);
-    bumps(along(top, 0, 1, 0, 10), 0.8, true, C.hay);
-    bumps(
-      along((v, u) => top(u, v), 0, 1, 0, 6),
-      0.8,
-      true,
-      C.hay,
-    );
-    bumps(along(top, 0, 1, 1, 10), 0.5, false, C.hay);
     for (const u of [0.3, 0.7]) {
       const t = x + u * L;
-      line(ctx, iso(t, y, H + 0.6), iso(t, y + W, H), C.woodDark, 0.8);
+      line(ctx, iso(t, y, H), iso(t, y + W, H), C.woodDark, 0.8);
       line(ctx, iso(t, y + W, H), iso(t, y + W, 0), C.woodDark, 0.8);
     }
   });
