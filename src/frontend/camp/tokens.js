@@ -23,6 +23,7 @@ export const COLOR = {
   canvas: '#b8a98a',
   canvasDark: '#8f8166',
   canvasDeep: '#6b604b',
+  hayLight: '#bfa660',
   hay: '#a68e4c',
   hayDark: '#7c6a38',
   hayDeep: '#5a4c28',

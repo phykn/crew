@@ -466,27 +466,50 @@ function crates(ctx, d) {
   box(d.x - 0.35, d.y - 0.3, 10);
 }
 
+// A hay bale: a lit top, straw that runs along the bale in staggered rows of short strokes, and two twine bands over it
 function hay(ctx, d) {
   const x = d.x - 0.5,
-    y = d.y - 0.3;
+    y = d.y - 0.3,
+    L = 1,
+    W = 0.6,
+    H = 10;
   shadow(ctx, d.x + 0.25, d.y + 0.25, 18, 6, 15);
-  prism(ctx, { x, y, w: 1, h: 0.6, z: 10 }, C.hay, C.hayDark, C.hayDeep);
-  // Straw runs along the bale, and two twine bands hold it
-  for (const z of [3, 6.5]) line(ctx, iso(x + 0.05, y + 0.6, z), iso(x + 0.95, y + 0.6, z), C.hayDeep);
-  for (const k of [0.3, 0.7]) {
-    line(ctx, iso(x + k, y + 0.6, 0), iso(x + k, y + 0.6, 10), C.woodDeep);
-    line(ctx, iso(x + k, y + 0.6, 10), iso(x + k, y, 10), C.hayDeep);
-  }
-  const t = iso(x + 0.3, y + 0.3, 10);
-  pixels(
-    ctx,
-    [
-      [t.x, t.y, 3, 1],
-      [t.x + 6, t.y + 2, 2, 1],
-      [t.x - 5, t.y + 1, 2, 1],
-    ],
-    C.hayDark,
-  );
+  prism(ctx, { x, y, w: L, h: W, z: H }, C.hay, C.hayDark, C.hayDeep, () => {
+    // Rows of strokes, each row shifted half a step from the last; a light and a dark stroke take turns
+    const rows = (count, step, at, light, dark) => {
+      for (let r = 0; r < count; r++)
+        for (let u = ((r % 2) * step) / 2 + 0.03; u < 0.9; u += step) {
+          const [a, b] = at(r, u);
+          line(ctx, a, b, (Math.round(u / step) + r) % 2 ? light : dark, 0.55);
+        }
+    };
+    rows(
+      4,
+      0.24,
+      (r, u) => [iso(x + u * L, y + (r + 0.6) * 0.22 * W, H), iso(x + (u + 0.1) * L, y + (r + 0.6) * 0.22 * W, H)],
+      C.hayLight,
+      C.hayDark,
+    );
+    rows(
+      4,
+      0.22,
+      (r, u) => [iso(x + u * L, y + W, 1.5 + r * 2.4), iso(x + (u + 0.11) * L, y + W, 1.5 + r * 2.4)],
+      C.hay,
+      C.hayDeep,
+    );
+    rows(
+      4,
+      0.4,
+      (r, u) => [iso(x + L, y + u * W, 1.5 + r * 2.4), iso(x + L, y + (u + 0.2) * W, 1.5 + r * 2.4)],
+      C.hayDark,
+      C.hayDeep,
+    );
+    for (const u of [0.3, 0.7]) {
+      const t = x + u * L;
+      line(ctx, iso(t, y, H), iso(t, y + W, H), C.woodDark, 0.8);
+      line(ctx, iso(t, y + W, H), iso(t, y + W, 0), C.woodDark, 0.8);
+    }
+  });
 }
 
 function woodpile(ctx, d) {
