@@ -483,6 +483,7 @@ function AnswerCard({ question }: { question: Question }) {
             <Button
               key={i}
               size="lg"
+              wrap
               className="answer-option"
               // Only an approval's last option, allow, is the one to lean on; a choice's options weigh the same
               variant={question.kind === 'approval' && i === question.options.length - 1 ? 'primary' : 'secondary'}

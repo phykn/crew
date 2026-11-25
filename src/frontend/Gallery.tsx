@@ -39,6 +39,11 @@ export function Gallery() {
           <Button disabled>비활성</Button>
           <Button dirty>저장 안 함</Button>
         </Row>
+        <Row label="wrap">
+          <Button size="lg" wrap className="gallery-wrap">
+            길어도 칸 안에서 줄을 바꾸고 아래로 늘어나는 버튼
+          </Button>
+        </Row>
         <Row label="primary">
           <Button variant="primary">기본</Button>
           <Button variant="primary" disabled>

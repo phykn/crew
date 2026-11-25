@@ -49,6 +49,20 @@
   height: var(--icon);
 }
 
+/* Wrap: the size is only the least height, and long words go onto more lines */
+.ui-button--wrap {
+  height: auto;
+  min-height: var(--h-md);
+  padding-block: var(--sp-1);
+  text-align: center;
+}
+.ui-button--lg.ui-button--wrap {
+  min-height: var(--h-lg);
+}
+.ui-button--sm.ui-button--wrap {
+  min-height: var(--h-sm);
+}
+
 /* Bordered: secondary and primary */
 .ui-button--secondary,
 .ui-button--primary {

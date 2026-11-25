@@ -361,14 +361,11 @@ code {
   white-space: pre-wrap;
 }
 .answer-options {
+  /* One option per line, so long options stay inside the card */
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--sp-2);
   padding: var(--sp-3);
-}
-.answer-option {
-  flex: 1;
-  min-width: var(--w-field);
 }
 .answer-result {
   margin: 0;
@@ -760,31 +757,28 @@ code {
   font-variant-numeric: tabular-nums;
 }
 .log-list {
-  display: grid;
   line-height: var(--lh-text);
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  align-content: start;
-  /* Time, mark, who, what: the who column fits the longest role in either language, and every row shares it */
-  grid-template-columns: max-content var(--icon-md) max-content 1fr;
-  column-gap: var(--sp-2);
 }
-.log-row,
+/* Time, mark, and who lead the line, and what follows wraps back under the time to use the full width */
 .log-line {
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-  align-items: start;
+  display: block;
 }
-.log-row > * {
-  grid-column: 1 / -1;
+.log-line > time,
+.log-mark,
+.log-who {
+  margin-right: var(--sp-2);
+  white-space: nowrap;
 }
 
 /* Green is done, red is failure, butter is waiting or sent back, wood is at work */
 .log-mark {
-  display: grid;
+  display: inline-grid;
   place-items: center;
+  /* Set from the line's top, so the mark sits in the middle of the first line */
+  vertical-align: top;
   width: var(--icon-md);
   height: var(--icon-md);
   margin-top: calc((1lh - var(--icon-md)) / 2);
@@ -819,7 +813,6 @@ code {
 }
 .log-who {
   font-weight: var(--fw-bold);
-  white-space: nowrap;
 }
 .log-row[data-kind='status'] .log-text {
   color: var(--text-muted);
@@ -1185,6 +1178,10 @@ code {
   align-items: center;
   gap: var(--sp-3);
   padding: var(--sp-2) 0;
+}
+/* Narrow enough that the wrapping button shows its second line */
+.gallery-wrap {
+  width: var(--w-answer);
 }
 .gallery-label {
   color: var(--text-muted);

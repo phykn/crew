@@ -12,6 +12,8 @@ export type ButtonProps = Omit<ComponentProps<'button'>, 'aria-pressed'> & {
   pressed?: boolean;
   // Unsaved changes wait behind this button
   dirty?: boolean;
+  // Words of any length: they wrap and the button grows down from its size
+  wrap?: boolean;
 };
 
 const SIZED = ['secondary', 'primary', 'quiet'];
@@ -24,6 +26,7 @@ export function Button({
   iconOnly,
   pressed,
   dirty,
+  wrap,
   className,
   type = 'button',
   ...rest
@@ -38,6 +41,7 @@ export function Button({
     text && `ui-button--text-${text}`,
     iconOnly && 'ui-button--icon',
     tone && `ui-button--${tone}`,
+    wrap && 'ui-button--wrap',
     className,
   ];
   return (
