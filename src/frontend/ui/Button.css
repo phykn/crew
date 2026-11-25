@@ -49,11 +49,13 @@
   height: var(--icon);
 }
 
-/* Wrap: the size is only the least height, and long words go onto more lines */
+/* Wrap: the size is only the least height, and long words go onto more lines in the text font, which reads them easier */
 .ui-button--wrap {
   height: auto;
   min-height: var(--h-md);
   padding-block: var(--sp-1);
+  font-family: var(--font-text);
+  font-size: var(--fs-sm);
   text-align: center;
 }
 .ui-button--lg.ui-button--wrap {
