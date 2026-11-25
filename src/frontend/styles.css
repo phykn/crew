@@ -761,6 +761,7 @@ code {
 }
 .log-list {
   display: grid;
+  line-height: var(--lh-text);
   flex: 1;
   min-height: 0;
   overflow-y: auto;

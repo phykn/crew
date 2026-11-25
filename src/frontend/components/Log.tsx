@@ -12,7 +12,6 @@ import { roleName, say } from '../locale';
 import { t } from '../lang';
 
 const ALL = 'all';
-const STICK_PX = 24;
 // A making step's log line also names its version when git kept it
 type Logged = Handback & { version?: number };
 
@@ -37,6 +36,7 @@ export function Log({
   const [showUsage, setShowUsage] = useState(false);
   const scroll = useRef<HTMLOListElement>(null);
   const stick = useRef(true);
+  const size = useRef({ height: 0, content: 0 });
 
   useEffect(() => {
     // Crew changes are logged too, such as a hire or a member leaving
@@ -65,8 +65,17 @@ export function Log({
 
   useLayoutEffect(() => {
     const el = scroll.current;
-    if (el && stick.current) el.scrollTop = el.scrollHeight;
-  }, [session.id, taskId, latest]);
+    if (!el) return;
+    const follow = () => {
+      if (stick.current) el.scrollTop = el.scrollHeight;
+      size.current = { height: el.clientHeight, content: el.scrollHeight };
+    };
+    follow();
+    const observer = new ResizeObserver(follow);
+    observer.observe(el);
+    for (const row of el.children) observer.observe(row);
+    return () => observer.disconnect();
+  }, [session.id, taskId, latest, open, showUsage]);
 
   const who = (id: number | null) => members.find((m) => m.id === id);
   const runs = usage.reduce((n, u) => n + u.runs, 0);
@@ -136,7 +145,9 @@ export function Log({
         className="log-list"
         aria-label={t('log.list')}
         onScroll={({ currentTarget: el }) => {
-          stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < STICK_PX;
+          if (size.current.height !== el.clientHeight || size.current.content !== el.scrollHeight) return;
+          stick.current =
+            el.scrollHeight - el.scrollTop - el.clientHeight <= 2 * parseFloat(getComputedStyle(el).lineHeight);
         }}
       >
         {shown.map((e) => {
