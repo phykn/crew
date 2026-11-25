@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Event, Handback, Session, Task } from '../../backend/domain/records';
 import type { CrewMember } from '../../backend/domain/crew';
 import { call, follow } from '../api';
@@ -35,8 +35,39 @@ export function Log({
   const [usage, setUsage] = useState<Awaited<ReturnType<typeof call<'usage.list'>>>>([]);
   const [showUsage, setShowUsage] = useState(false);
   const scroll = useRef<HTMLOListElement>(null);
+  const expanded = useRef<HTMLElement>(null);
   const stick = useRef(true);
   const size = useRef({ height: 0, content: 0 });
+  const observer = useRef<ResizeObserver | null>(null);
+  const rows = useRef(new Set<HTMLLIElement>());
+  const observeRow = useCallback((row: HTMLLIElement | null) => {
+    if (!row) return;
+    rows.current.add(row);
+    observer.current?.observe(row);
+    return () => {
+      observer.current?.unobserve(row);
+      rows.current.delete(row);
+    };
+  }, []);
+  const followBottom = useCallback(() => {
+    const el = scroll.current;
+    if (!el) return;
+    if (stick.current) el.scrollTop = el.scrollHeight;
+    size.current = { height: el.clientHeight, content: el.scrollHeight };
+  }, []);
+
+  useLayoutEffect(() => {
+    const el = scroll.current;
+    if (!el) return;
+    const watcher = new ResizeObserver(followBottom);
+    observer.current = watcher;
+    watcher.observe(el);
+    for (const row of rows.current) watcher.observe(row);
+    return () => {
+      watcher.disconnect();
+      observer.current = null;
+    };
+  }, [followBottom]);
 
   useEffect(() => {
     // Crew changes are logged too, such as a hire or a member leaving
@@ -64,24 +95,19 @@ export function Log({
   }, [session.id, taskId]);
 
   useLayoutEffect(() => {
-    if (open !== null) {
-      scroll.current?.querySelector('[aria-expanded="true"]')?.scrollIntoView({ block: 'start' });
+    if (open === null) return;
+    const el = scroll.current;
+    const line = expanded.current?.firstElementChild;
+    if (!el || !line) return;
+    const viewport = el.getBoundingClientRect();
+    const bounds = line.getBoundingClientRect();
+    const top = viewport.top + el.clientTop;
+    if (bounds.top < top || bounds.bottom > top + el.clientHeight) {
+      el.scrollTop += bounds.top - top;
     }
   }, [open]);
 
-  useLayoutEffect(() => {
-    const el = scroll.current;
-    if (!el) return;
-    const follow = () => {
-      if (stick.current) el.scrollTop = el.scrollHeight;
-      size.current = { height: el.clientHeight, content: el.scrollHeight };
-    };
-    follow();
-    const observer = new ResizeObserver(follow);
-    observer.observe(el);
-    for (const row of el.children) observer.observe(row);
-    return () => observer.disconnect();
-  }, [session.id, taskId, latest, open, showUsage]);
+  useLayoutEffect(followBottom, [followBottom, session.id, taskId, latest, open, showUsage]);
 
   const who = (id: number | null) => members.find((m) => m.id === id);
   const runs = usage.reduce((n, u) => n + u.runs, 0);
@@ -165,13 +191,20 @@ export function Log({
           const opens = !!(hb || errors);
           const mark = markOf(e, hb, errors);
           return (
-            <li key={e.id} className="log-row" data-kind={e.kind} data-bad={mark.state === 'bad' || undefined}>
+            <li
+              key={e.id}
+              ref={observeRow}
+              className="log-row"
+              data-kind={e.kind}
+              data-bad={mark.state === 'bad' || undefined}
+            >
               <Button
                 variant="row"
                 className="log-line"
                 disabled={!opens}
                 aria-expanded={opens ? open === e.id : undefined}
-                onClick={() => {
+                onClick={({ currentTarget }) => {
+                  expanded.current = currentTarget.parentElement;
                   if (open !== e.id) stick.current = false;
                   setOpen(open === e.id ? null : e.id);
                 }}
