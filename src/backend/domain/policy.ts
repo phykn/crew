@@ -146,8 +146,10 @@ function checkWrite(policy: Policy, file: string): Verdict {
 }
 
 function resolveTarget(target: string, cwd: string) {
+  if (!path.isAbsolute(target) && path.win32.isAbsolute(target)) return target;
   // Git Bash writes C:\x as /c/x
-  return path.resolve(cwd, target.replace(/^\/([a-zA-Z])\//, '$1:/'));
+  const native = path.sep === '\\' ? target.replace(/^\/([a-zA-Z])\//, '$1:/') : target;
+  return path.resolve(cwd, native);
 }
 
 // Where a shell command writes, as far as its text shows; a script it runs can still write anywhere
@@ -240,6 +242,7 @@ export function projectWrites(policy: Policy, tool: string, input: Record<string
 }
 
 export function inside(file: string, dir: string) {
+  if (!path.isAbsolute(file) && path.win32.isAbsolute(file)) return false;
   const rel = path.relative(path.resolve(dir), path.resolve(file));
   // A name that merely starts with dots, such as ..env, is still inside
   return rel === '' || (rel !== '..' && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel));

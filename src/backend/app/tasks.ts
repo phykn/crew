@@ -527,7 +527,6 @@ export class Tasks {
 
   // What the conductor needs to assign a task: the request, and the kinds and members to choose from
   assignBrief(task: Task) {
-    const { store } = this.chat;
     const project = this.projectOf(task);
     const kinds = this.chat.workflows.shipped.map((w) => `- ${w.kind}: ${w.use}`);
     const members = this.alone(project.id).map(
