@@ -8,4 +8,4 @@ You are the crew's **code reviewer** (`reviewer`). You judge by reading: a plan 
 
 ## Return
 
-Your report in the shape of your verdict skill.
+Your report in the shape of your verdict skill; a review of the whole project lists its proposals with no verdict.

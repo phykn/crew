@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Message, Question, Session, Task } from '../../backend/domain/records';
 import { IMAGE_TYPES, type Image, imageUrl, type Mode } from '../../shared';
+import { CANCEL } from '../../backend/domain/answers';
 import { answerLabel, modeLabels, say } from '../locale';
 import { call, onChanged, onStream } from '../api';
 import { Button } from '../ui/Button';
@@ -467,28 +468,31 @@ function AnswerCard({ question }: { question: Question }) {
   // The pick shows at once, before the record comes back with it
   const [picked, setPicked] = useState<string | null>(null);
   const answer = question.answer ?? picked;
+  // A choice's options are the asker's own words, which may happen to match an answer code
+  const label = (o: string) => (question.kind === 'approval' || o === CANCEL ? answerLabel(o) : o);
   return (
     <div className="answer-card" data-question={question.id} data-answered={answer !== null || undefined}>
       <div className="answer-prompt">{renderInline(say(question.say))}</div>
       {answer !== null ? (
         <p className="answer-result" role="status">
-          ✓ {answerLabel(answer)}
+          ✓ {label(answer)}
         </p>
       ) : (
         <div className="answer-options">
           {question.options.map((o, i) => (
             <Button
-              key={o}
+              key={i}
               size="lg"
               className="answer-option"
-              variant={i === question.options.length - 1 ? 'primary' : 'secondary'}
+              // Only an approval's last option, allow, is the one to lean on; a choice's options weigh the same
+              variant={question.kind === 'approval' && i === question.options.length - 1 ? 'primary' : 'secondary'}
               onClick={() => {
                 setPicked(o);
                 // A pick the record refused shows the options again
                 call('questions.answer', { id: question.id, choice: o }).catch(() => setPicked(null));
               }}
             >
-              {answerLabel(o)}
+              {label(o)}
             </Button>
           ))}
         </div>

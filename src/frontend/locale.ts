@@ -22,6 +22,8 @@ const FLOWS: Record<string, string[]> = {
   improve: ['structure'],
   research: ['research'],
   solo: ['work'],
+  assign: ['assign'],
+  judge: ['judge'],
 };
 
 type Dict = Record<Key, string>;

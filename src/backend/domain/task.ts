@@ -72,12 +72,67 @@ export const HandbackShape = z.object({
   points: z.array(z.string()).default([]).describe('For rework: each point to fix, with file and line'),
   files: z.array(z.string()).default([]).describe('Project files you changed, relative to the project folder'),
   checks: z.array(z.string()).default([]).describe('Commands you ran, each with its result'),
+  notes: z
+    .array(z.string())
+    .default([])
+    .describe('Assumptions you made, what needs a decision, and suggestions, one line each'),
 });
 // Claude Code validates --json-schema as draft-7 and refuses the 2020-12 tag zod writes by default
 export const HANDBACK_SCHEMA = z.toJSONSchema(HandbackShape, { target: 'draft-7', io: 'input' }) as Record<
   string,
   unknown
 >;
+
+// Every task the interpreter opens starts with the conductor deciding how it is done; until then this one step is its workflow
+export const ASSIGN = 'assign';
+export function assignFlow(label: string): Workflow {
+  const step = {
+    id: ASSIGN,
+    role: 'conductor',
+    label,
+    does: 'Decide how this task is done: its kind, its size, and whether one member takes it alone.',
+  };
+  return Workflow.parse({ kind: ASSIGN, use: '', steps: [step] });
+}
+
+export const AssignShape = z.object({
+  summary: z.string().describe("One sentence in the user's language: how the task will be done"),
+  body: z.string().describe("Why, in the user's language: what the request needs and why this way fits"),
+  kind: z.string().describe('The kind of task, one of those listed'),
+  size: z
+    .enum(['small', 'large'])
+    .default('large')
+    .describe('For a code change: small when it stays within one or two files and needs no design choice'),
+  member: z
+    .string()
+    .optional()
+    .describe('Only when one member should take the whole request alone: its key, one of those listed'),
+});
+export type Assignment = z.infer<typeof AssignShape>;
+export const ASSIGN_SCHEMA = z.toJSONSchema(AssignShape, { target: 'draft-7', io: 'input' }) as Record<string, unknown>;
+
+// Once every step holds, the conductor judges from the reports whether the task reached its goal
+export const JUDGE = 'judge';
+// How many times the conductor may send finished work back before the task stops for the user
+export const JUDGE_LOOPS = 3;
+export function judgeStep(label: string): Step {
+  const does = 'Judge from the reports whether the task reached the goal the user asked for.';
+  return { id: JUDGE, role: 'conductor', label, does, after: [], verdict: true, loops: JUDGE_LOOPS, requires: [] };
+}
+
+export const JudgeShape = z.object({
+  summary: z.string().describe("One sentence in the user's language: whether the goal was reached"),
+  body: z.string().describe("Why, in the user's language, from what the reports show"),
+  decision: z
+    .enum(['done', 'rework', 'replan', 'fail'])
+    .describe(
+      'done: the goal is reached; rework: one step must fix points; replan: the plan was wrong; fail: it cannot be done without the user',
+    ),
+  target: z.string().optional().describe('For rework: the id of the step that fixes the points, one of those listed'),
+  points: z.array(z.string()).default([]).describe('For rework: each point to fix'),
+});
+export type Judgment = z.infer<typeof JudgeShape>;
+export const JUDGE_SCHEMA = z.toJSONSchema(JudgeShape, { target: 'draft-7', io: 'input' }) as Record<string, unknown>;
 
 // Set by the app rather than left to the brief's wording, so every step of a code task reads the same scope
 export const CODE_SCOPE =
@@ -138,6 +193,7 @@ export function whyText(why: Say) {
   if (why.code === 'noChange')
     return `${why.step} was redone without changing anything and sent back again; the points and the instructions disagree, so the user must decide`;
   if (why.code === 'retries') return `${why.step} failed after ${why.n} retries`;
+  if (why.code === 'judged') return String(why.text);
   if (why.code === 'absent')
     return `${why.role} is not hired, so ${why.step} cannot go on; another member must take it`;
   return 'it was stopped';

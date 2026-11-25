@@ -2,6 +2,8 @@ import { expect, test, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
+  assigns,
+  judges,
   broken,
   type fakeCrew,
   handback,
@@ -27,11 +29,15 @@ const opening = (fake: () => ReturnType<typeof fakeCrew>, input: Record<string, 
 };
 
 test('지휘 → 코드 검토 (sent back once) → 지휘 → 코드 검토 → 코드 작성 → 코드 검토·시험, each role in its own Claude session', async () => {
-  const opens = opening(() => fake, { kind: 'code', title: '검색 개선' });
+  const opens = opening(() => fake, { title: '검색 개선' });
   const { store, fake, chat, s } = openChat(
     {
       통역: [opens, reply('검색을 고쳤고 코드 검토와 시험을 통과했습니다.', 'claude-secretary')],
-      지휘: [handback('claude-plan', { summary: '계획 v1' }), handback('claude-plan', { summary: '계획 v2' })],
+      지휘: [
+        assigns('claude-plan', { kind: 'code' }),
+        handback('claude-plan', { summary: '계획 v1' }),
+        handback('claude-plan', { summary: '계획 v2' }),
+      ],
       '코드 검토': [
         handback('claude-review', { summary: '범위 누락', verdict: 'rework', points: ['빈 검색어 경우가 없습니다'] }),
         handback('claude-review', { summary: '계획 통과', verdict: 'pass' }),
@@ -47,8 +53,9 @@ test('지휘 → 코드 검토 (sent back once) → 지휘 → 코드 검토 →
   await vi.waitFor(() => expect(store.listMessages(s.id).at(-1)!.text).toContain('통과했습니다'), { timeout: 3000 });
 
   const [task] = store.listTasks(s.id);
-  expect(task.status).toBe('done');
+  expect([task.status, task.kind]).toEqual(['done', 'code']);
   expect(store.listStepRuns(task.id).map((r) => [r.stepId, r.verdict])).toEqual([
+    ['assign', null],
     ['plan', null],
     ['plan_review', 'rework'],
     ['plan', null],
@@ -56,18 +63,20 @@ test('지휘 → 코드 검토 (sent back once) → 지휘 → 코드 검토 →
     ['develop', null],
     ['review', 'pass'],
     ['test', 'pass'],
+    ['judge', 'pass'],
   ]);
-  // The code review sees the plan and the coder's files, never the coder's own account of them
+  // The code review gets the coder's files, never the coder's own account of them, and not the plan its session already read
   const review = fake.calls.filter((c) => c.role === '코드 검토')[2].prompt;
   expect([review.includes('계획 v2'), review.includes('search.js'), review.includes('검색 수정')]).toEqual([
-    true,
+    false,
     true,
     false,
   ]);
+  expect(review).not.toContain("The user's request");
   // The fix round gets the reviewer's point, and the second plan run resumes the first one's session
   const plans = fake.calls.filter((c) => c.role === '지휘');
-  expect(plans[1].prompt).toContain('빈 검색어 경우가 없습니다');
-  expect(plans.map((c) => c.options.resume)).toEqual([undefined, 'claude-plan']);
+  expect(plans[2].prompt).toContain('빈 검색어 경우가 없습니다');
+  expect(plans.map((c) => c.options.resume)).toEqual([undefined, 'claude-plan', 'claude-plan']);
   expect(recordedAgents(store, s.id).map((a) => [a.key, a.claudeId])).toEqual([
     ['interpreter', 'claude-secretary'],
     ['conductor', 'claude-plan'],
@@ -82,7 +91,18 @@ test('지휘 → 코드 검토 (sent back once) → 지휘 → 코드 검토 →
       .listEvents(s.id)
       .filter((e) => e.kind === 'status')
       .map((e) => e.detail),
-  ).toEqual(['running', 'running', 'reviewing', 'fixing', 'reviewing', 'running', 'reviewing', 'done']);
+  ).toEqual([
+    'running',
+    'running',
+    'running',
+    'reviewing',
+    'fixing',
+    'reviewing',
+    'running',
+    'reviewing',
+    'reviewing',
+    'done',
+  ]);
   // The report 통역 is asked to give carries the changed files and the checks
   const report = fake.calls.filter((c) => c.role === '통역')[1].prompt;
   expect(report).toContain('[Task #1 finished]');
@@ -90,7 +110,7 @@ test('지휘 → 코드 검토 (sent back once) → 지휘 → 코드 검토 →
   expect(report).toContain('npm test: 3 passed');
   // One log line per finished step: its start shows in the task's own status line
   const steps = store.listEvents(s.id).filter((e) => e.kind === 'step');
-  expect([steps.length, steps.filter((e) => words(e).endsWith(' 시작')).length]).toEqual([7, 0]);
+  expect([steps.length, steps.filter((e) => words(e).endsWith(' 시작')).length]).toEqual([9, 0]);
 });
 
 test('a small change and one given to a member who writes the project skip the plan and keep every check; others work alone', () => {
@@ -106,13 +126,75 @@ test('a small change and one given to a member who writes the project skip the p
   ]);
 });
 
+test('지휘 decides how a task 통역 opens is done: a wrong answer goes back to it, and one member can take it alone', async () => {
+  const { store, fake, chat, s } = openChat({
+    통역: [reply('조사했습니다.', 'claude-secretary')],
+    지휘: [
+      assigns('claude-plan', { kind: 'nope' }),
+      assigns('claude-plan', { kind: 'research', member: 'researcher' }),
+    ],
+    조사: [handback('claude-research', { summary: '조사 끝' })],
+  });
+  const task = chat.tasks.open(s.id, '조사', 'r');
+  expect([task.kind, task.workflow.steps.map((x) => x.id)]).toEqual(['assign', ['assign']]);
+  await vi.waitFor(() => expect(store.readTask(task.id).status).toBe('done'), { timeout: 3000 });
+  const done = store.readTask(task.id);
+  expect([done.kind, done.workflow.steps.map((x) => x.id)]).toEqual(['research', ['work']]);
+  expect(fake.calls.filter((c) => c.role === '지휘')[1].prompt).toContain('kind nope is not one of');
+});
+
+test('지휘 judges a finished task: a rework goes back to its step and is judged again, and a failure stops it for the user', async () => {
+  const { store, fake, chat, s } = openChat({
+    통역: [reply('보고 1'), reply('보고 2')],
+    조사: [
+      handback('r', { summary: '조사 1' }),
+      handback('r', { summary: '조사 2' }),
+      handback('r', { summary: '조사 3' }),
+    ],
+    감독: [
+      judges('rework', { target: 'work' }),
+      judges('rework', { target: 'work', points: ['출처가 없습니다'] }),
+      judges('done'),
+      judges('fail', { summary: '사용자가 범위를 정해야 합니다' }),
+    ],
+  });
+  const researcher = store.readMember(store.projectOf(s.id).id, 'researcher');
+  const one = chat.tasks.start(s.id, 'research', '조사 1', 'r', researcher);
+  await vi.waitFor(() => expect(store.readTask(one.id).status).toBe('done'), { timeout: 3000 });
+  // A rework without points goes back to 지휘 first; the next one sends the step back with its points
+  const research = fake.calls.filter((c) => c.role === '조사');
+  expect([research.length, research[1].prompt]).toEqual([2, expect.stringContaining('출처가 없습니다')]);
+  expect(fake.calls.filter((c) => c.role === '감독')[1].prompt).toContain('rework needs the points to fix');
+  expect(fake.calls.filter((c) => c.role === '통역')[0].prompt).toContain('[Task #1 finished]');
+
+  const two = chat.tasks.start(s.id, 'research', '조사 2', 'r', researcher);
+  await vi.waitFor(() => expect(store.readTask(two.id).status).toBe('failed'), { timeout: 3000 });
+  expect(fake.calls.filter((c) => c.role === '통역')[1].prompt).toContain('사용자가 범위를 정해야 합니다');
+});
+
+test("지휘's question to the user waits on a card under 통역's message, and a stop closes it", async () => {
+  let asked: Promise<unknown> = Promise.resolve();
+  const asks: Turn = (prompt, options) => {
+    asked = fake.tools.get('ask_user')!({ question: '어느 쪽인가요?', options: ['A', 'B'] });
+    return asked.then((r) => assigns('claude-plan', { kind: 'research', summary: JSON.stringify(r) })(prompt, options));
+  };
+  const { store, fake, chat, s } = openChat({ 지휘: [asks], 조사: [never], 통역: [reply('멈춤')] });
+  const task = chat.tasks.open(s.id, '조사', 'r');
+  await vi.waitFor(() => expect(store.openQuestionIds(s.id, task.id)).toHaveLength(1));
+  const [id] = store.openQuestionIds(s.id, task.id);
+  expect(store.readQuestion(id).say).toMatchObject({ code: 'card.decision', question: '어느 쪽인가요?' });
+  chat.tasks.stop(task.id);
+  expect(await asked).toMatchObject({ content: [{ text: 'The user did not answer; the task was stopped.' }] });
+  expect(store.readQuestion(id).answer).toBe('cancel');
+});
+
 test('a task past its loop limit goes back to 지휘 once to re-plan, and stops for the user when it fails again', async () => {
-  const opens = opening(() => fake, { kind: 'code', title: '검색 개선' });
+  const opens = opening(() => fake, { title: '검색 개선' });
   const again = handback('claude-review', { summary: '범위 누락', verdict: 'rework', points: ['빈 검색어'] });
   const plan = (v: number) => handback('claude-plan', { summary: `계획 v${v}` });
   const { store, fake, chat, p, s } = openChat({
     통역: [opens, reply('멈췄습니다.', 'claude-secretary')],
-    지휘: [plan(1), plan(2), plan(3), plan(4)],
+    지휘: [assigns('claude-plan', { kind: 'code' }), plan(1), plan(2), plan(3), plan(4)],
     '코드 검토': [again, again, again, again],
   });
   const base = chat.workflows.current(p.id, 'code');
@@ -129,12 +211,12 @@ test('a task past its loop limit goes back to 지휘 once to re-plan, and stops 
   await chat.send(s.id, '검색 고쳐줘');
   await vi.waitFor(() => expect(store.listTasks(s.id)[0].status).toBe('failed'), { timeout: 3000 });
   const plans = fake.calls.filter((c) => c.role === '지휘');
-  expect([plans.length, plans[2].prompt]).toEqual([4, expect.stringContaining('Re-plan: 계획 was fixed 1 times')]);
+  expect([plans.length, plans[3].prompt]).toEqual([5, expect.stringContaining('Re-plan: 계획 was fixed 1 times')]);
   expect(fake.calls.filter((c) => c.role === '통역')[1].prompt).toContain('계획 was fixed 1 times');
 });
 
 test('a redo that changes no file and is sent back again stops the task for the user instead of looping', async () => {
-  const opens = opening(() => fake, { kind: 'code', title: '수정', size: 'small' });
+  const opens = opening(() => fake, { title: '수정' });
   const edits: Turn = (prompt, options) => {
     fs.writeFileSync(path.join(project, 'a.js'), 'b');
     return handback('claude-code', { summary: '고침', files: ['a.js'] })(prompt, options);
@@ -144,7 +226,9 @@ test('a redo that changes no file and is sent back again stops the task for the 
   const { store, fake, chat, s, project } = openChat(
     {
       통역: [opens, reply('멈췄습니다.', 'claude-secretary')],
+      지휘: [assigns('claude-plan', { kind: 'code', size: 'small' })],
       '코드 작성': [edits, handback('claude-code', { summary: '그대로 둠' })],
+      감독: [judges('fail', { summary: '사용자가 정해야 합니다' })],
       '코드 검토': [no, no],
       시험: [pass('t'), pass('t')],
     },
@@ -154,7 +238,9 @@ test('a redo that changes no file and is sent back again stops the task for the 
   await chat.send(s.id, '고쳐줘');
   await vi.waitFor(() => expect(store.listTasks(s.id)[0].status).toBe('failed'), { timeout: 3000 });
   expect(store.listStepRuns(1).filter((r) => r.stepId === 'develop')).toHaveLength(2);
-  expect(fake.calls.filter((c) => c.role === '통역')[1].prompt).toContain('was redone without changing anything');
+  // With no plan to redo, 지휘 judges how to go on, and its failure is what 통역 reports
+  expect(fake.calls.filter((c) => c.role === '감독')[0].prompt).toContain('was redone without changing anything');
+  expect(fake.calls.filter((c) => c.role === '통역')[1].prompt).toContain('사용자가 정해야 합니다');
 });
 
 test('a broken step fails after its retries; a stopped task leaves the other running; a restart is resumed', async () => {
@@ -277,7 +363,7 @@ test('each change is a version the verdicts judge, and a follow-up reopens the s
   expect(store.listTasks(s.id)).toHaveLength(1);
 });
 
-test('words added while 코드 작성 is at work join the task: 코드 작성 redoes with them and the checks judge the redo', async () => {
+test('words added while 코드 작성 is at work go to 지휘, who sends 코드 작성 back with them, and the checks judge the redo', async () => {
   let release = () => {};
   const edit =
     (text: string): Turn =>
@@ -292,6 +378,7 @@ test('words added while 코드 작성 is at work join the task: 코드 작성 re
     {
       통역: [reply('보고', 'claude-secretary')],
       '코드 작성': [held, edit('v2')],
+      감독: [judges('rework', { target: 'develop', points: ['에러 메시지는 영어로'] })],
       '코드 검토': [pass('r'), pass('r')],
       시험: [pass('t'), pass('t')],
     },
@@ -330,6 +417,7 @@ test('a step cut off right after saving resumes from that step and checks the sa
     points: [],
     files: [],
     checks: [],
+    notes: [],
   });
   store.finishStepRun(store.startStepRun(task.id, 'plan_review', member('reviewer')), 'done', {
     summary: '통과',
@@ -338,6 +426,7 @@ test('a step cut off right after saving resumes from that step and checks the sa
     points: [],
     files: [],
     checks: [],
+    notes: [],
   });
   store.startStepRun(task.id, 'develop', member('coder'));
   store.writeTaskStatus(task.id, 'running', '코드 작성', { code: 'task.stage', stage: '코드 작성' });
@@ -349,7 +438,7 @@ test('a step cut off right after saving resumes from that step and checks the sa
   expect(fresh.calls[0].prompt).toContain('cut off after changing: search.js');
 });
 
-test('reopening a task without a plan sends the change back to every step that made it', () => {
+test("reopening a task without a plan takes the change to 지휘's judgment", () => {
   const { store, chat, s } = openChat({ '코드 검토': [never] });
   const task = store.createTask({
     sessionId: s.id,
@@ -365,7 +454,7 @@ test('reopening a task without a plan sends the change back to every step that m
       .listStepRuns(task.id)
       .filter((r) => r.stepId === '_user')
       .map((r) => r.handback?.target),
-  ).toEqual(['structure']);
+  ).toEqual(['judge']);
 });
 
 test('a step whose SDK cannot load fails after its retries and 통역 hears of it, instead of the task hanging', async () => {

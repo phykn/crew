@@ -177,6 +177,7 @@ export const EN: Record<Key, string> = {
   'log.app': 'App',
   'log.notes': 'Review notes',
   'log.checks': 'Checks',
+  'log.remarks': 'Notes',
 
   'mark.done': 'Done',
   'mark.failed': 'Failed',
@@ -323,6 +324,10 @@ export const EN: Record<Key, string> = {
   'flow.improve.structure': 'Structure review',
   'flow.research': 'Research',
   'flow.research.research': 'Research',
+  'flow.assign': 'Assigning',
+  'flow.assign.assign': 'Assign',
+  'flow.judge': 'Judging',
+  'flow.judge.judge': 'Judge',
   'flow.solo': 'Solo',
   'flow.solo.work': 'work',
 
@@ -341,6 +346,9 @@ export const EN: Record<Key, string> = {
   'say.overLimit': '{step} was fixed {loops} times but still did not pass review',
   'say.noChange':
     '{step} was redone with no change and sent back again. The notes and the instructions disagree, so the user needs to decide',
+  'say.judged': '{text}',
+  'say.card.ask': '{question}',
+  'say.card.decision': '{role} {nickname}: {question}',
   'say.retries': '{step} failed after {n} retries',
   'say.absent': '{role} is not hired, so {step} cannot go on. Assign someone else',
   'say.stopped': 'Stopped',

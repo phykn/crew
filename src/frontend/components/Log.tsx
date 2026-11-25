@@ -8,7 +8,7 @@ import { Choice } from '../ui/Choice';
 import { Toolbar, ToolbarEnd } from '../ui/Toolbar';
 import { MarkIcon } from './Icons';
 import type { ChangesTarget } from './Changes';
-import { say } from '../locale';
+import { roleName, say } from '../locale';
 import { t } from '../lang';
 
 const ALL = 'all';
@@ -104,7 +104,8 @@ export function Log({
           <tbody>
             {usage.map((u) => (
               <tr key={`${u.memberId}-${u.model}`}>
-                <td>{who(u.memberId)?.role ?? '?'}</td>
+                {/* A copy that left the crew is still named by its role */}
+                <td>{who(u.memberId)?.role ?? u.role}</td>
                 <td>{u.model}</td>
                 <td>{u.runs}</td>
                 <td>{duration(u.seconds)}</td>
@@ -119,9 +120,11 @@ export function Log({
       )}
       <ol className="log-list" aria-label={t('log.list')}>
         {shown.map((e) => {
-          const m = who(e.memberId);
-          const hb = e.kind === 'step' ? readHandback(e.detail) : null;
-          const errors = e.kind === 'step' && !hb ? readErrors(e.detail) : null;
+          // A copy that left is gone from the list, so its line falls back to the role it says
+          const role = who(e.memberId)?.role ?? (e.memberId && e.say.role ? roleName(e.say.role) : null);
+          const detail = e.detail ? JSON.parse(e.detail) : null;
+          const hb = e.kind === 'step' ? readHandback(detail) : null;
+          const errors = e.kind === 'step' && !hb ? readErrors(detail) : null;
           const opens = !!(hb || errors);
           const mark = markOf(e, hb, errors);
           return (
@@ -143,8 +146,8 @@ export function Log({
                 >
                   <MarkIcon state={mark.state} />
                 </span>
-                <span className="log-who">{m ? m.role : t('log.app')}</span>
-                <span className="log-text">{m ? say(e.say).replace(new RegExp(`^${m.role}: `), '') : say(e.say)}</span>
+                <span className="log-who">{role ?? t('log.app')}</span>
+                <span className="log-text">{role ? say(e.say).replace(`${role}: `, '') : say(e.say)}</span>
               </Button>
               {hb && open === e.id && (
                 <HandbackView
@@ -214,6 +217,16 @@ function HandbackView({ hb, onFile }: { hb: Logged; onFile: ((file: string) => v
           </ul>
         </section>
       )}
+      {hb.notes?.length > 0 && (
+        <section>
+          <h4>{t('log.remarks')}</h4>
+          <ul>
+            {hb.notes.map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+        </section>
+      )}
       {hb.checks.length > 0 && (
         <section>
           <h4>{t('log.checks')}</h4>
@@ -253,14 +266,11 @@ function group(errors: string[]): [string, number][] {
 }
 
 // Step events carry the handback; other kinds keep their own detail
-function readHandback(detail: string | null): Logged | null {
-  if (!detail) return null;
-  const d = JSON.parse(detail);
-  return d && Array.isArray(d.files) && Array.isArray(d.checks) ? d : null;
+function readHandback(d: Record<string, unknown> | null): Logged | null {
+  return d && Array.isArray(d.files) && Array.isArray(d.checks) ? (d as Logged) : null;
 }
 
 // A failed step keeps each attempt's error, shown when its line is opened
-function readErrors(detail: string | null): string[] | null {
-  const d = detail ? JSON.parse(detail) : null;
+function readErrors(d: Record<string, unknown> | null): string[] | null {
   return d && Array.isArray(d.errors) ? d.errors : null;
 }

@@ -11,12 +11,13 @@ const SCRIPT = {
     {
       call: {
         name: 'start_task',
-        input: { original: '원문', kind: 'code', title: '검색 개선', request: 'r', size: 'small' },
+        input: { original: '원문', title: '검색 개선', request: 'r' },
       },
       text: '업무를 시작했습니다.',
     },
     { text: '검색을 고쳤습니다.' },
   ],
+  지휘: [{ structured: { summary: '배정', body: '', kind: 'code', size: 'small' } }],
   // The write goes through the guard, so the task knows the file as its own
   '코드 작성': [
     {

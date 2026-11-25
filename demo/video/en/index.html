@@ -205,7 +205,7 @@
       data-start="0"
       data-width="1280"
       data-height="720"
-      data-duration="28.2"
+      data-duration="30.2"
       data-fps="30"
     >
       <div id="footage">
@@ -228,11 +228,20 @@
           data-track-index="0"
         ></video>
         <video
+          id="v-plan"
+          class="clip camp-shot"
+          src="assets/plan.mp4"
+          muted
+          data-start="4.2"
+          data-duration="2"
+          data-track-index="0"
+        ></video>
+        <video
           id="v-build"
           class="clip camp-shot"
           src="assets/build.mp4"
           muted
-          data-start="4.2"
+          data-start="6.2"
           data-duration="1.8"
           data-track-index="0"
         ></video>
@@ -241,7 +250,7 @@
           class="clip camp-shot"
           src="assets/bounce.mp4"
           muted
-          data-start="6"
+          data-start="8"
           data-duration="1.6"
           data-track-index="0"
         ></video>
@@ -250,7 +259,7 @@
           class="clip camp-shot"
           src="assets/fix.mp4"
           muted
-          data-start="7.6"
+          data-start="9.6"
           data-duration="1.6"
           data-track-index="0"
         ></video>
@@ -259,7 +268,7 @@
           class="clip camp-shot"
           src="assets/test.mp4"
           muted
-          data-start="9.2"
+          data-start="11.2"
           data-duration="1.5"
           data-track-index="0"
         ></video>
@@ -268,7 +277,7 @@
           class="clip panel-shot summary-shot"
           src="assets/report.png"
           alt=""
-          data-start="10.7"
+          data-start="12.7"
           data-duration="2.6"
           data-track-index="0"
         />
@@ -277,7 +286,7 @@
           class="clip diff-shot"
           src="assets/diff.png"
           alt=""
-          data-start="13.3"
+          data-start="15.3"
           data-duration="2.3"
           data-track-index="0"
         />
@@ -286,7 +295,7 @@
           class="clip panel-shot log-shot"
           src="assets/log.png"
           alt=""
-          data-start="15.6"
+          data-start="17.6"
           data-duration="2.6"
           data-track-index="0"
         />
@@ -295,7 +304,7 @@
           class="clip panel-shot wiki-shot"
           src="assets/wiki.png"
           alt=""
-          data-start="18.2"
+          data-start="20.2"
           data-duration="1.2"
           data-track-index="0"
         />
@@ -304,7 +313,7 @@
           class="clip panel-shot wiki-shot"
           src="assets/wiki-doc.png"
           alt=""
-          data-start="19.4"
+          data-start="21.4"
           data-duration="1.8"
           data-track-index="0"
         />
@@ -313,7 +322,7 @@
           class="clip panel-shot settings-shot"
           src="assets/workflow.png"
           alt=""
-          data-start="21.2"
+          data-start="23.2"
           data-duration="1.3"
           data-track-index="0"
         />
@@ -322,7 +331,7 @@
           class="clip panel-shot settings-shot"
           src="assets/workflow-owner.png"
           alt=""
-          data-start="22.5"
+          data-start="24.5"
           data-duration="1.8"
           data-track-index="0"
         />
@@ -331,7 +340,7 @@
           class="clip panel-shot summary-shot"
           src="assets/history.png"
           alt=""
-          data-start="24.3"
+          data-start="26.3"
           data-duration="1.1"
           data-track-index="0"
         />
@@ -340,7 +349,7 @@
           class="clip panel-shot summary-shot"
           src="assets/history-chat.png"
           alt=""
-          data-start="25.4"
+          data-start="27.4"
           data-duration="1.5"
           data-track-index="0"
         />
@@ -349,7 +358,7 @@
           class="clip camp-shot"
           src="assets/end.mp4"
           muted
-          data-start="26.9"
+          data-start="28.9"
           data-duration="1.3"
           data-track-index="0"
         ></video>
@@ -358,53 +367,59 @@
       <div id="c-ask" class="caption clip" data-start="1.2" data-duration="3" data-track-index="1">
         Give the crew a task.
       </div>
-      <div id="c-build" class="caption clip" data-start="4.2" data-duration="1.8" data-track-index="1">
+      <div id="c-plan" class="caption clip" data-start="4.2" data-duration="2" data-track-index="1">
+        A conductor plans the work.
+      </div>
+      <div id="c-build" class="caption clip" data-start="6.2" data-duration="1.8" data-track-index="1">
         Hand the fix to a coder.
       </div>
-      <div id="c-bounce" class="caption clip" data-start="6" data-duration="1.6" data-track-index="1">
+      <div id="c-bounce" class="caption clip" data-start="8" data-duration="1.6" data-track-index="1">
         Review and tests catch the bug.
       </div>
-      <div id="c-fix" class="caption clip" data-start="7.6" data-duration="1.6" data-track-index="1">
+      <div id="c-fix" class="caption clip" data-start="9.6" data-duration="1.6" data-track-index="1">
         Send it back with concrete notes.
       </div>
-      <div id="c-test" class="caption clip" data-start="9.2" data-duration="1.5" data-track-index="1">
+      <div id="c-test" class="caption clip" data-start="11.2" data-duration="1.5" data-track-index="1">
         Run the checks again.
       </div>
-      <div id="c-report" class="caption clip panel-caption" data-start="10.7" data-duration="2.6" data-track-index="1">
+      <div id="c-report" class="caption clip panel-caption" data-start="12.7" data-duration="2.6" data-track-index="1">
         See what changed.
       </div>
-      <div id="c-diff" class="caption clip panel-caption" data-start="13.3" data-duration="2.3" data-track-index="1">
+      <div id="c-diff" class="caption clip panel-caption" data-start="15.3" data-duration="2.3" data-track-index="1">
         Inspect the code diff.
       </div>
-      <div id="c-log" class="caption clip panel-caption" data-start="15.6" data-duration="2.6" data-track-index="1">
+      <div id="c-log" class="caption clip panel-caption" data-start="17.6" data-duration="2.6" data-track-index="1">
         Open the test log.
       </div>
-      <div id="c-wiki" class="caption clip panel-caption" data-start="18.2" data-duration="3" data-track-index="1">
+      <div id="c-wiki" class="caption clip panel-caption" data-start="20.2" data-duration="3" data-track-index="1">
         Open a linked wiki page.
       </div>
       <div
         id="c-workflow"
         class="caption clip panel-caption"
-        data-start="21.2"
+        data-start="23.2"
         data-duration="3.1"
         data-track-index="1"
       >
         Choose a step owner.
       </div>
-      <div id="c-history" class="caption clip panel-caption" data-start="24.3" data-duration="2.6" data-track-index="1">
+      <div id="c-history" class="caption clip panel-caption" data-start="26.3" data-duration="2.6" data-track-index="1">
         Reopen an earlier chat.
       </div>
 
-      <div id="b-build" class="badge clip" data-start="4.2" data-duration="1.8" data-track-index="2">
+      <div id="b-plan" class="badge clip" data-start="4.2" data-duration="2" data-track-index="2">
+        <b>PLAN</b>Daon the Conductor
+      </div>
+      <div id="b-build" class="badge clip" data-start="6.2" data-duration="1.8" data-track-index="2">
         <b>BUILD</b>Moru the Coder
       </div>
-      <div id="b-bounce" class="badge clip" data-start="6" data-duration="1.6" data-track-index="2">
+      <div id="b-bounce" class="badge clip" data-start="8" data-duration="1.6" data-track-index="2">
         <b>REVIEW</b>Serin the Reviewer
       </div>
-      <div id="b-fix" class="badge clip" data-start="7.6" data-duration="1.6" data-track-index="2">
+      <div id="b-fix" class="badge clip" data-start="9.6" data-duration="1.6" data-track-index="2">
         <b>FIX</b>Moru the Coder
       </div>
-      <div id="stamp" class="clip" data-start="10.7" data-duration="2.6" data-track-index="2">✓ 18 TESTS PASSED</div>
+      <div id="stamp" class="clip" data-start="12.7" data-duration="2.6" data-track-index="2">✓ 6 TESTS PASSED</div>
 
       <div id="intro" class="card clip" data-start="0" data-duration="1.2" data-track-index="3">
         <h1>crew</h1>
@@ -412,7 +427,7 @@
         <p>A dev crew for your codebase.</p>
       </div>
 
-      <div id="end" class="card clip" data-start="26.9" data-duration="1.3" data-track-index="3">
+      <div id="end" class="card clip" data-start="28.9" data-duration="1.3" data-track-index="3">
         <h1>crew</h1>
         <div class="rule"></div>
         <p>Ask. Build. Review.</p>

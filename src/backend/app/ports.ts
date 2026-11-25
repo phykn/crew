@@ -103,6 +103,7 @@ interface TaskRecords {
   listTasks(sessionId: number): Task[];
   writeTaskStatus(id: number, status: TaskStatus, stage: string, say: Say): void;
   writeTaskWorkflow(taskId: number, w: Workflow): void;
+  settleTask(taskId: number, kind: string, request: string, w: Workflow): void;
   appendRequest(taskId: number, text: string): void;
   assign(taskId: number, stepId: string, memberId: number): void;
   assignee(taskId: number, stepId: string): number | null;

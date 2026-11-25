@@ -4,8 +4,8 @@ import { expect, test } from 'vitest';
 import { checkCall } from '../../src/backend/domain/policy';
 import { openChat, reply } from '../support';
 
-test('a run starts with its own memory and this project wiki only', async () => {
-  const { store, fake, chat, p: a } = openChat({ 시험: [reply('ok')] });
+test('a run starts with its own memory and this project wiki only, sent again only once they change', async () => {
+  const { store, fake, chat, p: a } = openChat({ 시험: [reply('ok'), reply('ok'), reply('ok')] });
   const other = path.join(path.dirname(a.path), 'other');
   fs.mkdirSync(other);
   const b = store.addProject(other);
@@ -17,13 +17,19 @@ test('a run starts with its own memory and this project wiki only', async () => 
   chat.wiki.remember(a.id, tester.id, '- node --test를 쓴다');
   chat.wiki.remember(a.id, store.readMember(a.id, 'coder').id, '- 코드 작성의 기억');
 
-  await chat.runs.run(tester, store.createSession(a.id).id, null, 'hi');
-  const system = String(fake.calls[0].options.systemPrompt);
-  expect(system).toContain('- 테스트 방법: npm test');
-  expect(system).toContain('- coder (코드 작성):');
-  expect(system).toContain('node --test를 쓴다');
-  expect(system).not.toContain('다른 프로젝트 문서');
-  expect(system).not.toContain('코드 작성의 기억');
+  const session = store.createSession(a.id).id;
+  await chat.runs.run(tester, session, null, 'hi');
+  // The roster stays in the system prompt; memory and the wiki index, which change often, ride in the prompt
+  const prompt = fake.calls[0].prompt;
+  expect(String(fake.calls[0].options.systemPrompt)).toContain('- coder (코드 작성):');
+  expect(prompt).toContain('- 테스트 방법: npm test');
+  expect(prompt).toContain('node --test를 쓴다');
+  expect(prompt).not.toContain('다른 프로젝트 문서');
+  expect(prompt).not.toContain('코드 작성의 기억');
+  await chat.runs.run(tester, session, null, 'again');
+  chat.wiki.write(a.id, '배포', 'npm run make', user);
+  await chat.runs.run(tester, session, null, 'later');
+  expect(fake.calls.slice(1).map((c) => c.prompt.includes('# Project wiki index'))).toEqual([false, true]);
 });
 
 test('the wiki graph draws each [[link]] once and shows a linked title with no document as one to write', () => {

@@ -4,13 +4,18 @@ import { launchApp, makeScratch, openProject } from './launch';
 const hb = (summary: string) => ({ structured: { summary, body: '', points: [], files: [], checks: [] } });
 // The second task is code, so its change also goes through every check
 const pass = { structured: { summary: '통과', body: '', verdict: 'pass', points: [], files: [], checks: ['ok'] } };
-const start = (role: string, title: string) => ({
-  call: { name: 'start_task', input: { original: '원문', kind: 'code', title, request: title, role } },
+const start = (title: string) => ({
+  call: { name: 'start_task', input: { original: '원문', title, request: title } },
   text: '시작했습니다.',
 });
 // The members only hand back; the librarian folds each finished task into the wiki on its own
 const SCRIPT = {
-  통역: [start('시험', '시험 방법 정리'), { text: '보고 1' }, start('코드 작성', '명령 보완'), { text: '보고 2' }],
+  통역: [start('시험 방법 정리'), { text: '보고 1' }, start('명령 보완'), { text: '보고 2' }],
+  // 지휘 gives the first task to 시험 alone and the second to 코드 작성
+  지휘: [
+    { structured: { summary: '배정', body: '', kind: 'code', member: '시험' } },
+    { structured: { summary: '배정', body: '', kind: 'code', member: '코드 작성' } },
+  ],
   시험: [hb('정리'), pass],
   '코드 검토': [pass],
   '코드 작성': [hb('보완')],

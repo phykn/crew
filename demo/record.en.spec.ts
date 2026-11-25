@@ -15,13 +15,15 @@ const FILES: Record<string, string> = {
   'src/checkout.js':
     "const TAX = 0.1;\n\n// Charges a cart, then takes the stock it bought\nexport async function checkout(store, cart) {\n  const item = await store.find(cart.sku);\n  if (!item || item.stock < cart.quantity) throw new Error('sold out');\n  const price = Math.round(item.price * cart.quantity * (1 + TAX));\n  await store.charge(cart.card, price);\n  await store.take(cart.sku, cart.quantity);\n  return { charged: price };\n}\n",
   'src/store.js':
-    '// A stand-in for the shop database, so the checkout can be read on its own\nconst rows = new Map();\n\nexport function memoryStore(items) {\n  for (const [sku, row] of Object.entries(items)) rows.set(sku, { sku, ...row });\n  return {\n    async find(sku) {\n      return rows.get(sku) ?? null;\n    },\n    async take(sku, quantity) {\n      const row = rows.get(sku);\n      row.stock -= quantity;\n    },\n    async charge(card, price) {\n      this.charges.push({ card, price });\n    },\n    charges: [],\n  };\n}\n',
+    '// A stand-in for the shop database, so the checkout can be read on its own\nexport function memoryStore(items) {\n  const rows = new Map(Object.entries(items).map(([sku, row]) => [sku, { sku, ...row }]));\n  return {\n    async find(sku) {\n      return rows.get(sku) ?? null;\n    },\n    async take(sku, quantity) {\n      rows.get(sku).stock -= quantity;\n    },\n    async charge(card, price) {\n      this.charges.push({ card, price });\n    },\n    charges: [],\n  };\n}\n',
   'test/checkout.test.js':
-    "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { checkout } from '../src/checkout.js';\nimport { memoryStore } from '../src/store.js';\n\ntest('charges the price with tax', async () => {\n  const store = memoryStore({ lamp: { stock: 3, price: 20 } });\n  const done = await checkout(store, { sku: 'lamp', quantity: 1, card: 'tok_1' });\n  assert.equal(done.charged, 22);\n});\n",
-  '.crew/wiki/checkout.md':
+    "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { checkout } from '../src/checkout.js';\nimport { memoryStore } from '../src/store.js';\n\nconst cart = (more) => ({ id: 'c1', sku: 'lamp', quantity: 1, card: 'tok_1', ...more });\n\ntest('charges the price with tax', async () => {\n  const store = memoryStore({ lamp: { stock: 3, price: 20 } });\n  assert.equal((await checkout(store, cart())).charged, 22);\n});\n\ntest('charges for every unit', async () => {\n  const store = memoryStore({ lamp: { stock: 3, price: 20 } });\n  assert.equal((await checkout(store, cart({ quantity: 2 }))).charged, 44);\n});\n\ntest('turns away a sold-out item without a charge', async () => {\n  const store = memoryStore({ lamp: { stock: 0, price: 20 } });\n  await assert.rejects(checkout(store, cart()), /sold out/);\n  assert.equal(store.charges.length, 0);\n});\n",
+  'test/store.test.js':
+    "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { memoryStore } from '../src/store.js';\n\ntest('finds an item by its sku', async () => {\n  const store = memoryStore({ lamp: { stock: 3, price: 20 } });\n  assert.equal((await store.find('lamp')).price, 20);\n});\n\ntest('taking stock lowers it', async () => {\n  const store = memoryStore({ lamp: { stock: 3, price: 20 } });\n  await store.take('lamp', 2);\n  assert.equal((await store.find('lamp')).stock, 1);\n});\n",
+  '.crew/wiki/Checkout.md':
     'The checkout path\n\n`POST /checkout` finds the item, charges the card, then takes the stock. Price is the item price with 10% tax, rounded.\n\nThe order of those three steps is the whole design: see [[Payment retries]] for what happens after a charge and [[Testing]] for how the flow is proven.\n',
   '.crew/wiki/Payment retries.md':
-    'Payment retries\n\nA failed charge is retried twice with the same card token, then the cart is left as it was. A retry must never take stock twice, which is why the claim comes before the charge.\n\nRelated: [[Checkout]]\n',
+    'Payment retries\n\nA failed charge is retried twice with the same card token, then the cart is left as it was. A retry must never take stock twice, which is why the stock must be settled before the charge.\n\nRelated: [[Checkout]]\n',
   '.crew/wiki/Testing.md':
     'Testing\n\nThe shop runs `npm test` on node:test; every flow test builds a memory store instead of a database. A bug fix lands with the test that fails without it.\n\nRelated: [[Checkout]] and [[Release checklist]]\n',
   '.crew/wiki/Release checklist.md':
@@ -33,7 +35,7 @@ const FILES: Record<string, string> = {
   '.crew/memory/tester.md': 'The double-click path needs two carts, not two clicks on one: the store is what races.',
 };
 
-// Each member's next answer; a turn may write a file, call an app tool, or just take its time
+// Each member's next answer; a turn may write files, call an app tool, or just take its time
 const hb = (summary: string, more: Record<string, unknown> = {}) => ({
   structured: { summary, body: '', points: [], files: [], checks: [], ...more },
 });
@@ -47,87 +49,108 @@ const SCRIPT = {
         name: 'start_task',
         input: {
           original: QUEST,
-          kind: 'code',
-          size: 'large',
           title: 'Fix the double charge',
           request:
-            'A double click on Pay charges the card twice. Make checkout claim the stock and charge it in one step, and add a test for the double-click path.',
+            'A double click on Pay charges the card twice. Make the last unit go to one checkout only, and add a regression test for the double-click path.',
         },
       },
-      text: 'On it. Opening the quest for the crew.',
+      text: 'On it. The conductor takes it from here.',
     },
     {
-      text: 'Fixed the double charge. A second request gets "sold out" without another charge. All 18 tests pass, including the double-click regression.',
+      text: 'Fixed the double charge. The last lamp now sells once, and all 6 tests pass.',
     },
   ],
   conductor: [
     {
-      text: 'Plan: make the stock claim one step, charge only after it, and prove it with the double-click test.',
-      wait: 2600,
-      ...hb('Claim the stock in one step, then charge', {
+      text: 'A code change that needs a plan: the race spans the checkout and the store.',
+      wait: 1600,
+      structured: { summary: 'A code change, planned first', body: '', kind: 'code' },
+    },
+    {
+      text: 'Plan: settle the stock in one step before the charge, release it if the charge fails, and prove it with a double-click test.',
+      wait: 2200,
+      ...hb('Settle the stock in one step, then charge', {
         points: [
-          'store.claim takes one unit or returns nothing, in a single step',
-          'checkout charges the claim, and releases it when the charge fails',
-          'test: two checkouts of the last item, one charge',
+          'store.claim checks and takes the stock with no await between',
+          'checkout charges only after the claim, and releases it when the charge fails',
+          'test: two carts buy the last lamp at once, one charge',
         ],
-        files: [],
       }),
+    },
+  ],
+  judge: [
+    {
+      text: 'Goal met: the last lamp is charged once, and the test proves it.',
+      wait: 1200,
+      structured: { summary: 'The double charge is gone and a test guards it', body: '', decision: 'done' },
     },
   ],
   reviewer: [
     {
       text: 'The plan covers the race and the test that proves it. Go ahead.',
-      wait: 1800,
+      wait: 1600,
       ...pass('Plan covers the race and its test'),
     },
     {
-      text: 'Line 9 reads the stock and line 13 takes it. Two carts still pass the check before either takes, so both charge. Claim it in one step.',
+      text: 'Line 9 reads the stock and line 13 takes it. Two carts both pass the check in between, so the last lamp is charged twice. Settle it in one step.',
       wait: 2600,
-      ...hb('The claim is still read-then-write', {
+      ...hb('The stock is still read, then taken', {
         verdict: 'rework',
-        points: ['src/checkout.js:9-13 the stock is read, then taken; claim it in one step'],
+        points: ['src/checkout.js:9-13 the stock is read, then taken; two carts both pass the check'],
       }),
     },
     {
-      text: 'One claim per unit, release on a failed charge, and the test proves it. Good.',
+      text: 'One claim per unit, released on a failed charge, and the test proves it. Good.',
       wait: 1800,
-      ...pass('The claim is atomic and released on failure'),
+      ...pass('The claim is one step and released on failure'),
     },
   ],
   coder: [
     {
-      text: 'Making checkout hold the cart while it works.',
+      text: 'Turning a second click on the same cart away, with a double-click test.',
       wait: 3800,
-      write: {
-        file: 'src/checkout.js',
-        text: "const TAX = 0.1;\n\n// One checkout per cart at a time, and the stock is checked right before the charge\nexport async function checkout(store, cart) {\n  if (await store.pending(cart.id)) throw new Error('already running');\n  await store.markPending(cart.id);\n  const item = await store.find(cart.sku);\n  if (!item || item.stock < cart.quantity) throw new Error('sold out');\n  const price = Math.round(item.price * cart.quantity * (1 + TAX));\n  await store.charge(cart.card, price);\n  await store.take(cart.sku, cart.quantity);\n  await store.clearPending(cart.id);\n  return { charged: price };\n}\n",
-      },
-      ...hb('Held the cart for the length of the checkout', { files: ['src/checkout.js'] }),
+      write: [
+        {
+          file: 'src/checkout.js',
+          text: "const TAX = 0.1;\n// A cart already at checkout is turned away, so a double click charges once\nconst running = new Set();\n\nexport async function checkout(store, cart) {\n  if (running.has(cart.id)) throw new Error('already running');\n  running.add(cart.id);\n  try {\n    const item = await store.find(cart.sku);\n    if (!item || item.stock < cart.quantity) throw new Error('sold out');\n    const price = Math.round(item.price * cart.quantity * (1 + TAX));\n    await store.charge(cart.card, price);\n    await store.take(cart.sku, cart.quantity);\n    return { charged: price };\n  } finally {\n    running.delete(cart.id);\n  }\n}\n",
+        },
+        {
+          file: 'test/checkout.test.js',
+          text: "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { checkout } from '../src/checkout.js';\nimport { memoryStore } from '../src/store.js';\n\nconst cart = (more) => ({ id: 'c1', sku: 'lamp', quantity: 1, card: 'tok_1', ...more });\n\ntest('charges the price with tax', async () => {\n  const store = memoryStore({ lamp: { stock: 3, price: 20 } });\n  assert.equal((await checkout(store, cart())).charged, 22);\n});\n\ntest('charges for every unit', async () => {\n  const store = memoryStore({ lamp: { stock: 3, price: 20 } });\n  assert.equal((await checkout(store, cart({ quantity: 2 }))).charged, 44);\n});\n\ntest('turns away a sold-out item without a charge', async () => {\n  const store = memoryStore({ lamp: { stock: 0, price: 20 } });\n  await assert.rejects(checkout(store, cart()), /sold out/);\n  assert.equal(store.charges.length, 0);\n});\n\ntest('a double click on the last lamp charges once', async () => {\n  const store = memoryStore({ lamp: { stock: 1, price: 20 } });\n  const results = await Promise.allSettled([checkout(store, cart({ id: 'a' })), checkout(store, cart({ id: 'b' }))]);\n  assert.equal(store.charges.length, 1);\n  assert.equal(results.filter((r) => r.status === 'rejected').length, 1);\n});\n",
+        },
+      ],
+      ...hb('A cart at checkout turns a second click away'),
     },
     {
-      text: 'Atomic claim, charge after it, release if the charge fails, and the double-click test is in.',
+      text: 'The store claims the stock in one step, checkout charges after it and releases it if the charge fails.',
       wait: 3200,
-      write: {
-        file: 'src/checkout.js',
-        text: "const TAX = 0.1;\n\n// The claim is the checkout: the store hands out one unit once, and only then does the card see a charge\nexport async function checkout(store, cart) {\n  const claim = await store.claim(cart.sku, cart.quantity);\n  if (!claim) throw new Error('sold out');\n  const price = Math.round(claim.price * cart.quantity * (1 + TAX));\n  try {\n    await store.charge(cart.card, price);\n  } catch (err) {\n    await store.release(claim.id);\n    throw err;\n  }\n  return { charged: price, claimId: claim.id };\n}\n",
-      },
-      ...hb('Claim in one step, charge after it', { files: ['src/checkout.js', 'test/checkout.test.js'] }),
+      write: [
+        {
+          file: 'src/store.js',
+          text: '// A stand-in for the shop database, so the checkout can be read on its own\nexport function memoryStore(items) {\n  const rows = new Map(Object.entries(items).map(([sku, row]) => [sku, { sku, ...row }]));\n  const claims = new Map();\n  return {\n    async find(sku) {\n      return rows.get(sku) ?? null;\n    },\n    async take(sku, quantity) {\n      rows.get(sku).stock -= quantity;\n    },\n    // Checks and takes the stock with no await between, so two checkouts cannot both get the last unit\n    async claim(sku, quantity) {\n      const row = rows.get(sku);\n      if (!row || row.stock < quantity) return null;\n      row.stock -= quantity;\n      const id = claims.size + 1;\n      claims.set(id, { sku, quantity });\n      return { id, price: row.price };\n    },\n    async release(id) {\n      const held = claims.get(id);\n      rows.get(held.sku).stock += held.quantity;\n      claims.delete(id);\n    },\n    async charge(card, price) {\n      this.charges.push({ card, price });\n    },\n    charges: [],\n  };\n}\n',
+        },
+        {
+          file: 'src/checkout.js',
+          text: "const TAX = 0.1;\n\n// The claim is the checkout: the store hands out a unit once, and only then does the card see a charge\nexport async function checkout(store, cart) {\n  const claim = await store.claim(cart.sku, cart.quantity);\n  if (!claim) throw new Error('sold out');\n  const price = Math.round(claim.price * cart.quantity * (1 + TAX));\n  try {\n    await store.charge(cart.card, price);\n  } catch (err) {\n    await store.release(claim.id);\n    throw err;\n  }\n  return { charged: price };\n}\n",
+        },
+      ],
+      ...hb('Claim the stock in one step, then charge'),
     },
   ],
   tester: [
     {
-      text: 'npm test → 17 passed, 1 failed: the double-click test charges twice. That is the bug talking.',
+      text: 'npm test → 5 passed, 1 failed: two carts still buy the last lamp twice. The new test caught it.',
       wait: 2800,
-      ...hb('The double-click test fails as it should', {
+      ...hb('The double-click test fails: two charges', {
         verdict: 'rework',
-        points: ['test/checkout.test.js the last item is taken twice'],
-        checks: ['npm test → 17 passed, 1 failed'],
+        points: ['test/checkout.test.js a double click on the last lamp: 2 charges, expected 1'],
+        checks: ['npm test → 5 passed, 1 failed'],
       }),
     },
     {
-      text: 'npm test → 18 passed. The double-click path charges once and the second request gets "sold out".',
+      text: 'npm test → 6 passed. Two carts at once: one charge, one "sold out".',
       wait: 2600,
-      ...pass('18 tests pass, double-click path included', ['npm test → 18 passed', 'npm run lint → 0 problems']),
+      ...pass('6 tests pass, the double-click test among them', ['npm test → 6 passed']),
     },
   ],
   librarian: [
@@ -138,7 +161,7 @@ const SCRIPT = {
         name: 'wiki_write',
         input: {
           title: 'Checkout',
-          body: 'Checkout\n\n`POST /checkout` claims one unit from the store, then charges the card. The claim is a single step, so a double click cannot buy the last item twice; a failed charge releases the claim.\n\nRelated: [[Payment retries]], [[Testing]]',
+          body: 'The checkout path\n\n`POST /checkout` claims the stock from the store in one step, then charges the card; a failed charge releases the claim. Two checkouts of the last unit get one charge and one "sold out".\n\nRelated: [[Payment retries]], [[Testing]]',
         },
       },
     },
@@ -207,7 +230,7 @@ test('record the English demo', async () => {
     .first();
   await testRun.scrollIntoViewIfNeeded();
   await testRun.click();
-  const checks = page.getByText('npm test → 18 passed', { exact: false }).last();
+  const checks = page.getByText('npm test → 6 passed', { exact: false }).last();
   await expect(checks).toBeVisible();
   await checks.scrollIntoViewIfNeeded();
   await still('log');

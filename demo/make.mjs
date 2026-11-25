@@ -74,6 +74,7 @@ const SCENES = {
   ],
   en: () => {
     const stage = (step, nth = 0) => m.stages.filter((s) => s.text === step)[nth].at;
+    const plan = stage('Assign');
     const build = stage('Develop');
     const bounce = stage('Code review');
     const fix = stage('Fixing');
@@ -81,6 +82,7 @@ const SCENES = {
     return [
       ['intro', m.open + 1.8, m.ask, 1.2],
       ['ask', m.ask + 0.1, m.sent - 0.15, 3],
+      ['plan', plan + 0.1, build, 2],
       ['build', build + 0.2, bounce, 1.8],
       ['bounce', bounce + 0.3, fix, 1.6],
       ['fix', fix + 0.2, test, 1.6],

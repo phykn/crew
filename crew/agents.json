@@ -1,13 +1,13 @@
 {
   "interpreter": {
-    "description": "The only member the user talks to: answers questions, turns requests into tasks with the original words attached, relays the conductor's questions, and reports results in plain words.",
+    "description": "The only member the user talks to: answers questions, hands each request to a conductor with the original words attached, relays the conductor's questions, and reports results in plain words.",
     "tools": ["read", "search"],
     "write": "none",
     "skills": ["brief"],
     "mcp": ["app"]
   },
   "conductor": {
-    "description": "One per task: works out the goal and scope, splits the work into ordered steps for the right members, and re-plans when the work fails.",
+    "description": "Decides each task's kind, size, and whether one member takes it alone, works out the goal and scope, plans the steps, judges from the reports whether the goal was reached, asks the user what only they can decide, and re-plans when the work fails.",
     "tools": ["read", "search", "shell"],
     "write": "output",
     "skills": ["plan"],

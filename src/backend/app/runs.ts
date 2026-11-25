@@ -47,8 +47,24 @@ export class Runs {
     return [...this.active].find((a) => a.secretary && a.sessionId === sessionId)?.run;
   }
 
+  // Each Claude session's memory and wiki index as last sent, so an unchanged one is not sent again
+  contexts = new Map<number, string>();
+
+  // Whether the member's next run continues its Claude session, which already holds what it was told
+  resumes(member: Member, sessionId: number) {
+    const a = this.chat.store.openAgentSession(sessionId, member.id);
+    return !!a.claudeId && a.model === member.model;
+  }
+
   // Runs one member in its own Claude session for this app session, after whatever it is already doing
-  run(member: Member, sessionId: number, taskId: number | null, prompt: string, opts: RunOptions = {}) {
+  // A prompt given as a function is built once the run leaves the lane, told whether the session goes on
+  run(
+    member: Member,
+    sessionId: number,
+    taskId: number | null,
+    prompt: string | ((resumes: boolean) => string),
+    opts: RunOptions = {},
+  ) {
     const agentSession = this.chat.store.openAgentSession(sessionId, member.id);
     const before = this.lanes.get(agentSession.id) ?? Promise.resolve();
     const turn = before.then(() => this.execute(member, sessionId, taskId, prompt, opts));
@@ -59,7 +75,13 @@ export class Runs {
     return turn;
   }
 
-  async execute(member: Member, sessionId: number, taskId: number | null, prompt: string, opts: RunOptions) {
+  async execute(
+    member: Member,
+    sessionId: number,
+    taskId: number | null,
+    given: string | ((resumes: boolean) => string),
+    opts: RunOptions,
+  ) {
     const { store, crew, members } = this.chat;
     // The member may have changed while it waited in its lane
     member = store.readMemberById(member.id);
@@ -68,8 +90,12 @@ export class Runs {
     const settings = members.settings(member);
     const agentSession = store.openAgentSession(sessionId, member.id);
     // A Claude session started on another model is not continued; the new one is handed what came before
-    const resume = agentSession.claudeId && agentSession.model === member.model ? agentSession.claudeId : null;
+    const resume = this.resumes(member, sessionId) ? agentSession.claudeId : null;
+    let prompt = typeof given === 'function' ? given(!!resume) : given;
     if (agentSession.claudeId && !resume) prompt = `${this.handoff(member, sessionId)}\n\n${prompt}`;
+    // Memory and the wiki index change often, so they ride in the prompt and the system prompt stays cached
+    const context = this.chat.wiki.context(project.id, member.id);
+    if (!resume || this.contexts.get(agentSession.id) !== context) prompt = `${context}\n\n${prompt}`;
     const run = this.chat.agent.start({
       cwd: project.path,
       model: member.model,
@@ -98,6 +124,8 @@ export class Runs {
     // A member let go mid-run leaves once this run, its last, has ended
     if (!this.busy(member.id) && store.readMemberById(member.id).leaving) members.leave(member.id);
     if (out.claudeId) store.writeClaudeId(agentSession.id, out.claudeId, member.model);
+    // Only a run that answered surely read its context
+    if (out.claudeId && out.status === 'done') this.contexts.set(agentSession.id, context);
     store.finishRun(runId, out);
     return out;
   }
@@ -112,12 +140,8 @@ export class Runs {
   }
 
   system(member: Member, project: Project) {
-    const { crew, members, wiki } = this.chat;
-    return [
-      crew.system(crew.defOf(member), members.settings(member)),
-      members.roster(project.id),
-      wiki.context(project.id, member.id),
-    ].join('\n\n');
+    const { crew, members } = this.chat;
+    return [crew.system(crew.defOf(member), members.settings(member)), members.roster(project.id)].join('\n\n');
   }
 
   // A question answered by a copy of the member's Claude session, beside its lane: the copy cannot write, and the work never hears of it

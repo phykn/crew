@@ -54,11 +54,12 @@ const hb = (summary: string) => ({ structured: { summary, body: '', points: [], 
 const RESEARCH = {
   통역: [
     {
-      call: { name: 'start_task', input: { original: '원문', kind: 'research', title: '자료 조사', request: 'r' } },
+      call: { name: 'start_task', input: { original: '원문', title: '자료 조사', request: 'r' } },
       text: '시작',
     },
     { text: '보고' },
   ],
+  지휘: [{ structured: { summary: '배정', body: '', kind: 'research' } }],
   조사: [{ call: { name: 'remember', input: { text: '짧은 답을 좋아함' } }, ...hb('조사 완료') }],
 };
 

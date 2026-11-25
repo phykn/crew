@@ -10,12 +10,12 @@ export const keyIn = (system: unknown) => {
   return key ? baseKey(key) : '?';
 };
 
-// One scripted answer: optionally a guarded tool call, a file write, or an app tool call first
+// One scripted answer: optionally a guarded tool call, file writes, or an app tool call first
 type Turn = {
   text?: string;
   structured?: unknown;
   tool?: { name: string; input: Record<string, unknown> };
-  write?: { file: string; text: string };
+  write?: { file: string; text: string } | { file: string; text: string }[];
   call?: { name: string; input: Record<string, unknown> };
   // Milliseconds the turn takes, so a recording shows the crew at work instead of done at once
   wait?: number;
@@ -38,8 +38,12 @@ export function scriptSdk(file: string): Sdk {
     let cut = () => {};
     const cutOff = new Promise<'cut'>((resolve) => (cut = () => resolve('cut')));
     async function* run(): AsyncGenerator<SDKMessage> {
-      for await (const _ of prompt as AsyncIterable<SDKUserMessage>) {
-        const turn = script[role]?.shift();
+      for await (const msg of prompt as AsyncIterable<SDKUserMessage>) {
+        // The conductor's judgment reads from its own lines, judge, and passes when none is given
+        const judging = role === 'conductor' && JSON.stringify(msg.message.content).includes('Your step: judge.');
+        const turn = judging
+          ? (script.judge?.shift() ?? { structured: { summary: 'pass', body: '', decision: 'done' } })
+          : script[role]?.shift();
         if (!turn) throw new Error(`no scripted turn left for ${role}`);
         const result = turn.call
           ? ((await tools.get(turn.call.name)!(turn.call.input)) as { content: { text: string }[] })
@@ -61,7 +65,10 @@ export function scriptSdk(file: string): Sdk {
           } as never);
         if (asked && (await Promise.race([asked, cutOff])) === 'cut') return;
         if (turn.wait && (await Promise.race([new Promise((r) => setTimeout(r, turn.wait)), cutOff])) === 'cut') return;
-        if (turn.write) fs.writeFileSync(path.join(options!.cwd!, turn.write.file), turn.write.text);
+        for (const w of [turn.write ?? []].flat()) {
+          fs.mkdirSync(path.dirname(path.join(options!.cwd!, w.file)), { recursive: true });
+          fs.writeFileSync(path.join(options!.cwd!, w.file), w.text);
+        }
         yield {
           type: 'result',
           subtype: 'success',

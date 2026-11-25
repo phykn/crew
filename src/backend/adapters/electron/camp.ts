@@ -1,4 +1,5 @@
 import type { Chat } from '../../app/chat';
+import { JUDGE } from '../../domain/task';
 
 // scene names what plays, for the window to word: a report, a failed task, a note or its answer, a failed step, a redo
 type CampLine = {
@@ -21,7 +22,10 @@ export function campState(chat: Chat, sessionId: number) {
       const key = keyOf(r.memberId);
       if (!key) continue;
       tasks[key] = t.id;
-      if (r.status === 'running') working[key] = t.workflow.steps.find((s) => s.id === r.stepId)?.label ?? r.stepId;
+      if (r.status === 'running')
+        working[key] =
+          t.workflow.steps.find((s) => s.id === r.stepId)?.label ??
+          (r.stepId === JUDGE ? chat.tasks.judgeStep().label : r.stepId);
     }
   }
   // The interpreter waits by the fire with a ? while a card waits for the user

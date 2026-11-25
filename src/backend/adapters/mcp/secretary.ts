@@ -5,6 +5,7 @@ import { problemText } from '../../domain/workflow';
 import type { Chat } from '../../app/chat';
 import type { Task } from '../../domain/records';
 import { wikiTools } from './wiki';
+import { CANCEL } from '../../domain/answers';
 
 // The app's own tools for the interpreter in one session; a call is how it opens real work for the crew
 export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
@@ -23,11 +24,9 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
       ...wikiTools(sdk, chat, secretary, sessionId, null),
       sdk.tool(
         'start_task',
-        `Open a task for the crew when the request needs real work: changing files, research, or an improvement review. ` +
-          `Kinds: ${chat.workflows.shipped.map((w) => `${w.kind} (${w.use})`).join('; ')}. ` +
-          `The crew runs it on its own; you are told the result later and report it to the user then.`,
+        `Open a task for the crew when the request needs real work: changing files, research, writing, or an improvement review. ` +
+          `The conductor decides how it is done and who does it; you are told the result later and report it to the user then.`,
         {
-          kind: z.enum(kinds),
           title: z
             .string()
             .min(1)
@@ -40,32 +39,33 @@ export function secretaryTools(sdk: Sdk, chat: Chat, sessionId: number) {
             .describe(
               "The user's own words for this request, exactly as they wrote them, so the conductor can check your reading",
             ),
-          role: z
-            .string()
-            .optional()
-            .describe('Give the whole request to this one member instead: its key or its role as the window names it'),
-          size: z
-            .enum(['small', 'large'])
-            .default('large')
-            .describe(
-              'For a code change: small when it stays within one or two files and needs no design choice, which skips the plan and its review',
-            ),
         },
         async (a) => {
-          const one = a.role ? memberOf(a.role) : null;
-          if (a.role && !one) return text(`${a.role} is not hired now.`);
-          const task = chat.tasks.start(
+          const task = chat.tasks.open(
             sessionId,
-            a.kind,
             a.title,
             `${a.request}
 
 The user's own words:
 ${a.original}`,
-            one ?? undefined,
-            a.size === 'small',
           );
           return text(`Started task #${task.id} "${task.title}".`);
+        },
+      ),
+      sdk.tool(
+        'ask_user',
+        'Ask the user to pick when their request can be read more than one way and the crew would otherwise guess. A card under your message shows the choices; your answer waits for their pick, which comes back as the result.',
+        {
+          question: z.string().min(1).describe("The question in one sentence, in the user's language"),
+          options: z
+            .array(z.string().min(1))
+            .min(2)
+            .max(4)
+            .describe("Each reading, a few words in the user's language"),
+        },
+        async (a) => {
+          const answer = await chat.questions.choose(sessionId, { code: 'card.ask', question: a.question }, a.options);
+          return text(answer === CANCEL ? 'The user did not pick; ask in words instead.' : `The user chose: ${answer}`);
         },
       ),
       sdk.tool(

@@ -4,8 +4,9 @@ import { CAMP, TW, iso } from './projection.js';
 import { headTop } from './figure.js';
 import { t } from '../lang';
 
-// 통역 hands work out, so assignments walk from them
-const LEAD = 'interpreter';
+// 지휘 hands work out, so assignments walk from them; its own work comes from 통역, who passes on the request
+const LEAD = 'conductor';
+const FRONT = 'interpreter';
 
 // Small talk follows the user's clock, so a camp at midnight does not plan lunch
 const CHAT = {
@@ -245,10 +246,10 @@ export function createWalkers() {
     applyStaff(staff) {
       // The window has no crew until a project loads; that empty list is not the crew the page found
       if (before === null && !staff.length) return;
-      const now = performance.now(),
-        leading = staff.some((s) => s.team === LEAD);
+      const now = performance.now();
+      const here = (team) => staff.some((s) => s.team === team);
       // A temp whose mission ended, or someone let go, walks out instead of vanishing
-      for (const [team, p] of people) if (!p.leaving && !staff.some((s) => s.team === team)) leave(team, p);
+      for (const [team, p] of people) if (!p.leaving && !here(team)) leave(team, p);
       // The crew the app opens with walks in from every edge in turn; anyone hired later comes from the bottom
       const first = before === null;
       staff.forEach((s, i) => {
@@ -262,8 +263,11 @@ export function createWalkers() {
         // Hired back on the way out, they simply stay
         if (p.leaving) Object.assign(p, { leaving: null, path: [] });
         p.room = s;
-        if (before && leading && s.team !== LEAD && s.state === 'working' && was !== 'working')
-          handOff(LEAD, s.team, t('camp.handOff', { name: s.name }), 'work');
+        // A copy, such as conductor-5-judge, takes its work from whoever its original would
+        const base = s.team.split('-')[0];
+        const from = base === LEAD ? FRONT : LEAD;
+        if (before && here(from) && base !== FRONT && s.state === 'working' && was !== 'working')
+          handOff(from, s.team, t('camp.handOff', { name: s.name }), 'work');
         if (before && was === 'working' && s.state === 'idle') p.checkUntil = now + 3000;
         if (s.state === 'working' && was !== 'working') {
           // Work starts where the person is: someone strolling stops, someone on a bench stands up

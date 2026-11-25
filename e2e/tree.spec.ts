@@ -73,12 +73,13 @@ const TASK = {
     {
       call: {
         name: 'start_task',
-        input: { original: '원문', kind: 'code', title: '검색 개선', request: 'r', size: 'small' },
+        input: { original: '원문', title: '검색 개선', request: 'r' },
       },
       text: '시작했습니다.',
     },
     { text: '끝났습니다.' },
   ],
+  지휘: [{ structured: { summary: '배정', body: '', kind: 'code', size: 'small' } }],
   '코드 작성': [hb('수정')],
   '코드 검토': [pass],
   시험: [pass],
@@ -93,7 +94,7 @@ test("the explorer lists a session's members in columns: every role, nickname, a
   await page.getByLabel('메시지').press('Enter');
   await expect(page.getByText('끝났습니다.')).toBeVisible({ timeout: 15_000 });
   await page.getByRole('button', { name: '탐색기' }).click();
-  await expect(page.locator('.tree-agent')).toHaveCount(5);
+  await expect(page.locator('.tree-agent')).toHaveCount(6);
   const offsets = await page.locator('.tree-agent').evaluateAll((cells) =>
     cells.map((c) => {
       const left = c.getBoundingClientRect().left;

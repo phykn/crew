@@ -10,12 +10,13 @@ const SCRIPT = {
     {
       call: {
         name: 'start_task',
-        input: { original: '원문', kind: 'research', title: '자료 조사', request: 'x', role: '조사' },
+        input: { original: '원문', title: '자료 조사', request: 'x' },
       },
       text: '시작했습니다.',
     },
     { text: '실패 보고' },
   ],
+  지휘: [{ structured: { summary: '배정', body: '', kind: 'research', member: '조사' } }],
 };
 
 test('the editor saves review and test in parallel after 코드 작성 as a new version, keeps the layout, and leaves the session as it was', async () => {

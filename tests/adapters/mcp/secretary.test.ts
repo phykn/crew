@@ -20,10 +20,19 @@ test('"그거 다시 해줘" with two finished tasks waits on a card, then reope
   expect([store.readTask(one.id).status, store.readTask(two.id).status]).toEqual(['done', 'running']);
 });
 
+test('a request that reads two ways is asked on a card, and the pick comes back to 통역', async () => {
+  const { store, fake, chat, s } = openChat({});
+  secretaryTools(fake.sdk, chat, s.id);
+  const asked = toolText(fake, 'ask_user', { question: '어느 화면인가요?', options: ['로그인', '가입'] });
+  await vi.waitFor(() => expect(store.listMessages(s.id).at(-1)!.question!.options).toEqual(['로그인', '가입']));
+  chat.questions.answer(store.listMessages(s.id).at(-1)!.question!.id, '가입');
+  expect(await asked).toBe('The user chose: 가입');
+});
+
 test("start_task answers with the new task's number and title", async () => {
   const { fake, chat, s } = openChat({ 지휘: [never] });
   secretaryTools(fake.sdk, chat, s.id);
-  expect(await toolText(fake, 'start_task', { kind: 'code', title: '검색 고치기', request: 'r', original: 'r' })).toBe(
+  expect(await toolText(fake, 'start_task', { title: '검색 고치기', request: 'r', original: 'r' })).toBe(
     'Started task #1 "검색 고치기".',
   );
 });

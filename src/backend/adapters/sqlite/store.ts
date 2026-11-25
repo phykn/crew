@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
-import { ALLOW } from '../../domain/answers';
+import { ALLOW, CANCEL } from '../../domain/answers';
 import { RESTARTED } from '../../domain/task';
 import type { Workflow } from '../../domain/workflow';
 import type { RunSpend } from '../../domain/usage';
@@ -371,6 +371,8 @@ export class Store implements Records {
         .all() as { id: number }[];
       this.db.prepare("UPDATE step_runs SET status = 'stopped', error = ? WHERE status = 'running'").run(RESTARTED);
       for (const { id } of cut) this.writeTaskStatus(id, 'stopped', '', { code: 'task.restarted' });
+      // No run is left waiting on a card after a restart, so an open one is closed
+      this.db.prepare('UPDATE questions SET answer = ?, answered_at = ? WHERE answer IS NULL').run(CANCEL, now());
     });
   }
 
@@ -550,6 +552,7 @@ export class Store implements Records {
       points: [text],
       files: [],
       checks: [],
+      notes: [],
       target,
     });
   }
@@ -603,6 +606,13 @@ export class Store implements Records {
 
   writeTaskWorkflow(taskId: number, w: Workflow) {
     this.db.prepare('UPDATE tasks SET workflow = ? WHERE id = ?').run(JSON.stringify(w), taskId);
+  }
+
+  // The conductor's assignment: the kind, the request it runs on, and the steps that follow
+  settleTask(taskId: number, kind: string, request: string, w: Workflow) {
+    this.db
+      .prepare('UPDATE tasks SET kind = ?, request = ?, workflow = ? WHERE id = ?')
+      .run(kind, request, JSON.stringify(w), taskId);
   }
 
   createRequest(r: Omit<PeerRequest, 'id' | 'thread'>): number {

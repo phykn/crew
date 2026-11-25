@@ -10,5 +10,5 @@ How the code reviewer, the document reviewer, and the tester report. The member 
    - Severity: must fix or minor.
 2. Must fix is something that breaks the request, a rule the project or your skill names, a fact, or a test. Something added beyond the request is must fix. Minor is everything else, such as a nicer wording or a matter of taste; it never sends the work back.
 3. Never report as missing something the request did not ask for.
-4. Verdict: send back when any must fix is left, pass otherwise. Say which, then the list.
+4. Verdict: send back when any must fix is left, pass otherwise. Say which, then the list. Only must fix problems go in `points`, since the maker fixes every point it gets.
 5. Say what you read and ran to reach it.

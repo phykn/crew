@@ -15,7 +15,6 @@ const SCRIPT = {
         name: 'start_task',
         input: {
           original: '비밀번호 찾기 넣어줘',
-          kind: 'code',
           title: '비밀번호 찾기',
           request: '로그인 화면에 비밀번호 찾기 링크와 재설정 메일 추가',
         },
@@ -24,7 +23,10 @@ const SCRIPT = {
     },
     { text: '비밀번호 찾기를 추가했습니다. 계획, 코드 검토, 시험, 표준 점검을 모두 통과했습니다.' },
   ],
-  지휘: [{ wait: 3500, ...hb('계획 작성') }],
+  지휘: [
+    { wait: 2500, structured: { summary: '코드 변경으로 배정', body: '', kind: 'code' } },
+    { wait: 3500, ...hb('계획 작성') },
+  ],
   '코드 검토': [
     { wait: 2500, ...pass('계획 통과') },
     { wait: 3500, ...pass('코드 통과') },

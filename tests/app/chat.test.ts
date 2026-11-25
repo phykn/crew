@@ -42,7 +42,9 @@ test('pictures go to 통역 before the words, stay with the message, and may go 
   await chat.send(s.id, '', [png]);
   await chat.send(s.id, '이거 뭐야?', [png]);
 
-  expect(fake.calls.map((c) => c.prompt)).toEqual(['[image]', '[image]\n이거 뭐야?']);
+  // The first turn carries the memory and wiki index; the resumed one already holds them
+  const [one, two] = fake.calls.map((c) => c.prompt);
+  expect([one.startsWith('[image]\n# Your memory'), two]).toEqual([true, '[image]\n이거 뭐야?']);
   expect(store.listMessages(s.id).map((m) => [m.author, m.text, m.imageCount])).toEqual([
     ['user', '', 1],
     ['secretary', '고양이네요.', 0],

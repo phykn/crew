@@ -100,6 +100,7 @@ export type Handback = {
   points: string[];
   files: string[];
   checks: string[];
+  notes: string[];
   // Set on a rework the user asked for: the step it sends back to
   target?: string;
 };

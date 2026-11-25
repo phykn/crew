@@ -174,6 +174,7 @@ export const KO = {
   'log.app': '앱',
   'log.notes': '검토 의견',
   'log.checks': '검사',
+  'log.remarks': '참고',
 
   'mark.done': '완료',
   'mark.failed': '실패',
@@ -320,6 +321,10 @@ export const KO = {
   'flow.improve.structure': '구조 검토',
   'flow.research': '조사',
   'flow.research.research': '조사',
+  'flow.assign': '배정',
+  'flow.assign.assign': '배정',
+  'flow.judge': '감독',
+  'flow.judge.judge': '감독',
   'flow.solo': '단독',
   'flow.solo.work': '작업',
 
@@ -338,6 +343,9 @@ export const KO = {
   'say.overLimit': '{step|을} {loops}번 고쳤지만 검증을 통과하지 못했습니다',
   'say.noChange':
     '{step|이} 다시 했지만 바뀐 것이 없는데 또 되돌려졌습니다. 지적과 지시가 맞지 않아 사용자 결정이 필요합니다',
+  'say.judged': '{text}',
+  'say.card.ask': '{question}',
+  'say.card.decision': '{role} {nickname}: {question}',
   'say.retries': '{step|이} {n}번 다시 시도해도 실패했습니다',
   'say.absent': '{role|이} 고용되어 있지 않아 {step|을} 진행할 수 없습니다. 다른 담당자를 붙여야 합니다',
   'say.stopped': '중단되었습니다',

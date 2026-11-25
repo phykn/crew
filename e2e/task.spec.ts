@@ -9,13 +9,13 @@ const SCRIPT = {
     {
       call: {
         name: 'start_task',
-        input: { original: '원문', kind: 'code', title: '검색 개선', request: '빈 검색어는 전체 목록' },
+        input: { original: '원문', title: '검색 개선', request: '빈 검색어는 전체 목록' },
       },
       text: '업무를 시작했습니다.',
     },
     { text: '검색을 고쳤고 코드 검토와 시험을 통과했습니다.' },
   ],
-  지휘: [hb('계획')],
+  지휘: [{ structured: { summary: '배정', body: '', kind: 'code' } }, hb('계획')],
   '코드 검토': [hb('계획 통과', { verdict: 'pass' }), hb('코드 통과', { verdict: 'pass' })],
   // 코드 작성 reaches for a tool outside its role, which becomes an answer card
   '코드 작성': [

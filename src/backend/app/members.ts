@@ -24,7 +24,8 @@ export class Members {
   // Who a member can name or ask right now, by key
   roster(projectId: number) {
     const { store, crew } = this.chat;
-    const hired = store.listMembers(projectId).filter((m) => m.status === 'hired');
+    // Copies come and go with tasks, so they stay out and the system prompt stays cached
+    const hired = store.listMembers(projectId).filter((m) => m.status === 'hired' && !m.temp);
     return ['# Crew now', ...hired.map((m) => `- ${m.key} (${crew.defOf(m).role}): ${crew.defOf(m).description}`)].join(
       '\n',
     );

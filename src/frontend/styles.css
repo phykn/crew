@@ -663,7 +663,7 @@ code {
 /* Permissions: labels in one column, their items wrap in the other */
 .permissions {
   display: grid;
-  grid-template-columns: var(--w-col) 1fr;
+  grid-template-columns: max-content 1fr;
   align-items: start;
   gap: var(--sp-2) var(--sp-3);
   margin: 0 0 var(--sp-3);
@@ -759,19 +759,24 @@ code {
 .usage td,
 .log-line time,
 .wiki-change time {
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 .log-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  /* Time, mark, who, what: the who column fits the longest role in either language, and every row shares it */
+  grid-template-columns: max-content var(--icon-md) max-content 1fr;
+  column-gap: var(--sp-2);
 }
-/* Time first, then what became of the line, then who did what */
+.log-row,
 .log-line {
   display: grid;
-  /* The time column fits HH:MM:SS; tabular digits keep every row the same width */
-  grid-template-columns: max-content var(--icon-md) var(--w-col) 1fr;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: start;
-  gap: var(--sp-2);
+}
+.log-row > * {
+  grid-column: 1 / -1;
 }
 
 /* Green is done, red is failure, butter is waiting or sent back, wood is at work */
@@ -810,12 +815,9 @@ code {
   border-color: var(--frame-rim);
   color: var(--text-on-wood);
 }
-.log-line time,
-.wiki-change time {
-  color: var(--text-muted);
-}
 .log-who {
   font-weight: var(--fw-bold);
+  white-space: nowrap;
 }
 .log-row[data-kind='status'] .log-text {
   color: var(--text-muted);
@@ -944,12 +946,17 @@ code {
   flex: 0 1 auto;
   max-height: var(--timeline-share);
   overflow-y: auto;
+  /* Time, kind, what: each column fits its longest entry in either language, and every row shares it */
+  display: grid;
+  grid-template-columns: max-content max-content 1fr;
+  align-content: start;
+  column-gap: var(--sp-2);
 }
 .wiki-change {
   display: grid;
-  grid-template-columns: var(--w-wiki-time) var(--w-col) 1fr;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: start;
-  gap: var(--sp-2);
   padding: var(--sp-1) var(--sp-2);
   font-size: var(--fs-sm);
 }

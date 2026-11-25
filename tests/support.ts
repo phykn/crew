@@ -135,8 +135,10 @@ export function fakeCrew(scripts: Record<string, Turn[]>) {
           typeof content === 'string'
             ? content
             : content.map((b) => (b.type === 'text' ? b.text : `[${b.type}]`)).join('\n');
-        calls.push({ role, prompt: text, options });
-        const turn = scripts[role]?.shift();
+        // 지휘's judgment reads from its own script, 감독, and passes when none is given
+        const judging = key === 'conductor' && text.includes('Your step: judge.');
+        calls.push({ role: judging ? '감독' : role, prompt: text, options });
+        const turn = judging ? (scripts.감독?.shift() ?? judges('done')) : scripts[role]?.shift();
         if (!turn) throw new Error(`no scripted turn left for ${role}`);
         yield* await Promise.race([turn(text, options), cutOff]);
       }
@@ -182,6 +184,16 @@ export function reply(text: string, sessionId = 'claude-1', structured?: unknown
         },
       },
     ] as unknown as SDKMessage[];
+}
+
+// 지휘's answer to a task's assign step
+export function assigns(sessionId: string, a: Record<string, unknown>): Turn {
+  return reply('배정', sessionId, { summary: '배정', body: '', ...a });
+}
+
+// 지휘's judgment once every step holds
+export function judges(decision: string, more: Record<string, unknown> = {}, sessionId = 'claude-plan'): Turn {
+  return reply('감독', sessionId, { summary: '감독', body: '', decision, ...more });
 }
 
 export function handback(sessionId: string, hb: Record<string, unknown>): Turn {

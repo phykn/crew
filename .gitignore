@@ -9,7 +9,7 @@ playwright-report/
 /docs/
 /CLAUDE.md
 /sample.zip
-/sample/crew-1-3-9.bundle
+/sample/*.bundle
 
 # Recorded app footage and renders, made again by the demo script
 demo/video/assets/
