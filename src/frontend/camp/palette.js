@@ -2,7 +2,6 @@
 export const COLOR = {
   grass: '#263021',
   grassLight: '#313d27',
-  pole: '#3d2b1a',
   wood: '#6b4a2c',
   woodDark: '#4a321d',
   woodDeep: '#3d2918',
@@ -22,7 +21,6 @@ export const COLOR = {
   rockDark: '#3a3833',
   rockDeep: '#2c2a26',
   rockNight: '#221f1c',
-  mossDark: '#4a5a2c',
   water: '#141e24',
   canvas: '#b8a98a',
   canvasDark: '#8f8166',
@@ -43,7 +41,6 @@ export const COLOR = {
   blood: '#8e2a1f',
   bloodBright: '#c9574a',
   moss: '#7bc96f',
-  spell: '#a9c4ff',
   flame: '#ffb347',
   flameDeep: '#ff8c2e',
   flameCore: '#fff1b8',

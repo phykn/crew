@@ -1,6 +1,3 @@
-import { FIGURE } from '../figure.js';
-import { iso } from '../projection.js';
-
 // A person is a pixel picture at the size the camp shows them (about two screen pixels to a world pixel), one letter
 // a pixel and each letter a shade from the role's colors, darkest first; graphics/characters/trace.py makes them from
 // the approved sheets. The fire lights the edge of the figure turned toward it
@@ -167,20 +164,4 @@ export function personPicture(role, fire = 0, pose = 'standing') {
   const key = `${role}|${pose}|${fire}`;
   if (!made.has(key)) made.set(key, paint(PEOPLE[role][pose], fire));
   return made.get(key);
-}
-
-// A person by role, standing at d.x, d.y, as tall as the camp's people
-export function drawFigure(ctx, d) {
-  const picture = personPicture(d.role, d.fire),
-    k = (FIGURE.h * 1.6) / picture.height,
-    at = iso(d.x, d.y);
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(
-    picture,
-    at.x - (picture.width * k) / 2,
-    at.y - picture.height * k,
-    picture.width * k,
-    picture.height * k,
-  );
-  ctx.imageSmoothingEnabled = true;
 }

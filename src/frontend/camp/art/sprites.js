@@ -1,7 +1,7 @@
 import { COLOR as C } from '../palette.js';
 import { outline, rim, upscale } from './finish.js';
 
-export const SPRITE_W = 16,
+const SPRITE_W = 16,
   SPRITE_H = 26;
 
 const channels = (hex) => {

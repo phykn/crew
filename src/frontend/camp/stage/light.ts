@@ -52,8 +52,6 @@ function textures() {
   };
   return made;
 }
-// A soft round spot, full in the middle and gone at its edge
-export const glowTexture = () => textures().glow;
 
 // An oval that keeps its darkness out to core, a fraction of its radius, then fades to nothing at its edge
 export function blotTexture(core: number) {
