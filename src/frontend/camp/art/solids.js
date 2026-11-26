@@ -1,4 +1,5 @@
-import { iso } from '../projection.js';
+import { FIRE, LANTERNS, TORCHES } from '../layout.js';
+import { iso, TW } from '../projection.js';
 import { COLOR as C } from '../tokens.js';
 
 // Props modelled as solids and drawn by casting a ray per pixel through the camp's own projection, so their shape,
@@ -24,6 +25,26 @@ const LIGHT = (() => {
 const shade = (n) => {
   const lit = n[0] * LIGHT[0] + n[1] * LIGHT[1] + n[2] * LIGHT[2];
   return lit > 0.75 ? 4 : lit > 0.55 ? 3 : lit > 0.3 ? 2 : 1;
+};
+
+// The camp's fixed flames, as the light map places them (reach in screen px): a surface turned toward one near it is
+// lit a step warmer; their flicker and fall-off over the scene stay with the light map
+const FLAMES = [
+  { ...FIRE, z: 14, reach: 430 },
+  ...TORCHES.map((t) => ({ ...t, z: 30, reach: 170 })),
+  ...LANTERNS.map((l) => ({ ...l, z: 13, reach: 100 })),
+].map((f) => ({ at: [f.x * U, f.y * U, f.z], reach: (f.reach / TW) * U }));
+const FLAME = [0xff, 0x8c, 0x2e];
+const warmth = (p, n) => {
+  let sum = 0;
+  for (const f of FLAMES) {
+    const v = [f.at[0] - p[0], f.at[1] - p[1], f.at[2] - p[2]],
+      dist = Math.hypot(...v);
+    if (dist >= f.reach || dist < 1) continue;
+    const facing = (n[0] * v[0] + n[1] * v[1] + n[2] * v[2]) / dist;
+    if (facing > 0) sum += facing * (1 - dist / f.reach) ** 2;
+  }
+  return Math.min(1, sum);
 };
 
 // The ground point (in tiles) under a screen point, from the projection's own axes
@@ -86,7 +107,8 @@ export function drawSolids(ctx, parts, bounds) {
     h = Math.ceil(Math.max(...corners.map((p) => p.y)) - y0) + 2,
     W = Math.ceil(w * k),
     H = Math.ceil(h * k);
-  const depth = new Float32Array(W * H).fill(-Infinity),
+  const warm = new Float32Array(W * H),
+    depth = new Float32Array(W * H).fill(-Infinity),
     hits = Array.from({ length: W * H });
   const scene = (p) => {
     let best = Infinity,
@@ -117,6 +139,7 @@ export function drawSolids(ctx, parts, bounds) {
             gl = Math.hypot(...g) || 1,
             nrm = g.map((v) => v / gl);
           depth[j * W + i] = s;
+          warm[j * W + i] = warmth(p, nrm);
           hits[j * W + i] = part.paint(p, nrm, shade(nrm));
           break;
         }
@@ -144,9 +167,13 @@ export function drawSolids(ctx, parts, bounds) {
         return ni >= 0 && nj >= 0 && ni < W && nj < H && depth[nj * W + ni] > depth[at] + 1.5;
       });
       if (near) step -= 1;
+      // A face turned to a flame close by is a step lighter and takes a little of the flame's color
+      const f = warm[at];
+      if (f > 0.3) step += 1;
       const hex = shades[Math.max(0, Math.min(shades.length - 1, step))];
       const c = (rgb[hex] ??= [1, 3, 5].map((n) => parseInt(hex.slice(n, n + 2), 16)));
-      img.data.set([...c, 255], at * 4);
+      const tint = 0.3 * f;
+      img.data.set([...c.map((v, k) => Math.round(v + (FLAME[k] - v) * tint)), 255], at * 4);
     }
   const canvas = Object.assign(document.createElement('canvas'), { width: W, height: H });
   canvas.getContext('2d').putImageData(img, 0, 0);
