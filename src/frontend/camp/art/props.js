@@ -110,8 +110,8 @@ function drum(ctx, d) {
       if (n[2] > 0.9) return [WOOD, r > radius(1) - 0.9 ? light - 2 : light];
       // Iron is matte and dark: even where the belly turns it up to the light it stays below the wood
       if (Math.abs(Math.abs(t) - 0.56) < 0.09) return [IRON, light];
-      const stave = ((Math.atan2(p[1] - c[1], p[0] - c[0]) / (Math.PI * 2)) * 14 + 14) % 1;
-      return [WOOD, stave < 0.1 ? light - 1 : light];
+      const stave = ((Math.atan2(p[1] - c[1], p[0] - c[0]) / (Math.PI * 2)) * 10 + 10) % 1;
+      return [WOOD, stave < 0.08 ? light - 1 : light];
     },
   };
   const w = r0 + belly;
@@ -229,7 +229,7 @@ function bench(ctx, d) {
 
 // A face's direction and how deep it is cut; fewer, larger faces toward the top keep the stone calm
 const STONE = [
-  [0, 0, 1, 0.9],
+  [0, 0, 1, 0.96],
   [-0.6, 0.3, 1, 0.97],
   [0.5, -0.4, 1, 0.92],
   [0.3, 0.7, 0.8, 0.95],
@@ -246,7 +246,7 @@ const STONE = [
 // A low boulder cut into flat faces; each face takes its shade from where it turns
 function rock(ctx, d) {
   const s = d.size ?? 1,
-    r = [9.5 * s, 7.5 * s, 5 * s],
+    r = [9.5 * s, 7.5 * s, 5.5 * s],
     c = [d.x * U, d.y * U, 0.5 * s];
   cast(ctx, d.x + 0.2, d.y + 0.2, 15 * s, 14 * s);
   const part = { sdf: facets(c, r, STONE), paint: (p, n, light) => [ROCK, light] };
@@ -441,7 +441,7 @@ function wagon(ctx, d) {
 }
 
 // Crates as the approved art draws them: a lid of three planks, plank faces held in a paler frame, a brace on the
-// near face, and nails on the lid and the near face's top
+// near face, and nails on the lid
 function crates(ctx, d) {
   cast(ctx, d.x + 0.3, d.y + 0.3, 20, 20);
   const S = 0.6 * U,
@@ -462,12 +462,11 @@ function crates(ctx, d) {
         }
         // Along the face and up it: the near face runs with x, the side face with y
         const [a, b] = n[1] > 0.9 ? [u, w] : [v, w];
-        if (n[1] > 0.9 && [0.05, 0.95].some((s) => nail({ at: a, to: s }, { at: b, to: 0.93 }))) return [IRON, 2];
         const frame = a < 0.1 || a > 0.9 || b < 0.14 || b > 0.86;
         // The brace runs from the top of the far post down to the foot of the near one
         const brace = n[1] > 0.9 && Math.abs(a - 0.15 - (0.84 - b) * (0.7 / 0.68)) < 0.08 && b > 0.1 && b < 0.9;
         if (frame || brace) return [WOOD, light + 1];
-        return [WOOD, [0.37, 0.63].some((s) => Math.abs(b - s) < 0.02) ? light - 1 : light];
+        return [WOOD, light];
       },
     };
   };
@@ -518,7 +517,7 @@ function hay(ctx, d) {
 function woodpile(ctx, d) {
   cast(ctx, d.x - 0.05, d.y + 0.1, 20, 15);
   const R = 0.21 * U,
-    half = 0.27 * U,
+    half = 0.36 * U,
     cx = (d.x - 0.05) * U,
     cy = d.y * U,
     low = R,
