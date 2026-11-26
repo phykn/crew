@@ -8,7 +8,7 @@ Made like the others (see graphics/README.md "캐릭터 만들기"): `trace.py c
 - Hair and trousers share one chestnut, so the rows part them (hair to 22 rows below the crown); the far boot is shaded as dark as the trousers, so it is leather from 62 rows down.
 - The tunic's dark folds are drawn as outline, and the sleeves' warm grey shadows stay ivory rather than leather.
 - `head.png` is `head.py coder 24 14 22 5 17`: the sheet's own face with skin in flat shades, then by hand the far eye moved down a row to sit level with the near one (lid, iris, glint), thin brows a row above each lid, the sheet's blush, a stray speck cleared, and the bright hair locks one shade above the cleaned hair.
-- The sheet's sit is on an implied bench, legs hanging, not cross-legged on the ground.
+- `sit.png` now rests cross-legged on the ground. Only the image asset was replaced; the app's generated coder figure still needs the other agent's trace/apply pass.
 
 ## master
 
@@ -126,32 +126,34 @@ Whole head/chest/pelvis/knees/toes face lower-left. Feet move left AND toward vi
 
 ## sit
 
-### Adventurer — Sit
+### Cross-legged ground rest
 
-#### Generation prompt
+Use case: identity-preserve, single-action sprite replacement.
+Create ONLY the CODER's seated-rest animation sheet for an existing woodland camp game. Replace the implied-bench sitting with CROSS-LEGGED GROUND SITTING (양반다리 / simple tailor's seat).
 
-Use case: identity-preserve with anatomical pose guidance.
-Create the EXISTING adventurer ward-mage in the requested action. The original master reference is the exact identity, not inspiration for a redesign. Preserve its actual accepted head/body ratio rather than trying to enforce an earlier numerical ideal.
+REFERENCE ROLES
+Image1 is coder/idle.png: exact character identity, actual moderate head/body ratio, short tousled chestnut hair, warm skin, hazel eyes, muted sage green travel tunic, ivory sleeves and cuffs, short brick-red neckerchief, brown belt, cocoa trousers and cuffed brown boots. The SMALL flat pale-teal wardstone stays secured on SCREEN-RIGHT belt. Preserve these exact features; no new costume or accessories. Image2 is coder/head.png: existing hand-finished face and hair reference ONLY, never enlarge the head or reproduce it as a separate floating portrait. Image3 is researcher/sit.png: use ONLY its cross-legged ground pose and compact seated silhouette, not its face, hair, clothing, glasses or prop.
 
-IDENTITY LOCK
-Same short tousled dark-chestnut hair with the same fringe and broad locks, warm tan/light-medium skin, expressive hazel-brown eyes with modest highlights, gentle eyebrows, small confident friendly smile. Same moderately enlarged head, visible short neck, substantial compact torso, actual knees and sturdy boots. No growing hair volume or baby head, new face, realistic jaw or lanky limbs. Same sage/olive-green short travel tunic with its split upper-thigh hem, ivory sleeves and broad cuffs, close-fitting faded brick-red neckerchief, narrow brown belt, cocoa trousers and brown cuffed boots. Maintain clothing cuts, hems, palette, scale and pixel density. No hood, hat, cape, armor, staff, sword, bag, researcher mantle or amber orb.
+LAYOUT AND CONTINUITY
+Exactly TWO complete-body frames in a HORIZONTAL strip of TWO EQUAL SQUARE CELLS. Reading left to right: frame1 open-eyed calm resting smile, frame2 a quiet closed-eye blink. Both bodies have IDENTICAL position, dimensions, hands, clothes, belt prop and crossed legs; only eyelids change. Do not move the head, breathe by scaling, tilt the torso, shift the mouth or vary the silhouette between frames. Generous transparent margins in each cell; entire hair, hands, knees and boot soles inside their own cell. No overlap between cells, lines, numbering or captions.
 
-ONE PHYSICAL TOOL
-Exactly one small flat pale-teal wardstone in the existing leather attachment at the visible screen-right/near-side belt. Match its actual size and shape. In idle/walk/seated, keep it secured. During casting, the near hand unclips that SAME stone while the persistent leather tab stays attached and visibly EMPTY, then returns it at the end. Never duplicate a stone between hands and belt or erase the attachment. It is not a round crystal ball. Physical tool highlights are subdued; all emitted magic is a separate ground layer.
+ANATOMY AND POSE
+Character rests directly on invisible flat ground with weight on pelvis. Thighs open comfortably to the sides; both knees bend outward and stay LOW, near the ground. BOTH shins fold inward across the front of the pelvis; ankles cross and boot toes tuck below/opposite knees. A clear broad shallow triangular lower-body silhouette, stable crossed boot overlap in front. Both boots remain attached continuously through shin to knee and thigh; no detached feet, straight dangling calves, standing legs, hover squat, kneeling, lotus feet on thighs, chair or stool pose. Boots are substantial but must not hide the entire crossed-shin structure.
+Torso upright and relaxed. Empty hands rest on their respective thighs, elbows bent softly, shoulders relaxed. Exactly two hands, two knees, two legs, two boots. The tunic folds naturally above the crossed legs; belt and stone remain in their normal attachment, never held.
+Use the SAME physical head width and upper-body dimensions as standing coder, so seated body is naturally shorter, approximately 60–70% of standing silhouette height. Do NOT inflate head, shrink torso to a baby, or enlarge sitting figure to fill the full standing height.
 
-CAMERA AND ANATOMY
-Same gently elevated FRONT THREE-QUARTER toward screen LOWER-LEFT. Both eyes visible, far eye narrower; show chest front and narrower near-side plane, some hair crown, shoulder tops and boot tops. Do not copy a frontal body with sideways feet. Head/chest/pelvis/knees/toes share one lower-left heading; no one-eye profile, camera rotation or whole-character mirror within a sheet. Near anatomical shoulder and hip start at screen-right on the wardstone side. Near limbs keep ownership when crossing the silhouette. Far limbs start screen-left and render behind where occluded. Slightly warmer/lighter near trousers, darker far trousers. Trace continuous hip→knee→ankle→boot and shoulder→elbow→hand connections. Guide pink=near and teal=far; replace guide colors with actual clothes, never print bones or text.
+CAMERA AND STYLE
+Elevated orthographic FRONT THREE-QUARTER facing screen LOWER-LEFT, camera above around20–25degrees. BOTH eyes visible when open, far eye narrower. See crown, chest front and narrow side plane, tops of shoulders, thighs and crossed boots. Face, chest, pelvis and knees share coherent orientation. Never pure profile or straight-on flat portrait. Preserve coder's original friendly young-adult classic-JRPG appeal.
+Crisp grouped pixel art suitable for later96x96 cells: stepped contours, restrained matte colors, neutral upper-left material shading, coherent clusters, readable fingers and clothing masses. No glossy3D, smooth painting, fine texture noise, dithering, fuzzy outline or sticker border.
 
-SHEET AND REGISTRATION
-Follow the action block's exact frame count, equal cells and row-major order. One complete figure per cell, no extra views. Same body dimensions, head width, limb lengths, camera and ground-root position. Standing crown approximately 7% from cell top and boot soles around 90%, generous side margins; these are layout guides, not permission to stretch the body. A supplied skeleton controls joint connections and phase, not a new face/outfit. Never center each changing silhouette independently or enlarge a seated figure to standing height. Lifted feet stay lifted; don't align every boot to the floor. Planted poses retain consistent soles and belt/root anchors. Keep sleeves, hands, crown and boots within each cell.
+CUTOUT INVARIANTS
+Genuine transparent RGBA outside character and in limb gaps. Opaque solid body; no white/gray background, checkerboard drawing, paper texture, ground, shadow, pedestal, chair, bench, cushion, scene, border, text, watermark, aura, glow, sparks or magic circle. Output contains exactly the two seated coder bodies and nothing else.
 
-PIXEL CUTOUT
-Crisp stepped edges and deliberate grouped warm colors on a coherent coarse pixel grid, neutral upper-left material shading, readable in a later 96×96 logical cell. No smooth painted anime portrait, glossy 3D, skin texture, fabric noise, dithering cloud, contour blur or heavy sticker border. Actual transparent PNG, zero alpha outside the body and inside limb gaps. Opaque character pixels, no translucent body. No brown/green halo, colored edge noise, shadow, floor, pedestal, drawn checkerboard, gradient backdrop, labels, numbers, gridlines, border, watermark or scenery. No glow, particles, light rays or magic circles baked into the character. Preserve the face and readable hand/prop contacts.
+#### Saved result
 
-TWO frames side by side in equal square cells, SEATED REST. Image 1 fixes the accepted adventurer identity and physical size. Character only, NO bench, stool, floor or environment. Sit naturally on an implied horizontal bench: pelvis seated, thighs extend toward front/lower-left, both knees bend downward and both complete boots hang/read below them. Preserve actual thigh/shin proportions and the near/far depth order. Hands rest lightly on thighs, single stone secured at belt. Green tunic hem folds around upper thighs, never hides both legs or becomes a long robe.
-1 relaxed seated pose with eyes open, gentle smile.
-2 same hip/seat anchor, knees, hands, stone and boots; tiny natural blink.
-Same head width and body scale as standing, shorter total silhouette. Do not enlarge to fill the cell, squat, kneel or depict a standing figure with bent knees. Clean empty space below/around figure; leave room for later bench composition. Seat fit remains a later integration check.
+Generated with the built-in image tool on 2026-11-26. `sit-source.png` preserves the original two-frame transparent sheet. `sit.png` contains two 96px square cells (192×96 RGBA), uniformly scaled from the source using the existing idle head width, aligned to the same bottom baseline, with nearest-neighbor sampling and alpha threshold 220. Both poses have crossed legs and hands on thighs; the second closes its eyes. No bench, floor or magic is drawn. Small generated clothing and face variations remain.
+
+This delivery changes image assets and this brief only. `src/frontend/camp/art/people/coder.js` has not been regenerated; applying the pose to the app belongs to the other agent.
 
 ## cast-start
 
