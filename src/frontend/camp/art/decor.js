@@ -60,27 +60,37 @@ function fern(ctx, d) {
   ctx.lineCap = 'butt';
 }
 
-// A thick stroke with a lit top, and a cut end ringed with growth lines, reads as a round trunk
+// A fallen log to sit on: one round trunk, a little thinner toward its far end and sunk into the ground, three furrows
+// along its bark, and a cut end with two growth rings round a dark heart
 function log(ctx, d) {
   longShadow(ctx, d.x, d.y, d.w, d.h, 10);
-  const yc = d.y + d.h / 2,
-    a = iso(d.x, yc, 5),
-    b = iso(d.x + d.w, yc, 5);
-  line(ctx, a, b, C.barkDark, 10);
-  line(ctx, { x: a.x, y: a.y - 1 }, { x: b.x, y: b.y - 1 }, C.bark, 7);
-  line(ctx, { x: a.x, y: a.y - 3 }, { x: b.x, y: b.y - 3 }, C.woodDark, 1);
-  const m = iso(d.x + d.w * 0.35, yc, 9);
-  pixels(
+  const R = 5,
+    half = (d.w * U) / 2,
+    c = [d.x * U + half, (d.y + d.h / 2) * U, R * 0.9];
+  const part = {
+    sdf: round(c, 0, half, (t) => R * (0.96 + 0.04 * t)),
+    paint: (p, n, light) => {
+      const y = p[1] - c[1],
+        z = p[2] - c[2];
+      if (n[0] > 0.7) {
+        const r = Math.hypot(y, z) / R;
+        if (r > 0.86) return [BARK, light + 1];
+        if (r < 0.12) return [WOOD, light];
+        return [WOOD, light + ([0.35, 0.62].some((a) => Math.abs(r - a) < 0.05) ? 1 : 2)];
+      }
+      // Furrows run the length of the bark at fixed angles round the trunk
+      const a = Math.atan2(z, y);
+      return [BARK, [0.5, 1.6, 2.5].some((f) => Math.abs(a - f) < 0.07) ? light - 1 : light];
+    },
+  };
+  drawSolids(
     ctx,
+    [part],
     [
-      [m.x, m.y, 6, 2],
-      [m.x + 9, m.y + 4, 4, 1],
+      [c[0] - half, c[1] - R, c[2] - R],
+      [c[0] + half, c[1] + R, c[2] + R],
     ],
-    C.mossDark,
   );
-  oval(ctx, b.x, b.y, 3.5, 5, C.woodDark);
-  outline(ctx, b.x, b.y, 2, 3, C.woodDeep, 1);
-  pixels(ctx, [[b.x, b.y, 1, 1]], C.wood);
 }
 
 // A barrel: staves bellied out between a narrower foot and lid, a seam between each pair, two iron hoops, and a lid
