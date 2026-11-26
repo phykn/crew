@@ -12,13 +12,8 @@ export function Input({ size = 'sm', className, ...rest }: Omit<ComponentProps<'
 }
 
 // bare: the chat box, whose frame is the composer around it
-export function TextArea({
-  size = 'sm',
-  bare,
-  className,
-  ...rest
-}: ComponentProps<'textarea'> & Size & { bare?: boolean }) {
-  return <textarea className={bare ? ['ui-field--bare', className].join(' ') : classes(size, className)} {...rest} />;
+export function TextArea({ bare, className, ...rest }: ComponentProps<'textarea'> & { bare?: boolean }) {
+  return <textarea className={bare ? ['ui-field--bare', className].join(' ') : classes('sm', className)} {...rest} />;
 }
 
 export function Label({

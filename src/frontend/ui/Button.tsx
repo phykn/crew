@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'react';
 import './Button.css';
 
-export type ButtonProps = Omit<ComponentProps<'button'>, 'aria-pressed'> & {
+type ButtonProps = Omit<ComponentProps<'button'>, 'aria-pressed'> & {
   // secondary: a bordered control; primary: the one green action; quiet: muted until pointed at;
   // row: a whole line that opens or picks something; link: words that act
   variant?: 'secondary' | 'primary' | 'quiet' | 'row' | 'link';
