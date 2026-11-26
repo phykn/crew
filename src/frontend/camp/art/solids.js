@@ -1,4 +1,4 @@
-import { FIRE, LANTERNS, TORCHES } from '../layout.js';
+import { FIRE, TORCHES } from '../layout.js';
 import { iso, TW } from '../projection.js';
 import { COLOR as C } from '../tokens.js';
 
@@ -14,6 +14,9 @@ export const WOOD = [C.barkDark, C.woodDeep, C.woodDark, C.wood, C.woodLight];
 export const BARK = [C.eye, C.barkDark, C.barkDark, C.bark, C.woodDeep];
 export const ROCK = [C.eye, C.rockDeep, C.rockDark, C.rock, C.rockLight];
 export const HAY = [C.woodDark, C.hayDeep, C.hayDark, C.hay, C.hayLight];
+export const CANVAS = [C.leather, C.canvasDeep, C.canvasDark, C.canvas, C.parchmentDeep];
+// A doorway's dark inside, warmed by the lantern within
+export const GLOW = [C.leather, C.leather, C.doorGlow, C.doorGlow, C.doorGlow];
 // Still water is one dark color whichever way the light falls
 export const WATER = [C.water, C.water, C.water, C.water, C.water];
 export const IRON = [C.eye, C.leather, C.iron, C.muted, C.rockLight];
@@ -29,13 +32,13 @@ const shade = (n) => {
   return lit > 0.75 ? 4 : lit > 0.55 ? 3 : lit > 0.3 ? 2 : 1;
 };
 
-// The camp's fixed flames, as the light map places them (reach in screen px): a surface turned toward one near it is
-// lit a step warmer; their flicker and fall-off over the scene stay with the light map
-const FLAMES = [
-  { ...FIRE, z: 14, reach: 430 },
-  ...TORCHES.map((t) => ({ ...t, z: 30, reach: 170 })),
-  ...LANTERNS.map((l) => ({ ...l, z: 13, reach: 100 })),
-].map((f) => ({ at: [f.x * U, f.y * U, f.z], reach: (f.reach / TW) * U }));
+// The camp's big flames, as the light map places them (reach in screen px): a surface turned toward one near it is
+// lit a step warmer (a lantern's small reach would only stamp a disc on a face); flicker and fall-off stay
+// with the light map
+const FLAMES = [{ ...FIRE, z: 14, reach: 430 }, ...TORCHES.map((t) => ({ ...t, z: 30, reach: 170 }))].map((f) => ({
+  at: [f.x * U, f.y * U, f.z],
+  reach: (f.reach / TW) * U,
+}));
 const FLAME = [0xff, 0x8c, 0x2e];
 const warmth = (p, n) => {
   let sum = 0;
@@ -94,6 +97,17 @@ export function round(c, axis, half, radius) {
       d = [len(p[a] - c[a], p[b] - c[b]) - r, Math.abs(along) - half];
     // A radius that changes along the axis makes the distance a little long; the factor keeps the march safe
     return (len(Math.max(d[0], 0), Math.max(d[1], 0)) + Math.min(Math.max(d[0], d[1]), 0)) * 0.85;
+  };
+}
+
+// A rod of radius r from a to b, rounded at both ends, for poles, ropes, and shafts
+export function rod(a, b, r) {
+  const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]],
+    ll = ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2;
+  return (p) => {
+    const ap = [p[0] - a[0], p[1] - a[1], p[2] - a[2]],
+      t = Math.max(0, Math.min(1, (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / ll));
+    return len(ap[0] - ab[0] * t, ap[1] - ab[1] * t, ap[2] - ab[2] * t) - r;
   };
 }
 

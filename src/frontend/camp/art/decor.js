@@ -2,7 +2,7 @@ import { iso } from '../projection.js';
 import { COLOR as C } from '../tokens.js';
 import { TAU, longShadow, poly, shadow } from './shapes.js';
 import { SEAT_Z } from '../figure.js';
-import { BARK, HAY, IRON, ROCK, U, WATER, WOOD, box, drawSolids, facets, round } from './solids.js';
+import { BARK, CANVAS, GLOW, HAY, IRON, ROCK, U, WATER, WOOD, box, drawSolids, facets, rod, round } from './solids.js';
 
 const pixels = (ctx, list, fill) => {
   ctx.fillStyle = fill;
@@ -282,88 +282,110 @@ const along =
   (u, v, z = 0) =>
     iso(d.x + v, d.y - L / 2 + u, z);
 
+// A ridge tent, long along y with its open end toward the camera: canvas pitched in two slopes with seams down them
+// and a darker hem, a doorway dark inside and warm with the lantern, poles above the ridge, and guy ropes to stakes
 function tent(ctx, d) {
-  const L = 1.9,
-    W = 1.6,
+  const L = 1.9 * U,
+    W = 1.6 * U,
     H = 26,
-    at = along(d, L);
-  // A point on the near slope at height z, so the hem follows the cloth
-  const slope = (u, z) => at(u, (W / 2) * (1 - z / H), z);
+    c = [d.x * U, d.y * U];
   shadow(ctx, d.x + 0.3, d.y + 0.3, 30, 12, 26);
-  for (const side of [-1, 1]) {
-    const stake = at(L + 0.5, side * (W / 2 + 0.3));
-    line(ctx, at(L, 0, H), stake, C.muted);
-    pixels(ctx, [[stake.x - 1, stake.y - 3, 2, 3]], C.woodDark);
-  }
-  poly(ctx, [at(0, -W / 2), at(L, -W / 2), at(L, 0, H), at(0, 0, H)], C.canvasDeep);
-  poly(ctx, [at(0, W / 2), at(L, W / 2), at(L, 0, H), at(0, 0, H)], C.canvas);
-  poly(ctx, [at(0, W / 2), at(L, W / 2), slope(L, 4), slope(0, 4)], C.canvasDark);
-  for (const k of [0.33, 0.66]) line(ctx, at(L * k, 0, H), at(L * k, W / 2), C.canvasDark);
-  poly(ctx, [at(L, -W / 2), at(L, W / 2), at(L, 0, H)], C.canvasDark);
-  // The doorway glows from the lantern inside, and its flaps are tied back on both sides
-  poly(ctx, [at(L, -W / 4), at(L, W / 4), at(L, 0, H * 0.75)], C.leather);
-  ctx.globalAlpha = 0.45;
-  poly(ctx, [at(L, -W / 6), at(L, W / 6), at(L, 0, H * 0.4)], C.flameDeep);
-  ctx.globalAlpha = 1;
-  for (const side of [-1, 1])
-    poly(ctx, [at(L, (side * W) / 4), at(L, (side * W) / 2.6), at(L, (side * W) / 8, H * 0.6)], C.canvas);
-  for (const u of [0, L]) {
-    const p = at(u, 0, H);
-    pixels(ctx, [[p.x - 1, p.y - 4, 2, 4]], C.pole);
-  }
+  const slopeLen = Math.hypot(H, W / 2);
+  const parts = [
+    {
+      sdf: (p) =>
+        Math.max(
+          (Math.abs(p[0] - c[0]) * H + p[2] * (W / 2) - H * (W / 2)) / slopeLen,
+          Math.abs(p[1] - c[1]) - L / 2,
+          -p[2],
+        ),
+      paint: (p, n, l) => {
+        if (n[1] > 0.9) {
+          // The doorway is a narrower triangle in the end; its lower part glows
+          const x = Math.abs(p[0] - c[0]) / (W / 4),
+            z = p[2] / (H * 0.75);
+          if (x + z < 1) return [GLOW, z < 0.55 && x + z < 0.7 ? 2 : 1];
+          // The gable stands upright, so it reads a step darker than the slopes beside it
+          return [CANVAS, l - 1];
+        }
+        const u = (p[1] - c[1]) / L + 0.5;
+        if (p[2] < 2.5) return [CANVAS, l - 1];
+        return [CANVAS, [1 / 3, 2 / 3].some((k) => Math.abs(u - k) < 0.015) ? l - 1 : l];
+      },
+    },
+  ];
+  for (const u of [-L / 2, L / 2])
+    parts.push({ sdf: rod([c[0], c[1] + u, H - 1], [c[0], c[1] + u, H + 4], 0.7), paint: (p, n, l) => [WOOD, l - 1] });
+  // One guy rope runs back from the far pole, so nothing crosses the doorway; pegs hold the hem at the near corners
+  const back = [c[0], c[1] - L / 2 - 0.6 * U, 0];
+  parts.push({
+    sdf: rod([c[0], c[1] - L / 2, H + 2], [back[0], back[1], 1.5], 0.25),
+    paint: (p, n, l) => [HAY, l - 1],
+  });
+  for (const peg of [back, [c[0] - W / 2 - 1, c[1] + L / 2 - 1, 0], [c[0] + W / 2 + 1, c[1] + L / 2 - 1, 0]])
+    parts.push({ sdf: rod(peg, [peg[0], peg[1], 3], 0.6), paint: (p, n, l) => [WOOD, l - 1] });
+  drawSolids(ctx, parts, [
+    [c[0] - W / 2 - 2, c[1] - L / 2 - 0.7 * U, 0],
+    [c[0] + W / 2 + 2, c[1] + L / 2, H + 5],
+  ]);
 }
 
+// A covered wagon, long along y: a plank bed, a canvas bonnet over hoops with a dark opening at the near end, four
+// spoked wheels, and a tongue down to the ground
 function wagon(ctx, d) {
-  const L = 2.4,
-    W = 1.1,
-    at = along(d, L);
+  const L = 2.4 * U,
+    W = 1.1 * U,
+    c = [d.x * U, d.y * U];
   shadow(ctx, d.x + 0.3, d.y + 0.3, 34, 12, 32);
-  const wheel = (p) => {
-    outline(ctx, p.x, p.y, 5, 7, C.woodDeep, 2);
-    pixels(
-      ctx,
-      [
-        [p.x - 1, p.y - 6, 1, 12],
-        [p.x - 4, p.y, 8, 1],
-      ],
-      C.woodDark,
-    );
-    pixels(ctx, [[p.x - 1, p.y - 1, 2, 2]], C.iron);
-  };
-  // The far wheels go first, as the bed hides their lower half
-  wheel(at(0.4, -W / 2, 7));
-  wheel(at(L - 0.4, -W / 2, 7));
-  line(ctx, at(L, 0, 8), at(L + 0.9, 0, 3), C.woodDark, 2);
-  poly(ctx, [at(0, W / 2, 6), at(L, W / 2, 6), at(L, W / 2, 15), at(0, W / 2, 15)], C.wood);
-  poly(ctx, [at(L, -W / 2, 6), at(L, W / 2, 6), at(L, W / 2, 15), at(L, -W / 2, 15)], C.woodDark);
-  // The bonnet is a canvas arch: its side, its curved top, and the open hoop at the end
-  poly(ctx, [at(0.15, W / 2, 15), at(L - 0.15, W / 2, 15), at(L - 0.15, W / 2, 26), at(0.15, W / 2, 26)], C.canvas);
-  poly(ctx, [at(0.15, W / 2, 26), at(L - 0.15, W / 2, 26), at(L - 0.15, 0, 32), at(0.15, 0, 32)], C.canvas);
-  for (const k of [0.25, 0.5, 0.75]) line(ctx, at(L * k, W / 2, 15), at(L * k, W / 2, 26), C.canvasDark);
-  poly(
-    ctx,
-    [
-      at(L - 0.15, -W / 2, 15),
-      at(L - 0.15, W / 2, 15),
-      at(L - 0.15, W / 2, 26),
-      at(L - 0.15, 0, 32),
-      at(L - 0.15, -W / 2, 26),
-    ],
-    C.canvasDark,
-  );
-  poly(
-    ctx,
-    [
-      at(L - 0.15, -W / 3, 15),
-      at(L - 0.15, W / 3, 15),
-      at(L - 0.15, W / 3, 24),
-      at(L - 0.15, 0, 28),
-      at(L - 0.15, -W / 3, 24),
-    ],
-    C.leather,
-  );
-  wheel(at(0.4, W / 2 + 0.05, 7));
-  wheel(at(L - 0.4, W / 2 + 0.05, 7));
+  const hood = { a: W / 2, b: 17 },
+    end = L / 2 - 0.15 * U;
+  const parts = [
+    {
+      sdf: box([c[0], c[1], 10.5], [W / 2, L / 2, 4.5], 0.4),
+      paint: (p, n, l) => [WOOD, n[2] < 0.9 && [9, 12].some((z) => Math.abs(p[2] - z) < 0.35) ? l - 1 : l],
+    },
+    {
+      // Half an oval along y, cut at the bed's top and at both ends
+      sdf: (p) => {
+        const x = (p[0] - c[0]) / hood.a,
+          z = (p[2] - 15) / hood.b;
+        const arch = (Math.hypot(x, z) - 1) * Math.min(hood.a, hood.b);
+        return Math.max(arch, 15 - p[2], Math.abs(p[1] - c[1]) - end);
+      },
+      paint: (p, n, l) => {
+        const u = (p[1] - c[1] + end) / (2 * end);
+        if (n[1] > 0.9) {
+          const x = (p[0] - c[0]) / hood.a,
+            z = (p[2] - 15) / hood.b;
+          return Math.hypot(x, z) < 0.78 ? [BARK, 1] : [CANVAS, l - 1];
+        }
+        return [CANVAS, [0.25, 0.5, 0.75].some((k) => Math.abs(u - k) < 0.02) ? l - 1 : l];
+      },
+    },
+    { sdf: rod([c[0], c[1] + L / 2, 9], [c[0], c[1] + L / 2 + 0.9 * U, 2], 0.9), paint: (p, n, l) => [WOOD, l - 1] },
+  ];
+  for (const u of [-L / 2 + 0.4 * U, L / 2 - 0.4 * U])
+    for (const side of [-1, 1]) {
+      const w = [c[0] + side * (W / 2 + 1.2), c[1] + u, 7];
+      parts.push({
+        sdf: round(w, 0, 0.8, () => 7),
+        paint: (p, n, l) => {
+          if (Math.abs(n[0]) < 0.6) return [WOOD, l - 1];
+          const y = p[1] - w[1],
+            z = p[2] - w[2],
+            r = Math.hypot(y, z) / 7;
+          if (r < 0.2) return [IRON, l];
+          if (r > 0.78) return [WOOD, l];
+          // Four spokes cross at the hub; between them the wheel is open, so the dark under the wagon shows
+          const a = Math.atan2(z, y);
+          return Math.abs(Math.sin(2 * a)) < 0.22 || Math.abs(Math.cos(2 * a)) < 0.22 ? [WOOD, l] : [BARK, 1];
+        },
+      });
+    }
+  drawSolids(ctx, parts, [
+    [c[0] - W / 2 - 3, c[1] - L / 2, 0],
+    [c[0] + W / 2 + 3, c[1] + L / 2 + 0.9 * U, 32],
+  ]);
 }
 
 // Crates as the approved art draws them: a lid of three planks, plank faces held in a paler frame, a brace on the

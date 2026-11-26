@@ -24,6 +24,7 @@ export const COLOR = {
   canvas: '#b8a98a',
   canvasDark: '#8f8166',
   canvasDeep: '#6b604b',
+  doorGlow: '#8a5122',
   hayLight: '#c4a35e',
   hay: '#ad8d4a',
   hayDark: '#836838',
