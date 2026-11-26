@@ -1,5 +1,13 @@
 # researcher
 
+## Code figure
+
+Made like the others (see graphics/README.md "캐릭터 만들기"): `trace.py researcher` traces every sheet at its own size and repaints each material in three flat shades.
+
+- Materials: hair, trousers, and boots share one chestnut and are parted by rows (hair to 22 rows below the crown, boots past 63); ochre mantle, olive tunic, ivory blouse, skin, and the amber lens as one-pixel-thin gold.
+- The mantle's and tunic's dark folds are drawn as outline, so the cloth around them stays clean rather than muddy brown.
+- `head.png` is `head.py researcher 23 12 19 5 15`: the sheet's own face (glasses, moss-hazel eyes with glare, mouth) with skin in flat shades, then by hand a thin near brow a row above the glasses and two forehead specks cleared. Both eyes sit on the same rows behind the glasses.
+
 ## master
 
 ### Researcher / Diviner

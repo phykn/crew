@@ -56,6 +56,32 @@ def conductor(r, g, b, h, s, v, L, y, top):
     return 'leather'
 
 
+def researcher(r, g, b, h, s, v, L, y, top):
+    skin = 0.055 < h < 0.09 and s > 0.3 and v > 0.8
+    torso = top + 23 <= y <= top + 48
+    # The mantle's and tunic's dark folds are drawn as lines, so the cloth around them stays clean
+    if L < 36 or (torso and L < 62 and not skin):
+        return 'line'
+    # Hair, trousers, and boots share one chestnut, so the rows part them
+    if y <= top + 22:
+        return 'skin' if skin else 'hair'
+    if s < 0.3 and v > 0.6:
+        return 'ivory'
+    if skin:
+        return 'skin'
+    if h >= 0.11 and s > 0.7 and v > 0.8:
+        return 'gold'
+    if 0.1 <= h < 0.25 and v < 0.6:
+        return 'tunic'
+    if y <= top + 34 and 0.04 <= h < 0.11 and s > 0.5 and v > 0.45:
+        return 'mantle'
+    if y > top + 63:
+        return 'leather'
+    if y > top + 46:
+        return 'legs'
+    return 'leather'
+
+
 # Per role: which material a sheet pixel is (from its color, its row, and the frame's top row), each eye's box in
 # head.png (top, bottom, left, right) and a skin pixel there for blinking, and which cells of the moving sheets have
 # closed eyes
@@ -64,6 +90,13 @@ ROLES = {
         'kind': interpreter,
         'eyes': [(15, 17, 6, 8), (15, 17, 11, 14)],
         'skin': (19, 14),
+        'closed': {('cast-loop', 2)},
+    },
+    'researcher': {
+        'kind': researcher,
+        'thin': {'gold'},
+        'eyes': [(16, 17, 11, 14), (16, 17, 5, 7)],
+        'skin': (20, 9),
         'closed': {('cast-loop', 2)},
     },
     'conductor': {
