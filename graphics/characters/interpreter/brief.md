@@ -2,7 +2,7 @@
 
 ## Code figure
 
-The standing picture is the approved `idle.png` first frame at its own size, 28 × 82 pixels, which the camp shows about one to one on screen. `graphics/characters/trace.py` turns a sheet cell into letters, one letter a pixel. The sheet is painted with flecks that read as jitter at this size, so each pixel is sorted into a material: hair, skin, eye, coat, shirt and cuffs, scarf, gold, leather, trousers, or outline. A pixel alone in its material takes its neighbours'. Each material is then repainted in three flat shades that follow its smoothed light, while the eyes and the outline keep their own pixels. Every cell is cut to the idle frame's box, so frames line up.
+The standing picture is the approved `idle.png` first frame at its own size, 28 × 82 pixels, which the camp shows about one to one on screen. `graphics/characters/trace.py` turns a sheet cell into letters, one letter a pixel. The sheet is painted with flecks that read as jitter at this size, so each pixel is sorted into a material: hair, skin, eye, coat, shirt and cuffs, scarf, gold, leather, trousers, or outline. A pixel alone in its material takes its neighbours'. Each material is then repainted in three flat shades that follow its smoothed light, while the eyes, brows, and outline keep their own pixels. The nose (one darker skin pixel) and the mouth (two) are placed by hand afterward, since the flat shades swallow them. Every cell is cut to the idle frame's box, so frames line up.
 
 - `src/frontend/camp/art/figures.js` holds each role's colors and rows. Editing a color changes it everywhere it is used.
 - Firelight warms the first three pixels past the outline on the fire's side of each row, less the further in. The picture's own outline and darkest shades stay dark.

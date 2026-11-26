@@ -3,7 +3,7 @@
 #   e.g. python graphics/characters/trace.py interpreter idle 0 4
 # The sheets are painted with flecks, which read as jitter at the camp's size, so each pixel is sorted into a material
 # (hair, skin, coat, ...) and each material is repainted in a few flat shades that follow its smoothed light; the
-# outline and the eyes keep their own pixels. Prints the colors and rows to paste into PEOPLE[role].
+# outline, the eyes, and the brows keep their own pixels; the nose and mouth, too faint to survive, are drawn after. Prints the colors and rows to paste into PEOPLE[role].
 import colorsys
 import sys
 from collections import Counter
@@ -41,6 +41,9 @@ def material(y, x):
     L = lum[y, x]
     y0, y1, x0, x1 = place['eyes']
     if y0 <= y <= y1 and x0 <= x <= x1 and (L > 225 or (s > 0.7 and h < 0.1)):
+        return 'eye'
+    # The brows are a few dark brown pixels just above the eyes; left to the cleanup they would melt into the skin
+    if y0 - 2 <= y < y0 and x0 <= x <= x1 and L < 130 and s > 0.3:
         return 'eye'
     if L < 42:
         return 'line'
