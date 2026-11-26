@@ -892,11 +892,6 @@ code {
   flex: 1;
   min-width: 0;
 }
-.wiki-text {
-  flex: 1;
-  min-height: var(--h-textarea);
-  resize: vertical;
-}
 /* A document as one dot; a topic linked to but not written yet is dashed */
 .wiki-dot {
   max-width: var(--w-node);
@@ -931,12 +926,6 @@ code {
   font-size: var(--fs-md);
   line-height: var(--lh-doc);
   white-space: pre-wrap;
-}
-.wiki-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--sp-2);
-  margin-top: auto;
 }
 .wiki-timeline {
   flex: 0 1 auto;

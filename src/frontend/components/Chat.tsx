@@ -132,7 +132,6 @@ export function Chat({
     dispatch(q.text, q.images);
   }
 
-  // Now joins 통역's answer at once; later waits in line while 통역 is answering
   // A card pushed up by a long conversation comes back into view with its first option ready to pick
   function showQuestion(id: number) {
     const card = document.querySelector<HTMLElement>(`[data-question="${id}"]`);
@@ -140,6 +139,7 @@ export function Chat({
     card?.querySelector<HTMLElement>('button')?.focus({ preventScroll: true });
   }
 
+  // Now joins 통역's answer at once; later waits in line while 통역 is answering
   function send(later = false) {
     const text = draft.trim();
     if (!text && !images.length) return;

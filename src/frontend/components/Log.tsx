@@ -186,6 +186,7 @@ function LogList({
         // A handback with nothing past its summary, as an assignment's, has nothing to open
         const opens = !!((hb && hasDetail(hb)) || errors);
         const mark = markOf(e, hb, errors);
+        const words = wordsOf(say(e.say), role);
         return (
           <li key={e.id} className="log-row" data-kind={e.kind} data-bad={mark.state === 'bad' || undefined}>
             <Button
@@ -193,6 +194,8 @@ function LogList({
               className="log-line"
               disabled={!opens}
               aria-expanded={opens ? open === e.id : undefined}
+              // The parts sit apart by margins alone, so read aloud they would run together
+              aria-label={`${clock(e.at, true)} ${mark.label} ${role ?? t('log.app')} ${words}`}
               onClick={({ currentTarget }) => {
                 expanded.current = currentTarget.parentElement;
                 if (open !== e.id) list.unstick();
@@ -204,7 +207,7 @@ function LogList({
                 <MarkIcon state={mark.state} />
               </span>
               <span className="log-who">{role ?? t('log.app')}</span>
-              <span className="log-text">{wordsOf(say(e.say), role)}</span>
+              <span className="log-text">{words}</span>
             </Button>
             {hb && open === e.id && (
               <HandbackView

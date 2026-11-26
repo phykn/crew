@@ -23,6 +23,16 @@ test('the 연결 tab keeps the subscription and the API apart: the crew runs on 
   await expect(api.getByText('사용 중')).toBeVisible();
   await expect(sub.getByText('사용 중')).toHaveCount(0);
 
+  // A new key's check is not the old one's; the main process's fetch answers in place of Anthropic
+  await app.evaluate(() => {
+    globalThis.fetch = async () => new Response('{}', { status: 200 });
+  });
+  await api.getByRole('button', { name: '연결 확인' }).click();
+  await expect(api.getByRole('status')).toHaveText('키가 맞습니다.');
+  await api.getByLabel('Anthropic API 키').fill('sk-ant-e2e-new');
+  await api.getByRole('button', { name: '저장' }).click();
+  await expect(api.getByRole('status')).toHaveText('저장한 키로 연결합니다. 쓴 만큼 청구됩니다.');
+
   // Removing the key in use puts the crew back on the subscription
   await api.getByRole('button', { name: '키 지우기' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: '지우기' }).click();

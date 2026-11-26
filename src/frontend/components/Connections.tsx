@@ -46,7 +46,7 @@ function Connection({ provider: p }: { provider: Provider }) {
   const [account, setAccount] = useState<Account | 'checking' | null>(null);
   const [asking, setAsking] = useState(false);
   const names = providerName(p.id);
-  // A check made with the old key says nothing about the new one
+  // A check made with a key that is gone says nothing about the connection now
   useEffect(() => setAccount(null), [p.saved]);
 
   const check = async () => {
@@ -57,6 +57,8 @@ function Connection({ provider: p }: { provider: Provider }) {
     e.preventDefault();
     await call('connections.saveKey', { id: p.id, key });
     setKey('');
+    // A check made with the old key says nothing about the new one
+    setAccount(null);
   };
   const needsKey = 'key' in p && !p.saved;
 
