@@ -1,6 +1,4 @@
-import { iso } from '../projection.js';
-import { COLOR as C } from '../palette.js';
-import { cast, longCast, shadow } from './shapes.js';
+import { cast, longCast } from './casters.js';
 import { SEAT_Z } from '../figure.js';
 import {
   BARK,
@@ -21,45 +19,43 @@ import {
   round,
 } from './solids.js';
 
-const pixels = (ctx, list, fill) => {
-  ctx.fillStyle = fill;
-  for (const [x, y, w = 2, h = 1] of list) ctx.fillRect(x, y, w, h);
+// Where p lies against a blade leaving c in direction a: how far along, how far across, and its height
+const bladeFrame = (c, a) => (p) => {
+  const x = p[0] - c[0],
+    y = p[1] - c[1];
+  return [x * Math.cos(a) + y * Math.sin(a), -x * Math.sin(a) + y * Math.cos(a), p[2]];
 };
 
-// Fronds arch up from one root and droop at the tip, with paired leaflets that shorten toward it; single dots read as noise
+// A fern: six fronds from one root, each a narrow blade that arches high and droops to its tip, widest past its
+// middle, with a darker rib down its centre; a frond further back stands a little taller
 function fern(ctx, d) {
-  const b = iso(d.x, d.y);
-  shadow(ctx, d.x + 0.15, d.y + 0.15, 14, 4, 10);
-  ctx.lineCap = 'round';
-  [-150, -128, -105, -75, -52, -30].forEach((deg, i) => {
-    const a = (deg * Math.PI) / 180,
-      len = 16 - Math.abs(i - 2.5) * 1.8,
-      at = (k) => ({ x: b.x + Math.cos(a) * k * 1.1, y: b.y - 1 + Math.sin(a) * k * 1.1 + k * k * 0.06 });
-    ctx.strokeStyle = C.leafDark;
-    ctx.lineWidth = 0.8;
-    ctx.beginPath();
-    ctx.moveTo(b.x, b.y - 1);
-    for (let k = 1; k <= len; k++) ctx.lineTo(at(k).x, at(k).y);
-    ctx.stroke();
-    ctx.lineWidth = 1;
-    for (let k = 2; k < len; k += 1.5) {
-      const p = at(k),
-        q = at(k + 0.5),
-        // The frond's own direction here, so leaflets follow the droop rather than the start
-        dir = Math.atan2(q.y - p.y, q.x - p.x),
-        leaf = 3 * (1 - k / len) + 0.7;
-      ctx.strokeStyle = k < len * 0.55 ? C.leaf : C.mossDark;
-      for (const s of [1, -1]) {
-        // Each leaflet leans toward the tip, so the frond reads as a feather, not a comb
-        const side = dir + s * 1.1;
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.y);
-        ctx.lineTo(p.x + Math.cos(side) * leaf, p.y + Math.sin(side) * leaf);
-        ctx.stroke();
-      }
-    }
+  const c = [d.x * U, d.y * U];
+  cast(ctx, d.x + 0.15, d.y + 0.15, 14, 10);
+  const parts = [...Array(6)].map((_, i) => {
+    const a = (i / 6) * Math.PI * 2 + 0.4,
+      L = 11 + 2 * Math.max(0, -Math.cos(a - Math.PI / 4)),
+      frame = bladeFrame(c, a);
+    return {
+      sdf: (p) => {
+        const [along, across, z] = frame(p),
+          t = Math.max(0, Math.min(1, along / L)),
+          rise = 11 * t * (1.15 - t),
+          half = 1.5 * Math.sin(Math.PI * Math.min(1, t * 1.1)) ** 0.8 + 0.12;
+        // A blade a little thicker than a pixel, so it is found from above and from the side
+        return Math.max(Math.abs(across) - half, Math.abs(z - rise) - 0.45, -along, along - L) * 0.5;
+      },
+      paint: (p, n, l) => [LEAF, Math.abs(frame(p)[1]) < 0.3 ? l - 1 : l],
+    };
   });
-  ctx.lineCap = 'butt';
+  drawSolids(
+    ctx,
+    parts,
+    [
+      [c[0] - 13, c[1] - 13, 0],
+      [c[0] + 13, c[1] + 13, 10],
+    ],
+    'fern',
+  );
 }
 
 // A fallen log to sit on: one round trunk, a little thinner toward its far end and sunk into the ground, three furrows
@@ -291,14 +287,41 @@ function pine(ctx, d) {
   );
 }
 
-// Blades fan out from one root, so a tuft reads as grass rather than sticks
+// A tuft of grass: seven flat blades from one root, each tapering to a point and leaning further the further out it
+// stands, green and dry in turn
 function tuft(ctx, d) {
-  const b = iso(d.x, d.y);
-  for (let i = -3; i <= 3; i++) {
-    const h = 7 - Math.abs(i) * 1.5;
-    for (let k = 0; k < h; k++)
-      pixels(ctx, [[b.x + i * 1.5 + (i * k) / 3, b.y - k, 1, 1]], i % 2 ? C.grassDry : C.mossDark);
-  }
+  const c = [d.x * U, d.y * U];
+  const parts = [...Array(7)].map((_, i) => {
+    const k = i - 3,
+      H = 8 - Math.abs(k) * 1.2,
+      lean = Math.abs(k) * 1.3,
+      // Blades face the camera: their width and their lean both run across the view, along x - y on the ground
+      frame = bladeFrame([c[0] + k * 0.45, c[1] - k * 0.45], -Math.PI / 4);
+    return {
+      sdf: (p) => {
+        const [along, across, z] = frame(p),
+          t = Math.max(0, Math.min(1, z / H));
+        return (
+          Math.max(
+            Math.abs(along - Math.sign(k) * lean * t ** 1.5) - (0.8 * (1 - t) + 0.1),
+            Math.abs(across) - 0.4,
+            -z,
+            z - H,
+          ) * 0.5
+        );
+      },
+      paint: (p, n, l) => (i % 2 ? [HAY, l - 1] : [LEAF, l + 1]),
+    };
+  });
+  drawSolids(
+    ctx,
+    parts,
+    [
+      [c[0] - 7, c[1] - 7, 0],
+      [c[0] + 7, c[1] + 7, 8],
+    ],
+    'tuft',
+  );
 }
 
 // A ridge tent, long along y with its open end toward the camera: canvas pitched in two slopes with seams down them

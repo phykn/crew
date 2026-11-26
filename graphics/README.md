@@ -41,7 +41,7 @@ python -m http.server 8766 --bind 127.0.0.1
 - `ground.js`: 바닥과 모닥불 자리
 - `sprites.js`: 사람
 - `finish.js`: 구운 그림 다듬기(확대, 외곽선, 림 라이트, 그레인)
-- `shapes.js`: 2D 도형과 그림자, 불빛을 가리는 물체 목록(casters)
+- `casters.js`: 모닥불과 횃불 빛을 가리는 물체 목록(긴 그림자용)
 
 색은 `src/frontend/camp/palette.js`, 자리는 `layout.js`, 투영은 `projection.js`에 있다.
 
