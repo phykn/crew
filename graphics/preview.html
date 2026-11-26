@@ -25,7 +25,7 @@
 <script type="module">
   // Each prop is painted where the camp places it, by the app's own code, so the fire lights it as it will in the app
   import { CAMP, iso } from '../src/frontend/camp/projection.js';
-  import { FIRE, PROPS, TORCHES, WILDS } from '../src/frontend/camp/layout.js';
+  import { FIRE, PROPS, RUGS, TORCHES, WILDS } from '../src/frontend/camp/layout.js';
   import { drawProp } from '../src/frontend/camp/art/props.js';
   import { paintGround } from '../src/frontend/camp/art/ground.js';
   import { framesOf, personPicture } from '../src/frontend/camp/art/figures.js';
@@ -33,7 +33,13 @@
   const q = new URLSearchParams(location.search),
     pick = q.get('kind'),
     k = +(q.get('zoom') ?? (pick ? 10 : 4));
-  const all = [{ ...FIRE, kind: 'hearth' }, ...PROPS, ...TORCHES.map((t) => ({ ...t, kind: 'torch' })), ...WILDS];
+  const all = [
+    { ...FIRE, kind: 'hearth' },
+    ...RUGS.map((r) => ({ ...r, kind: 'rug' })),
+    ...PROPS,
+    ...TORCHES.map((t) => ({ ...t, kind: 'torch' })),
+    ...WILDS,
+  ];
   // ?ground: the whole camp as the app frames it, its ground and then every prop from the back forward
   if (q.has('ground')) {
     const g = +(q.get('zoom') ?? 2),
@@ -43,7 +49,11 @@
     const ctx = c.getContext('2d');
     ctx.setTransform(g, 0, 0, g, -CAMP.x * g, -CAMP.y * g);
     paintGround(ctx, CAMP);
-    if (!q.has('bare')) for (const d of all.slice(1).sort((a, b) => a.x + a.y - (b.x + b.y))) drawProp(ctx, d);
+    if (!q.has('bare'))
+      for (const d of all
+        .filter((d) => d.kind !== 'hearth' && d.kind !== 'rug')
+        .sort((a, b) => a.x + a.y - (b.x + b.y)))
+        drawProp(ctx, d);
     document.body.append(c);
   }
   // ?figure=<role>: every frame of each pose, a row a pose, each frame moving in turn on the left

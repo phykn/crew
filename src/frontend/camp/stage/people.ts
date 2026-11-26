@@ -1,7 +1,7 @@
 import { Container, Graphics, Sprite, Texture } from 'pixi.js';
 import { FIRE } from '../layout.js';
 import { iso } from '../projection.js';
-import { PIXEL, isCasting } from '../figure.js';
+import { PIXEL, SEAT, isCasting } from '../figure.js';
 import { anchorOf, framesOf, personPicture } from '../art/figures.js';
 import { blotTexture } from './light';
 import { textureOf } from './bake';
@@ -23,7 +23,7 @@ export type Person = {
 };
 
 // Legs move with the ground covered, not the clock, so a walker speeding up or slowing down never skates; tiles per frame
-const STEP = 0.2;
+const STEP = 0.32;
 // Casting plays its start once, then loops, and plays its end once when the work stops; ms a frame
 const CAST = 180;
 // Eyes close for a moment every few seconds, each person on their own beat
@@ -55,8 +55,8 @@ export class PersonView {
     this.spot.anchor.set(0.5);
     this.spot.tint = 0x000000;
     this.spot.alpha = 0.5;
-    this.spot.width = 20.4;
-    this.spot.height = 7.2;
+    this.spot.width = 25.5;
+    this.spot.height = 9;
     this.figure.addChild(this.body, this.lit);
     this.root.addChild(this.spell, this.spot, this.figure);
     layer.addChild(this.root);
@@ -97,7 +97,7 @@ export class PersonView {
     this.lit.texture = textureFor(personPicture(p.room.role, pose, k, toward));
     // The picture stands on its bottom row, over the column under its standing head
     for (const s of [this.body, this.lit]) s.anchor.set((anchorOf(p.room.role) + 0.5) / body.width, 1);
-    this.figure.position.set(Math.round(f.x), Math.round(f.y));
+    this.figure.position.set(Math.round(f.x), Math.round(f.y + (p.sitting ? SEAT : 0)));
     this.figure.scale.set(PIXEL * flip, PIXEL);
     this.lit.alpha = Math.max(0, 1 - Math.hypot(p.x - FIRE.x, p.y - FIRE.y) / 10);
     // Someone with nothing to do fades a little, so the eye finds who is at work

@@ -1,3 +1,4 @@
+import { TORCH_TOP } from '../layout.js';
 import { cast, longCast } from './casters.js';
 import {
   BARK,
@@ -9,6 +10,9 @@ import {
   LEAF,
   NEEDLE,
   ROCK,
+  RUG,
+  SAGE,
+  SAND,
   U,
   WATER,
   WOOD,
@@ -211,10 +215,13 @@ function rock(ctx, d) {
   );
 }
 
+// Pines stand this much taller than they were first drawn, so they still tower over the larger people
+const PINE = 1.2;
+
 // A pine: a short brown trunk, a step darker than cut wood, under three broad skirts of needles, each smaller and higher; a skirt's hem juts out in
 // nine pointed boughs whose tips hang a little lower, turned from tier to tier, so the light falls on it in steps
 function pine(ctx, d) {
-  const s = d.size ?? 1,
+  const s = (d.size ?? 1) * PINE,
     c = [d.x * U, d.y * U];
   cast(ctx, d.x + 0.3, d.y + 0.3, 16 * s, 76 * s);
   const parts = [
@@ -287,14 +294,25 @@ function tuft(ctx, d) {
   );
 }
 
+// Tents and the wagon are drawn this much larger than first made, so people can stand in them beside the larger crew
+const TENT = 1.5,
+  WAGON = 1.3;
+
+// Solids made at one size, grown s times about the point o on the ground
+const grown = (parts, o, s) => {
+  const back = (p) => p.map((v, a) => o[a] + (v - o[a]) / s);
+  return parts.map((q) => ({ sdf: (p) => q.sdf(back(p)) * s, paint: (p, n, l) => q.paint(back(p), n, l) }));
+};
+
 // A ridge tent, long along y with its open end toward the camera: canvas pitched in two slopes with seams down them
 // and a darker hem, a doorway dark inside and warm with the lantern, poles above the ridge, and guy ropes to stakes
 function tent(ctx, d) {
-  const L = 1.9 * U,
-    W = 1.6 * U,
-    H = 26,
+  const s = TENT,
+    L = 1.9 * U * s,
+    W = 1.6 * U * s,
+    H = 26 * s,
     c = [d.x * U, d.y * U];
-  cast(ctx, d.x + 0.3, d.y + 0.3, 30, 26);
+  cast(ctx, d.x + 0.3 * s, d.y + 0.3 * s, 30 * s, H);
   const slopeLen = Math.hypot(H, W / 2);
   const parts = [
     {
@@ -320,18 +338,21 @@ function tent(ctx, d) {
     },
   ];
   for (const u of [-L / 2, L / 2])
-    parts.push({ sdf: rod([c[0], c[1] + u, H - 1], [c[0], c[1] + u, H + 4], 0.7), paint: (p, n, l) => [WOOD, l - 1] });
+    parts.push({
+      sdf: rod([c[0], c[1] + u, H - 1], [c[0], c[1] + u, H + 4 * s], 0.8),
+      paint: (p, n, l) => [WOOD, l - 1],
+    });
   // One guy rope runs back from the far pole, so nothing crosses the doorway; pegs hold the hem at the near corners
-  const back = [c[0], c[1] - L / 2 - 0.6 * U, 0];
+  const back = [c[0], c[1] - L / 2 - 0.6 * U * s, 0];
   parts.push({
-    sdf: rod([c[0], c[1] - L / 2, H + 2], [back[0], back[1], 1.5], 0.25),
+    sdf: rod([c[0], c[1] - L / 2, H + 2 * s], [back[0], back[1], 1.5], 0.3),
     paint: (p, n, l) => [HAY, l - 1],
   });
   for (const peg of [back, [c[0] - W / 2 - 1, c[1] + L / 2 - 1, 0], [c[0] + W / 2 + 1, c[1] + L / 2 - 1, 0]])
-    parts.push({ sdf: rod(peg, [peg[0], peg[1], 3], 0.6), paint: (p, n, l) => [WOOD, l - 1] });
+    parts.push({ sdf: rod(peg, [peg[0], peg[1], 3 * s], 0.6), paint: (p, n, l) => [WOOD, l - 1] });
   drawSolids(ctx, parts, [
-    [c[0] - W / 2 - 2, c[1] - L / 2 - 0.7 * U, 0],
-    [c[0] + W / 2 + 2, c[1] + L / 2, H + 5],
+    [c[0] - W / 2 - 2, c[1] - L / 2 - 0.7 * U * s, 0],
+    [c[0] + W / 2 + 2, c[1] + L / 2, H + 5 * s],
   ]);
 }
 
@@ -341,7 +362,7 @@ function wagon(ctx, d) {
   const L = 2.4 * U,
     W = 1.1 * U,
     c = [d.x * U, d.y * U];
-  cast(ctx, d.x + 0.3, d.y + 0.3, 34, 32);
+  cast(ctx, d.x + 0.3, d.y + 0.3, 34 * WAGON, 32 * WAGON);
   const hood = { a: W / 2 + 1, b: 17 },
     end = L / 2 - 0.15 * U;
   const parts = [
@@ -387,9 +408,9 @@ function wagon(ctx, d) {
         },
       });
     }
-  drawSolids(ctx, parts, [
-    [c[0] - W / 2 - 3, c[1] - L / 2, 0],
-    [c[0] + W / 2 + 3, c[1] + L / 2 + 0.9 * U + 1.5, 32],
+  drawSolids(ctx, grown(parts, [c[0], c[1], 0], WAGON), [
+    [c[0] - (W / 2 + 3) * WAGON, c[1] - (L / 2) * WAGON, 0],
+    [c[0] + (W / 2 + 3) * WAGON, c[1] + (L / 2 + 0.9 * U + 1.5) * WAGON, 32 * WAGON],
   ]);
 }
 
@@ -528,20 +549,21 @@ function lantern(ctx, d) {
 
 // A torch's pole and iron cup, tapering up to the cup's charred top where the live flame stands (stage/effects.ts)
 function torch(ctx, d) {
-  const c = [d.x * U, d.y * U];
+  const c = [d.x * U, d.y * U],
+    pole = (TORCH_TOP - 3) / 2;
   const parts = [
     {
-      sdf: round([c[0], c[1], 14], 2, 14, (t) => 1.1 - 0.15 * t),
-      paint: (p, n, l) => (Math.abs(p[2] - 22) < 0.7 ? [IRON, l] : [WOOD, l - 1]),
+      sdf: round([c[0], c[1], pole], 2, pole, (t) => 1.3 - 0.2 * t),
+      paint: (p, n, l) => (Math.abs(p[2] - TORCH_TOP * 0.7) < 0.7 ? [IRON, l] : [WOOD, l - 1]),
     },
     {
-      sdf: round([c[0], c[1], 29.5], 2, 1.5, (t) => 1.9 + 0.5 * t),
+      sdf: round([c[0], c[1], TORCH_TOP - 1.5], 2, 1.5, (t) => 1.9 + 0.5 * t),
       paint: (p, n) => (n[2] > 0.9 ? [BARK, 1] : [IRON, 2]),
     },
   ];
   drawSolids(ctx, parts, [
     [c[0] - 3, c[1] - 3, 0],
-    [c[0] + 3, c[1] + 3, 31],
+    [c[0] + 3, c[1] + 3, TORCH_TOP],
   ]);
 }
 
@@ -579,6 +601,36 @@ function hearth(ctx, d) {
   ]);
 }
 
+// A seat rug: one thin slab with soft edges, flat on the ground. On top, a calm brick field with one small diamond,
+// a dark line inside a sand border, and sage blocks at two ends; its sides are the dark binding
+function rug(ctx, d) {
+  const half = 0.7 * U,
+    c = [d.x * U, d.y * U, 0.5];
+  const part = {
+    sdf: box(c, [half, half, 0.5], 0.4),
+    paint: (p, n, light) => {
+      if (n[2] < 0.9) return [RUG, 0];
+      const u = p[0] - c[0],
+        v = p[1] - c[1],
+        edge = half - Math.max(Math.abs(u), Math.abs(v)),
+        // A square on the ground is a diamond on screen
+        mid = Math.max(Math.abs(u), Math.abs(v));
+      if (edge < 1) return [RUG, 0];
+      if (edge < 3) return Math.abs(u) > Math.abs(v) && Math.abs(v) < 2.5 ? [SAGE, light] : [SAND, light];
+      if (edge < 4) return [RUG, light - 2];
+      return mid > 1.8 && mid < 3 ? [SAND, light] : [RUG, light];
+    },
+  };
+  drawSolids(
+    ctx,
+    [part],
+    [
+      [c[0] - half, c[1] - half, 0],
+      [c[0] + half, c[1] + half, 1],
+    ],
+  );
+}
+
 const PAINT = {
   fern,
   rock,
@@ -595,6 +647,7 @@ const PAINT = {
   lantern,
   torch,
   hearth,
+  rug,
 };
 // A prop's look depends only on what it is and where it stands
 export const placeOf = (d) => [d.kind, d.x, d.y, d.w, d.h, d.size].join();

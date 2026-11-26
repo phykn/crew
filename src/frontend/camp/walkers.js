@@ -1,4 +1,4 @@
-import { FIRE, GROUND, blocked } from './layout.js';
+import { FIRE, GROUND, RUGS, blocked } from './layout.js';
 import { findPath } from './route.js';
 import { CAMP, TW, iso } from './projection.js';
 import { headTop } from './figure.js';
@@ -23,16 +23,20 @@ export function smallTalk(hour) {
 }
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
 // People never stop closer than this to someone else, in tiles
-const SPACE = 1.3;
+const SPACE = 1.5;
 // How far ahead, in tiles, a walker looks for someone to step around
 const AHEAD = 1.2;
-// People sit down within this many tiles of the fire, close enough to feel its warmth
-const SIT_NEAR = 5;
-const SPEED = { stroll: 1.1, brisk: 3.4 };
+const SPEED = { stroll: 1.1, brisk: 2.6 };
 // People speed up from a standstill and slow down before they stop, in tiles per second squared
 const ACCEL = 6;
 // The four screen edges as ground angles: bottom, right, top, left
 const SIDES = [Math.PI / 4, -Math.PI / 4, (-3 * Math.PI) / 4, (3 * Math.PI) / 4];
+// Someone who sits down stays a while, in ms: at least the first, up to the two together
+const SIT_FOR = [25000, 20000];
+// When a sitter's while is up, the chance they stay on for another
+const SIT_ON = 0.4;
+// How close to a rug's middle, in tiles, a stroller may stop
+const RUG_CLEAR = 0.9;
 // Gap between one arrival and the next when the crew first walks in, in ms
 const ARRIVAL_GAP = 250;
 
@@ -55,7 +59,8 @@ export function createWalkers() {
         d = Math.sqrt(Math.random()) * (near ? reach : GROUND),
         c = near || FIRE;
       const s = { x: c.x + d * Math.cos(a), y: c.y + d * Math.sin(a) };
-      if (isFree(p, s)) return s;
+      // Rugs are seats, so nobody stops to stand on one
+      if (isFree(p, s) && RUGS.every((r) => Math.hypot(r.x - s.x, r.y - s.y) > RUG_CLEAR)) return s;
     }
     return null;
   }
@@ -121,17 +126,21 @@ export function createWalkers() {
     }
   }
 
+  const sitWhile = (now) => now + SIT_FOR[0] + Math.random() * SIT_FOR[1];
+
   function idle(p, now) {
     p.nextIdle = now + 4000 + Math.random() * 9000;
-    const roll = Math.random();
+    // A sitter does nothing for a moment's whim: they stay on, or get up and go somewhere else
+    if (p.sitting && Math.random() < SIT_ON) return void (p.nextIdle = sitWhile(now));
+    const roll = p.sitting ? 0.4 + Math.random() * 0.6 : Math.random();
     if (roll < 0.2) {
       p.facing = -p.facing;
       return;
     }
     if (roll < 0.4) {
-      // Sitting is on the ground somewhere near the fire, facing it
-      const spot = findSpot(p, FIRE, SIT_NEAR);
-      if (spot && walk(p, spot, false, { sit: true })) return;
+      // Sitting is on a free rug by the fire, facing it
+      const rugs = RUGS.filter((r) => isFree(p, r));
+      if (rugs.length && walk(p, pick(rugs), false, { sit: true })) return;
     }
     if (roll < 0.55) {
       const q = others(p).find((o) => o.state !== 'working' && !o.path.length && Math.hypot(o.x - p.x, o.y - p.y) < 3);
@@ -200,7 +209,8 @@ export function createWalkers() {
     if (q.say) speak(p, q.say.text, q.say.kind);
     if (p.leaving && !p.path.length) people.delete(p.leaving);
     if (!p.path.length) p.entering = false;
-    if (q.sit && !p.path.length) Object.assign(p, { sitting: true, facing: faceFire(p) });
+    // The while starts when they sit, not when they set off, so nobody gets up the moment they arrive
+    if (q.sit && !p.path.length) Object.assign(p, { sitting: true, facing: faceFire(p), nextIdle: sitWhile(now) });
   }
 
   function add(member, entering, key = member.team, side = SIDES[0], delay = 0) {

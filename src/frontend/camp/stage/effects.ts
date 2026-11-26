@@ -1,5 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
-import { FIRE, TORCHES } from '../layout.js';
+import { FIRE, TORCHES, TORCH_TOP } from '../layout.js';
 import { iso } from '../projection.js';
 import { COLOR as C } from '../palette.js';
 
@@ -15,7 +15,12 @@ const px = (g: Graphics, x: number, y: number, w: number, h: number, color: stri
   g.rect(Math.round(x), Math.round(y), w, h).fill({ color: hex(color), alpha });
 
 // A thin pole still stands in the firelight, so it casts a long thin shadow
-export const TORCH_CASTERS = TORCHES.map((t: { x: number; y: number }) => ({ x: t.x, y: t.y, r: 5 / 32, h: 30 }));
+export const TORCH_CASTERS = TORCHES.map((t: { x: number; y: number }) => ({
+  x: t.x,
+  y: t.y,
+  r: 6 / 32,
+  h: TORCH_TOP,
+}));
 
 // Four broad tongues, each two pixels wide at its top and stepping down two rows a column so a notch parts it from the
 // next, each rising and falling on its own slow beat, so the tallest wanders across the fire
@@ -150,7 +155,7 @@ export function createFlames(items: Container) {
       if (key === shown.torches[i]) return;
       shown.torches[i] = key;
       flame.clear();
-      drawTorch(flame, Math.round(p.x), Math.round(p.y - 31), shape);
+      drawTorch(flame, Math.round(p.x), Math.round(p.y - TORCH_TOP - 1), shape);
     });
     const key = fireHeights(now);
     if (key !== shown.fire) {
@@ -195,13 +200,13 @@ const GLINTS = 5;
 export function drawWard(g: Graphics, f: { x: number; y: number }, now: number) {
   const cx = Math.round(f.x),
     cy = Math.round(f.y);
-  ring(g, cx, cy, 16, 8, C.ward, 0.85);
-  ring(g, cx, cy, 12, 6, C.wardGold, 0.75);
-  ring(g, cx, cy, 7, 3.5, C.wardLight, 0.4);
+  ring(g, cx, cy, 20, 10, C.ward, 0.85);
+  ring(g, cx, cy, 15, 7.5, C.wardGold, 0.75);
+  ring(g, cx, cy, 9, 4.5, C.wardLight, 0.4);
   for (let k = 0; k < 8; k++) {
     const a = (k * TAU) / 8 + now / 2400,
-      x = Math.round(cx + Math.cos(a) * 12),
-      y = Math.round(cy + Math.sin(a) * 6);
+      x = Math.round(cx + Math.cos(a) * 15),
+      y = Math.round(cy + Math.sin(a) * 7.5);
     // A small lozenge flat on the ground, wider than tall like the ground's own diamonds
     px(g, x - 2, y, 5, 1, C.wardGold);
     px(g, x, y - 1, 1, 1, C.wardGold);

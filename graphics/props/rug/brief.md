@@ -1,8 +1,14 @@
 # Camp seating rug
 
-## Status
+## Code rug
 
-One concept generated using the built-in image tool; approval pending. Saved as `image.png`. Image generation only; application integration belongs to another agent.
+`rug` in `props.js`, painted with the ground like the hearth, so a sitter is always over it. Five lie round the fire (`RUGS` in `layout.js`), and an idle person sits on a free one.
+
+- Shape: one thin slab, 1.4 tiles square and 1 unit thick, soft edges, flat on the ground
+- Top: brick field, a dark line inside a sand border, one small sand diamond in the middle (a square on the ground), sage blocks at two ends
+- Sides: the dark binding
+- Shades: `RUG`, `SAND`, `SAGE` in `solids.js`, colors from the concept
+- Avoid: fringe (it reads as mess at this size), threads, texture noise
 
 ## Generation prompt
 
@@ -29,6 +35,6 @@ Crisp deliberate coarse pixel-art clusters, clean stepped outline, restrained ha
 TRUE TRANSPARENT CUTOUT
 Output exactly one rug and attached short fringe, genuine transparent RGBA around and between fringe tabs. Rug itself opaque. Absolutely no grass, dirt, floor, pedestal, cast shadow, contact-shadow halo, ambient brown cloud, white or gray backdrop, checkerboard drawing, vignette, people, feet, props, furniture, text, numbers, logo, watermark, border frame, sparks, runes, magic circle or emitted light. Keep the edges clean for later placement on the camp's actual floor.
 
-## Review
+## Concept review
 
-Original output: 1536×1024 RGBA, alpha extrema (0, 254); high-alpha bounds (191, 191, 1346, 863). One flat diamond rug with muted brick field, oatmeal border, olive end motifs and a small central diamond. A broad soft beige/brown halo remains around the edges and fringe despite the no-shadow prompt. Fringe is concentrated near the two pointed ends rather than distributed along opposite edges. This is a concept candidate, not a clean production cutout. Preserve this source; later acceptance and alpha/shape cleanup belong to the asset application step. No application code, commit or push was changed.
+Original output: 1536×1024 RGBA, alpha extrema (0, 254); high-alpha bounds (191, 191, 1346, 863). One flat diamond rug with muted brick field, oatmeal border, olive end motifs and a small central diamond. A broad soft beige/brown halo remains around the edges and fringe despite the no-shadow prompt. Fringe is concentrated near the two pointed ends rather than distributed along opposite edges.

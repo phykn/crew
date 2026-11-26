@@ -1,4 +1,4 @@
-import { FIRE } from '../layout.js';
+import { FIRE, RUGS } from '../layout.js';
 import { COLOR as C } from '../palette.js';
 import { TW, TH, iso } from '../projection.js';
 import { drawProp } from './props.js';
@@ -56,6 +56,7 @@ export function paintGround(ctx, view) {
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(field, x0, y0, cols * BLOCK, rows * BLOCK);
   ctx.imageSmoothingEnabled = true;
-  // The hearth lies low enough to be part of the ground; the flames themselves move, so they are painted each frame
+  // The hearth and the rugs lie low enough to be part of the ground; the flames themselves move, so they are painted each frame
   drawProp(ctx, { kind: 'hearth', ...FIRE });
+  for (const r of RUGS) drawProp(ctx, { kind: 'rug', ...r });
 }

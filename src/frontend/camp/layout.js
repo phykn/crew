@@ -9,7 +9,12 @@ const around = (deg, d) => ({
 });
 const place = (kind, deg, d, more) => ({ kind, ...around(deg, d), ...more });
 
+// Seats round the fire, each a rug a person sits on cross-legged, far enough apart that two sitters never crowd
+export const RUGS = [15, 85, 155, 225, 295].map((deg) => around(deg, 3.3));
+
 export const TORCHES = [...Array(6)].map((_, i) => around(30 + i * 60, 7.6));
+// A torch's cup stands this high, a little over everyone's heads, with its flame on top
+export const TORCH_TOP = 50;
 
 // r is how far around a piece nobody walks
 export const PROPS = [
@@ -40,7 +45,7 @@ export const blocked = (x, y) =>
 
 // Every ridge runs along y, so each tent's open end faces the camera and the fire behind it
 const TENTS = [place('tent', 227, 11.8), place('tent', 256, 11.4), place('tent', 302, 11.4)];
-export const LANTERNS = TENTS.map((t) => ({ kind: 'lantern', x: t.x + 0.7, y: t.y + 1.4 }));
+const TENT_LANTERNS = TENTS.map((t) => ({ kind: 'lantern', x: t.x + 1, y: t.y + 1.9 }));
 // Three staggered rows with a fixed rhythm of heights read as a treeline, not scatter
 const TREELINE = [0, 1, 2].flatMap((row) =>
   [...Array(14)].map((_, i) =>
@@ -49,10 +54,32 @@ const TREELINE = [0, 1, 2].flatMap((row) =>
 );
 const grove = (deg, d, sizes) => sizes.map((size, i) => place('pine', deg + (i - 1) * 5, d + (i % 2) * 1.2, { size }));
 
+// The near side, at the screen's bottom, holds only low pieces in a set rhythm: a supply corner, a woodpile corner, a
+// lantern between them, and a hedge of ferns and tufts along the edge, so it reads full and tended without hiding anyone
+const LOW_LANTERNS = [0, 45, 90].map((deg) => ({ kind: 'lantern', ...around(deg, 9.8) }));
+export const LANTERNS = [...TENT_LANTERNS, ...LOW_LANTERNS];
+const NEAR = [
+  place('crates', 22, 10),
+  place('drum', 15, 10.5),
+  place('drum', 29, 10.6),
+  place('woodpile', 70, 10),
+  place('hay', 78, 10.6),
+  place('hay', 63, 10.7),
+  ...[-30, -15, 8, 37, 53, 100, 115, 130].map((deg, i) => place('fern', deg, 10.6 + (i % 2) * 0.5)),
+  ...[-22, 0, 45, 60, 85, 108, 122].map((deg, i) => place('tuft', deg, 10.1 + (i % 2) * 0.4)),
+  place('rock', 45, 10.9, { size: 0.8 }),
+  place('rock', 92, 11, { size: 0.7 }),
+  // A second, looser row further out fills the bottom of a tall window
+  ...[-5, 20, 32, 58, 72, 96].map((deg, i) => place('fern', deg, 12 + (i % 2) * 0.6)),
+  ...[10, 45, 84].map((deg) => place('tuft', deg, 11.8)),
+  place('rock', 40, 12.6, { size: 1 }),
+  place('rock', 66, 12.4, { size: 0.6 }),
+];
+
 // Tall pieces past the trodden ground keep to the far side and the screen edges, so nothing hides the camp
 export const WILDS = [
   ...TENTS,
-  ...LANTERNS,
+  ...TENT_LANTERNS,
   ...TREELINE,
   ...grove(92, 14.5, [1.3, 1, 0.8]),
   ...grove(-2, 14.5, [0.9, 1.3, 1]),
@@ -65,15 +92,10 @@ export const WILDS = [
   place('woodpile', 272, 10.6),
   place('hay', 330, 10.6),
   place('hay', 336, 11.4),
-  place('crates', 14, 10.6),
-  place('hay', 72, 10.5),
-  place('woodpile', 104, 10.7),
   place('fern', 186, 10.6),
   place('fern', 286, 10.4),
-  place('fern', 120, 10.8),
-  place('fern', 0, 11.6),
-  place('rock', 30, 10.7, { size: 0.7 }),
-  place('rock', 86, 11.6, { size: 1.1 }),
   place('rock', 310, 10.3, { size: 0.6 }),
-  ...[22, 40, 54, 64, 96, 130, 170, 344, 356].map((deg, i) => place('tuft', deg, 10.2 + (i % 3) * 0.4)),
+  ...[150, 170, 344, 356].map((deg, i) => place('tuft', deg, 10.2 + (i % 2) * 0.4)),
+  ...LOW_LANTERNS,
+  ...NEAR,
 ];

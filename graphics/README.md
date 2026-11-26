@@ -27,7 +27,7 @@ python -m http.server 8766 --bind 127.0.0.1
 ```
 
 - 전체: http://127.0.0.1:8766/graphics/preview.html
-- 하나만: `?kind=wagon` (종류: hearth, crates, drum, hay, log, well, wagon, tent, lantern, torch, pine, fern, tuft, rock, woodpile)
+- 하나만: `?kind=wagon` (종류: hearth, rug, crates, drum, hay, log, well, wagon, tent, lantern, torch, pine, fern, tuft, rock, woodpile)
 - 확대: `&zoom=6`
 - 캠프 전체 바닥과 소품: `?ground` (소품 없이 바닥만: `?ground&bare`)
 - 사람: `?figure=interpreter` (동작마다 한 줄, 움직이는 첫 칸과 모든 프레임)
@@ -43,7 +43,7 @@ python -m http.server 8766 --bind 127.0.0.1
   - 재질별 색 단계(WOOD, BARK, IRON, ROCK, HAY, CANVAS, WATER, BLAZE)
   - 모닥불과 횃불 빛(바닥 그림자는 빛 지도 몫)
 - `props.js`: 소품 하나에 함수 하나. 부품(`box`, `round`, `rod`, `facets`)을 조합하고 `paint`로 색을 칠한다.
-- `ground.js`: 바닥과 모닥불 자리
+- `ground.js`: 바닥, 모닥불 자리, 앉는 러그
 - `figures.js`: 캠프의 사람. `people/<역할>.js`의 글자 그림(글자 하나가 픽셀 하나)을 칠하고 불 쪽 가장자리를 데운다
 - `finish.js`: 구운 소품 다듬기(림 라이트, 그레인)
 - `casters.js`: 모닥불과 횃불 빛을 가리는 물체 목록(긴 그림자용)
@@ -114,7 +114,7 @@ python -m http.server 8766 --bind 127.0.0.1
 - 색 단계와 경계는 서 있기 첫 프레임 것을 모든 프레임에 쓴다. 프레임 사이에 색이 번쩍이지 않는다.
 - 시트는 모두 화면 왼쪽을 본다. 캠프는 오른쪽으로 갈 때 뒤집는다.
 - 색만으로 두 부위가 안 갈리는 칸(지휘의 가슴에 댄 지팡이)은 `SPEC`의 `fix`로 그 칸의 상자 안 재질을 바꾼다.
-- 앉기는 시안의 `sit`처럼 바닥에 책상다리로 앉는다. 벤치는 없다. 서 있는 그림으로 벤치 앉기를 만들면 다리가 어색했다.
+- 앉기는 시안의 `sit`처럼 책상다리로 앉는다. 모닥불 둘레 러그(`layout.js`의 `RUGS`) 중 빈 곳에 앉는다. 벤치는 없다. 서 있는 그림으로 벤치 앉기를 만들면 다리가 어색했다.
 
 ### 크기
 

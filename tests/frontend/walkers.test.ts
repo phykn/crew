@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest';
-import { FIRE, GROUND, blocked } from '../../src/frontend/camp/layout.js';
+import { FIRE, GROUND, RUGS, blocked } from '../../src/frontend/camp/layout.js';
 import { createWalkers, smallTalk } from '../../src/frontend/camp/walkers.js';
 
 test('idle members stroll only on open ground and chat among themselves without touching the record', () => {
@@ -101,6 +101,27 @@ test('a walker speeds up from a standstill and slows down before stopping, inste
   }
   expect(p.path).toEqual([]);
   expect(paces[0]).toBeLessThan(1);
-  expect(Math.max(...paces)).toBeCloseTo(3.4, 5);
+  expect(Math.max(...paces)).toBeCloseTo(2.6, 5);
   expect(paces.at(-2)!).toBeLessThan(1.5);
+});
+
+test('an idle sitter sits on a rug and stays a while instead of getting up the moment they arrive', () => {
+  const w = createWalkers();
+  w.applyStaff([{ team: 'a', name: 'a', color: '#fff', look: ['hair', 'vest', 'boots'], state: 'idle' }]);
+  const p = w.people.get('a'),
+    rug = RUGS[0];
+  // Every whim says get up and go, so only the while kept from sitting down holds them
+  const random = vi.spyOn(Math, 'random').mockReturnValue(0.9);
+  // Set off long before sitting, so a while counted from setting off would already be over on arrival
+  Object.assign(p, { x: rug.x + 3, y: rug.y, entering: false, path: [{ ...rug, sit: true }], nextIdle: 0, speed: 0 });
+  let now = 0,
+    sat = -1;
+  for (; now < 60000; now += 50) {
+    w.tick(now, 0.05);
+    if (p.sitting && sat < 0) sat = now;
+    if (sat >= 0 && !p.sitting) break;
+  }
+  expect(sat).toBeGreaterThan(0);
+  expect(now - sat).toBeGreaterThanOrEqual(25000);
+  random.mockRestore();
 });

@@ -1,5 +1,5 @@
 import { BlurFilter, Container, Graphics, Matrix, type Renderer, RenderTexture, Sprite, Texture } from 'pixi.js';
-import { FIRE, LANTERNS, TORCHES } from '../layout.js';
+import { FIRE, LANTERNS, TORCHES, TORCH_TOP } from '../layout.js';
 import { iso, TH, TW } from '../projection.js';
 import { BIG, FIGURE, isCasting } from '../figure.js';
 import { textureOf } from './bake';
@@ -17,7 +17,7 @@ const SQUASH = 0.62;
 type Light = { x: number; y: number; z: number; reach: number; rgb: number; blocks: boolean };
 const LIGHTS: Light[] = [
   { ...FIRE, z: 14, reach: 430, rgb: 0xffc482, blocks: true },
-  ...TORCHES.map((t: { x: number; y: number }) => ({ ...t, z: 30, reach: 170, rgb: 0xffaa64, blocks: true })),
+  ...TORCHES.map((t: { x: number; y: number }) => ({ ...t, z: TORCH_TOP, reach: 170, rgb: 0xffaa64, blocks: true })),
   ...LANTERNS.map((l: { x: number; y: number }) => ({ ...l, z: 13, reach: 100, rgb: 0xffb069, blocks: false })),
 ];
 // A person blocks light like a post as tall as their sprite is drawn

@@ -1,4 +1,4 @@
-import { FIRE, TORCHES } from '../layout.js';
+import { FIRE, TORCHES, TORCH_TOP } from '../layout.js';
 import { iso, TW } from '../projection.js';
 import { COLOR as C } from '../palette.js';
 
@@ -26,6 +26,10 @@ export const BLAZE = [C.flameDeep, C.flameDeep, C.flame, C.flame, C.flameCore];
 export const GLOW = [C.leather, C.leather, C.doorGlow, C.doorGlow, C.doorGlow];
 // Still water is one dark color whichever way the light falls
 export const WATER = [C.water, C.water, C.water, C.water, C.water];
+// A rug's woven field, its sand border, and its sage blocks; the darkest step is the binding along its edge
+export const RUG = [C.rugBinding, C.rugBinding, C.rugDark, C.rug, C.rug];
+export const SAND = [C.rugBinding, C.rugBinding, C.rugDark, C.rugBorder, C.rugBorder];
+export const SAGE = [C.rugBinding, C.rugBinding, C.rugDark, C.rugAccent, C.rugAccent];
 export const IRON = [C.eye, C.leather, C.iron, C.muted, C.rockLight];
 
 // Light from the upper left: tops are lightest, faces toward +y next, faces toward +x darkest
@@ -42,10 +46,12 @@ const shade = (n) => {
 // The camp's big flames, as the light map places them (reach in screen px): a surface turned toward one near it is
 // lit a step warmer (a lantern's small reach would only stamp a disc on a face); flicker and fall-off stay
 // with the light map
-const FLAMES = [{ ...FIRE, z: 14, reach: 430 }, ...TORCHES.map((t) => ({ ...t, z: 30, reach: 170 }))].map((f) => ({
-  at: [f.x * U, f.y * U, f.z],
-  reach: (f.reach / TW) * U,
-}));
+const FLAMES = [{ ...FIRE, z: 14, reach: 430 }, ...TORCHES.map((t) => ({ ...t, z: TORCH_TOP, reach: 170 }))].map(
+  (f) => ({
+    at: [f.x * U, f.y * U, f.z],
+    reach: (f.reach / TW) * U,
+  }),
+);
 const FLAME = [0xff, 0x8c, 0x2e];
 const warmth = (p, n, dist) => {
   let sum = 0;
