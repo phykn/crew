@@ -50,18 +50,11 @@ const warmth = (p, n, dist) => {
     const v = [f.at[0] - p[0], f.at[1] - p[1], f.at[2] - p[2]],
       far = Math.hypot(...v);
     if (far >= f.reach || far < 1) continue;
-    const facing = (n[0] * v[0] + n[1] * v[1] + n[2] * v[2]) / far;
-    if (
-      facing > 0 &&
-      !blocked(
-        p,
-        n,
-        v.map((c) => c / far),
-        far,
-        dist,
-      )
-    )
-      sum += facing * (1 - far / f.reach) ** 2;
+    const facing = (n[0] * v[0] + n[1] * v[1] + n[2] * v[2]) / far,
+      light = facing * (1 - far / f.reach) ** 2,
+      u = v.map((c) => c / far);
+    // Light too faint to show is not worth looking for what blocks it
+    if (light > 0.02 && !blocked(p, n, u, far, dist)) sum += light;
   }
   return Math.min(1, sum);
 };
@@ -164,8 +157,19 @@ export function rod(a, b, r, flat = false) {
 
 // parts: [{ sdf, paint(p, n, light) -> [shades, step], glow }], bounds: [[x, y, z], [x, y, z]] in units; a part
 // that glows casts no shadow
-// Pictures of solids the fire never reaches, by the key the caller gives and the scale, to draw again elsewhere
+// Pictures already drawn, by scale and by name: a prop's own place, kept so a resize draws nothing again, or a look
+// the caller shares between props, kept only while no flame touched it
 const kept = new Map();
+let place = null;
+// Names the solids drawn inside draw by where they stand, which fixes how they look
+export function inPlace(name, draw) {
+  place = name;
+  try {
+    draw();
+  } finally {
+    place = null;
+  }
+}
 
 // key, when given, names solids that look the same wherever they stand once out of the flames' reach
 export function drawSolids(ctx, parts, bounds, key) {
@@ -179,9 +183,12 @@ export function drawSolids(ctx, parts, bounds, key) {
       [bounds[0][0] - margin, bounds[0][1] - margin, 0],
       [bounds[1][0] + reach + margin, bounds[1][1] + reach + margin, bounds[1][2]],
     ];
-  const k = Math.min(4, ctx.getTransform().a),
+  // Whole steps of scale, so a window resized a little draws from what is kept
+  const k = Math.min(4, Math.ceil(ctx.getTransform().a - 0.05)),
     anchor = iso(bounds[0][0] / U, bounds[0][1] / U, 0),
-    again = key && kept.get(`${key}@${k}`);
+    own = place && `${place}@${k}`,
+    shared = key && `${key}@${k}`,
+    again = (own && kept.get(own)) || (shared && kept.get(shared));
   if (again) {
     ctx.drawImage(
       again.canvas,
@@ -204,7 +211,8 @@ export function drawSolids(ctx, parts, bounds, key) {
   const warm = new Float32Array(W * H),
     depth = new Float32Array(W * H).fill(-Infinity),
     hits = Array.from({ length: W * H }),
-    dark = new Float32Array(W * H);
+    dark = new Float32Array(W * H),
+    found = new Uint8Array(W * H);
   const scene = (p) => {
     let best = Infinity,
       part = null;
@@ -248,7 +256,18 @@ export function drawSolids(ctx, parts, bounds, key) {
         // A step of s moves the point sqrt(3) units, so the distance divided by that never passes a surface
         s -= Math.max(d, 0.03) / Math.sqrt(3);
       }
-      if (!hit) dark[j * W + i] = groundShade([gx, gy, 0], blocks, top / SKY[2], bounds[0], bounds[1]);
+      // The ground's shade is soft, so it is found on every other pixel each way and shared with the pixels beside it
+      if (!hit) {
+        const ei = i & ~1,
+          ej = j & ~1,
+          at = ej * W + ei;
+        if (!found[at]) {
+          const [ex, ey] = ground(x0 + (ei + 0.5) / k, y0 + (ej + 0.5) / k);
+          dark[at] = groundShade([ex, ey, 0], blocks, top / SKY[2], bounds[0], bounds[1]);
+          found[at] = 1;
+        }
+        dark[j * W + i] = dark[at];
+      }
     }
   const img = new ImageData(W, H),
     rgb = {};
@@ -285,5 +304,7 @@ export function drawSolids(ctx, parts, bounds, key) {
   const canvas = Object.assign(document.createElement('canvas'), { width: W, height: H });
   canvas.getContext('2d').putImageData(img, 0, 0);
   ctx.drawImage(canvas, x0, y0, W / k, H / k);
-  if (key && warm.every((f) => f === 0)) kept.set(`${key}@${k}`, { canvas, dx: x0 - anchor.x, dy: y0 - anchor.y });
+  const picture = { canvas, dx: x0 - anchor.x, dy: y0 - anchor.y };
+  if (own) kept.set(own, picture);
+  if (shared && warm.every((f) => f === 0)) kept.set(shared, picture);
 }

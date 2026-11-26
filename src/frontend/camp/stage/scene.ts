@@ -1,5 +1,5 @@
 import { Container, type Renderer, Sprite, type Texture } from 'pixi.js';
-import { PROPS, TORCHES, WILDS } from '../layout.js';
+import { FIRE, PROPS, TORCHES, WILDS } from '../layout.js';
 import { iso } from '../projection.js';
 import { depthOf } from '../figure.js';
 import { drawProp } from '../art/props.js';
@@ -62,7 +62,7 @@ export function createScene(renderer: Renderer, box: Box) {
   // Every piece is painted once off screen to learn what blocks the light, and where
   const probe = Object.assign(document.createElement('canvas').getContext('2d')!, { casters: [] as Caster[] });
   for (const d of pieces) drawProp(probe, d);
-  pieces.forEach((d, i) => {
+  const bakePiece = (d: Piece, i: number) => {
     const c = iso(d.x + (d.w || 0) / 2, d.y + (d.h || 0) / 2),
       made = bakeTight({ x: c.x - 160, y: c.y - 220, w: 320, h: 300 }, res, (ctx) => drawProp(ctx, d), finish(i + 1));
     if (!made) return;
@@ -71,7 +71,11 @@ export function createScene(renderer: Renderer, box: Box) {
     s.zIndex = depthOf(d);
     items.addChild(s);
     baked.push(made.texture);
-  });
+  };
+  // Solids take a while to paint, so they are baked a few each frame, nearest the fire first, and the window never
+  // stalls; a resize finds most of them already painted
+  const near = (d: Piece) => Math.hypot(d.x - FIRE.x, d.y - FIRE.y);
+  const pending = pieces.map((d, i) => [d, i] as const).sort(([a], [b]) => near(a) - near(b));
 
   const light = createLight(renderer, box, [...probe.casters, ...TORCH_CASTERS]);
   const flames = createFlames(items);
@@ -85,6 +89,8 @@ export function createScene(renderer: Renderer, box: Box) {
     root,
     shade: light.shade,
     draw(people: Map<string, Person>, now: number) {
+      for (const until = performance.now() + 8; pending.length && performance.now() < until; )
+        bakePiece(...pending.shift()!);
       const here = new Set(people.values());
       for (const p of here) {
         if (!views.has(p)) views.set(p, new PersonView(items));

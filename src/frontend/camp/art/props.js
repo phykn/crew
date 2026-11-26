@@ -14,6 +14,7 @@ import {
   WOOD,
   box,
   drawSolids,
+  inPlace,
   facets,
   rod,
   round,
@@ -42,7 +43,7 @@ function fern(ctx, d) {
           rise = 11 * t * (1.15 - t),
           half = 1.5 * Math.sin(Math.PI * Math.min(1, t * 1.1)) ** 0.8 + 0.12;
         // A blade a little thicker than a pixel, so it is found from above and from the side
-        return Math.max(Math.abs(across) - half, Math.abs(z - rise) - 0.45, -along, along - L) * 0.5;
+        return Math.max(Math.abs(across) - half, Math.abs(z - rise) - 0.45, -along, along - L) * 0.65;
       },
       paint: (p, n, l) => [LEAF, Math.abs(frame(p)[1]) < 0.3 ? l - 1 : l],
     };
@@ -636,4 +637,6 @@ const PAINT = {
   torch,
   hearth,
 };
-export const drawProp = (ctx, d) => PAINT[d.kind](ctx, d);
+// A prop's look depends only on what it is and where it stands
+export const drawProp = (ctx, d) =>
+  inPlace([d.kind, d.x, d.y, d.w, d.h, d.size, d.wood].join(), () => PAINT[d.kind](ctx, d));
