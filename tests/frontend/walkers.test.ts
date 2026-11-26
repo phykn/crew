@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest';
-import { FIRE, GROUND, SEATS, blocked } from '../../src/frontend/camp/layout.js';
+import { FIRE, GROUND, blocked } from '../../src/frontend/camp/layout.js';
 import { createWalkers, smallTalk } from '../../src/frontend/camp/walkers.js';
 
 test('idle members stroll only on open ground and chat among themselves without touching the record', () => {
@@ -23,9 +23,8 @@ test('idle members stroll only on open ground and chat among themselves without 
     vi.setSystemTime(now);
     w.tick(now, 0.05);
     for (const p of w.people.values()) {
-      // Standing points are never inside a prop, the fire, or past the trodden ground; a bench's step-off spot is its own
-      const stepOff = SEATS.some((t: { from: { x: number; y: number } }) => t.from.x === p.x && t.from.y === p.y);
-      if (!p.sitting && !p.moving && !p.entering && !stepOff) expect(blocked(p.x, p.y)).toBe(false);
+      // Standing and sitting points are never inside a prop, the fire, or past the trodden ground
+      if (!p.moving && !p.entering) expect(blocked(p.x, p.y)).toBe(false);
       if (p.bubble?.kind === 'idle') chats++;
     }
   }

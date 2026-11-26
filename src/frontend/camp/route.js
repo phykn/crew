@@ -80,7 +80,7 @@ export function findPath(from, to) {
       const x = (c % N) + dx,
         y = Math.floor(c / N) + dy,
         next = y * N + x;
-      // The goal may sit on a blocked cell, as a bench seat does
+      // The goal's cell may count as blocked though the point itself is open, as beside a prop
       if (x < 0 || y < 0 || x >= N || y >= N || (!open[next] && next !== goal)) continue;
       const g = cost.get(c) + Math.hypot(dx, dy) * STEP;
       if (g < (cost.get(next) ?? Infinity)) {

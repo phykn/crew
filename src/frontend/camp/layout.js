@@ -11,7 +11,7 @@ const place = (kind, deg, d, more) => ({ kind, ...around(deg, d), ...more });
 
 export const TORCHES = [...Array(6)].map((_, i) => around(30 + i * 60, 7.6));
 
-// r is how far around a piece nobody walks; a bench's seats sit on its plank, and `from` is where a person steps on and off it
+// r is how far around a piece nobody walks
 export const PROPS = [
   // The two pines stand just past the trodden ground, so they are always painted behind everyone
   { kind: 'pine', x: 6.3, y: 10.5, r: 0.6 },
@@ -27,47 +27,7 @@ export const PROPS = [
   { kind: 'crates', x: 11.2, y: 6.9, r: 0.6 },
   { kind: 'drum', x: 12.4, y: 7.7, r: 0.5 },
   { kind: 'well', x: 6.6, y: 13.8, r: 1 },
-  {
-    kind: 'bench',
-    x: 9.7,
-    y: 13.6,
-    w: 0.6,
-    h: 2.2,
-    r: 1.2,
-    wood: true,
-    seats: [
-      { x: 10, y: 14.2, from: { x: 11, y: 14.2 } },
-      { x: 10, y: 15.3, from: { x: 11, y: 15.3 } },
-    ],
-  },
-  {
-    kind: 'bench',
-    x: 13.4,
-    y: 20,
-    w: 2.2,
-    h: 0.6,
-    r: 1.2,
-    seats: [
-      { x: 14, y: 20.3, from: { x: 14, y: 19.3 } },
-      { x: 15.1, y: 20.3, from: { x: 15.1, y: 19.3 } },
-    ],
-  },
-  {
-    kind: 'bench',
-    x: 17.8,
-    y: 10.6,
-    w: 2.2,
-    h: 0.6,
-    r: 1.2,
-    wood: true,
-    seats: [
-      { x: 18.4, y: 10.9, from: { x: 18.4, y: 11.9 } },
-      { x: 19.5, y: 10.9, from: { x: 19.5, y: 11.9 } },
-    ],
-  },
 ];
-// Each seat knows its bench, so a sitting person is painted just in front of it
-export const SEATS = PROPS.flatMap((d) => (d.seats || []).map((s) => Object.assign(s, { bench: d })));
 
 const SOLID = [
   { ...FIRE, r: 1.7 },

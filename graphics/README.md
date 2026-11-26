@@ -25,10 +25,10 @@ python -m http.server 8766 --bind 127.0.0.1
 ```
 
 - 전체: http://127.0.0.1:8766/graphics/preview.html
-- 하나만: `?kind=wagon` (종류: hearth, crates, drum, hay, log, bench, well, wagon, tent, lantern, torch, pine, fern, tuft, rock, woodpile)
+- 하나만: `?kind=wagon` (종류: hearth, crates, drum, hay, log, well, wagon, tent, lantern, torch, pine, fern, tuft, rock, woodpile)
 - 확대: `&zoom=6`
 - 캠프 전체 바닥과 소품: `?ground` (소품 없이 바닥만: `?ground&bare`)
-- 사람: `?figure=interpreter` (동작마다 한 줄, 움직이는 첫 칸과 모든 프레임, 끝에 벤치에 앉은 모습)
+- 사람: `?figure=interpreter` (동작마다 한 줄, 움직이는 첫 칸과 모든 프레임)
 
 각 소품은 캠프에서 놓이는 자리에 그려지므로, 모닥불 빛도 앱에서와 똑같이 받는다.
 
@@ -81,8 +81,7 @@ python -m http.server 8766 --bind 127.0.0.1
 - 서 있기와 앉기는 첫 프레임 몸 하나에 눈만 깜박인다. 시안의 정지 프레임은 한두 픽셀씩 흔들려 떨려 보인다.
 - 걷기와 시전은 시안 프레임을 모두 쓰고, 머리는 프레임마다 실루엣에 가장 잘 맞는 자리에 붙인다.
 - 색 단계와 경계는 서 있기 첫 프레임 것을 모든 프레임에 쓴다. 프레임 사이에 색이 번쩍이지 않는다.
-- 벤치 앉기는 서 있기로 만든다. 엉덩이가 발바닥 24픽셀 위(벤치 판), 허벅지는 앞으로 16픽셀 뻗은 한 덩어리, 부츠는 그만큼 앞에 둔다. 시안의 `sit`은 바닥에 앉는 그림이라 쓰지 않는다.
-- 벤치의 앉는 쪽(+x, 오른쪽 아래)을 보도록 캠프에서 좌우를 뒤집어 그린다.
+- 앉기는 시안의 `sit`처럼 바닥에 책상다리로 앉는다. 벤치는 없다. 서 있는 그림으로 벤치 앉기를 만들면 다리가 어색했다.
 
 ### 크기
 

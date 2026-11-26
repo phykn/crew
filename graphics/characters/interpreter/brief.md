@@ -4,8 +4,8 @@
 
 The standing picture is the approved `idle.png` first frame at its own size, 28 × 82 pixels, which the camp shows about one to one on screen. `graphics/characters/trace.py` turns a sheet cell into letters, one letter a pixel. The sheet is painted with flecks that read as jitter at this size, so each pixel is sorted into a material: hair, skin, eye, coat, shirt and cuffs, scarf, gold, leather, trousers, or outline. A pixel alone in its material takes its neighbours'. Each material is then repainted in three flat shades that follow its smoothed light; the first idle frame sets the shades for every frame. The face is `head.png`, finished by hand (thick lids, arched brows, a one-pixel nose, a two-pixel mouth), and pasted where each frame's head fits best; closed-eye cells get it blinking. Every cell is cut to one box shared by all sheets, so frames line up.
 
-- Idle is one body that blinks, since the sheet's still frames drift a pixel or two. Walk and the three cast sheets keep every frame.
-- Bench sitting is made from idle: the hips sink onto the plank, 24 pixels above the soles, and solid thighs carry the boots 16 pixels forward. The camp mirrors it to face the bench's seat side. The sheet's `sit` sits on the ground and is not used.
+- Idle and sit are each one body that blinks, since the sheet's still frames drift a pixel or two. Walk and the three cast sheets keep every frame.
+- Sitting is cross-legged on the ground, as the sheet draws it; the camp has no benches.
 - `src/frontend/camp/art/people/interpreter.js` holds the colors and rows trace.py writes; run it again rather than editing.
 - Firelight warms the first three pixels past the outline on the fire's side of each row, less the further in. The picture's own outline and darkest shades stay dark.
 - Earlier drafts were dropped. A 3D solid lost the face. A hand-placed 26 × 42 picture was too coarse to carry a face, and its proportions were boxy.

@@ -211,7 +211,7 @@ const LOWERS = {
   },
 };
 
-// Seated on a plank, the hips sit at row 18 and the ground is about four rows lower: the thighs come toward us as a lap,
+// Seated on the ground, the hips sit at row 18 and the feet about four rows lower: the thighs come toward us as a lap,
 // then short shins go down to feet on the ground, so a sitting person keeps their legs instead of ending at the waist
 const lap = (d, color, f) => {
   d.rect(4, 18, 8, 2, color, f);

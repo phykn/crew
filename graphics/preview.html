@@ -29,7 +29,6 @@
   import { drawProp } from '../src/frontend/camp/art/props.js';
   import { paintGround } from '../src/frontend/camp/art/ground.js';
   import { framesOf, personPicture } from '../src/frontend/camp/art/figures.js';
-  import { BIG, FIGURE } from '../src/frontend/camp/figure.js';
 
   const q = new URLSearchParams(location.search),
     pick = q.get('kind'),
@@ -47,12 +46,11 @@
     if (!q.has('bare')) for (const d of all.slice(1).sort((a, b) => a.x + a.y - (b.x + b.y))) drawProp(ctx, d);
     document.body.append(c);
   }
-  // ?figure=<role>: every frame of each pose, a row a pose, each frame moving in turn on the left; then the person
-  // seated on the first bench as the camp places them, feet at the seat's spot and hips on the plank
+  // ?figure=<role>: every frame of each pose, a row a pose, each frame moving in turn on the left
   const role = q.get('figure');
   if (role) {
     const box = (w, h) => Object.assign(document.createElement('canvas'), { width: w, height: h });
-    for (const pose of ['idle', 'walk', 'castStart', 'castLoop', 'castEnd', 'bench']) {
+    for (const pose of ['idle', 'walk', 'sit', 'castStart', 'castLoop', 'castEnd']) {
       const n = framesOf(role, pose),
         { width: w, height: h } = personPicture(role, pose),
         row = document.createElement('figure'),
@@ -63,33 +61,13 @@
         ctx.drawImage(personPicture(role, pose, f), (f + 1) * (w * k + k * 4), 0, w * k, h * k);
       // The first cell plays the pose at the camp's pace
       setInterval(() => {
-        const f = Math.floor(performance.now() / (pose === 'idle' || pose === 'bench' ? 900 : 180)) % n;
+        const f = Math.floor(performance.now() / (pose === 'idle' || pose === 'sit' ? 900 : 180)) % n;
         ctx.clearRect(0, 0, w * k, h * k);
         ctx.drawImage(personPicture(role, pose, f), 0, 0, w * k, h * k);
       }, 60);
       row.append(strip, Object.assign(document.createElement('a'), { textContent: pose }));
       document.body.append(row);
     }
-    const bench = PROPS.find((d) => d.kind === 'bench'),
-      seat = bench.seats[0],
-      at = iso(seat.x, seat.y),
-      c = box(90 * k, 100 * k),
-      ctx = c.getContext('2d');
-    ctx.setTransform(k, 0, 0, k, (-at.x + 45) * k, (-at.y + 75) * k);
-    drawProp(ctx, bench);
-    // Seats face the bench's +x side, the viewer's lower right, so the picture is mirrored; its middle is over the seat
-    // and its soles half a tile in front, 4 world px lower
-    const pic = personPicture(role, 'bench'),
-      s = (FIGURE.h * BIG) / pic.height;
-    ctx.imageSmoothingEnabled = false;
-    ctx.save();
-    ctx.translate(at.x, at.y + 4);
-    ctx.scale(-1, 1);
-    ctx.drawImage(pic, -(pic.width * s) / 2, -pic.height * s, pic.width * s, pic.height * s);
-    ctx.restore();
-    const fig = document.createElement('figure');
-    fig.append(c, Object.assign(document.createElement('a'), { textContent: 'on a bench' }));
-    document.body.append(fig);
   }
   // One of each kind, or every one of the kind asked for
   const shown =

@@ -1,5 +1,4 @@
 import { cast, longCast } from './casters.js';
-import { SEAT_Z } from '../figure.js';
 import {
   BARK,
   CANVAS,
@@ -176,55 +175,6 @@ function well(ctx, d) {
   drawSolids(ctx, parts, [
     [c[0] - out, c[1] - out, 0],
     [c[0] + out, c[1] + out, beam + 3],
-  ]);
-}
-
-// A box from a footprint in tiles and a height range in px, as solids measure it, its edges rounded by r
-const slab = (x, y, w, h, z0, z1, r = 0) =>
-  box([(x + w / 2) * U, (y + h / 2) * U, (z0 + z1) / 2], [(w / 2) * U, (h / 2) * U, (z1 - z0) / 2], r);
-
-// A bench whose top is the seat people sit at: a plank of two boards on four square legs, or a stone slab on two blocks
-function bench(ctx, d) {
-  const { x, y, w, h } = d,
-    leg = 0.18,
-    long = w > h;
-  longCast(ctx, x, y, w, h, SEAT_Z + 2);
-  const parts = [];
-  if (d.wood) {
-    // The plank overhangs its legs at both ends
-    const [ex, ey] = long ? [0.12, 0.03] : [0.03, 0.12];
-    for (const [lx, ly] of [
-      [x + ex, y + ey],
-      [x + w - leg - ex, y + ey],
-      [x + ex, y + h - leg - ey],
-      [x + w - leg - ex, y + h - leg - ey],
-    ])
-      parts.push({
-        sdf: slab(lx, ly, leg, leg, 0, SEAT_Z - 2),
-        paint: (p, n, l) => [WOOD, l - 1],
-      });
-    // The seam between the two boards runs down the middle of the plank
-    const mid = long ? (y + h / 2) * U : (x + w / 2) * U;
-    parts.push({
-      sdf: slab(x, y, w, h, SEAT_Z - 2.2, SEAT_Z, 0.5),
-      paint: (p, n, l) => [WOOD, n[2] > 0.9 && Math.abs(p[long ? 1 : 0] - mid) < 0.25 ? l - 1 : l],
-    });
-  } else {
-    // Two blocks stand in from the slab's ends and sides, so the slab overhangs them all round
-    const block = long ? [0.4, h - 0.2] : [w - 0.2, 0.4];
-    for (const [bx, by] of [
-      long ? [x + 0.15, y + 0.1] : [x + 0.1, y + 0.15],
-      long ? [x + w - 0.55, y + 0.1] : [x + 0.1, y + h - 0.55],
-    ])
-      parts.push({
-        sdf: slab(bx, by, block[0], block[1], 0, SEAT_Z - 3, 0.8),
-        paint: (p, n, l) => [ROCK, l],
-      });
-    parts.push({ sdf: slab(x, y, w, h, SEAT_Z - 3, SEAT_Z + 1, 0.9), paint: (p, n, l) => [ROCK, l] });
-  }
-  drawSolids(ctx, parts, [
-    [x * U, y * U, 0],
-    [(x + w) * U, (y + h) * U, SEAT_Z + 1],
   ]);
 }
 
@@ -635,7 +585,6 @@ const PAINT = {
   log,
   drum,
   well,
-  bench,
   pine,
   tuft,
   tent,
@@ -648,5 +597,5 @@ const PAINT = {
   hearth,
 };
 // A prop's look depends only on what it is and where it stands
-export const placeOf = (d) => [d.kind, d.x, d.y, d.w, d.h, d.size, d.wood].join();
+export const placeOf = (d) => [d.kind, d.x, d.y, d.w, d.h, d.size].join();
 export const drawProp = (ctx, d) => inPlace(placeOf(d), () => PAINT[d.kind](ctx, d));

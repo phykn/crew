@@ -24,12 +24,7 @@ ROLES = {
         'closed': {('cast-loop', 2)},
     },
 }
-SHEETS = [('idle', 4), ('walk', 4), ('cast-start', 4), ('cast-loop', 4), ('cast-end', 4)]
-# A seated person's hips rest on the plank (figure.js SEAT_Z, 8 world px up) and their feet stand on the ground half a
-# tile in front of it (4 world px lower on screen, 8 forward), so in the picture's pixels (2 to a world px) the hips
-# are 24 above the soles and the thighs carry the feet 16 forward
-SEAT = 24
-REACH = 16
+SHEETS = [('idle', 4), ('walk', 4), ('sit', 2), ('cast-start', 4), ('cast-loop', 4), ('cast-end', 4)]
 SHADES = 3
 LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
@@ -171,44 +166,6 @@ def place_head(img, mask, closed):
                 mask[yy, xx] = True
 
 
-def seated(a):
-    # Seated on a bench: the boots stand on the ground in front of the plank, and the standing upper body sinks until
-    # its hips rest on the plank, hands on its lap. Between them the thighs are one solid mass running down to the
-    # knees, lit along its top edge and shaded along its bottom
-    # Room on the left for the feet carried forward
-    a = np.pad(a, ((0, 0), (REACH, 0), (0, 0)))
-    img, mask = paint(a)
-    M, _ = materials(a)
-    H, W = mask.shape
-    legs = [y for y in range(H) if (M[y] == 'legs').sum() >= 4]
-    hip = legs[0]
-    boots = max(y for y in range(H) if (M[y] == 'legs').sum() >= 2) + 1
-    left, right = (lambda xs: (xs.min(), xs.max()))(np.nonzero(M[hip] == 'legs')[0])
-    sink = (H - SEAT) - hip
-    out, om = np.zeros_like(img), np.zeros_like(mask)
-
-    def put(y, row, keep, shift):
-        for x in np.nonzero(keep)[0]:
-            if 0 <= y < H and 0 <= x - shift < W:
-                out[y, x - shift], om[y, x - shift] = row[x], True
-
-    for y in range(boots, H):
-        put(y, img[y], mask[y], REACH)
-    thigh = np.zeros((H, W), bool)
-    rows = boots + 2 - (H - SEAT)
-    for r in range(rows):
-        shift = round(REACH * r / (rows - 1))
-        # Each row reaches past the hips' width, so the thighs read as thick as the legs they are
-        thigh[H - SEAT + r, max(0, left - shift) : right - shift + 5] = True
-    _, shades = ramps['legs']
-    for y, x in zip(*np.nonzero(thigh)):
-        up, down = thigh[y - 1, x], y + 1 < H and thigh[y + 1, x]
-        out[y, x], om[y, x] = shades[2 if not up else 0 if not down else 1], True
-    for y in range(hip):
-        put(y + sink, img[y], mask[y], 0)
-    return out, om
-
-
 # Standing and sitting still keep one body and only blink, since the sheets' still frames drift a pixel or two and
 # would jitter; the moving sheets keep every frame
 STILL = {'idle', 'sit'}
@@ -219,11 +176,6 @@ for sheet, _ in SHEETS:
         img, mask = paint(a)
         place_head(img, mask, k == 1 if sheet in STILL else (sheet, k) in spec['closed'])
         frames[sheet].append((img, mask))
-frames['bench'] = []
-for k in range(2):
-    img, mask = seated(cells['idle'][0])
-    place_head(img, mask, k == 1)
-    frames['bench'].append((img, mask))
 
 hex_of = lambda c: '#%02x%02x%02x' % tuple(np.round(c).astype(int))
 hexes = sorted(
@@ -243,7 +195,7 @@ name = lambda s: s.split('-')[0] + ''.join(p.title() for p in s.split('-')[1:])
 out = [f'// Made by graphics/characters/trace.py from graphics/characters/{role}/; run it again rather than editing', 'export default {']
 out.append('  colors: [' + ', '.join(f"'{h}'" for h in hexes) + '],')
 out.append('  poses: {')
-for sheet in [s for s, _ in SHEETS] + ['bench']:
+for sheet, _ in SHEETS:
     out.append(f'    {name(sheet)}: [')
     for img, mask in frames[sheet]:
         out.append('      [')

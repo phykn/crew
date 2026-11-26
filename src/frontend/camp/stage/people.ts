@@ -3,7 +3,7 @@ import gsap from 'gsap';
 import { FIRE } from '../layout.js';
 import { iso } from '../projection.js';
 import { COLOR as C } from '../palette.js';
-import { BIG, FIGURE, depthOf, headTop, isCasting } from '../figure.js';
+import { BIG, FIGURE, headTop, isCasting } from '../figure.js';
 import { SEALS, SPRITE_SCALE, litFor, spriteFor } from '../art/sprites.js';
 import { blotTexture } from './light';
 import { textureOf } from './bake';
@@ -16,7 +16,6 @@ export type Person = {
   facing: number;
   moving?: boolean;
   sitting?: boolean;
-  seat?: { bench: { x: number; y: number; w?: number; h?: number } };
   path: unknown[];
   state: string | null;
   bubble?: { text: string; kind: string; until: number } | null;
@@ -81,8 +80,7 @@ export class PersonView {
   draw(p: Person, now: number) {
     const f = iso(p.x, p.y),
       casting = isCasting(p);
-    // Someone sitting is drawn right after their bench, whatever their exact spot on it
-    this.root.zIndex = p.sitting && p.seat ? depthOf(p.seat.bench) + 0.01 : p.x + p.y;
+    this.root.zIndex = p.x + p.y;
     this.spot.visible = !p.sitting;
     this.spot.position.set(f.x, f.y);
     if (this.at) this.stride += Math.hypot(p.x - this.at.x, p.y - this.at.y);

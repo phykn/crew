@@ -6,7 +6,7 @@ export function cast(ctx, x, y, rx, h) {
   ctx.casters?.push({ x, y, r: rx / TW, h });
 }
 
-// A long thing, such as a bench or a log, blocks the flames along its whole length rather than at one point
+// A long thing, such as a log, blocks the flames along its whole length rather than at one point
 export function longCast(ctx, x, y, w, h, height) {
   if (!ctx.casters) return;
   const long = w > h,

@@ -1,4 +1,4 @@
-import { FIRE, GROUND, SEATS, blocked } from './layout.js';
+import { FIRE, GROUND, blocked } from './layout.js';
 import { findPath } from './route.js';
 import { CAMP, TW, iso } from './projection.js';
 import { headTop } from './figure.js';
@@ -26,6 +26,8 @@ const pick = (list) => list[Math.floor(Math.random() * list.length)];
 const SPACE = 1.3;
 // How far ahead, in tiles, a walker looks for someone to step around
 const AHEAD = 1.2;
+// People sit down within this many tiles of the fire, close enough to feel its warmth
+const SIT_NEAR = 5;
 const SPEED = { stroll: 1.1, brisk: 3.4 };
 // People speed up from a standstill and slow down before they stop, in tiles per second squared
 const ACCEL = 6;
@@ -59,14 +61,14 @@ export function createWalkers() {
   }
 
   function walk(p, to, fast, end = {}) {
-    // Someone on a bench steps off it first, as the bench itself is in the way; someone still outside comes in through their gap first
+    // Someone still outside comes in through their gap first
     const outside = p.entering && Math.hypot(p.x - FIRE.x, p.y - FIRE.y) > GROUND - 0.5,
-      via = p.seat ? p.seat.from : outside ? p.door : null,
+      via = outside ? p.door : null,
       path = findPath(via || p, to);
     if (!path) return false;
     const pts = [...(via ? [via] : []), ...path];
     pts[pts.length - 1] = { ...pts[pts.length - 1], ...end };
-    Object.assign(p, { path: pts, fast, sitting: false, seat: null, waitUntil: outside ? p.waitUntil : 0 });
+    Object.assign(p, { path: pts, fast, sitting: false, waitUntil: outside ? p.waitUntil : 0 });
     return true;
   }
 
@@ -127,11 +129,9 @@ export function createWalkers() {
       return;
     }
     if (roll < 0.4) {
-      const seat = pick(SEATS.filter((s) => others(p).every((o) => o.seat !== s && endOf(o).seatTo !== s)));
-      if (seat) {
-        walk(p, seat.from, false, { seatTo: seat });
-        return;
-      }
+      // Sitting is on the ground somewhere near the fire, facing it
+      const spot = findSpot(p, FIRE, SIT_NEAR);
+      if (spot && walk(p, spot, false, { sit: true })) return;
     }
     if (roll < 0.55) {
       const q = others(p).find((o) => o.state !== 'working' && !o.path.length && Math.hypot(o.x - p.x, o.y - p.y) < 3);
@@ -200,9 +200,7 @@ export function createWalkers() {
     if (q.say) speak(p, q.say.text, q.say.kind);
     if (p.leaving && !p.path.length) people.delete(p.leaving);
     if (!p.path.length) p.entering = false;
-    // The last step onto a bench is a hop over its edge, which the path finder would not allow
-    if (q.seatTo)
-      Object.assign(p, { x: q.seatTo.x, y: q.seatTo.y, seat: q.seatTo, sitting: true, facing: faceFire(q.seatTo) });
+    if (q.sit && !p.path.length) Object.assign(p, { sitting: true, facing: faceFire(p) });
   }
 
   function add(member, entering, key = member.team, side = SIDES[0], delay = 0) {
@@ -270,8 +268,8 @@ export function createWalkers() {
           handOff(from, s.team, t('camp.handOff', { name: s.name }), 'work');
         if (before && was === 'working' && s.state === 'idle') p.checkUntil = now + 3000;
         if (s.state === 'working' && was !== 'working') {
-          // Work starts where the person is: someone strolling stops, someone on a bench stands up
-          if (p.seat) Object.assign(p, p.seat.from, { seat: null, sitting: false });
+          // Work starts where the person is: someone strolling stops, someone sitting stands up
+          p.sitting = false;
           if (!p.fast) p.path = [];
         }
         p.state = s.state;
