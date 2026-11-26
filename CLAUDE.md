@@ -56,7 +56,7 @@ Elsewhere:
 - `docs/agents.md`: the crew's design: each agent's jobs, what it takes and gives, its skills, write scope, and starting model, the workflows, and the rules, memory, and wiki they follow.
 - `tests/`: Vitest with a fake SDK (`npm test`), one file per module in folders that mirror `src/backend` (`domain/`, `app/`, `adapters/`); `tests/support.ts` holds the shared setup (`openChat`, `reopenChat`, the scripted crew); `tests/live/` calls real Claude (`npm run test:live`).
 - `e2e/`: Playwright Electron tests; they run on the packaged build (`npm run test:e2e`).
-- `demo/`: the README's GIF (`npm run demo`): `record.spec.ts` plays a scripted task in the app and keeps Chrome's screencast frames (a scripted turn's `wait` makes the crew visibly work), `make.mjs` cuts them into scenes, and `video/index.html` is the HyperFrames composition that adds the captions and camera.
+- `demo/`: the README's English-only GIF at `assets/demo.gif` (`npm run demo`): `record.spec.ts` plays a scripted task in the app and keeps Chrome's screencast frames (a scripted turn's `wait` makes the crew visibly work), `make.mjs` cuts them into scenes, and `video/index.html` is the HyperFrames composition that adds the captions and camera.
 
 ## Design system
 

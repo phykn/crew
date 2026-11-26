@@ -11,14 +11,10 @@ const flag = (name, fallback) => {
 };
 const has = (name) => argv.includes(`--${name}`);
 
-const lang = flag('lang', 'ko');
-if (lang !== 'ko' && lang !== 'en') throw new Error(`--lang takes ko or en, not ${lang}`);
-const video = path.join(here, 'video');
-// A HyperFrames project holds one root composition, so each language has its own page and its own clips
-const project = lang === 'en' ? path.join(video, 'en') : video;
+const project = path.join(here, 'video');
 const clips = path.join(project, 'assets');
-const footage = path.join(video, 'assets');
-const gif = path.join(here, '..', 'assets', lang === 'en' ? 'demo-en.gif' : 'demo.gif');
+const footage = clips;
+const gif = path.join(here, '..', 'assets', 'demo.gif');
 const run = (cmd, args, cwd = here) => execFileSync(cmd, args, { cwd, stdio: 'inherit', shell: true });
 // What the page needs from beside it: the app's own font and animation library, beside the clips it plays
 const BESIDE = ['galmuri/dist/Galmuri11.woff2', 'galmuri/dist/Galmuri11-Bold.woff2', 'gsap/dist/gsap.min.js'];
@@ -27,12 +23,7 @@ const BESIDE = ['galmuri/dist/Galmuri11.woff2', 'galmuri/dist/Galmuri11-Bold.wof
 delete process.env.ELECTRON_RUN_AS_NODE;
 
 if (has('no-record')) console.log(`Using the footage already in ${footage}`);
-else
-  run(
-    'npx',
-    ['playwright', 'test', '-c', 'demo/playwright.config.ts', lang === 'en' ? 'record.en.spec.ts' : 'record.spec.ts'],
-    path.join(here, '..'),
-  );
+else run('npx', ['playwright', 'test', '-c', 'demo/playwright.config.ts', 'record.spec.ts'], path.join(here, '..'));
 
 if (!has('no-record'))
   run(
@@ -61,47 +52,33 @@ if (!has('no-record'))
 // Each scene: where it starts in the footage, where it ends, and how long it lasts in the video. The page holds the
 // same lengths, so a mark only decides which part of the footage a scene shows, never where the scene sits.
 const m = JSON.parse(fs.readFileSync(path.join(footage, 'marks.json'), 'utf-8'));
-const SCENES = {
-  ko: () => [
-    ['intro', m.open + 0.5, m.open + 3.5, 3],
-    ['ask', m.type - 0.3, m.sent + 1.5, 5],
-    ['work', m.sent + 1.5, m.done, 9],
-    ['report', m.done - 0.5, m['로그'] + 3, 4.5],
-    ['wiki', m['메모리'] + 0.2, m['메모리'] + 3.2, 3],
-    ['workflow', m['워크플로우'] + 0.2, m['워크플로우'] + 3.2, 3],
-    ['connect', m['연결'] + 0.2, m['연결'] + 2.8, 2.6],
-    ['end', m.open + 0.5, m.open + 2.5, 2.5],
-  ],
-  en: () => {
-    const stage = (step, nth = 0) => m.stages.filter((s) => s.text === step)[nth].at;
-    const plan = stage('Assign');
-    const build = stage('Develop');
-    const bounce = stage('Code review');
-    const fix = stage('Fixing');
-    const test = stage('Code review', 1);
-    return [
-      ['intro', m.open + 1.8, m.ask, 1.2],
-      ['ask', m.ask + 0.1, m.sent - 0.15, 3],
-      ['plan', plan + 0.1, build, 2],
-      ['build', build + 0.2, bounce, 1.8],
-      ['bounce', bounce + 0.3, fix, 1.6],
-      ['fix', fix + 0.2, test, 1.6],
-      ['test', test + 0.3, m.done, 1.5],
-      ['report', null, null, 2.6],
-      ['diff', null, null, 2.3],
-      ['log', null, null, 2.6],
-      ['wiki', null, null, 1.2],
-      ['wiki-doc', null, null, 1.8],
-      ['workflow', null, null, 1.3],
-      ['workflow-owner', null, null, 1.8],
-      ['history', null, null, 1.1],
-      ['history-chat', null, null, 1.5],
-      ['end', m.open + 2.6, m.ask, 1.3],
-    ];
-  },
-};
-
-const scenes = SCENES[lang]();
+const scenes = (() => {
+  const stage = (step, nth = 0) => m.stages.filter((s) => s.text === step)[nth].at;
+  const plan = stage('Assign');
+  const build = stage('Develop');
+  const bounce = stage('Code review');
+  const fix = stage('Fixing');
+  const test = stage('Code review', 1);
+  return [
+    ['intro', m.open + 1.8, m.ask, 1.2],
+    ['ask', m.ask + 0.1, m.sent - 0.15, 3],
+    ['plan', plan + 0.1, build, 2],
+    ['build', build + 0.2, bounce, 1.8],
+    ['bounce', bounce + 0.3, fix, 1.6],
+    ['fix', fix + 0.2, test, 1.6],
+    ['test', test + 0.3, m.done, 1.5],
+    ['report', null, null, 2.6],
+    ['diff', null, null, 2.3],
+    ['log', null, null, 2.6],
+    ['wiki', null, null, 1.2],
+    ['wiki-doc', null, null, 1.8],
+    ['workflow', null, null, 1.3],
+    ['workflow-owner', null, null, 1.8],
+    ['history', null, null, 1.1],
+    ['history-chat', null, null, 1.5],
+    ['end', m.open + 2.6, m.ask, 1.3],
+  ];
+})();
 const total = scenes.reduce((sum, [, , , length]) => sum + length, 0);
 // The page and this list have to agree, or every caption after the first wrong one sits on the wrong picture
 const claimed = Number(
@@ -115,16 +92,8 @@ if (Math.abs(claimed - total) > 0.01)
 fs.mkdirSync(clips, { recursive: true });
 for (const f of BESIDE) fs.copyFileSync(path.join(here, '..', 'node_modules', f), path.join(clips, path.basename(f)));
 for (const [name, from, to, length] of scenes) {
-  if (from === null) {
-    const file = `${name}.png`;
-    fs.copyFileSync(path.join(footage, file), path.join(clips, file));
-    continue;
-  }
+  if (from === null) continue;
   const span = Math.max(to - from, 0.3);
-  const footageFilter =
-    lang === 'en'
-      ? `fps=30,tpad=stop_mode=clone:stop_duration=${length},trim=duration=${length}`
-      : `setpts=PTS*${(length / span).toFixed(4)},fps=30,tpad=stop_mode=clone:stop_duration=0.5`;
   run(
     'ffmpeg',
     [
@@ -139,7 +108,7 @@ for (const [name, from, to, length] of scenes) {
       path.join(footage, 'app.mp4'),
       '-an',
       '-vf',
-      footageFilter,
+      `fps=30,tpad=stop_mode=clone:stop_duration=${length},trim=duration=${length}`,
       '-c:v',
       'libx264',
       '-crf',
@@ -150,41 +119,21 @@ for (const [name, from, to, length] of scenes) {
   );
 }
 
-const film = `renders/crew-${lang}.mp4`;
+const film = 'renders/crew.mp4';
 run('npx', ['--yes', 'hyperframes', 'lint'], project);
 run('npx', ['--yes', 'hyperframes', 'render', '-o', film, '-q', 'high'], project);
 
 const width = Number(flag('gif-width', 960));
 const fps = Number(flag('gif-fps', 12));
-const colors = Number(flag('gif-colors', lang === 'en' ? 160 : 200));
-const cuts =
-  has('gif-full') || lang === 'en'
-    ? [[0, total]]
-    : [
-        [0, 21.5],
-        [30.1, 32.6],
-      ];
+const colors = Number(flag('gif-colors', 160));
 // No smoothing and no blur: the app is pixel art and every sharp edge is the point. A palette built for motion keeps
 // the camp's texture from banding, and a rectangle diff leaves the parts of a frame that did not move alone
-const trimmed = cuts.map(([a, b], i) => `[0:v]trim=start=${a}:end=${b},setpts=PTS-STARTPTS[v${i}]`).join(';');
-const joined = cuts.length > 1 ? `;${cuts.map((_, i) => `[v${i}]`).join('')}concat=n=${cuts.length}:v=1:a=0[cut]` : '';
 const palette =
-  `${cuts.length > 1 ? '[cut]' : '[v0]'}fps=${fps},scale=${width}:-1:flags=lanczos,split[a][b];` +
+  `[0:v]trim=start=0:end=${total},setpts=PTS-STARTPTS,fps=${fps},scale=${width}:-1:flags=lanczos,split[a][b];` +
   `[a]palettegen=max_colors=${colors}:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle`;
 run(
   'ffmpeg',
-  [
-    '-y',
-    '-loglevel',
-    'error',
-    '-i',
-    path.join(project, film),
-    '-filter_complex',
-    `"${trimmed}${joined};${palette}"`,
-    '-loop',
-    '0',
-    gif,
-  ],
+  ['-y', '-loglevel', 'error', '-i', path.join(project, film), '-filter_complex', `"${palette}"`, '-loop', '0', gif],
   here,
 );
 const mb = fs.statSync(gif).size / 1e6;

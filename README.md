@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/node:sqlite-builtin-003B57" alt="SQLite">
 </p>
 
-<p align="center"><img src="assets/demo.gif" alt="crew at work"></p>
+<p align="center"><img src="assets/demo.gif" alt="English crew demo: agent teamwork, reports, wiki, and workflows"></p>
 
 ## Features
 

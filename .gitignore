@@ -13,8 +13,3 @@ playwright-report/
 demo/video/assets/
 demo/video/renders/
 demo/video/.hyperframes/
-
-# The English demo is its own HyperFrames project, with the same generated clips and renders
-demo/video/en/assets/
-demo/video/en/renders/
-demo/video/en/.hyperframes/

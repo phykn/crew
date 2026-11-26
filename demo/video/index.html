@@ -1,8 +1,7 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <script src="assets/gsap.min.js"></script>
     <style>
       @font-face {
         font-family: Galmuri11;
@@ -13,6 +12,16 @@
         font-family: Galmuri11;
         font-weight: 700;
         src: url('assets/Galmuri11-Bold.woff2') format('woff2');
+      }
+      /* The window's own palette, so the film and the app read as one thing */
+      :root {
+        --ink: #4a2a12;
+        --wood: #5c3213;
+        --rim: #8a4f22;
+        --paper: #fff9e8;
+        --butter: #fbe39a;
+        --green: #3e7a33;
+        --green-2: #86c477;
       }
       body {
         margin: 0;
@@ -25,34 +34,132 @@
         overflow: hidden;
         background: #1a120b;
         font-family: Galmuri11, sans-serif;
+        color: var(--paper);
       }
-      #cam {
+      #footage {
         position: absolute;
         inset: 0;
+        overflow: hidden;
       }
-      #cam video {
+      #footage :is(video, img) {
         position: absolute;
         inset: 0;
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
       }
-      /* The caption plate looks like the app's own parchment sheets */
+      /* The camp fills the left side of the app. Keep its crop fixed across the work scenes. */
+      #footage .camp-shot {
+        top: -21%;
+        width: 164%;
+        height: 164%;
+      }
+      /* The selected panel fills each feature shot at a fixed scale. */
+      #footage .panel-shot {
+        left: auto;
+        bottom: auto;
+        width: 230%;
+        height: 230%;
+      }
+      #footage .ask-shot {
+        top: auto;
+        bottom: 10%;
+      }
+      #footage .summary-shot {
+        top: -12%;
+      }
+      #footage .diff-shot {
+        top: -19%;
+        left: -42.5%;
+        width: 185%;
+        height: 185%;
+      }
+      #footage .log-shot {
+        top: -129%;
+      }
+      #footage .wiki-shot,
+      #footage .settings-shot {
+        width: 190%;
+        height: 190%;
+      }
+      #footage .wiki-shot {
+        top: -44%;
+      }
+      #footage .settings-shot {
+        top: -72%;
+      }
+
+      /* A line of the story: outlined so it reads over grass, parchment, or code alike */
       .caption {
         position: absolute;
-        left: 50%;
-        bottom: 36px;
-        transform: translateX(-50%);
-        padding: 14px 28px;
-        background: #fff9e8;
-        color: #4a2a12;
-        border: 4px solid #8a4f22;
-        box-shadow: 0 6px 0 #4a2a12;
-        font-size: 30px;
+        left: 46px;
+        bottom: 38px;
+        max-width: 780px;
+        font-size: 31px;
         font-weight: 700;
-        white-space: nowrap;
+        line-height: 1.15;
+        letter-spacing: 0.5px;
+        color: var(--paper);
+        text-shadow:
+          2px 0 var(--wood),
+          -2px 0 var(--wood),
+          0 2px var(--wood),
+          0 -2px var(--wood),
+          2px 2px var(--wood),
+          -2px 2px var(--wood),
+          2px -2px var(--wood),
+          -2px -2px var(--wood),
+          0 5px 0 rgba(20, 12, 6, 0.45);
         z-index: 10;
       }
+      .panel-caption {
+        right: 0;
+        bottom: 0;
+        left: 0;
+        max-width: none;
+        padding: 16px 46px;
+        background: #21150c;
+        border-top: 2px solid var(--wood);
+        text-shadow: none;
+      }
+      /* Who is at work, in the party's own words */
+      .badge {
+        position: absolute;
+        right: 40px;
+        bottom: 36px;
+        padding: 9px 16px 10px;
+        background: var(--paper);
+        color: var(--ink);
+        border: 3px solid var(--rim);
+        box-shadow: 0 5px 0 var(--wood);
+        font-size: 19px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        white-space: nowrap;
+        z-index: 11;
+      }
+      .badge b {
+        color: var(--rim);
+        margin-right: 8px;
+      }
+      #stamp {
+        position: absolute;
+        right: 40px;
+        bottom: 12px;
+        padding: 10px 18px 12px;
+        background: var(--paper);
+        color: var(--green);
+        border: 3px solid var(--green);
+        box-shadow: 0 5px 0 #2f5a28;
+        font-size: 25px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        white-space: nowrap;
+        transform: rotate(-3deg);
+        z-index: 12;
+      }
+
+      /* The title cards: a wordmark, a line under it, and the app's own flame */
       .card {
         position: absolute;
         inset: 0;
@@ -60,24 +167,33 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 22px;
-        color: #fff1d6;
+        gap: 20px;
+        background:
+          radial-gradient(70% 70% at 50% 50%, rgba(12, 7, 3, 0.22) 0%, rgba(12, 7, 3, 0.5) 100%), rgba(12, 7, 3, 0.6);
         text-align: center;
-        z-index: 10;
+        z-index: 20;
       }
-      #intro-veil,
-      #end {
-        background: rgba(20, 12, 6, 0.72);
+      /* A short rule under the wordmark keeps the lockup from floating in the picture */
+      .card .rule {
+        width: 210px;
+        height: 6px;
+        background: var(--butter);
+        opacity: 0.9;
       }
       .card h1 {
         margin: 0;
-        font-size: 120px;
-        color: #f3d9a4;
-        text-shadow: 0 8px 0 #5c3213;
+        font-size: 112px;
+        line-height: 1;
+        letter-spacing: 2px;
+        color: var(--butter);
+        text-shadow: 0 8px 0 var(--wood);
       }
       .card p {
         margin: 0;
-        font-size: 44px;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: var(--paper);
       }
     </style>
   </head>
@@ -85,147 +201,235 @@
     <div
       id="root"
       data-composition-id="main"
+      data-no-timeline
       data-start="0"
       data-width="1280"
       data-height="720"
-      data-duration="32.6"
+      data-duration="30.2"
       data-fps="30"
     >
-      <div id="cam">
+      <div id="footage">
         <video
           id="v-intro"
-          class="clip"
+          class="clip camp-shot"
           src="assets/intro.mp4"
           muted
           data-start="0"
-          data-duration="3"
+          data-duration="1.2"
           data-track-index="0"
         ></video>
         <video
           id="v-ask"
-          class="clip"
+          class="clip panel-shot ask-shot"
           src="assets/ask.mp4"
           muted
-          data-start="3"
-          data-duration="5"
+          data-start="1.2"
+          data-duration="3"
           data-track-index="0"
         ></video>
         <video
-          id="v-work"
-          class="clip"
-          src="assets/work.mp4"
+          id="v-plan"
+          class="clip camp-shot"
+          src="assets/plan.mp4"
+          muted
+          data-start="4.2"
+          data-duration="2"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-build"
+          class="clip camp-shot"
+          src="assets/build.mp4"
+          muted
+          data-start="6.2"
+          data-duration="1.8"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-bounce"
+          class="clip camp-shot"
+          src="assets/bounce.mp4"
           muted
           data-start="8"
-          data-duration="9"
+          data-duration="1.6"
           data-track-index="0"
         ></video>
         <video
+          id="v-fix"
+          class="clip camp-shot"
+          src="assets/fix.mp4"
+          muted
+          data-start="9.6"
+          data-duration="1.6"
+          data-track-index="0"
+        ></video>
+        <video
+          id="v-test"
+          class="clip camp-shot"
+          src="assets/test.mp4"
+          muted
+          data-start="11.2"
+          data-duration="1.5"
+          data-track-index="0"
+        ></video>
+        <img
           id="v-report"
-          class="clip"
-          src="assets/report.mp4"
-          muted
-          data-start="17"
-          data-duration="4.5"
-          data-track-index="0"
-        ></video>
-        <video
-          id="v-wiki"
-          class="clip"
-          src="assets/wiki.mp4"
-          muted
-          data-start="21.5"
-          data-duration="3"
-          data-track-index="0"
-        ></video>
-        <video
-          id="v-workflow"
-          class="clip"
-          src="assets/workflow.mp4"
-          muted
-          data-start="24.5"
-          data-duration="3"
-          data-track-index="0"
-        ></video>
-        <video
-          id="v-connect"
-          class="clip"
-          src="assets/connect.mp4"
-          muted
-          data-start="27.5"
+          class="clip panel-shot summary-shot"
+          src="assets/report.png"
+          alt=""
+          data-start="12.7"
           data-duration="2.6"
           data-track-index="0"
-        ></video>
+        />
+        <img
+          id="v-diff"
+          class="clip diff-shot"
+          src="assets/diff.png"
+          alt=""
+          data-start="15.3"
+          data-duration="2.3"
+          data-track-index="0"
+        />
+        <img
+          id="v-log"
+          class="clip panel-shot log-shot"
+          src="assets/log.png"
+          alt=""
+          data-start="17.6"
+          data-duration="2.6"
+          data-track-index="0"
+        />
+        <img
+          id="v-wiki"
+          class="clip panel-shot wiki-shot"
+          src="assets/wiki.png"
+          alt=""
+          data-start="20.2"
+          data-duration="1.2"
+          data-track-index="0"
+        />
+        <img
+          id="v-wiki-doc"
+          class="clip panel-shot wiki-shot"
+          src="assets/wiki-doc.png"
+          alt=""
+          data-start="21.4"
+          data-duration="1.8"
+          data-track-index="0"
+        />
+        <img
+          id="v-workflow"
+          class="clip panel-shot settings-shot"
+          src="assets/workflow.png"
+          alt=""
+          data-start="23.2"
+          data-duration="1.3"
+          data-track-index="0"
+        />
+        <img
+          id="v-workflow-owner"
+          class="clip panel-shot settings-shot"
+          src="assets/workflow-owner.png"
+          alt=""
+          data-start="24.5"
+          data-duration="1.8"
+          data-track-index="0"
+        />
+        <img
+          id="v-history"
+          class="clip panel-shot summary-shot"
+          src="assets/history.png"
+          alt=""
+          data-start="26.3"
+          data-duration="1.1"
+          data-track-index="0"
+        />
+        <img
+          id="v-history-chat"
+          class="clip panel-shot summary-shot"
+          src="assets/history-chat.png"
+          alt=""
+          data-start="27.4"
+          data-duration="1.5"
+          data-track-index="0"
+        />
         <video
           id="v-end"
-          class="clip"
+          class="clip camp-shot"
           src="assets/end.mp4"
           muted
-          data-start="30.1"
-          data-duration="2.5"
+          data-start="28.9"
+          data-duration="1.3"
           data-track-index="0"
         ></video>
       </div>
 
-      <div id="intro-veil" class="card clip" data-start="0" data-duration="3" data-track-index="1">
-        <h1 id="title">crew</h1>
-        <p id="tagline">말 한마디면, 팀이 움직입니다</p>
+      <div id="c-ask" class="caption clip" data-start="1.2" data-duration="3" data-track-index="1">
+        Give the crew a task.
       </div>
-      <div id="c-ask" class="caption clip" data-start="3" data-duration="5" data-track-index="1">
-        채팅으로 업무를 요청하면
+      <div id="c-plan" class="caption clip" data-start="4.2" data-duration="2" data-track-index="1">
+        A conductor plans the work.
       </div>
-      <div id="c-work" class="caption clip" data-start="8" data-duration="9" data-track-index="1">
-        기획부터 테스트까지, 역할별 AI가 나눠 맡습니다
+      <div id="c-build" class="caption clip" data-start="6.2" data-duration="1.8" data-track-index="1">
+        Hand the fix to a coder.
       </div>
-      <div id="c-report" class="caption clip" data-start="17" data-duration="4.5" data-track-index="1">
-        누가 무엇을 했는지, 단계마다 이력이 남습니다
+      <div id="c-bounce" class="caption clip" data-start="8" data-duration="1.6" data-track-index="1">
+        Review and tests catch the bug.
       </div>
-      <div id="c-wiki" class="caption clip" data-start="21.5" data-duration="3" data-track-index="1">
-        작업하며 얻은 지식은 위키에 쌓여 다음 업무에 쓰입니다
+      <div id="c-fix" class="caption clip" data-start="9.6" data-duration="1.6" data-track-index="1">
+        Send it back with concrete notes.
       </div>
-      <div id="c-workflow" class="caption clip" data-start="24.5" data-duration="3" data-track-index="1">
-        팀의 프로세스에 맞게 업무 흐름을 바꿉니다
+      <div id="c-test" class="caption clip" data-start="11.2" data-duration="1.5" data-track-index="1">
+        Run the checks again.
       </div>
-      <div id="c-connect" class="caption clip" data-start="27.5" data-duration="2.6" data-track-index="1">
-        사용할 AI 모델을 골라 연결합니다
+      <div id="c-report" class="caption clip panel-caption" data-start="12.7" data-duration="2.6" data-track-index="1">
+        See what changed.
       </div>
-      <div id="end" class="card clip" data-start="30.1" data-duration="2.5" data-track-index="1">
-        <h1 id="end-title">crew</h1>
-        <p id="end-line">일은 크루에게, 결정은 사람에게</p>
+      <div id="c-diff" class="caption clip panel-caption" data-start="15.3" data-duration="2.3" data-track-index="1">
+        Inspect the code diff.
+      </div>
+      <div id="c-log" class="caption clip panel-caption" data-start="17.6" data-duration="2.6" data-track-index="1">
+        Open the test log.
+      </div>
+      <div id="c-wiki" class="caption clip panel-caption" data-start="20.2" data-duration="3" data-track-index="1">
+        Open a linked wiki page.
+      </div>
+      <div
+        id="c-workflow"
+        class="caption clip panel-caption"
+        data-start="23.2"
+        data-duration="3.1"
+        data-track-index="1"
+      >
+        Choose a step owner.
+      </div>
+      <div id="c-history" class="caption clip panel-caption" data-start="26.3" data-duration="2.6" data-track-index="1">
+        Reopen an earlier chat.
+      </div>
+
+      <div id="b-plan" class="badge clip" data-start="4.2" data-duration="2" data-track-index="2">
+        <b>PLAN</b>Conductor
+      </div>
+      <div id="b-build" class="badge clip" data-start="6.2" data-duration="1.8" data-track-index="2">
+        <b>BUILD</b>Coder
+      </div>
+      <div id="b-bounce" class="badge clip" data-start="8" data-duration="1.6" data-track-index="2">
+        <b>REVIEW</b>Reviewer
+      </div>
+      <div id="b-fix" class="badge clip" data-start="9.6" data-duration="1.6" data-track-index="2"><b>FIX</b>Coder</div>
+      <div id="stamp" class="clip" data-start="12.7" data-duration="2.6" data-track-index="2">✓ 6 TESTS PASSED</div>
+
+      <div id="intro" class="card clip" data-start="0" data-duration="1.2" data-track-index="3">
+        <h1>crew</h1>
+        <div class="rule"></div>
+        <p>A dev crew for your codebase.</p>
+      </div>
+
+      <div id="end" class="card clip" data-start="28.9" data-duration="1.3" data-track-index="3">
+        <h1>crew</h1>
+        <div class="rule"></div>
+        <p>Ask. Build. Review.</p>
       </div>
     </div>
-
-    <script>
-      const tl = gsap.timeline({ paused: true });
-      // The camera leans into the half of the window each scene is about: the camp on the left, the tabs on the right
-      const shot = (at, length, origin, from, to) =>
-        tl.fromTo('#cam', { scale: from, transformOrigin: origin }, { scale: to, duration: length, ease: 'none' }, at);
-      shot(0, 3, '50% 50%', 1, 1.06);
-      shot(3, 5, '100% 100%', 1.4, 1.45);
-      shot(8, 9, '0% 50%', 1.45, 1.55);
-      shot(17, 4.5, '100% 35%', 1.5, 1.55);
-      shot(21.5, 3, '100% 35%', 1.5, 1.55);
-      shot(24.5, 3, '100% 55%', 1.5, 1.55);
-      shot(27.5, 2.6, '100% 30%', 1.5, 1.55);
-      shot(30.1, 2.5, '50% 50%', 1.06, 1);
-
-      tl.from('#title', { y: 40, opacity: 0, duration: 0.6, ease: 'back.out(2)' }, 0.1);
-      tl.from('#tagline', { y: 20, opacity: 0, duration: 0.5, ease: 'power2.out' }, 0.5);
-      tl.to('#intro-veil', { opacity: 0, duration: 0.4 }, 2.6);
-      for (const [id, at] of [
-        ['#c-ask', 3],
-        ['#c-work', 8],
-        ['#c-report', 17],
-        ['#c-wiki', 21.5],
-        ['#c-workflow', 24.5],
-        ['#c-connect', 27.5],
-      ])
-        tl.from(id, { y: 30, opacity: 0, duration: 0.35, ease: 'back.out(2)' }, at + 0.1);
-      tl.from('#end', { opacity: 0, duration: 0.4 }, 30.1);
-      tl.from('#end-title', { y: 40, opacity: 0, duration: 0.6, ease: 'back.out(2)' }, 30.2);
-      tl.from('#end-line', { opacity: 0, duration: 0.5 }, 30.6);
-
-      window.__timelines = window.__timelines || {};
-      window.__timelines.main = tl;
-    </script>
   </body>
 </html>
