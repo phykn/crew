@@ -2,6 +2,7 @@ import { iso } from '../projection.js';
 import { COLOR as C } from '../tokens.js';
 import { TAU, longShadow, oval, poly, prism, shadow } from './shapes.js';
 import { SEAT_Z } from '../figure.js';
+import { BARK, IRON, U, WOOD, box, drawSolids, round } from './solids.js';
 
 const pixels = (ctx, list, fill) => {
   ctx.fillStyle = fill;
@@ -82,50 +83,36 @@ function log(ctx, d) {
   pixels(ctx, [[b.x, b.y, 1, 1]], C.wood);
 }
 
-// The staves bulge at the middle and the foot and hoops follow the round; a flat-cut rectangle reads as a box
-// A barrel: round-bellied staves that darken stave by stave away from the light, two iron hoops, and a lit lid in a
-// thin rim
+// A barrel: staves bellied out between a narrower foot and lid, a seam between each pair, two iron hoops, and a lid
+// sunk in a darker rim
 function drum(ctx, d) {
-  const b = iso(d.x, d.y),
-    h = 20,
-    rx = 7,
-    ry = 3,
-    belly = 5;
-  // A point on the barrel's front from its foot (t = 0) to its lid (t = 1), k of the way from its middle to its edge
-  const front = (k, t) => ({
-    x: b.x + k * (rx + 2 * t * (1 - t) * belly),
-    y: b.y - t * h + ry * Math.sqrt(1 - k * k),
-  });
-  const edge = (k, up) => [...Array(9)].map((_, n) => front(k, up ? n / 8 : 1 - n / 8));
   shadow(ctx, d.x + 0.15, d.y + 0.15, 12, 4.5, 22);
-  ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(b.x - rx, b.y - h);
-  ctx.quadraticCurveTo(b.x - rx - belly, b.y - h / 2, b.x - rx, b.y);
-  ctx.ellipse(b.x, b.y, rx, ry, 0, Math.PI, 0, true);
-  ctx.quadraticCurveTo(b.x + rx + belly, b.y - h / 2, b.x + rx, b.y - h);
-  ctx.closePath();
-  ctx.clip();
-  const seams = [-1, -0.7, -0.35, 0, 0.35, 0.7, 1],
-    shades = [C.woodLight, C.wood, C.wood, C.woodDark, C.woodDark, C.woodDeep];
-  shades.forEach((fill, n) => poly(ctx, [...edge(seams[n], true), ...edge(seams[n + 1], false)], fill));
-  ctx.lineWidth = 0.5;
-  ctx.strokeStyle = C.woodDeep;
-  for (const k of seams.slice(1, -1)) {
-    ctx.beginPath();
-    edge(k, true).forEach((p, n) => (n ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
-    ctx.stroke();
-  }
-  ctx.lineWidth = 1.4;
-  ctx.strokeStyle = C.iron;
-  for (const t of [0.22, 0.78]) {
-    ctx.beginPath();
-    ctx.ellipse(b.x, b.y - t * h, rx + 2 * t * (1 - t) * belly + 0.4, ry, 0, 0, Math.PI);
-    ctx.stroke();
-  }
-  ctx.restore();
-  oval(ctx, b.x, b.y - h, rx, ry, C.woodDeep);
-  oval(ctx, b.x, b.y - h, rx - 0.7, ry - 0.4, C.woodLight);
+  const H = 20,
+    r0 = 5,
+    belly = 1.8,
+    c = [d.x * U, d.y * U, H / 2];
+  const radius = (t) => r0 + belly * (1 - t * t);
+  const part = {
+    sdf: round(c, 2, H / 2, radius),
+    paint: (p, n, light) => {
+      const t = (p[2] - c[2]) / (H / 2),
+        r = Math.hypot(p[0] - c[0], p[1] - c[1]);
+      if (n[2] > 0.9) return [WOOD, r > radius(1) - 0.9 ? light - 2 : light];
+      // Iron is matte and dark: even where the belly turns it up to the light it stays below the wood
+      if (Math.abs(Math.abs(t) - 0.56) < 0.09) return [IRON, Math.min(light, 2)];
+      const stave = ((Math.atan2(p[1] - c[1], p[0] - c[0]) / (Math.PI * 2)) * 14 + 14) % 1;
+      return [WOOD, stave < 0.1 ? light - 1 : light];
+    },
+  };
+  const w = r0 + belly;
+  drawSolids(
+    ctx,
+    [part],
+    [
+      [c[0] - w, c[1] - w, 0],
+      [c[0] + w, c[1] + w, H],
+    ],
+  );
 }
 
 function well(ctx, d) {
@@ -416,54 +403,47 @@ function wagon(ctx, d) {
   wheel(at(L - 0.4, W / 2 + 0.05, 7));
 }
 
-// A crate as the approved art draws it: a lit lid of three planks, plank faces held in a paler frame, a brace on
-// the near face, and a nail where frame pieces meet
+// Crates as the approved art draws them: a lid of three planks, plank faces held in a paler frame, a brace on the
+// near face, and nails on the lid and the near face's top
 function crates(ctx, d) {
   shadow(ctx, d.x + 0.3, d.y + 0.3, 20, 7, 20);
-  const S = 0.6,
+  const S = 0.6 * U,
     H = 10;
-  const box = (x, y, z0) => {
-    const z = z0 + H;
-    // u runs along a surface and v across it, both from 0 to 1
-    const lid = (u, v) => iso(x + u * S, y + v * S, z),
-      near = (u, v) => iso(x + u * S, y + S, z0 + v * H),
-      side = (u, v) => iso(x + S, y + u * S, z0 + v * H);
-    const patch = (at, u0, u1, v0, v1, fill) => poly(ctx, [at(u0, v0), at(u1, v0), at(u1, v1), at(u0, v1)], fill);
-    const nail = (at, u, v) => {
-      const p = at(u, v);
-      ctx.fillStyle = C.iron;
-      ctx.fillRect(p.x - 0.4, p.y - 0.4, 0.8, 0.8);
-    };
-    prism(ctx, { x, y, w: S, h: S, z, z0 }, C.woodLight, C.woodDark, C.woodDeep, () => {
-      for (const v of [1 / 3, 2 / 3]) patch(lid, 0.04, 0.96, v - 0.025, v + 0.025, C.woodDark);
-      for (const [at, frame, seam] of [
-        [near, C.wood, C.woodDeep],
-        [side, C.woodDark, C.barkDark],
-      ]) {
-        for (const v of [0.37, 0.63]) patch(at, 0, 1, v - 0.02, v + 0.02, seam);
-        if (at === near) {
-          // The brace runs from the top of the far post down to the foot of the near one
-          poly(ctx, [at(0.08, 0.8), at(0.22, 0.88), at(0.92, 0.2), at(0.78, 0.12)], frame);
-          poly(ctx, [at(0.78, 0.12), at(0.92, 0.2), at(0.92, 0.15), at(0.8, 0.08)], seam);
+  const crate = (x, y, z0) => {
+    const c = [x * U + S / 2, y * U + S / 2, z0 + H / 2];
+    const nail = (u, v) => Math.hypot(u.at - u.to, v.at - v.to) < 0.045;
+    return {
+      sdf: box(c, [S / 2, S / 2, H / 2]),
+      paint: (p, n, light) => {
+        const u = (p[0] - c[0]) / S + 0.5,
+          v = (p[1] - c[1]) / S + 0.5,
+          w = (p[2] - c[2]) / H + 0.5;
+        if (n[2] > 0.9) {
+          if ([0.08, 0.92].some((a) => [0.08, 0.92].some((b) => nail({ at: u, to: a }, { at: v, to: b }))))
+            return [IRON, 2];
+          return [WOOD, [1 / 3, 2 / 3].some((s) => Math.abs(v - s) < 0.025) ? light - 2 : light];
         }
-        patch(at, 0, 1, 0.86, 1, frame);
-        patch(at, 0, 1, 0, 0.14, frame);
-        patch(at, 0, 0.1, 0, 1, frame);
-        patch(at, 0.9, 1, 0, 1, frame);
-        if (at === near) for (const u of [0.05, 0.95]) nail(at, u, 0.93);
-      }
-      for (const [u, v] of [
-        [0.08, 0.08],
-        [0.92, 0.08],
-        [0.08, 0.92],
-        [0.92, 0.92],
-      ])
-        nail(lid, u, v);
-    });
+        // Along the face and up it: the near face runs with x, the side face with y
+        const [a, b] = n[1] > 0.9 ? [u, w] : [v, w];
+        if (n[1] > 0.9 && [0.05, 0.95].some((s) => nail({ at: a, to: s }, { at: b, to: 0.93 }))) return [IRON, 2];
+        const frame = a < 0.1 || a > 0.9 || b < 0.14 || b > 0.86;
+        // The brace runs from the top of the far post down to the foot of the near one
+        const brace = n[1] > 0.9 && Math.abs(a - 0.15 - (0.84 - b) * (0.7 / 0.68)) < 0.08 && b > 0.1 && b < 0.9;
+        if (frame || brace) return [WOOD, light + 1];
+        return [WOOD, [0.37, 0.63].some((s) => Math.abs(b - s) < 0.02) ? light - 1 : light];
+      },
+    };
   };
-  box(d.x - 0.65, d.y - 0.3, 0);
-  box(d.x, d.y - 0.3, 0);
-  box(d.x - 0.35, d.y - 0.3, 10);
+  const x = d.x - 0.65,
+    y = d.y - 0.3;
+  drawSolids(
+    ctx,
+    [crate(x, y, 0), crate(x + 0.65, y, 0), crate(x + 0.3, y, H)],
+    [
+      [x * U, y * U, 0],
+      [(x + 1.25) * U, (y + 0.6) * U, 2 * H],
+    ],
+  );
 }
 
 // A hay bale: faces shaded by direction, a soft lit strip along the top's near edges, two unbroken straw layers on the
@@ -491,66 +471,38 @@ function hay(ctx, d) {
   });
 }
 
-// The outline round a set of points (Andrew's monotone chain), for a body that joins two round ends
-function hull(pts) {
-  const sorted = [...pts].sort((a, b) => a.x - b.x || a.y - b.y);
-  const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
-  const chain = (list) => {
-    const out = [];
-    for (const p of list) {
-      while (out.length > 1 && cross(out[out.length - 2], out[out.length - 1], p) <= 0) out.pop();
-      out.push(p);
-    }
-    return out.slice(0, -1);
-  };
-  return [...chain(sorted), ...chain(sorted.reverse())];
-}
-
-// A woodpile: true cylinders, three under two. Each log's cut end is its round end seen at the camp's angle, and its
-// bark body joins the two ends, lit along its top
+// A woodpile: five round logs, three under two, each top log in the notch of the two below; a cut end shows its
+// rim of bark and one growth ring
 function woodpile(ctx, d) {
   shadow(ctx, d.x - 0.05, d.y + 0.1, 20, 7, 15);
-  // A log's radius in tiles; a tile is as long as 16.7 px of height, as the crate's cube shows
-  const R = 0.21,
-    Z = 16.7,
-    x0 = d.x - 0.32,
-    x1 = d.x + 0.22;
-  // The point at angle a round a log's end: across the pile along y, and up
-  const rim = (x, y, z, a) => iso(x, y + R * Math.cos(a), z + R * Z * Math.sin(a));
-  const ring = (x, y, z, k = 1) =>
-    [...Array(24)].map((_, n) => {
-      const a = (n / 24) * TAU;
-      return iso(x, y + k * R * Math.cos(a), z + k * R * Z * Math.sin(a));
-    });
-  const log = (y, z, ridge) => {
-    poly(ctx, hull([...ring(x0, y, z), ...ring(x1, y, z)]), C.bark);
-    // A strip of the bark between two angles round the log, from end to end
-    const band = (a0, a1, fill) => {
-      const arc = (x, n0, n1) => [...Array(7)].map((_, n) => rim(x, y, z, n0 + ((n1 - n0) * n) / 6));
-      poly(ctx, [...arc(x0, a0, a1), ...arc(x1, a1, a0)], fill);
+  const R = 0.21 * U,
+    half = 0.27 * U,
+    cx = (d.x - 0.05) * U,
+    cy = d.y * U,
+    low = R,
+    high = R * (1 + Math.sqrt(3));
+  const parts = [
+    [-2, low],
+    [-1, high],
+    [0, low],
+    [1, high],
+    [2, low],
+  ].map(([k, z]) => {
+    const c = [cx, cy + k * R, z];
+    return {
+      sdf: round(c, 0, half, () => R),
+      paint: (p, n, light) => {
+        if (Math.abs(n[0]) < 0.7) return [BARK, light];
+        const r = Math.hypot(p[1] - c[1], p[2] - c[2]) / R;
+        if (r > 0.84) return [BARK, light + 1];
+        return [WOOD, light + (r > 0.4 && r < 0.5 ? 1 : 2)];
+      },
     };
-    band(0.2 * Math.PI, 0.6 * Math.PI, C.woodDark);
-    line(ctx, rim(x0 + ridge, y, z, 1.9), rim(x0 + ridge + 0.18, y, z, 1.9), C.barkDark, 0.6);
-    poly(ctx, ring(x1, y, z), C.barkDark);
-    poly(ctx, ring(x1, y, z, 0.82), C.wood);
-    ctx.strokeStyle = C.woodDark;
-    ctx.lineWidth = 0.5;
-    ctx.beginPath();
-    ring(x1, y, z, 0.4).forEach((p, n) => (n ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
-    ctx.closePath();
-    ctx.stroke();
-  };
-  // Back to front: the far side of the pile first, each top log after the bottom log behind it
-  const low = R * Z,
-    high = R * Z * (1 + Math.sqrt(3));
-  for (const [k, z, ridge] of [
-    [-2, low, 0.05],
-    [-1, high, 0.25],
-    [0, low, 0.15],
-    [1, high, 0.05],
-    [2, low, 0.3],
-  ])
-    log(d.y + k * R, z, ridge);
+  });
+  drawSolids(ctx, parts, [
+    [cx - half, cy - 3 * R, 0],
+    [cx + half, cy + 3 * R, high + R],
+  ]);
 }
 
 function lantern(ctx, d) {
