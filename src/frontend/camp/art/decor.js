@@ -83,7 +83,8 @@ function log(ctx, d) {
 }
 
 // The staves bulge at the middle and the foot and hoops follow the round; a flat-cut rectangle reads as a box
-// A barrel: round-bellied staves that darken stave by stave away from the light, two iron hoops, and a lit lid
+// A barrel: round-bellied staves that darken stave by stave away from the light, two iron hoops, and a lit lid in a
+// thin rim
 function drum(ctx, d) {
   const b = iso(d.x, d.y),
     h = 20,
@@ -115,26 +116,16 @@ function drum(ctx, d) {
     edge(k, true).forEach((p, n) => (n ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
     ctx.stroke();
   }
+  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = C.iron;
   for (const t of [0.22, 0.78]) {
-    const hw = rx + 2 * t * (1 - t) * belly + 0.5,
-      y = b.y - t * h;
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = C.iron;
     ctx.beginPath();
-    ctx.ellipse(b.x, y, hw, ry, 0, 0, Math.PI);
+    ctx.ellipse(b.x, b.y - t * h, rx + 2 * t * (1 - t) * belly + 0.4, ry, 0, 0, Math.PI);
     ctx.stroke();
   }
   ctx.restore();
   oval(ctx, b.x, b.y - h, rx, ry, C.woodDeep);
-  oval(ctx, b.x, b.y - h, rx - 1, ry - 0.7, C.woodLight);
-  ctx.save();
-  ctx.beginPath();
-  ctx.ellipse(b.x, b.y - h, rx - 1, ry - 0.7, 0, 0, TAU);
-  ctx.clip();
-  // The lid's planks run across it, as the crate's do
-  for (const k of [-2, 2])
-    line(ctx, { x: b.x + k - 4, y: b.y - h + 3 }, { x: b.x + k + 4, y: b.y - h - 3 }, C.wood, 0.5);
-  ctx.restore();
+  oval(ctx, b.x, b.y - h, rx - 0.7, ry - 0.4, C.woodLight);
 }
 
 function well(ctx, d) {
@@ -240,23 +231,23 @@ function bench(ctx, d) {
   );
 }
 
-// A low boulder: a broad lit top over a shaded front, and a brighter facet toward the upper left
+// A low boulder, higher on its left: a broad lit top, a brighter facet toward the upper left, a shaded front, and its
+// right end in the deepest shade, as every prop's right face is
 function rock(ctx, d) {
   const b = iso(d.x, d.y),
     s = d.size ?? 1;
   const at = (pts) => pts.map(([x, y]) => ({ x: b.x + x * s, y: b.y + y * s }));
-
   shadow(ctx, d.x + 0.2, d.y + 0.2, 15 * s, 5 * s, 14 * s);
   poly(
     ctx,
     at([
       [-14, 1],
-      [-13, -4],
-      [-10, -8],
+      [-13, -2],
+      [-11, -6],
       [-5, -11],
       [2, -12],
-      [8, -10],
-      [12, -6],
+      [9, -8],
+      [12, -5],
       [14, -1],
       [12, 3],
       [4, 4],
@@ -264,31 +255,46 @@ function rock(ctx, d) {
     ]),
     C.rockDark,
   );
-  const top = [
-    [-13, -4],
-    [-10, -8],
-    [-5, -11],
-    [2, -12],
-    [8, -10],
-    [12, -6],
-    [13, -4],
-    [6, -5],
-    [-1, -3],
-    [-8, -1],
-    [-13, 0],
-  ];
-  poly(ctx, at(top), C.rock);
   poly(
     ctx,
     at([
-      [-10, -8],
+      [-13, -2],
+      [-11, -6],
+      [-5, -11],
+      [2, -12],
+      [9, -8],
+      [12, -5],
+      [13, -3.5],
+      [6, -4.5],
+      [-1, -3],
+      [-8, -1],
+      [-13, 0],
+    ]),
+    C.rock,
+  );
+  poly(
+    ctx,
+    at([
+      [-11, -6],
       [-5, -11],
       [2, -12],
       [0, -9],
       [-4, -7],
-      [-9, -5],
+      [-10, -4],
     ]),
     C.rockLight,
+  );
+  poly(
+    ctx,
+    at([
+      [8, -4.6],
+      [13, -3.5],
+      [14, -1],
+      [12, 3],
+      [6, 4],
+      [7, 0],
+    ]),
+    C.rockDeep,
   );
 }
 
@@ -434,7 +440,7 @@ function crates(ctx, d) {
         [near, C.wood, C.woodDeep],
         [side, C.woodDark, C.barkDark],
       ]) {
-        for (const v of [0.37, 0.63]) patch(at, 0, 1, v - 0.03, v + 0.03, seam);
+        for (const v of [0.37, 0.63]) patch(at, 0, 1, v - 0.02, v + 0.02, seam);
         if (at === near) {
           // The brace runs from the top of the far post down to the foot of the near one
           poly(ctx, [at(0.08, 0.8), at(0.22, 0.88), at(0.92, 0.2), at(0.78, 0.12)], frame);
@@ -444,13 +450,7 @@ function crates(ctx, d) {
         patch(at, 0, 1, 0, 0.14, frame);
         patch(at, 0, 0.1, 0, 1, frame);
         patch(at, 0.9, 1, 0, 1, frame);
-        for (const [u, v] of [
-          [0.05, 0.07],
-          [0.95, 0.07],
-          [0.05, 0.93],
-          [0.95, 0.93],
-        ])
-          nail(at, u, v);
+        if (at === near) for (const u of [0.05, 0.95]) nail(at, u, 0.93);
       }
       for (const [u, v] of [
         [0.08, 0.08],
@@ -466,71 +466,66 @@ function crates(ctx, d) {
   box(d.x - 0.35, d.y - 0.3, 10);
 }
 
-// A hay bale: straw layers as a few broken lines along each face, and two twine bands
+// A hay bale: faces shaded by direction, a soft lit strip along the top's near edges, two unbroken straw layers on the
+// long face and one on the end, and two twine bands
 function hay(ctx, d) {
-  const x = d.x - 0.5,
-    y = d.y - 0.3,
-    L = 1,
+  const L = 0.8,
     W = 0.6,
-    H = 10;
+    H = 10,
+    x = d.x - L / 2,
+    y = d.y - 0.3;
   const top = (u, v) => iso(x + u * L, y + v * W, H),
     near = (u, z) => iso(x + u * L, y + W, z),
     end = (v, z) => iso(x + L, y + v * W, z);
-  // A layer of straw: short runs with small gaps between them, from a to b along a face
-  const layer = (at, a, b, across, color) => {
-    for (let s0 = a + (across % 2) * 0.06; s0 < b - 0.05; s0 += 0.2)
-      line(ctx, at(s0, across), at(Math.min(b, s0 + 0.14), across), color, 0.6);
-  };
-  shadow(ctx, d.x + 0.25, d.y + 0.25, 18, 6, 15);
+  shadow(ctx, d.x + 0.2, d.y + 0.25, 16, 6, 15);
   prism(ctx, { x, y, w: L, h: W, z: H }, C.hay, C.hayDark, C.hayDeep, () => {
-    for (const v of [0.35, 0.7]) layer(top, 0.06, 0.94, v, C.hayLight);
-    for (const z of [2.5, 5, 7.5]) layer(near, 0.04, 0.96, z, C.hayDeep);
-    for (const z of [3, 6]) layer(end, 0.1, 0.9, z, C.hayDark);
-    for (const u of [0.3, 0.7]) {
-      const t = x + u * L;
-      line(ctx, iso(t, y, H), iso(t, y + W, H), C.woodDark, 0.8);
-      line(ctx, iso(t, y + W, H), iso(t, y + W, 0), C.woodDark, 0.8);
+    // The top rounds over its near edges, so a band just inside them catches the most light
+    poly(ctx, [top(0, 0.82), top(0.85, 0.82), top(0.85, 1), top(0, 1)], C.hayLight);
+    poly(ctx, [top(0.85, 0), top(1, 0), top(1, 1), top(0.85, 1)], C.hayLight);
+    for (const z of [3.5, 6.5]) line(ctx, near(0.02, z), near(0.98, z), C.hayDeep, 0.7);
+    line(ctx, end(0.04, 5), end(0.96, 5), C.woodDark, 0.7);
+    for (const u of [0.28, 0.72]) {
+      line(ctx, top(u, 0), top(u, 1), C.woodDark, 0.8);
+      line(ctx, near(u, H), near(u, 0), C.woodDark, 0.8);
     }
   });
 }
 
-// A woodpile: round logs, three under two, each a bark body lit along its top and shaded beneath, with a pale cut
-// end toward the camera that darkens toward its lower right
+// A woodpile: chunky round logs, three under two, each a bark body lit along its top and shaded beneath, with a
+// mid-toned cut end toward the camera, as the barrel's lid sits in its rim
 function woodpile(ctx, d) {
   shadow(ctx, d.x - 0.05, d.y + 0.2, 20, 7, 15);
-  const r = 3.2,
-    x0 = d.x - 0.45,
-    x1 = d.x + 0.25;
-  const log = (t, z) => {
-    const y = d.y - 0.6 + t,
+  const r = 4,
+    x0 = d.x - 0.3,
+    x1 = d.x + 0.22;
+  const log = (t, z, ridge) => {
+    const y = d.y - 0.5 + t,
       a = iso(x0, y, z),
       b = iso(x1, y, z);
     const along = (k, dy) => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k + dy });
     oval(ctx, a.x, a.y, r, r, C.bark);
     line(ctx, a, b, C.barkDark, r * 2);
     line(ctx, along(0, -0.5), along(1, -0.5), C.bark, r * 2 - 1.6);
-    line(ctx, along(0, -r + 1.3), along(1, -r + 1.3), C.woodDark, 1.4);
-    // Two short ridges in the bark, the same on every log
-    line(ctx, along(0.15, -0.4), along(0.45, -0.4), C.barkDark, 0.6);
-    line(ctx, along(0.5, 1.2), along(0.8, 1.2), C.barkDark, 0.6);
+    line(ctx, along(0, -r + 1.4), along(1, -r + 1.4), C.woodDark, 1.6);
+    line(ctx, along(ridge, 0.6), along(ridge + 0.35, 0.6), C.barkDark, 0.6);
     oval(ctx, b.x, b.y, r, r, C.barkDark);
-    oval(ctx, b.x, b.y, r - 0.7, r - 0.7, C.wood);
-    oval(ctx, b.x - 0.35, b.y - 0.35, r - 1.1, r - 1.1, C.woodLight);
-    ctx.strokeStyle = C.wood;
-    ctx.lineWidth = 0.45;
+    oval(ctx, b.x, b.y, r - 0.6, r - 0.6, C.wood);
+    ctx.strokeStyle = C.woodDark;
+    ctx.lineWidth = 0.5;
     ctx.beginPath();
-    ctx.arc(b.x - 0.2, b.y - 0.2, 1.2, 0, TAU);
+    ctx.arc(b.x, b.y, 1.6, 0, TAU);
     ctx.stroke();
   };
-  // Back to front, so each nearer log covers the one it leans on
-  for (const [t, z] of [
-    [0.2, r],
-    [0.4, r * 2.8],
-    [0.6, r],
-    [0.8, r * 2.8],
-    [1, r],
+  // Back to front, so each nearer log covers the one it leans on; a top log sits in the notch of the two below
+  const notch = r + Math.sqrt((2 * r) ** 2 - 20);
+  for (const [t, z, ridge] of [
+    [0, r, 0.15],
+    [0.25, notch, 0.4],
+    [0.5, r, 0.3],
+    [0.75, notch, 0.1],
+    [1, r, 0.45],
   ])
-    log(t, z);
+    log(t, z, ridge);
 }
 
 function lantern(ctx, d) {
