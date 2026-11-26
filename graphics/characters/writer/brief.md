@@ -1,5 +1,14 @@
 # writer
 
+## Code figure
+
+Made like the others (see graphics/README.md "캐릭터 만들기"): `trace.py writer` traces every sheet at its own size and repaints each material in three flat shades.
+
+- Materials: copper hair and brick coat are near in hue; the hair is a touch yellower and only the braid falls past the jaw, so rows part them (hair to 22 rows below the crown, the braid to 29). Cream blouse and cuffs as ivory, plum sash, dull dark-brown trousers, tan belt, pen case, and boots as leather, and the coat's tan trim and brass pin as one-pixel-thin gold.
+- The coat's dark folds and the hair's dark strands are drawn as outline, so the cloth stays clean and the hair keeps its strands rather than going flat.
+- Lit trousers in the walk are paler than the coat but less saturated, so saturation, not brightness, tells them from the coat.
+- `head.png` is `head.py writer 24 10 22 4 17`: the sheet's own face (green eyes with glints, small mouth) with skin in flat shades. By hand: two eye corners head.py took for hair go back to the sheet's, the sheet's brow marks floating two rows up move to one row above each lid (low at the inner end, rising outward), the far eye takes the near eye's lowest row so both end on the same row, and four cheek-lock colors take the hair's middle shade to stay inside the letter count.
+
 ## master
 
 ### Writer / Storyweaver

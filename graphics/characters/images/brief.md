@@ -1,5 +1,14 @@
 # images
 
+## Code figure
+
+Made like the others (see graphics/README.md "캐릭터 만들기"): `trace.py images` traces every sheet at its own size and repaints each material in three flat shades.
+
+- Materials: indigo hair (the boot cuffs share it), turquoise coat (the hair's lock shares it), plum lining and collar, ivory shirt and cuffs, golden-tan skin, ochre sash and trims as one-pixel-thin gold, brown leather belt, case, and boots, charcoal trousers.
+- The coat's dark folds (below the jaw) are drawn as outline, so the arms stay apart from the body.
+- Nothing below the hands is skin, since the boots' warm highlights pass for it; the neck's shadow under the jaw is skin though as deep as leather.
+- `head.png` is `head.py images 23 13 21 5 14`: the sheet's own face (plum eyes with glints, three-pixel mouth) with skin in flat shades, then by hand the skin pixels head.py's chestnut-hair rule took for hair given back, the ear and jaw given the sheet's light, the lock's shadow speck cleared, and soft brows a row over each lid, the far one beside the lock. Both eyes sit on rows 15-18.
+
 ## master
 
 ### Images / Illusion Painter

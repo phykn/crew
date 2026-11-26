@@ -1,5 +1,15 @@
 # adventurer
 
+## Code figure
+
+Made like the others (see graphics/README.md "캐릭터 만들기"): `trace.py coder` traces every sheet at its own size and repaints each material in three flat shades.
+
+- Materials: chestnut hair, sage tunic, ivory sleeves, brick scarf, skin, leather (belt and boots), cocoa trousers, and the pale-teal wardstone, kept as thin so the held stone survives the cleanup.
+- Hair and trousers share one chestnut, so the rows part them (hair to 22 rows below the crown); the far boot is shaded as dark as the trousers, so it is leather from 62 rows down.
+- The tunic's dark folds are drawn as outline, and the sleeves' warm grey shadows stay ivory rather than leather.
+- `head.png` is `head.py coder 24 14 22 5 17`: the sheet's own face with skin in flat shades, then by hand the far eye moved down a row to sit level with the near one (lid, iris, glint), thin brows a row above each lid, the sheet's blush, a stray speck cleared, and the bright hair locks one shade above the cleaned hair.
+- The sheet's sit is on an implied bench, legs hanging, not cross-legged on the ground.
+
 ## master
 
 ### Adventurer — Classic Fantasy Proportions

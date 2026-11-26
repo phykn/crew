@@ -1,5 +1,13 @@
 # librarian
 
+## Code figure
+
+Made like the others (see graphics/README.md "캐릭터 만들기"): `trace.py librarian` traces every sheet at its own size and repaints each material in three flat shades.
+
+- Materials: plum hair above the jaw (23 rows below the crown), and the same hue below it is the burgundy sash; moss coat, ivory blouse and cuffs, skin, tan book, brown leather (belt and boots), dark trousers, and the coat's brass piping as one-pixel-thin gold.
+- The hair's dark strands stay hair rather than outline, since as outline they read as specks; boot tops share the hands' bright brown, so skin stops 58 rows below the crown.
+- `head.png` is `head.py librarian 23 12 21 4 14`, then by hand: iris, spectacle bridge, and rim pixels that head.py's chestnut hair rule took for hair or skin put back from the sheet; plum in the face box snapped to the cleaned hair; forehead specks cleared; thin brows a row above each lid (near one low at its inner end); hair gloss one shade lighter where the sheet's plum is brightest; the mouth in one shade to stay within the letters.
+
 ## master
 
 ### Librarian / Archive Keeper

@@ -1,5 +1,15 @@
 # proofreader
 
+## Code figure
+
+Made like the others (see graphics/README.md "캐릭터 만들기"): `trace.py proofreader` traces every sheet at its own size and repaints each material in three flat shades.
+
+- Materials: dusty rose hair and sash share one rose and are parted by the jaw line (hair to 22 rows below the crown); sage coat, ivory collar, cuffs, and hem trim (one-pixel-thin, so the coat's piping stays), skin, brown trousers, and leather belt, stamp case, and boots.
+- Trousers and boots share one brown: boots past 62 rows, and a foot raised mid-step by its yellower, fuller brown; the sitting sheet (whose crown starts lowest) parts its crossed legs by shade alone.
+- The hands' shaded fingers are leather-brown, so skin takes them at the belt by lightness and below it by rows; the neck's dull peach shadow is skin, not hair; nothing below the knees is skin or sash.
+- Dark folds of hair, coat, and sash are drawn as outline.
+- `head.png` is `head.py proofreader 23 13 21 4 15`, then by hand: the brass rims and the far brow put back from the sheet (head.py's brown-hair test took them for hair), a thin soft near brow a row above the lid, the sheet's faint mouth, the jaw's hair edges in the cleaned hair shades, and the sheet's crown sheen one shade lighter. Both eyes keep the sheet's lid, blue iris, and glint on the same rows.
+
 ## master
 
 ### Proofreader / Rune Corrector
