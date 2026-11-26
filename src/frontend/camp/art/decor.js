@@ -1,8 +1,8 @@
 import { iso } from '../projection.js';
 import { COLOR as C } from '../tokens.js';
-import { TAU, longShadow, oval, poly, shadow } from './shapes.js';
+import { TAU, longShadow, poly, shadow } from './shapes.js';
 import { SEAT_Z } from '../figure.js';
-import { BARK, HAY, IRON, ROCK, U, WOOD, box, drawSolids, facets, round } from './solids.js';
+import { BARK, HAY, IRON, ROCK, U, WATER, WOOD, box, drawSolids, facets, round } from './solids.js';
 
 const pixels = (ctx, list, fill) => {
   ctx.fillStyle = fill;
@@ -125,67 +125,52 @@ function drum(ctx, d) {
   );
 }
 
+// A well: a round wall of three stone courses with staggered joints round dark water, two posts on its rim under a
+// beam, and a bucket hanging from the beam on its rope
 function well(ctx, d) {
-  const b = iso(d.x, d.y),
-    rx = 24,
-    ry = 12,
-    wall = 12;
-  const top = b.y - wall,
-    courses = 3,
-    course = wall / courses;
   shadow(ctx, d.x + 0.3, d.y + 0.3, 30, 13, 40);
-  oval(ctx, b.x, b.y, rx, ry, C.rock, Math.PI);
-  ctx.fillRect(b.x - rx, top, rx * 2, wall);
-  // Mortar runs along the wall's curve and the joints stagger by course; square blocks laid flat read as a box
-  ctx.strokeStyle = C.rockDark;
-  ctx.lineWidth = 1;
-  for (let c = 0; c < courses; c++) {
-    const y0 = top + c * course;
-    if (c > 0) {
-      ctx.beginPath();
-      ctx.ellipse(b.x, y0, rx, ry, 0, 0, Math.PI);
-      ctx.stroke();
-    }
-    for (let k = 0; k < 6; k++) {
-      const a = (Math.PI * (k + 0.3 + (c % 2) * 0.5)) / 6;
-      // A joint at either edge would be seen side-on and stand out as a notch
-      if (a < 0.3 || a > Math.PI - 0.3) continue;
-      const x = Math.round(b.x + Math.cos(a) * rx) + 0.5,
-        y = y0 + Math.sin(a) * ry;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x, y + course);
-      ctx.stroke();
-    }
-  }
-  // The rim's top is lit, and its inner edge drops into shade before the water
-  oval(ctx, b.x, top, rx, ry, C.rockLight);
-  oval(ctx, b.x, top, rx - 5, ry - 2.5, C.rockDark);
-  oval(ctx, b.x, top + 1, rx - 6.5, ry - 3.5, C.water);
-  pixels(
-    ctx,
-    [
-      [b.x - rx + 2, top - 34, 4, 34],
-      [b.x + rx - 6, top - 34, 4, 34],
-    ],
-    C.pole,
-  );
-  pixels(ctx, [[b.x - rx, top - 36, rx * 2, 4]], C.woodDark);
-  pixels(ctx, [[b.x, top - 32, 1, 16]], C.muted);
-  // A bucket tapers to its foot and shows its round mouth
-  const mouth = top - 16;
-  poly(
-    ctx,
-    [
-      { x: b.x - 5, y: mouth },
-      { x: b.x + 6, y: mouth },
-      { x: b.x + 4.5, y: mouth + 8 },
-      { x: b.x - 3.5, y: mouth + 8 },
-    ],
-    C.woodDeep,
-  );
-  pixels(ctx, [[b.x - 4, mouth + 3, 9, 1]], C.iron);
-  oval(ctx, b.x + 0.5, mouth, 5.5, 1.5, C.wood);
+  const c = [d.x * U, d.y * U],
+    out = 17,
+    inner = 12.5,
+    wall = 12,
+    rim = (out + inner) / 2,
+    beam = wall + 33;
+  const radial = (p) => Math.hypot(p[0] - c[0], p[1] - c[1]);
+  const parts = [
+    {
+      // A ring: as far from the wall's middle radius as half its thickness, and no higher than its top
+      sdf: (p) => {
+        const dr = Math.abs(radial(p) - rim) - (out - inner) / 2,
+          dz = Math.abs(p[2] - wall / 2) - wall / 2;
+        return Math.hypot(Math.max(dr, 0), Math.max(dz, 0)) + Math.min(Math.max(dr, dz), 0);
+      },
+      paint: (p, n, l) => {
+        if (n[2] > 0.9) return [ROCK, l];
+        const course = Math.floor(p[2] / (wall / 3)),
+          mortar = Math.abs(p[2] - Math.round(p[2] / (wall / 3)) * (wall / 3)) < 0.4 && p[2] > 1 && p[2] < wall - 1,
+          turn = ((Math.atan2(p[1] - c[1], p[0] - c[0]) / (Math.PI * 2)) * 11 + course * 0.5 + 11) % 1;
+        return [ROCK, mortar || turn < 0.05 ? l - 1 : l];
+      },
+    },
+    { sdf: round([c[0], c[1], wall - 4], 2, 0.5, () => inner), paint: () => [WATER, 2] },
+    ...[-rim, rim].map((dy) => ({
+      sdf: box([c[0], c[1] + dy, (wall + beam + 2) / 2], [1.3, 1.3, (beam + 2 - wall) / 2]),
+      paint: (p, n, l) => [WOOD, l - 1],
+    })),
+    { sdf: box([c[0], c[1], beam + 1.5], [1.4, rim + 2.5, 1.5]), paint: (p, n, l) => [WOOD, l] },
+    { sdf: round([c[0], c[1], beam - 6], 2, 6, () => 0.35), paint: (p, n, l) => [HAY, l] },
+    {
+      sdf: round([c[0], c[1], wall + 13], 2, 3, (t) => 3 + 0.5 * t),
+      paint: (p, n, l) => {
+        if (n[2] > 0.9) return [WOOD, 1];
+        return Math.abs(p[2] - (wall + 13)) < 0.7 ? [IRON, l] : [WOOD, l];
+      },
+    },
+  ];
+  drawSolids(ctx, parts, [
+    [c[0] - out, c[1] - out, 0],
+    [c[0] + out, c[1] + out, beam + 3],
+  ]);
 }
 
 // A box from a footprint in tiles and a height range in px, as solids measure it, its edges rounded by r

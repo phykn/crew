@@ -14,6 +14,8 @@ export const WOOD = [C.barkDark, C.woodDeep, C.woodDark, C.wood, C.woodLight];
 export const BARK = [C.eye, C.barkDark, C.barkDark, C.bark, C.woodDeep];
 export const ROCK = [C.eye, C.rockDeep, C.rockDark, C.rock, C.rockLight];
 export const HAY = [C.woodDark, C.hayDeep, C.hayDark, C.hay, C.hayLight];
+// Still water is one dark color whichever way the light falls
+export const WATER = [C.water, C.water, C.water, C.water, C.water];
 export const IRON = [C.eye, C.leather, C.iron, C.muted, C.rockLight];
 
 // Light from the upper left: tops are lightest, faces toward +y next, faces toward +x darkest
