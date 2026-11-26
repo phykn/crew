@@ -6,7 +6,7 @@ Made like the interpreter (see graphics/README.md "캐릭터 만들기"): `trace
 
 - Materials: hair and coat share the ink blue and part at the jaw line (23 rows below the crown); plum sash, ivory blouse, cuffs, and wand, gold piping and clip, charcoal-brown trousers, brown leather belt and boots.
 - The gold piping is one pixel wide, so the cleanup keeps it wherever any of it touches.
-- `head.png` keeps the sheet's own face: every eye and clip pixel as drawn, the skin snapped to three flat shades, the face's other pixels (lines, cheeks, mouth) in six colors, round the cleaned hair with its sheen. A hand-redrawn face (flat brows, lash flick, reshaped chin) read as someone else and was dropped.
+- `head.png` keeps the sheet's own face: every eye and clip pixel as drawn, the skin snapped to three flat shades, the face's other pixels (lines, cheeks, mouth) in six colors, round the cleaned hair with its sheen. Two hand edits on top: the far eye drops a row to sit level with the near one, two pixels wide with the same lid, iris, and glint, since the sheet's higher, smudged far eye read as mismatched eyes; and thin soft brows sit a row above each lid, low at the inner end. A hand-redrawn face (flat brows, lash flick, reshaped chin) read as someone else and was dropped.
 - The wand reaches past the body in the cast sheets, so the shared box is 50 pixels wide.
 
 ## master

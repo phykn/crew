@@ -69,7 +69,7 @@ ROLES = {
     'conductor': {
         'kind': conductor,
         'thin': {'gold'},
-        'eyes': [(15, 17, 8, 10), (14, 16, 2, 4)],
+        'eyes': [(15, 17, 8, 10), (15, 17, 3, 4)],
         'skin': (19, 9),
         'closed': {('cast-loop', 2)},
     },
