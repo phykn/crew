@@ -9,6 +9,7 @@ import {
   GLOW,
   HAY,
   IRON,
+  LEAF,
   ROCK,
   U,
   WATER,
@@ -251,22 +252,40 @@ function rock(ctx, d) {
   );
 }
 
+// A pine: a short bark trunk under three tiers of needles, each smaller and higher; a tier is cut in seven flat faces
+// that run out to its hem, so the light falls on it in steps; each overlaps the one below, hiding its shaded underside
 function pine(ctx, d) {
-  const b = iso(d.x, d.y),
-    s = d.size ?? 1;
-  shadow(ctx, d.x + 0.3, d.y + 0.3, 14 * s, 5 * s, 70 * s);
-  pixels(ctx, [[b.x - 2, b.y - 10 * s, 4, 10 * s]], C.barkDark);
-  // Tiers stepped in 2px rows read as pixel art rather than a smooth cone
+  const s = d.size ?? 1,
+    c = [d.x * U, d.y * U];
+  cast(ctx, d.x + 0.3, d.y + 0.3, 14 * s, 70 * s);
+  const parts = [{ sdf: round([c[0], c[1], 6 * s], 2, 6 * s, () => 1.6 * s), paint: (p, n, l) => [BARK, l] }];
   for (let tier = 0; tier < 3; tier++) {
-    const h = Math.round(20 * s),
-      top = Math.round(b.y - (8 + tier * 14) * s) - h,
-      wide = (16 - tier * 4) * s;
-    for (let r = 2; r <= h; r += 2) {
-      const half = Math.max(1, Math.round((wide * r) / h));
-      pixels(ctx, [[b.x - half, top + r - 2, half * 2, 2]], C.leafDark);
-      pixels(ctx, [[b.x - half, top + r - 2, Math.ceil(half * 0.6), 2]], C.leaf);
-    }
+    const base = (8 + tier * 12) * s,
+      r = (11 - tier * 2.8) * s,
+      h = 22 * s;
+    parts.push({
+      sdf: (p) => {
+        const z = p[2] - base,
+          a = Math.atan2(p[1] - c[1], p[0] - c[0]),
+          face = (Math.PI * 2) / 7,
+          // Distance out to the nearest of seven flat faces rather than to a circle
+          out = Math.hypot(p[0] - c[0], p[1] - c[1]) * Math.cos(a - (Math.round(a / face - 0.3) + 0.3) * face),
+          t = Math.min(1, Math.max(0, z / h));
+        return Math.max((out - r * (1 - t)) * 0.75, -z);
+      },
+      paint: (p, n, l) => [LEAF, n[2] < -0.5 ? 0 : l],
+    });
   }
+  const R = 11 * s;
+  drawSolids(
+    ctx,
+    parts,
+    [
+      [c[0] - R, c[1] - R, 0],
+      [c[0] + R, c[1] + R, (8 + 24 + 22) * s],
+    ],
+    `pine${s}`,
+  );
 }
 
 // Blades fan out from one root, so a tuft reads as grass rather than sticks

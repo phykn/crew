@@ -15,6 +15,8 @@ export const BARK = [C.eye, C.barkDark, C.barkDark, C.bark, C.woodDeep];
 export const ROCK = [C.eye, C.rockDeep, C.rockDark, C.rock, C.rockLight];
 export const HAY = [C.woodDark, C.hayDeep, C.hayDark, C.hay, C.hayLight];
 export const CANVAS = [C.leather, C.canvasDeep, C.canvasDark, C.canvas, C.parchmentDeep];
+// Needles stay dark at night: even the lit side is only a step above the shade
+export const LEAF = [C.leafDeep, C.leafDeep, C.leafDark, C.leaf, C.leafLight];
 // A flame behind glass gives its own light, so its shades run from the deep orange to the white core
 export const BLAZE = [C.flameDeep, C.flameDeep, C.flame, C.flame, C.flameCore];
 // A doorway's dark inside, warmed by the lantern within
@@ -57,9 +59,14 @@ const warmth = (p, n) => {
 // The sky's light comes from behind the camp, so a solid's spot on the ground falls a little toward the viewer
 const SKY = [-0.3, -0.3, 1].map((v) => v / Math.hypot(0.3, 0.3, 1));
 // How dark the ground is at g: soft where the path toward the sky passes close to a solid, and darkest at its foot
-const groundShade = (g, dist, far) => {
+const groundShade = (g, dist, far, lo, hi) => {
+  // Only the stretch of the path to the sky that passes over the solids' box can be shaded
+  const enter = Math.max(0.5, ...[0, 1].map((a) => (g[a] - hi[a]) / -SKY[a])),
+    leave = Math.min(far, hi[2] / SKY[2], ...[0, 1].map((a) => (g[a] - lo[a]) / -SKY[a]));
+  const near = [0, 1].every((a) => g[a] > lo[a] - 4 && g[a] < hi[a] + 4);
+  if (enter > leave && !near) return 0;
   let open = 1;
-  for (let t = 0.5, n = 0; n < 48 && t < far; n++) {
+  for (let t = Math.max(0.5, enter - 2), n = 0; n < 48 && t < Math.min(far, leave + 2); n++) {
     const d = dist([g[0] + SKY[0] * t, g[1] + SKY[1] * t, SKY[2] * t]);
     if (d < 0.02) return 0.6;
     open = Math.min(open, (8 * d) / t);
@@ -129,7 +136,13 @@ export function rod(a, b, r) {
 }
 
 // parts: [{ sdf, paint(p, n, light) -> [shades, step] }], bounds: [[x, y, z], [x, y, z]] in units
-export function drawSolids(ctx, parts, bounds) {
+// Pictures of solids the fire never reaches, by the key the caller gives and the scale, to draw again elsewhere
+const kept = new Map();
+
+// key, when given, names solids that look the same wherever they stand once out of the flames' reach
+export function drawSolids(ctx, parts, bounds, key) {
+  // The light probe only collects what blocks the flames
+  if (ctx.casters) return;
   // The frame also holds the spot the solids lay on the ground, which reaches out away from the sky's light
   const top = bounds[1][2] + 2,
     reach = (top / SKY[2]) * Math.hypot(SKY[0], SKY[1]),
@@ -138,7 +151,19 @@ export function drawSolids(ctx, parts, bounds) {
       [bounds[1][0] + reach + 4, bounds[1][1] + reach + 4, bounds[1][2]],
     ];
   const k = Math.min(4, ctx.getTransform().a),
-    corners = [0, 1, 2, 3, 4, 5, 6, 7].map((n) => iso(box[n & 1][0] / U, box[(n >> 1) & 1][1] / U, box[n >> 2][2])),
+    anchor = iso(bounds[0][0] / U, bounds[0][1] / U, 0),
+    again = key && kept.get(`${key}@${k}`);
+  if (again) {
+    ctx.drawImage(
+      again.canvas,
+      anchor.x + again.dx,
+      anchor.y + again.dy,
+      again.canvas.width / k,
+      again.canvas.height / k,
+    );
+    return;
+  }
+  const corners = [0, 1, 2, 3, 4, 5, 6, 7].map((n) => iso(box[n & 1][0] / U, box[(n >> 1) & 1][1] / U, box[n >> 2][2])),
     x0 = Math.floor(Math.min(...corners.map((p) => p.x))) - 1,
     y0 = Math.floor(Math.min(...corners.map((p) => p.y))) - 1,
     w = Math.ceil(Math.max(...corners.map((p) => p.x)) - x0) + 2,
@@ -163,7 +188,10 @@ export function drawSolids(ctx, parts, bounds) {
       const [gx, gy] = ground(x0 + (i + 0.5) / k, y0 + (j + 0.5) / k);
       // Along the ray every unit up is also a unit toward +x and +y, so the point keeps its place on screen
       let hit = false;
-      for (let s = top, n = 0; n < 120 && s > -1; n++) {
+      // A ray is marched only where it is inside the solids' box
+      const from = Math.min(top, bounds[1][0] - gx, bounds[1][1] - gy) + 0.5,
+        to = Math.max(-1, bounds[0][0] - gx, bounds[0][1] - gy) - 0.5;
+      for (let s = from, n = 0; n < 120 && s > to; n++) {
         const p = [gx + s, gy + s, s],
           [d, part] = scene(p);
         if (d < 0.04) {
@@ -186,7 +214,7 @@ export function drawSolids(ctx, parts, bounds) {
         // A step of s moves the point sqrt(3) units, so the distance divided by that never passes a surface
         s -= Math.max(d, 0.03) / Math.sqrt(3);
       }
-      if (!hit) dark[j * W + i] = groundShade([gx, gy, 0], (p) => scene(p)[0], top / SKY[2]);
+      if (!hit) dark[j * W + i] = groundShade([gx, gy, 0], (p) => scene(p)[0], top / SKY[2], bounds[0], bounds[1]);
     }
   const img = new ImageData(W, H),
     rgb = {};
@@ -222,4 +250,5 @@ export function drawSolids(ctx, parts, bounds) {
   const canvas = Object.assign(document.createElement('canvas'), { width: W, height: H });
   canvas.getContext('2d').putImageData(img, 0, 0);
   ctx.drawImage(canvas, x0, y0, W / k, H / k);
+  if (key && warm.every((f) => f === 0)) kept.set(`${key}@${k}`, { canvas, dx: x0 - anchor.x, dy: y0 - anchor.y });
 }

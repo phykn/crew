@@ -15,6 +15,8 @@ export const COLOR = {
   barkDark: '#281c12',
   leaf: '#33402a',
   leafDark: '#212b1b',
+  leafDeep: '#161d13',
+  leafLight: '#43523a',
   rock: '#55524a',
   rockLight: '#706b60',
   rockDark: '#3a3833',
