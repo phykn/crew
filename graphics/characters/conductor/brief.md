@@ -1,5 +1,14 @@
 # conductor
 
+## Code figure
+
+Made like the interpreter (see graphics/README.md "캐릭터 만들기"): `trace.py conductor` traces every sheet at its own size and repaints each material in three flat shades.
+
+- Materials: hair and coat share the ink blue and part at the jaw line (23 rows below the crown); plum sash, ivory blouse, cuffs, and wand, gold piping and clip, charcoal-brown trousers, brown leather belt and boots.
+- The gold piping is one pixel wide, so the cleanup keeps it wherever any of it touches.
+- `head.png` is the cleaned head with the sheet's own eyes (a dark lid, a plum iris, the near eye's white glint), brows arched on the lids, a one-pixel nose, a two-pixel mouth, a faint warm cheek, shaded skin under the chin, and the hair's sheen on its upper left.
+- The wand reaches past the body in the cast sheets, so the shared box is 50 pixels wide.
+
 ## master
 
 ### Conductor Mage — Standing Master

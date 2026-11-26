@@ -1,3 +1,4 @@
+import conductor from './people/conductor.js';
 import interpreter from './people/interpreter.js';
 
 // A person is a pixel picture at the size the camp shows them (about two screen pixels to a world pixel), one letter
@@ -6,7 +7,7 @@ import interpreter from './people/interpreter.js';
 // size. The fire lights the edge of the figure turned toward it
 
 // Each role's colors and frames, made by graphics/characters/trace.py from its approved sheets
-const PEOPLE = { interpreter };
+const PEOPLE = { interpreter, conductor };
 
 const channels = (hex) => {
   const n = parseInt(hex.slice(1), 16);

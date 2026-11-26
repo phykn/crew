@@ -15,12 +15,62 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-# Per role: each eye's box in head.png (top, bottom, left, right), the rows below the head's top where the scarf sits,
-# and which cells of the moving sheets have closed eyes
+
+def interpreter(r, g, b, h, s, v, L, y, top):
+    if L < 42:
+        return 'line'
+    if g > r + 4 and b > r:
+        return 'coat'
+    if y <= top + 17:
+        return 'skin' if s > 0.33 and h < 0.1 else 'hair'
+    if b >= r and L < 85:
+        return 'legs'
+    if h < 0.045 and s > 0.5 and r > 150 and top + 15 <= y <= top + 29:
+        return 'scarf'
+    if s > 0.3 and v > 0.6 and h < 0.073:
+        return 'skin'
+    if s > 0.45 and v > 0.6:
+        return 'gold'
+    # The shirt's shadows are warm greys, paler and greyer than the leather's browns
+    if s < 0.45 and v > 0.42:
+        return 'ivory'
+    return 'leather'
+
+
+def conductor(r, g, b, h, s, v, L, y, top):
+    if L < 36:
+        return 'line'
+    # Hair and coat share the ink blue, so the jaw line parts them
+    if 0.55 < h < 0.8 and s > 0.15:
+        return 'hair' if y <= top + 23 else 'coat'
+    if h > 0.85 and s > 0.3:
+        return 'sash'
+    if 0.04 < h < 0.1 and s > 0.35 and v > 0.85:
+        return 'skin'
+    if 0.085 <= h < 0.17 and s > 0.5 and v > 0.5:
+        return 'gold'
+    if s < 0.32 and v > 0.6:
+        return 'ivory'
+    if s < 0.45 and v < 0.45:
+        return 'legs'
+    return 'leather'
+
+
+# Per role: which material a sheet pixel is (from its color, its row, and the frame's top row), each eye's box in
+# head.png (top, bottom, left, right) and a skin pixel there for blinking, and which cells of the moving sheets have
+# closed eyes
 ROLES = {
     'interpreter': {
+        'kind': interpreter,
         'eyes': [(15, 17, 6, 8), (15, 17, 11, 14)],
-        'scarf': (15, 29),
+        'skin': (19, 14),
+        'closed': {('cast-loop', 2)},
+    },
+    'conductor': {
+        'kind': conductor,
+        'thin': {'gold'},
+        'eyes': [(15, 17, 8, 10), (14, 16, 2, 4)],
+        'skin': (19, 9),
         'closed': {('cast-loop', 2)},
     },
 }
@@ -52,27 +102,7 @@ def materials(a):
     for y, x in zip(*np.nonzero(mask)):
         r, g, b = a[y, x, :3]
         h, s, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
-        L = lum[y, x]
-        if L < 42:
-            m = 'line'
-        elif g > r + 4 and b > r:
-            m = 'coat'
-        elif y <= top + 17:
-            m = 'skin' if s > 0.33 and h < 0.1 else 'hair'
-        elif b >= r and L < 85:
-            m = 'legs'
-        elif h < 0.045 and s > 0.5 and r > 150 and top + spec['scarf'][0] <= y <= top + spec['scarf'][1]:
-            m = 'scarf'
-        elif s > 0.3 and v > 0.6 and h < 0.073:
-            m = 'skin'
-        elif s > 0.45 and v > 0.6:
-            m = 'gold'
-        # The shirt's shadows are warm greys, paler and greyer than the leather's browns
-        elif s < 0.45 and v > 0.42:
-            m = 'ivory'
-        else:
-            m = 'leather'
-        M[y, x] = m
+        M[y, x] = spec['kind'](r, g, b, h, s, v, lum[y, x], y, top)
     # A pixel alone in its material takes its neighbours', so every part has a clean edge
     for _ in range(2):
         M2 = M.copy()
@@ -85,7 +115,8 @@ def materials(a):
                 for dx in (-1, 0, 1)
                 if (dy or dx) and 0 <= y + dy < H and 0 <= x + dx < W and M[y + dy, x + dx]
             ]
-            if n and n.count(M[y, x]) <= 1:
+            # A thin material, such as piping one pixel wide, gives way only when nothing of it touches
+            if n and n.count(M[y, x]) <= (0 if M[y, x] in spec.get('thin', ()) else 1):
                 M2[y, x] = Counter(n).most_common(1)[0][0]
         M = M2
     # Light smoothed over each part, so its shades follow its form rather than the painting's flecks
@@ -126,7 +157,7 @@ hh, hw = hmask.shape
 def blink(h):
     # Closed eyes: each eye becomes a dark lid line across its middle row, skin above and below
     h = h.copy()
-    skin = h[19, hw // 2, :3].copy()
+    skin = h[spec['skin']][:3].copy()
     lid = np.array([0x52, 0x30, 0x26], float)
     for t, b, l, r in spec['eyes']:
         for y in range(t, b + 1):
