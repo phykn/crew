@@ -5,7 +5,7 @@ import type { Chat } from '../../app/chat';
 import type { Member, Task } from '../../domain/records';
 import type { Step } from '../../domain/workflow';
 import { wikiTools } from './wiki';
-import { CANCEL, REFUSE } from '../../domain/answers';
+import { CANCEL } from '../../domain/answers';
 import { baseKey } from '../../../shared';
 
 // The app's tools for a member at work on one step: asking a colleague without going through the interpreter
@@ -55,9 +55,7 @@ export function memberTools(sdk: Sdk, chat: Chat, task: Task, step: Step, member
                   payload: { memberId: member.id },
                 });
                 return text(
-                  answer === CANCEL || answer === REFUSE
-                    ? 'The user did not answer; the task was stopped.'
-                    : `The user chose: ${answer}`,
+                  answer === CANCEL ? 'The user did not answer; the task was stopped.' : `The user chose: ${answer}`,
                 );
               },
             ),
