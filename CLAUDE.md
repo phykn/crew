@@ -52,7 +52,7 @@
 Elsewhere:
 
 - `crew/`: the crew as parts that would work under another app too, in English: rules, agents, skills, MCP servers, and workflows. What only this app shows lives outside it, in the window: roles, starting nicknames, workflow and step names, approval mode names, and skill labels in `src/frontend/ko.ts` and `en.ts`, and each member's color and look and each skill's icon in `src/frontend/crew.ts`; starting models are in `src/shared.ts` (`MEMBERS`).
-- `graphics/`: working files for drawing the camp, which the app never loads: reference images and briefs (`props/`, `characters/`), and `preview/`, a page that paints props with the app's own code (see its README).
+- `graphics/`: working files for drawing the camp, which the app never loads: one folder per thing under `props/`, `ground/`, `effects/`, and `characters/`, each a `brief.md` and its final pictures, and `preview.html`, which paints props with the app's own code (see its README).
 - `docs/agents.md`: the crew's design, in Korean: each agent's jobs, what it takes and gives, its skills, write scope, and starting model, the workflows, and the rules, memory, and wiki they follow.
 - `tests/`: Vitest with a fake SDK (`npm test`), one file per module in folders that mirror `src/backend` (`domain/`, `app/`, `adapters/`); `tests/support.ts` holds the shared setup (`openChat`, `reopenChat`, the scripted crew); `tests/live/` calls real Claude (`npm run test:live`).
 - `e2e/`: Playwright Electron tests; they run on the packaged build (`npm run test:e2e`).
