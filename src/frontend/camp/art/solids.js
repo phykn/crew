@@ -9,7 +9,10 @@ export const U = 16;
 
 // Each material's shades from darkest to lightest; light picks 1 to 4, and details step down or up from there
 export const WOOD = [C.barkDark, C.woodDeep, C.woodDark, C.wood, C.woodLight];
-export const BARK = [C.eye, C.barkDark, C.bark, C.woodDeep, C.woodDark];
+// Bark stays darker than the cut wood it wraps, so a log's end reads at a glance
+export const BARK = [C.eye, C.barkDark, C.barkDark, C.bark, C.woodDeep];
+export const ROCK = [C.eye, C.rockDeep, C.rockDark, C.rock, C.rockLight];
+export const HAY = [C.woodDark, C.hayDeep, C.hayDark, C.hay, C.hayLight];
 export const IRON = [C.eye, C.leather, C.iron, C.muted, C.rockLight];
 
 // Light from the upper left: tops are lightest, faces toward +y next, faces toward +x darkest
@@ -36,10 +39,27 @@ const ground = (sx, sy) => {
 
 // Signed distances, in units, from a point to the plain solids props are built from
 const len = (x, y, z = 0) => Math.hypot(x, y, z);
-export function box(c, h) {
+// A box of half sizes h, its edges rounded by r
+export function box(c, h, r = 0) {
   return (p) => {
-    const q = [Math.abs(p[0] - c[0]) - h[0], Math.abs(p[1] - c[1]) - h[1], Math.abs(p[2] - c[2]) - h[2]];
-    return len(Math.max(q[0], 0), Math.max(q[1], 0), Math.max(q[2], 0)) + Math.min(Math.max(...q), 0);
+    const q = [0, 1, 2].map((a) => Math.abs(p[a] - c[a]) - h[a] + r);
+    return len(Math.max(q[0], 0), Math.max(q[1], 0), Math.max(q[2], 0)) + Math.min(Math.max(...q), 0) - r;
+  };
+}
+// A cut stone: flat faces, one per direction, each set back to the oval of radii r it is cut from, and cut off at the
+// ground; the far side of a face's distance is a lower bound, which keeps the march safe
+export function facets(c, r, faces) {
+  const planes = faces.map(([x, y, z, depth]) => {
+    const n = Math.hypot(x, y, z),
+      u = [x / n, y / n, z / n];
+    // The oval's reach toward u, scaled by how deep this face is cut
+    return [u, Math.hypot(u[0] * r[0], u[1] * r[1], u[2] * r[2]) * depth];
+  });
+  return (p) => {
+    let d = -p[2];
+    for (const [u, reach] of planes)
+      d = Math.max(d, (p[0] - c[0]) * u[0] + (p[1] - c[1]) * u[1] + (p[2] - c[2]) * u[2] - reach);
+    return d;
   };
 }
 // A round solid along axis (0, 1, or 2) whose radius may change along it: radius(t) for t from -1 to 1

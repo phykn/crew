@@ -2,7 +2,7 @@ import { iso } from '../projection.js';
 import { COLOR as C } from '../tokens.js';
 import { TAU, longShadow, oval, poly, prism, shadow } from './shapes.js';
 import { SEAT_Z } from '../figure.js';
-import { BARK, IRON, U, WOOD, box, drawSolids, round } from './solids.js';
+import { BARK, HAY, IRON, ROCK, U, WOOD, box, drawSolids, facets, round } from './solids.js';
 
 const pixels = (ctx, list, fill) => {
   ctx.fillStyle = fill;
@@ -218,70 +218,35 @@ function bench(ctx, d) {
   );
 }
 
-// A low boulder, higher on its left: a broad lit top, a brighter facet toward the upper left, a shaded front, and its
-// right end in the deepest shade, as every prop's right face is
+// A low boulder cut into flat faces, higher toward its left; each face takes its shade from where it turns
 function rock(ctx, d) {
-  const b = iso(d.x, d.y),
-    s = d.size ?? 1;
-  const at = (pts) => pts.map(([x, y]) => ({ x: b.x + x * s, y: b.y + y * s }));
+  const s = d.size ?? 1,
+    r = [9.5 * s, 7.5 * s, 5 * s],
+    c = [d.x * U, d.y * U, 0.5 * s];
   shadow(ctx, d.x + 0.2, d.y + 0.2, 15 * s, 5 * s, 14 * s);
-  poly(
+  // A face's direction and how deep it is cut; fewer, larger faces toward the top keep the stone calm
+  const faces = [
+    [0, 0, 1, 0.9],
+    [-0.6, 0.3, 1, 0.97],
+    [0.5, -0.4, 1, 0.92],
+    [0.3, 0.7, 0.8, 0.95],
+    [-0.4, -0.7, 0.9, 0.96],
+    [1, 0.2, 0.5, 0.9],
+    [-1, 0, 0.3, 0.98],
+    [0.2, 1, 0.3, 0.97],
+    [-0.3, -1, 0.3, 0.95],
+    [0.8, 0.8, 0.2, 0.93],
+    [0.8, -0.7, 0.2, 0.96],
+    [-0.8, 0.7, 0.2, 0.98],
+  ];
+  const part = { sdf: facets(c, r, faces), paint: (p, n, light) => [ROCK, light] };
+  drawSolids(
     ctx,
-    at([
-      [-14, 1],
-      [-13, -2],
-      [-11, -6],
-      [-5, -11],
-      [2, -12],
-      [9, -8],
-      [12, -5],
-      [14, -1],
-      [12, 3],
-      [4, 4],
-      [-8, 4],
-    ]),
-    C.rockDark,
-  );
-  poly(
-    ctx,
-    at([
-      [-13, -2],
-      [-11, -6],
-      [-5, -11],
-      [2, -12],
-      [9, -8],
-      [12, -5],
-      [13, -3.5],
-      [6, -4.5],
-      [-1, -3],
-      [-8, -1],
-      [-13, 0],
-    ]),
-    C.rock,
-  );
-  poly(
-    ctx,
-    at([
-      [-11, -6],
-      [-5, -11],
-      [2, -12],
-      [0, -9],
-      [-4, -7],
-      [-10, -4],
-    ]),
-    C.rockLight,
-  );
-  poly(
-    ctx,
-    at([
-      [8, -4.6],
-      [13, -3.5],
-      [14, -1],
-      [12, 3],
-      [6, 4],
-      [7, 0],
-    ]),
-    C.rockDeep,
+    [part],
+    [
+      [c[0] - r[0], c[1] - r[1], 0],
+      [c[0] + r[0], c[1] + r[1], c[2] + r[2]],
+    ],
   );
 }
 
@@ -446,29 +411,34 @@ function crates(ctx, d) {
   );
 }
 
-// A hay bale: faces shaded by direction, a soft lit strip along the top's near edges, two unbroken straw layers on the
-// long face and one on the end, and two twine bands
+// A hay bale: a box with soft rounded edges, two unbroken straw layers along its long face and one across its end,
+// and two twine bands over the top and down the near face
 function hay(ctx, d) {
-  const L = 0.8,
-    W = 0.6,
+  const L = 0.8 * U,
+    W = 0.6 * U,
     H = 10,
-    x = d.x - L / 2,
-    y = d.y - 0.3;
-  const top = (u, v) => iso(x + u * L, y + v * W, H),
-    near = (u, z) => iso(x + u * L, y + W, z),
-    end = (v, z) => iso(x + L, y + v * W, z);
+    c = [d.x * U, d.y * U, H / 2];
   shadow(ctx, d.x + 0.2, d.y + 0.25, 16, 6, 15);
-  prism(ctx, { x, y, w: L, h: W, z: H }, C.hay, C.hayDark, C.hayDeep, () => {
-    // The top rounds over its near edges, so a band just inside them catches the most light
-    poly(ctx, [top(0, 0.82), top(0.85, 0.82), top(0.85, 1), top(0, 1)], C.hayLight);
-    poly(ctx, [top(0.85, 0), top(1, 0), top(1, 1), top(0.85, 1)], C.hayLight);
-    for (const z of [3.5, 6.5]) line(ctx, near(0.02, z), near(0.98, z), C.hayDeep, 0.7);
-    line(ctx, end(0.04, 5), end(0.96, 5), C.woodDark, 0.7);
-    for (const u of [0.28, 0.72]) {
-      line(ctx, top(u, 0), top(u, 1), C.woodDark, 0.8);
-      line(ctx, near(u, H), near(u, 0), C.woodDark, 0.8);
-    }
-  });
+  const part = {
+    sdf: box(c, [L / 2, W / 2, H / 2], 1.6),
+    paint: (p, n, light) => {
+      const x = p[0] - c[0];
+      if ([-0.22, 0.22].some((t) => Math.abs(x - t * L) < 0.45) && n[0] < 0.6) return [WOOD, 2];
+      if (n[2] < 0.6) {
+        const layers = n[0] > 0.6 ? [5] : [3.5, 6.5];
+        if (layers.some((z) => Math.abs(p[2] - z) < 0.35)) return [HAY, light - 1];
+      }
+      return [HAY, light];
+    },
+  };
+  drawSolids(
+    ctx,
+    [part],
+    [
+      [c[0] - L / 2, c[1] - W / 2, 0],
+      [c[0] + L / 2, c[1] + W / 2, H],
+    ],
+  );
 }
 
 // A woodpile: five round logs, three under two, each top log in the notch of the two below; a cut end shows its
