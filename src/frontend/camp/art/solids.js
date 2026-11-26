@@ -15,7 +15,7 @@ export const BARK = [C.eye, C.barkDark, C.barkDark, C.bark, C.woodDeep];
 export const ROCK = [C.eye, C.rockDeep, C.rockDark, C.rock, C.rockLight];
 export const HAY = [C.woodDark, C.hayDeep, C.hayDark, C.hay, C.hayLight];
 export const CANVAS = [C.leather, C.canvasDeep, C.canvasDark, C.canvas, C.parchmentDeep];
-// Needles stay dark at night: even the lit side is only a step above the shade
+// Needles stay dark at night: the ramp starts and ends darker than the other materials'
 export const LEAF = [C.leafDeep, C.leafDeep, C.leafDark, C.leaf, C.leafLight];
 // A flame behind glass gives its own light, so its shades run from the deep orange to the white core
 export const BLAZE = [C.flameDeep, C.flameDeep, C.flame, C.flame, C.flameCore];
@@ -68,6 +68,9 @@ const blocked = (p, n, u, far, dist) => {
   return false;
 };
 
+// How far p lies outside the box b ([[x, y, z], [x, y, z]]), or 0 inside it
+const boxDistance = (p, b) => Math.hypot(...[0, 1, 2].map((a) => Math.max(b[0][a] - p[a], 0, p[a] - b[1][a])));
+
 // The sky's light comes from behind the camp, so a solid's spot on the ground falls a little toward the viewer
 const SKY = [-0.3, -0.3, 1].map((v) => v / Math.hypot(0.3, 0.3, 1));
 // How dark the ground is at g: soft where the path toward the sky passes close to a solid, and darkest at its foot
@@ -80,12 +83,12 @@ const groundShade = (g, dist, far, lo, hi) => {
   let open = 1;
   for (let t = Math.max(0.5, enter - 2), n = 0; n < 96 && t < Math.min(far, leave + 2); n++) {
     const d = dist([g[0] + SKY[0] * t, g[1] + SKY[1] * t, SKY[2] * t]),
-      fade = 1 - (0.5 * t) / far;
+      fade = (1 - t / far) ** 2;
     if (d < 0.02) return 0.6 * fade;
     open = Math.min(open, 1 - (1 - Math.min(1, (12 * d) / t)) * fade);
     t += Math.max(d, 0.4);
   }
-  const foot = Math.max(0, 1 - dist([g[0], g[1], 1]) / 4);
+  const foot = Math.max(0, 1 - dist([g[0], g[1], 1]) / 1.5);
   return 0.6 * Math.max(1 - Math.min(1, open), foot * 0.8);
 };
 
@@ -186,14 +189,17 @@ export function drawSolids(ctx, parts, bounds, key) {
   // Whole steps of scale, so a window resized a little draws from what is kept
   const k = Math.min(4, Math.ceil(ctx.getTransform().a - 0.05)),
     anchor = iso(bounds[0][0] / U, bounds[0][1] / U, 0),
+    // A look shared between props holds only where no flame's light shows on any of the solids' box: past 0.86 of its
+    // reach, (1 - d / reach)^2 is below the 0.02 that warmth counts
+    unlit = FLAMES.every((f) => boxDistance(f.at, bounds) >= f.reach * 0.86),
     own = place && `${place}@${k}`,
-    shared = key && `${key}@${k}`,
+    shared = key && unlit && `${key}@${k}`,
     again = (own && kept.get(own)) || (shared && kept.get(shared));
   if (again) {
     ctx.drawImage(
       again.canvas,
-      anchor.x + again.dx,
-      anchor.y + again.dy,
+      Math.round(anchor.x + again.dx),
+      Math.round(anchor.y + again.dy),
       again.canvas.width / k,
       again.canvas.height / k,
     );
@@ -224,7 +230,11 @@ export function drawSolids(ctx, parts, bounds, key) {
   };
   const solid = (p) => scene(p)[0],
     blocking = parts.filter((q) => !q.glow),
-    blocks = (p) => Math.min(...blocking.map((q) => q.sdf(p)));
+    blocks = (p) => {
+      let best = Infinity;
+      for (const q of blocking) best = Math.min(best, q.sdf(p));
+      return best;
+    };
   for (let j = 0; j < H; j++)
     for (let i = 0; i < W; i++) {
       const [gx, gy] = ground(x0 + (i + 0.5) / k, y0 + (j + 0.5) / k);
@@ -248,7 +258,7 @@ export function drawSolids(ctx, parts, bounds, key) {
             gl = Math.hypot(...g) || 1,
             nrm = g.map((v) => v / gl);
           depth[j * W + i] = s;
-          warm[j * W + i] = warmth(p, nrm, solid);
+          if (!unlit) warm[j * W + i] = warmth(p, nrm, solid);
           hits[j * W + i] = part.paint(p, nrm, shade(nrm));
           hit = true;
           break;
@@ -298,7 +308,7 @@ export function drawSolids(ctx, parts, bounds, key) {
       if (shades === IRON) step = Math.min(step, 2);
       const hex = shades[Math.max(0, Math.min(shades.length - 1, step))];
       const c = (rgb[hex] ??= [1, 3, 5].map((n) => parseInt(hex.slice(n, n + 2), 16)));
-      const tint = 0.25 * f;
+      const tint = 0.15 * f;
       img.data.set([...c.map((v, k) => Math.round(v + (FLAME[k] - v) * tint)), 255], at * 4);
     }
   const canvas = Object.assign(document.createElement('canvas'), { width: W, height: H });
@@ -306,5 +316,5 @@ export function drawSolids(ctx, parts, bounds, key) {
   ctx.drawImage(canvas, x0, y0, W / k, H / k);
   const picture = { canvas, dx: x0 - anchor.x, dy: y0 - anchor.y };
   if (own) kept.set(own, picture);
-  if (shared && warm.every((f) => f === 0)) kept.set(shared, picture);
+  if (shared) kept.set(shared, picture);
 }

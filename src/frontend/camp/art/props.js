@@ -27,21 +27,24 @@ const bladeFrame = (c, a) => (p) => {
   return [x * Math.cos(a) + y * Math.sin(a), -x * Math.sin(a) + y * Math.cos(a), p[2]];
 };
 
-// A fern: six fronds from one root, each a narrow blade that arches high and droops to its tip, widest past its
-// middle, with a darker rib down its centre; a frond further back stands a little taller
+// A fern: six fronds fanned over the back from one root and one short frond toward the viewer, each a narrow blade
+// that arches and droops to its tip, widest a little before its middle, with a darker rib down its centre
 function fern(ctx, d) {
   const c = [d.x * U, d.y * U];
   cast(ctx, d.x + 0.15, d.y + 0.15, 14, 10);
-  const parts = [...Array(6)].map((_, i) => {
-    const a = (i / 6) * Math.PI * 2 + 0.4,
-      L = 11 + 2 * Math.max(0, -Math.cos(a - Math.PI / 4)),
-      frame = bladeFrame(c, a);
+  // The viewer looks along -x and -y, so the back is round 5pi/4
+  const fronds = [
+    ...[...Array(6)].map((_, i) => [(5 * Math.PI) / 4 + ((i - 2.5) / 2.5) * ((2 * Math.PI) / 3), 11]),
+    [Math.PI / 4, 7],
+  ];
+  const parts = fronds.map(([a, L]) => {
+    const frame = bladeFrame(c, a);
     return {
       sdf: (p) => {
         const [along, across, z] = frame(p),
           t = Math.max(0, Math.min(1, along / L)),
-          rise = 11 * t * (1.15 - t),
-          half = 1.5 * Math.sin(Math.PI * Math.min(1, t * 1.1)) ** 0.8 + 0.12;
+          rise = 1.5 * L * t * (1.1 - t),
+          half = 1.5 * Math.sin(Math.PI * Math.min(1, t * 1.1)) ** 0.8 + 0.35;
         // A blade a little thicker than a pixel, so it is found from above and from the side
         return Math.max(Math.abs(across) - half, Math.abs(z - rise) - 0.45, -along, along - L) * 0.65;
       },
@@ -53,7 +56,7 @@ function fern(ctx, d) {
     parts,
     [
       [c[0] - 13, c[1] - 13, 0],
-      [c[0] + 13, c[1] + 13, 10],
+      [c[0] + 13, c[1] + 13, 9],
     ],
     'fern',
   );
@@ -253,15 +256,15 @@ function rock(ctx, d) {
 }
 
 // A pine: a short bark trunk under three tiers of needles, each smaller and higher; a tier is cut in seven flat faces
-// that run out to its hem, so the light falls on it in steps; each overlaps the one below, hiding its shaded underside
+// whose sides curve out to a drooping hem, so the light falls on it in steps; each overlaps the one below
 function pine(ctx, d) {
   const s = d.size ?? 1,
     c = [d.x * U, d.y * U];
   cast(ctx, d.x + 0.3, d.y + 0.3, 14 * s, 70 * s);
-  const parts = [{ sdf: round([c[0], c[1], 6 * s], 2, 6 * s, () => 1.6 * s), paint: (p, n, l) => [BARK, l] }];
+  const parts = [{ sdf: round([c[0], c[1], 7 * s], 2, 7 * s, () => 1.8 * s), paint: (p, n, l) => [BARK, l] }];
   for (let tier = 0; tier < 3; tier++) {
-    const base = (8 + tier * 12) * s,
-      r = (11 - tier * 2.8) * s,
+    const base = (11 + tier * 11) * s,
+      r = [11, 8.6, 6.2][tier] * s,
       h = 22 * s;
     parts.push({
       sdf: (p) => {
@@ -271,25 +274,26 @@ function pine(ctx, d) {
           // Distance out to the nearest of seven flat faces rather than to a circle
           out = Math.hypot(p[0] - c[0], p[1] - c[1]) * Math.cos(a - (Math.round(a / face - 0.3) + 0.3) * face),
           t = Math.min(1, Math.max(0, z / h));
-        return Math.max((out - r * (1 - t)) * 0.75, -z);
+        return Math.max((out - r * (1 - t) ** 1.35) * 0.7, -z, z - h);
       },
       paint: (p, n, l) => [LEAF, n[2] < -0.5 ? 0 : l],
     });
   }
-  const R = 11 * s;
+  // A face's corner stands further out than its middle
+  const R = 12.4 * s;
   drawSolids(
     ctx,
     parts,
     [
       [c[0] - R, c[1] - R, 0],
-      [c[0] + R, c[1] + R, (8 + 24 + 22) * s],
+      [c[0] + R, c[1] + R, (11 + 22 + 22) * s],
     ],
     `pine${s}`,
   );
 }
 
 // A tuft of grass: seven flat blades from one root, each tapering to a point and leaning further the further out it
-// stands, green and dry in turn
+// stands, the outer two dry
 function tuft(ctx, d) {
   const c = [d.x * U, d.y * U];
   const parts = [...Array(7)].map((_, i) => {
@@ -311,7 +315,7 @@ function tuft(ctx, d) {
           ) * 0.5
         );
       },
-      paint: (p, n, l) => (i % 2 ? [HAY, l - 1] : [LEAF, l + 1]),
+      paint: (p, n, l) => (Math.abs(k) === 3 ? [HAY, Math.min(l - 1, 1)] : [LEAF, l + 1]),
     };
   });
   drawSolids(
