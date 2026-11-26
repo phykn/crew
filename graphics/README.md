@@ -10,6 +10,7 @@
 - `ground/<종류>/`: 바닥 질감(grass, dirt, worn, edge)
 - `effects/<효과>/`: 불꽃, 연기, 불티, 마법진
 - `characters/<역할>/`: 동작별 최종 그림(`idle`, `walk`, `sit`, `cast-start`, `cast-loop`, `cast-end`)과, 마스터 프롬프트, 동작 프롬프트, 메모를 합친 `brief.md`
+- `characters/trace.py`: 동작 그림 한 칸을 `figures.js`의 글자 그림으로 바꾸는 스크립트(`python graphics/characters/trace.py interpreter idle 0 4`)
 - `preview.html`: 앱 코드로 소품을 그려 보는 페이지
 
 이름에 버전(`v1`), `-prompt`, `-pack` 같은 꼬리는 붙이지 않는다. 후보 그림과 예전 프롬프트는 git 기록에만 남긴다.
@@ -26,6 +27,7 @@ python -m http.server 8766 --bind 127.0.0.1
 - 하나만: `?kind=wagon` (종류: hearth, crates, drum, hay, log, bench, well, wagon, tent, lantern, torch, pine, fern, tuft, rock, woodpile)
 - 확대: `&zoom=6`
 - 캠프 전체 바닥과 소품: `?ground` (소품 없이 바닥만: `?ground&bare`)
+- 사람: `?figure=interpreter` (불 왼쪽, 없음, 오른쪽)
 
 각 소품은 캠프에서 놓이는 자리에 그려지므로, 모닥불 빛도 앱에서와 똑같이 받는다.
 
@@ -36,11 +38,11 @@ python -m http.server 8766 --bind 127.0.0.1
 - `solids.js`: 3D 소품 렌더러. 모양을 거리 함수(SDF)로 정의하고, 캠프 투영 그대로 픽셀마다 광선을 쏜다. 다루는 것:
   - 툰 명암
   - 재질별 색 단계(WOOD, BARK, IRON, ROCK, HAY, CANVAS, WATER, BLAZE)
-  - 모닥불과 횃불 빛
-  - 실제 모양대로 떨어지는 바닥 그림자
+  - 모닥불과 횃불 빛(바닥 그림자는 빛 지도 몫)
 - `props.js`: 소품 하나에 함수 하나. 부품(`box`, `round`, `rod`, `facets`)을 조합하고 `paint`로 색을 칠한다.
 - `ground.js`: 바닥과 모닥불 자리
-- `sprites.js`: 사람
+- `sprites.js`: 지금 캠프의 사람
+- `figures.js`: 새 사람 그림. 글자 하나가 픽셀 하나, 역할마다 색과 줄, 불 쪽 가장자리를 데우는 빛
 - `finish.js`: 구운 그림 다듬기(확대, 외곽선, 림 라이트, 그레인)
 - `casters.js`: 모닥불과 횃불 빛을 가리는 물체 목록(긴 그림자용)
 

@@ -2,18 +2,11 @@
 
 ## Code figure
 
-The reference sets the look, not the exact shape. The standing picture is hand-placed pixel art in `src/frontend/camp/art/figures.js`: 26 × 42 pixels, the size the camp shows people, one letter a pixel, each letter a material and a shade.
+The standing picture is the approved `idle.png` first frame at its own size, 30 × 82 pixels, which the camp shows about one to one on screen. `graphics/characters/trace.py` turns a sheet cell into letters, one letter a pixel, in about 26 grouped shades. A shade the grouping would lose, such as an eye's amber, keeps its own letter. Every cell is cut to the idle frame's box, so frames line up.
 
-- Roles share the shape and swap material ramps (hair, coat, scarf, legs). Skin, eyes, gold, ivory, and boots are shared.
-- Firelight warms the two pixels of each row nearest the fire, the outer one a shade lighter (short of the lightest), and darkens the outermost pixel on the far side.
-- A 1px dark outline goes around the figure.
-- Motion is next: the template will be split into head, torso, arms, and legs so poses move parts rather than redraw them.
-
-### Avoid
-- noise or dithering on cloth
-- hair drawn as a smooth helmet; locks read from seams and upper-edge light
-- eyes bigger than 2 × 2 or white highlights on more than one pixel
-- a wide, boxy torso; arms keep a dark gap from the coat
+- `src/frontend/camp/art/figures.js` holds each role's colors and rows. Editing a color changes it everywhere it is used.
+- Firelight warms the first three pixels past the outline on the fire's side of each row, less the further in. The picture's own outline and darkest shades stay dark.
+- Earlier drafts were dropped. A 3D solid lost the face. A hand-placed 26 × 42 picture was too coarse to carry a face, and its proportions were boxy.
 
 ## master
 
