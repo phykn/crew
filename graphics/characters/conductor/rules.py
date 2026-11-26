@@ -28,4 +28,6 @@ SPEC = {
     'eyes': [(14, 16, 10, 12), (14, 16, 5, 6)],
     'skin': (18, 8),
     'closed': {('cast-loop', 2)},
+    # The wand held to the chest has the ochre cravat beside it, which with the blouse reads as one pale wedge
+    'fix': {('cast-start', 2): [(28, 34, 25, 27, 'gold', 'line')]},
 }

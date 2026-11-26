@@ -87,7 +87,8 @@ export class PersonView {
     this.spot.position.set(f.x, f.y);
     if (this.at) this.stride += Math.hypot(p.x - this.at.x, p.y - this.at.y);
     this.at = { x: p.x, y: p.y };
-    const flip = p.facing < 0 ? -1 : 1,
+    // The sheets are drawn facing screen-left, so facing right mirrors them
+    const flip = p.facing > 0 ? -1 : 1,
       [pose, k] = this.frame(p, now, casting),
       // The fire's side on screen, turned into the picture's own side when it is drawn mirrored
       toward = (Math.sign(iso(FIRE.x, FIRE.y).x - f.x) || 1) * flip,

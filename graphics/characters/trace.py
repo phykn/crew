@@ -19,7 +19,8 @@ from PIL import Image
 # Each role's folder holds rules.py: kind(r, g, b, h, s, v, L, y, top) names a sheet pixel's material from its color,
 # its row, and the frame's top row; SPEC gives the materials one pixel thin that the cleanup keeps ('thin'), each
 # eye's box in head.png (top, bottom, left, right) and a skin pixel there for blinking, and which cells of the moving
-# sheets have closed eyes
+# sheets have closed eyes, and 'fix' swaps one material for another inside a box of one cell, where its colors alone
+# cannot part two things, as {(sheet, cell): [(top, bottom, left, right, from, to)]} in the cut sheet's rows and columns
 SHEETS = [('idle', 4), ('walk', 4), ('sit', 2), ('cast-start', 4), ('cast-loop', 4), ('cast-end', 4)]
 SHADES = 3
 LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -89,8 +90,11 @@ for m in sorted(set(M0[M0 != ''])):
     ramps[m] = (cuts, [np.median(first[sel & (band == k) if (sel & (band == k)).any() else sel, :3], 0) for k in range(n)])
 
 
-def paint(a):
+def paint(a, fixes=()):
     M, Lm = materials(a)
+    for t, b, l, r, was, now in fixes:
+        part = M[t : b + 1, l : r + 1]
+        part[part == was] = now
     out = np.zeros(a.shape[:2] + (3,))
     for y, x in zip(*np.nonzero(M != '')):
         cuts, shades = ramps.get(M[y, x], ramps['leather'])
@@ -166,7 +170,7 @@ still = None
 for sheet, _ in SHEETS:
     frames[sheet] = []
     for k, a in enumerate(cells[sheet][:1] * 2 if sheet in STILL else cells[sheet]):
-        img, mask = paint(a)
+        img, mask = paint(a, spec.get('fix', {}).get((sheet, k), ()))
         dy, dx = find_head(mask)
         if still is None:
             still = dy, dx
