@@ -10,7 +10,8 @@
 - `ground/<종류>/`: 바닥 질감(grass, dirt, worn, edge)
 - `effects/<효과>/`: 불꽃, 연기, 불티, 마법진
 - `characters/<역할>/`: 동작별 최종 그림(`idle`, `walk`, `sit`, `cast-start`, `cast-loop`, `cast-end`)과, 마스터 프롬프트, 동작 프롬프트, 메모를 합친 `brief.md`
-- `characters/trace.py`: 동작 그림 한 칸을 `figures.js`의 글자 그림으로 바꾸는 스크립트(`python graphics/characters/trace.py interpreter idle 0 4`)
+- `characters/trace.py`: 역할의 동작 그림 전체를 `src/frontend/camp/art/people/<역할>.js`의 글자 그림으로 바꾸는 스크립트(`python graphics/characters/trace.py interpreter`)
+- `characters/<역할>/head.png`: 손으로 다듬은 머리. 모든 프레임에 붙인다
 - `preview.html`: 앱 코드로 소품을 그려 보는 페이지
 
 이름에 버전(`v1`), `-prompt`, `-pack` 같은 꼬리는 붙이지 않는다. 후보 그림과 예전 프롬프트는 git 기록에만 남긴다.
@@ -27,7 +28,7 @@ python -m http.server 8766 --bind 127.0.0.1
 - 하나만: `?kind=wagon` (종류: hearth, crates, drum, hay, log, bench, well, wagon, tent, lantern, torch, pine, fern, tuft, rock, woodpile)
 - 확대: `&zoom=6`
 - 캠프 전체 바닥과 소품: `?ground` (소품 없이 바닥만: `?ground&bare`)
-- 사람: `?figure=interpreter` (불 왼쪽, 없음, 오른쪽)
+- 사람: `?figure=interpreter` (동작마다 한 줄, 움직이는 첫 칸과 모든 프레임, 끝에 벤치에 앉은 모습)
 
 각 소품은 캠프에서 놓이는 자리에 그려지므로, 모닥불 빛도 앱에서와 똑같이 받는다.
 
@@ -42,7 +43,7 @@ python -m http.server 8766 --bind 127.0.0.1
 - `props.js`: 소품 하나에 함수 하나. 부품(`box`, `round`, `rod`, `facets`)을 조합하고 `paint`로 색을 칠한다.
 - `ground.js`: 바닥과 모닥불 자리
 - `sprites.js`: 지금 캠프의 사람
-- `figures.js`: 새 사람 그림. 글자 하나가 픽셀 하나, 역할마다 색과 줄, 불 쪽 가장자리를 데우는 빛
+- `figures.js`: 새 사람 그림. `people/<역할>.js`의 글자 그림(글자 하나가 픽셀 하나)을 칠하고 불 쪽 가장자리를 데운다
 - `finish.js`: 구운 그림 다듬기(확대, 외곽선, 림 라이트, 그레인)
 - `casters.js`: 모닥불과 횃불 빛을 가리는 물체 목록(긴 그림자용)
 
@@ -68,12 +69,20 @@ python -m http.server 8766 --bind 127.0.0.1
 
 ### 순서
 
-1. `python graphics/characters/trace.py <역할> idle 0 4`로 시안 첫 프레임을 글자 그림으로 뽑는다.
-2. 새 역할이면 `trace.py`의 `PLACES`에 그 역할의 눈, 스카프 같은 작은 부위 자리와 손 위치를 먼저 적는다. 모르면 시안 픽셀을 찍어 보고 정한다.
-3. 결과를 `src/frontend/camp/art/figures.js`의 `PEOPLE[역할]`에 넣는다.
-4. 얼굴을 손으로 다듬는다. 정리 단계가 작은 얼굴 픽셀을 지우기 때문이다.
-5. 시안, 수정본, 실제 크기를 한 장에 나란히 놓고 비교한다.
-6. 서 있기가 승인되면 같은 상자로 다른 프레임(`walk`, `sit`, `cast-*`)을 뽑는다.
+1. 새 역할이면 `trace.py`의 `ROLES`에 눈 자리(head.png 안), 스카프 줄, 눈 감은 칸을 적는다. 모르면 시안 픽셀을 찍어 보고 정한다.
+2. 서 있기 첫 프레임의 머리를 잘라 `head.png`로 두고 얼굴을 손으로 다듬는다. 정리 단계가 작은 얼굴 픽셀을 지우기 때문이다.
+3. `python graphics/characters/trace.py <역할>`로 모든 동작을 뽑는다. `figures.js`의 `PEOPLE`에 역할을 더한다.
+4. 시안, 수정본, 실제 크기를 한 장에 나란히 놓고 비교한다.
+5. `?figure=<역할>`에서 동작을 움직여 보고 어색한 칸을 고친다.
+
+### 동작
+
+- 모든 시트를 한 상자로 자른다. 발이 제자리에 있다.
+- 서 있기와 앉기는 첫 프레임 몸 하나에 눈만 깜박인다. 시안의 정지 프레임은 한두 픽셀씩 흔들려 떨려 보인다.
+- 걷기와 시전은 시안 프레임을 모두 쓰고, 머리는 프레임마다 실루엣에 가장 잘 맞는 자리에 붙인다.
+- 색 단계와 경계는 서 있기 첫 프레임 것을 모든 프레임에 쓴다. 프레임 사이에 색이 번쩍이지 않는다.
+- 벤치 앉기는 서 있기로 만든다. 엉덩이가 발바닥 24픽셀 위(벤치 판), 허벅지는 앞으로 16픽셀 뻗은 한 덩어리, 부츠는 그만큼 앞에 둔다. 시안의 `sit`은 바닥에 앉는 그림이라 쓰지 않는다.
+- 벤치의 앉는 쪽(+x, 오른쪽 아래)을 보도록 캠프에서 좌우를 뒤집어 그린다.
 
 ### 크기
 

@@ -1,137 +1,12 @@
+import interpreter from './people/interpreter.js';
+
 // A person is a pixel picture at the size the camp shows them (about two screen pixels to a world pixel), one letter
 // a pixel and each letter a shade from the role's colors, darkest first. graphics/characters/trace.py makes them from
 // the approved sheets, repainting each part (hair, skin, coat, ...) in a few flat shades so it reads clean at this
 // size. The fire lights the edge of the figure turned toward it
 
-const PEOPLE = {
-  // Silver hair swept up and aside, a teal coat trimmed in gold over an ivory shirt and a coral scarf, a brown belt
-  // with its pouch, navy trousers, and tall brown boots
-  interpreter: {
-    standing: {
-      colors: [
-        '#160300',
-        '#281208',
-        '#251f22',
-        '#3e1e0c',
-        '#2d2c3d',
-        '#523026',
-        '#353345',
-        '#753305',
-        '#2f3f42',
-        '#363446',
-        '#70412f',
-        '#3b5254',
-        '#9d4c02',
-        '#405755',
-        '#5d4a4c',
-        '#864c37',
-        '#9e5b42',
-        '#bb6d1a',
-        '#b45646',
-        '#aa6745',
-        '#c0782c',
-        '#b76f48',
-        '#c9624e',
-        '#cc624e',
-        '#9f8062',
-        '#a79092',
-        '#e09662',
-        '#e2a45d',
-        '#e89d69',
-        '#c7b2af',
-        '#e1c0a2',
-        '#f4d8be',
-        '#ffe9d7',
-        '#fcf3e4',
-        '#fffaec',
-      ],
-      rows: [
-        '...............ooo..........',
-        '.........oz...zozooo........',
-        '..........ozDDDzzzzo........',
-        '.........DzDDDDDzzzzo.......',
-        '.......DDDzDDDDDzooozz......',
-        '....zDDDDDDDDDDzooozzzD.....',
-        '....ozzDDDDDDzzzoozDDDDzo...',
-        '...zzzzDDDDDzozzzDDDDDDzo...',
-        '..zzzzzDDDDzooozDDDDDDDDz...',
-        '..zzzzDDDDDACCozDDDDDDDDz...',
-        '..oozzDDDDAACCCzDDDDDDDDDzoo',
-        '...zzDzzzzAACCCCzDDDzzDDzooo',
-        'ooozzzzzzzAApfCAzzDDzzzzzoo.',
-        '.ooozzzqzpAfACpfCzzzzzzzoo..',
-        '..ooooqqfkAAACCAAozzzooooo..',
-        '..ooooacAAAaabcCCooooooooo..',
-        '..ooooqdGCAAchHCCooAqAoooo..',
-        '..ooooquCCCCrmICCooAAAoooo..',
-        '.....AACqCCCCCCCooAAACoo....',
-        '......AACCCCCCCCCAAAAoo.....',
-        '......AACCqqCCCCAAqqo.......',
-        '.......AAACCCCAAqqqo........',
-        '........AAAAAAAAqqq.........',
-        '.........qqqqqqqqqqA........',
-        '........qqqqqqqqqqqA........',
-        '.......EEFqxxxxwqFFyy.......',
-        '......iEEFfswwssFFEyc.......',
-        '.....iilcfwsssssEFiiiii.....',
-        '....cilnffwsssppciiililc....',
-        '....cllnnxxwwwpppBiillnc....',
-        '....clclnwwwwsfpBBBillnn....',
-        '....llcinxxxxfflvviillll....',
-        '...clliinnxxkcnnliiillllc...',
-        '...nnniilvvEycnlliciilnnn...',
-        '..ccnniinvEFyyllliciiinncc..',
-        '...cccccnnFFEylliicciBBcc...',
-        '....ycccncEFEElliiccccEyy...',
-        '...yEEEccEEEEvliiicccEEEy...',
-        '...yFFEcccyEycikccc.yEFFEy..',
-        '..yFFFEcccpkfffkkpk.yEFFFy..',
-        '.yyEFEEcccpppkfpkkk.yyFFEyy.',
-        '.yEFEyyiiccppccckkccyyFFFyy.',
-        '.EFFEyyilnccccllcpkcyyFFFEEp',
-        'yEFFEyclnnccccicppkkcyEFFFFk',
-        '.yFFFEllnnccccnlppffcyEFFkp.',
-        '.qAkkclnnccgcnncppcccyyfkk..',
-        '.AACkclnncggennliiiii.fCCA..',
-        'qACCCclnncggecnnlilllkCCCAA.',
-        'AqAAcqAnCcccecnnnnnnkkCCCCA.',
-        'fqAqAcAACcccccBnnBBccpCCCCC.',
-        'fqAqqcccceecccBBBccccfCfCAA.',
-        '.fAqfcjcceecccccccceckkpAAq.',
-        '..ff.cjjjjgc.ccceeeeckkqqq..',
-        '.....cjjjjge.ceeegeec.pq....',
-        '.....cjjjgec.cgggjeec.......',
-        '.....cjjjgec.cgggjgcc.......',
-        '......gjgecc.cggjjjjc.......',
-        '......gggeec..cjjjjjc.......',
-        '.....cgggeec..cjjjgec.......',
-        '.....cceeeecc.cjjjggcc......',
-        '......eeegggc..cjjjjcc......',
-        '......cecgec...ccgjjjc......',
-        '.....ccgegcc...cegjjge......',
-        '.....qcjggccc...egggeec.....',
-        '....cqqccccppc.cccjeccpp....',
-        '....cqqqqppppc.kcccccqpp....',
-        '....cppqqppppc.pptvttqqp....',
-        '.....ckqqpppc..pppvttqqk....',
-        '......fcccccc..cppvttqkk....',
-        '......ffffffc...ccccccfc....',
-        '......ckkkff....cffkkffc....',
-        '......cppkkf.....kkkkff.....',
-        '......kkkkkfc....kkpkkf.....',
-        '.....cppkkkff....cpppkk.....',
-        '...qcpppkkfff....ppppkfc....',
-        '..qqqqppkkffc...cppppkff....',
-        '.cqqqqppkfcff...cppppkff....',
-        '.ckkkkkkffcfc..tttvppkff....',
-        '.cfffffff......kttvppkfc....',
-        '..cffffc.......kkkkkkfc.....',
-        '...............kffffff......',
-        '...............ccfffc.......',
-      ],
-    },
-  },
-};
+// Each role's colors and frames, made by graphics/characters/trace.py from its approved sheets
+const PEOPLE = { interpreter };
 
 const channels = (hex) => {
   const n = parseInt(hex.slice(1), 16);
@@ -146,7 +21,7 @@ const DARK = 60;
 
 // fire: the screen side the fire is on (-1 left, 1 right, 0 none); along each row, the first three pixels past the
 // outline on that side warm, less the further in, so the light fades in rather than drawing a band
-function paint({ colors, rows }, fire) {
+function paint(colors, rows, fire) {
   const W = rows[0].length,
     img = new ImageData(W, rows.length),
     rgb = colors.map(channels);
@@ -171,9 +46,15 @@ function paint({ colors, rows }, fire) {
 }
 
 const made = new Map();
-// A person's picture for a role, pose, and fire side, painted once
-export function personPicture(role, fire = 0, pose = 'standing') {
-  const key = `${role}|${pose}|${fire}`;
-  if (!made.has(key)) made.set(key, paint(PEOPLE[role][pose], fire));
+// One frame of a role's pose with the fire on one side, painted once
+export function personPicture(role, pose, frame = 0, fire = 0) {
+  const key = `${role}|${pose}|${frame}|${fire}`;
+  if (!made.has(key)) {
+    const { colors, poses } = PEOPLE[role];
+    made.set(key, paint(colors, poses[pose][frame], fire));
+  }
   return made.get(key);
 }
+
+// How many frames a role's pose has
+export const framesOf = (role, pose) => PEOPLE[role].poses[pose].length;
