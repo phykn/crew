@@ -178,8 +178,8 @@ export function createLight(renderer: Renderer, box: Box, casters: Caster[]) {
       if (!casts) moving.set(p, (casts = blocking.map(() => new Cast(shade))));
       blocking.forEach((light, i) => casts![i].place(light, { x: p.x, y: p.y, ...PERSON }, sways[i]));
       let o = own.get(p);
-      // A faint light of their own keeps everyone findable at the dark edge of the camp; a spell lights the ground blue
-      if (!o) own.set(p, (o = { self: pool(0x787896, 0.35), spell: pool(0x7896ff, 0) }));
+      // A faint light of their own keeps everyone findable at the dark edge of the camp; a ward lights the ground teal
+      if (!o) own.set(p, (o = { self: pool(0x787896, 0.35), spell: pool(0x78d2be, 0) }));
       const f = iso(p.x, p.y);
       o.self.position.set(f.x, f.y - 18);
       o.self.width = 96;

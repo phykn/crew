@@ -7,6 +7,7 @@ import { BIG, FIGURE, depthOf, headTop, isCasting } from '../figure.js';
 import { SEALS, SPRITE_SCALE, litFor, spriteFor } from '../art/sprites.js';
 import { blotTexture } from './light';
 import { textureOf } from './bake';
+import { drawWard } from './effects';
 
 export type Person = {
   room: { team: string; name: string; color: string; look: string[] };
@@ -28,7 +29,6 @@ export type Person = {
 const STRIDE = ['stand', 'walkL', 'stand', 'walkR'];
 // Legs move with the ground covered, not the clock, so a walker speeding up or slowing down never skates; tiles per frame
 const STEP = 0.2;
-const TAU = Math.PI * 2;
 const hex = (c: string) => parseInt(c.slice(1), 16);
 
 function poseOf(p: Person, now: number, stride: number) {
@@ -104,7 +104,7 @@ export class PersonView {
     this.spell.clear();
     this.seal.clear();
     if (casting) {
-      drawSpell(this.spell, f, now);
+      drawWard(this.spell, f, now);
       const y = headTop(p) + 11.5 * BIG;
       this.seal
         .rect(Math.round(f.x) - 1, Math.round(y) - 1, 3, 3)
@@ -115,33 +115,5 @@ export class PersonView {
   destroy() {
     this.breathing.kill();
     this.root.destroy({ children: true });
-  }
-}
-
-// Work is a spell cast on the ground: a rune ring turns at the feet, sends out a pulse every two seconds,
-// and sheds motes that rise a little and fade, so nothing above the head moves and the name stays where it is
-function drawSpell(g: Graphics, f: { x: number; y: number }, now: number) {
-  const rx = 16,
-    ry = 6,
-    spin = now / 900,
-    pulse = 0.75 + 0.25 * Math.sin(now / 180),
-    color = hex(C.spell);
-  g.ellipse(f.x, f.y, rx, ry).stroke({ width: 1, color, alpha: 0.7 * pulse });
-  for (let k = 0; k < 6; k++) {
-    const a = -spin + (k * TAU) / 6;
-    g.rect(f.x + Math.cos(a) * rx - 1, f.y + Math.sin(a) * ry - 1, 2, 2).fill({ color, alpha: 0.7 * pulse });
-  }
-  const t = (now % 2000) / 2000,
-    r = rx + t * 14;
-  g.ellipse(f.x, f.y, r, (r * ry) / rx).stroke({ width: 1, color, alpha: 0.6 * (1 - t) });
-  for (let i = 0; i < 8; i++) {
-    const m = (now / 1600 + i / 8) % 1,
-      a = (i * TAU) / 8 + spin;
-    g.rect(
-      Math.round(f.x + Math.cos(a) * rx * (1 - m * 0.3)) - 1,
-      Math.round(f.y + Math.sin(a) * ry - m * 12) - 1,
-      2,
-      2,
-    ).fill({ color, alpha: 0.8 * (1 - m) });
   }
 }

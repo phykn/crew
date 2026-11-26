@@ -2,9 +2,25 @@
 <meta charset="utf-8" />
 <title>camp props</title>
 <style>
-  body { background: #263021; margin: 0; padding: 16px; display: flex; flex-wrap: wrap; gap: 16px; font: 12px sans-serif; color: #c9c2ad; }
-  figure { margin: 0; display: grid; gap: 4px; justify-items: center; }
-  a { color: inherit; }
+  body {
+    background: #263021;
+    margin: 0;
+    padding: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font: 12px sans-serif;
+    color: #c9c2ad;
+  }
+  figure {
+    margin: 0;
+    display: grid;
+    gap: 4px;
+    justify-items: center;
+  }
+  a {
+    color: inherit;
+  }
 </style>
 <script type="module">
   // Each prop is painted where the camp places it, by the app's own code, so the fire lights it as it will in the app
@@ -12,6 +28,7 @@
   import { FIRE, PROPS, TORCHES, WILDS } from '../src/frontend/camp/layout.js';
   import { drawProp } from '../src/frontend/camp/art/props.js';
   import { paintGround } from '../src/frontend/camp/art/ground.js';
+  import { personPicture } from '../src/frontend/camp/art/figures.js';
 
   const q = new URLSearchParams(location.search),
     pick = q.get('kind'),
@@ -26,12 +43,32 @@
     const ctx = c.getContext('2d');
     ctx.setTransform(g, 0, 0, g, -CAMP.x * g, -CAMP.y * g);
     paintGround(ctx, CAMP);
-    if (!q.has('bare'))
-      for (const d of all.slice(1).sort((a, b) => a.x + a.y - (b.x + b.y))) drawProp(ctx, d);
+    if (!q.has('bare')) for (const d of all.slice(1).sort((a, b) => a.x + a.y - (b.x + b.y))) drawProp(ctx, d);
     document.body.append(c);
   }
+  // ?figure=<role>: one person's picture, pixel for pixel at the zoom, with the fire on the left, nowhere, and the right
+  const role = q.get('figure');
+  if (role)
+    for (const fire of [-1, 0, 1]) {
+      const pic = personPicture(role, fire),
+        c = Object.assign(document.createElement('canvas'), { width: pic.width * k, height: pic.height * k }),
+        ctx = c.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(pic, 0, 0, c.width, c.height);
+      const fig = document.createElement('figure');
+      fig.append(
+        c,
+        Object.assign(document.createElement('a'), { textContent: ['fire left', 'no fire', 'fire right'][fire + 1] }),
+      );
+      document.body.append(fig);
+    }
   // One of each kind, or every one of the kind asked for
-  const shown = q.has('ground') ? [] : pick ? all.filter((d) => d.kind === pick) : all.filter((d, i) => all.findIndex((e) => e.kind === d.kind) === i);
+  const shown =
+    q.has('ground') || role
+      ? []
+      : pick
+        ? all.filter((d) => d.kind === pick)
+        : all.filter((d, i) => all.findIndex((e) => e.kind === d.kind) === i);
   for (const d of shown) {
     const fig = document.createElement('figure'),
       c = document.createElement('canvas'),

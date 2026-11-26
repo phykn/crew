@@ -1,15 +1,27 @@
-# Shared Casting Circle
+# Ward Circle
 
-The user approved the rising-light ward circle for **all camp mage characters**. Reuse the exact existing effect. Roles differ through their face, clothes, tool and chanting gestures; do not generate or recolor a separate ground circle per role.
+Reference: `image.png`, four states of the casting circle. Code: `drawWard` in `stage/effects.ts`, drawn at a casting member's feet.
 
-- Canonical export: ward-circle.png.
-- Atlas/timing/anchor metadata: ward-circle.json.
-- High-resolution source: adventurer-magic-v3.png.
-- Exact historical generation brief: rising light.
-- Appearance/animation preview: current chanting GIF.
+## Shared style
 
-Four 128 × 128 RGBA cells in a horizontal 512 × 128 strip, 180 ms each, 720 ms loop. Ground anchor is local (64,86); draw behind the character and align this anchor to its ground-contact midpoint. This is an effect anchor, not its visible-bounds center or its brightest pillar. Keep meaningful local glow and the transparent ring interior. Same physical scale across the guild; the current characters use 96 × 96 logical body cells at comparable physical height.
+- One logical pixel = one scene unit; every rect is snapped to whole units, so edges step like the props.
+- Broad, deliberate clusters in two or three flat shades; shapes change by whole pixels on slow, separate beats.
+- Calm and restrained: no busy texture, no random strokes or jitter, no glow halo, no gradients, no outline.
+- Colors only from `src/frontend/camp/palette.js`; drawn every frame in `src/frontend/camp/stage/effects.ts`.
+- The light map (`stage/light.ts`) gives the warmth around a flame; the effect itself never paints light on the ground.
 
-The approved look is the ornate teal/ivory/gold ground geometry plus straight upward white/gold rays and rising glints. No liquid ribbons, curved water jets, chest-level circles, character pixels or new tool artwork. Never bake this layer into a character sprite. Seated/idle/walk assets contain no circle; active-work previews compose it as an independent layer.
+## Parts
 
-`exports/adventurer/magic.png` is the existing character-pack export snapshot and currently has the same SHA-256 as the canonical shared PNG. New character packs reference the shared path instead of copying/repainting the effect. If the user later requests an effect change, update the shared asset and its metadata together, then refresh existing composites. No runtime integration was performed when establishing this shared asset.
+- Outer ring: a one-pixel stepped ellipse on the ground, 2:1 like the floor, about 32 wide.
+- Gold ring inside it, with eight small diamond nodes that turn slowly.
+- Faint ivory inner ring; the middle stays empty ground.
+- Rays: a few one-pixel vertical lines rising from the outer ring's sides, each growing and fading on its own slow beat.
+- Glints: a few single pixels rising from the ring and fading.
+
+## Shades
+
+- Outer ring: `ward`. Gold ring and nodes: `wardGold`. Inner ring, rays, glints: `wardLight`.
+
+## Avoid
+
+Ornate tracery at this size, liquid ribbons, filled discs, pulsing halos, expanding shock rings, fast spin.

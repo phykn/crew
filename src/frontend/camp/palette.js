@@ -48,6 +48,12 @@ export const COLOR = {
   flame: '#ffb347',
   flameDeep: '#ff8c2e',
   flameCore: '#fff1b8',
+  flameDark: '#d9622b',
+  smoke: '#8a857d',
+  smokeLight: '#b3aea5',
+  ward: '#4fa89a',
+  wardGold: '#c9a24e',
+  wardLight: '#e8e2c4',
 };
 // Nanum Gothic where it is installed, otherwise the Korean font every Windows PC has
 export const FONT = { base: '"Nanum Gothic", "Malgun Gothic", sans-serif' };

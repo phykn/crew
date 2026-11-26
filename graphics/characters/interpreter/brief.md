@@ -1,5 +1,9 @@
 # interpreter
 
+## Code figure
+
+The standing picture is the approved `idle.png` first frame, traced into `src/frontend/camp/art/figures.js` as a pixel map: 28 × 82 pixels, one letter a pixel, in 20 shades found by grouping the picture's colors. It is drawn 41.6 world px tall, soles on the ground, without smoothing. A 3D solid version was tried first and dropped, since it lost the face, hair, and trim that make the character.
+
 ## master
 
 ### Interpreter / Envoy Mage
