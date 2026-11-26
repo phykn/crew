@@ -5,6 +5,9 @@ def kind(r, g, b, h, s, v, L, y, top):
     if L < 36:
         return 'line'
     # The boot cuffs share the hair's indigo and the hair's lock the coat's turquoise, so each takes that material
+    # The sash's dark rim stays trousers-dark, so the cleanup folds less of it into the gold it frames
+    if 0.04 < h < 0.1 and 0.18 < s < 0.4 and v < 0.32 and top + 40 <= y <= top + 47:
+        return 'legs'
     if 0.6 < h < 0.8 and s > 0.12:
         return 'hair'
     if 0.38 < h < 0.6:
@@ -22,9 +25,6 @@ def kind(r, g, b, h, s, v, L, y, top):
         return 'gold'
     if s < 0.32 and v > 0.6:
         return 'ivory'
-    # The sash's dark warm rim is leather, not trousers, so the cleanup cannot fold it into the gold beside it
-    if 0.03 < h < 0.1 and s > 0.18 and top + 30 <= y <= top + 52:
-        return 'leather'
     if s < 0.32:
         return 'legs'
     return 'leather'
