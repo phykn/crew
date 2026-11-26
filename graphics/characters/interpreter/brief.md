@@ -2,7 +2,18 @@
 
 ## Code figure
 
-The standing picture is the approved `idle.png` first frame, traced into `src/frontend/camp/art/figures.js` as a pixel map: 28 × 82 pixels, one letter a pixel, in 20 shades found by grouping the picture's colors. It is drawn 41.6 world px tall, soles on the ground, without smoothing. A 3D solid version was tried first and dropped, since it lost the face, hair, and trim that make the character.
+The reference sets the look, not the exact shape. The standing picture is hand-placed pixel art in `src/frontend/camp/art/figures.js`: 26 × 42 pixels, the size the camp shows people, one letter a pixel, each letter a material and a shade.
+
+- Roles share the shape and swap material ramps (hair, coat, scarf, legs). Skin, eyes, gold, ivory, and boots are shared.
+- Firelight warms the two pixels of each row nearest the fire, the outer one a shade lighter (short of the lightest), and darkens the outermost pixel on the far side.
+- A 1px dark outline goes around the figure.
+- Motion is next: the template will be split into head, torso, arms, and legs so poses move parts rather than redraw them.
+
+### Avoid
+- noise or dithering on cloth
+- hair drawn as a smooth helmet; locks read from seams and upper-edge light
+- eyes bigger than 2 × 2 or white highlights on more than one pixel
+- a wide, boxy torso; arms keep a dark gap from the coat
 
 ## master
 

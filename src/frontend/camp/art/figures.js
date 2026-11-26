@@ -2,180 +2,137 @@ import { FIGURE } from '../figure.js';
 import { iso } from '../projection.js';
 import { outline } from './finish.js';
 
-// A person is painted pixel by pixel at the size the camp shows them, from parts that each say which way every pixel
-// faces; the light picks a shade from that, so the fire can light whichever side faces it
+// A person is a hand-placed pixel picture at the size the camp shows them; each letter names a material and a shade,
+// so one picture dresses every role in its own colors, and the fire lights the edge of the figure turned toward it
 
-// The picture's size, with a pixel of room on every side for the outline
-export const PERSON_W = 28,
-  PERSON_H = 44;
-
-// Each material's shades from darkest to lightest; a pixel facing the light takes a lighter one
-const RAMPS = {
-  skin: ['#6a3725', '#b8663f', '#e0925f', '#efa877', '#f7c494'],
-  eye: ['#19191f', '#19191f', '#a8580c', '#c87a1e', '#fcf5e8'],
-  boot: ['#2a1a12', '#46291d', '#6a412e', '#87573c', '#a8744f'],
+// Each material's shades from darkest to lightest; a letter picks one, and firelight steps it up
+const SHARED = {
+  skin: ['#8a4530', '#b8663f', '#e0925f', '#f2b582', '#f7c99a'],
+  eye: ['#19191f', '#19191f', '#b8681a', '#d08a30', '#fcf5e8'],
   gold: ['#5e4118', '#8e6428', '#bf8d3a', '#dcae58', '#f2c97a'],
-  ivory: ['#7d6c60', '#ab9989', '#d3c3b0', '#ebdecb', '#faf1e2'],
+  ivory: ['#7d6c60', '#ab9989', '#c9b8a4', '#ddcdb9', '#faf1e2'],
+  boot: ['#2a1a12', '#3a2318', '#6a412e', '#9a6a48', '#b07f5a'],
 };
 
-// Who wears what: hair, coat, scarf, and trousers by role; everything else is shared
+// What each role wears; the materials not named here are shared
 const PEOPLE = {
   interpreter: {
-    hair: ['#3f3439', '#66575e', '#938489', '#bcaeac', '#ddd2cc'],
-    coat: ['#18262a', '#263a3e', '#355150', '#466863', '#5a8077'],
-    scarf: ['#53261f', '#82382e', '#ab4f44', '#c4664c', '#d4866a'],
-    legs: ['#13141b', '#1d1f2d', '#292c3e', '#363a50', '#454a63'],
+    hair: ['#3f3439', '#6e5f66', '#a6989b', '#ddd2cc', '#eee6e0'],
+    coat: ['#182628', '#243638', '#3d5a57', '#5a8077', '#6a9286'],
+    scarf: ['#53261f', '#82382e', '#ab4f44', '#d4866a', '#e0a084'],
+    legs: ['#13141b', '#1b1d29', '#2b2e40', '#3e4359', '#4d536b'],
   },
 };
 
-// Faces: T is a top, L and F the front planes turned to the upper-left light and to the viewer, R the side turned away
-const BASE = { T: 3, L: 3, F: 2, R: 1 };
-const facing = (left, right) => (x) => (x <= left ? 'L' : x >= right ? 'R' : 'F');
+// A letter is a material and its shade
+const KEY = {
+  J: ['hair', 0],
+  j: ['hair', 1],
+  h: ['hair', 2],
+  H: ['hair', 3],
+  q: ['skin', 0],
+  z: ['skin', 1],
+  s: ['skin', 2],
+  S: ['skin', 3],
+  k: ['eye', 0],
+  a: ['eye', 2],
+  w: ['eye', 4],
+  d: ['coat', 1],
+  c: ['coat', 2],
+  C: ['coat', 3],
+  g: ['gold', 2],
+  G: ['gold', 4],
+  y: ['ivory', 1],
+  i: ['ivory', 3],
+  I: ['ivory', 4],
+  r: ['scarf', 2],
+  R: ['scarf', 3],
+  m: ['legs', 1],
+  n: ['legs', 2],
+  N: ['legs', 3],
+  v: ['boot', 1],
+  b: ['boot', 2],
+  B: ['boot', 3],
+};
 
-// The interpreter standing, facing the viewer's lower left: silver hair swept up and to the right, a teal coat open
-// over an ivory shirt and a coral scarf, gold trim, a belt with a pouch, puffed ivory cuffs, navy trousers, tall boots
-function standing(put) {
-  const span = (y, x0, x1, mat, face, step = 0) => {
-    for (let x = x0; x <= x1; x++) put(x, y, mat, typeof face === 'function' ? face(x) : face, step);
-  };
-  // Boots: a turned-down cuff, the shaft, and a foot whose toe points left; the sole is the darkest row
-  for (const [l, r] of [
-    [7, 12],
-    [14, 18],
-  ]) {
-    const side = facing(l + 1, r - 1);
-    span(34, l, r, 'boot', 'T', 1);
-    span(35, l, r, 'boot', side, 1);
-    for (let y = 36; y <= 38; y++) span(y, l + 1, r - 1, 'boot', side);
-    for (let y = 39; y <= 40; y++) span(y, l - 2, r - (r > 15 ? 0 : 0), 'boot', y === 39 ? 'T' : side);
-    span(41, l - 2, r, 'boot', 'R', -1);
-  }
-  // Trousers, joined at the hips and parted below
-  span(28, 8, 17, 'legs', facing(9, 16));
-  span(29, 8, 17, 'legs', facing(9, 16));
-  for (let y = 30; y <= 33; y++) {
-    span(y, 8, 12, 'legs', facing(9, 12));
-    span(y, 14, 17, 'legs', facing(13, 16), -1);
-  }
-  // The coat: shoulders, a body a little narrower, and a hem that flares; its left side faces the light
-  const coat = facing(9, 16);
-  span(15, 6, 19, 'coat', 'T');
-  for (let y = 16; y <= 24; y++) span(y, 7, 18, 'coat', coat);
-  for (let y = 25; y <= 26; y++) span(y, 6, 19, 'coat', coat);
-  span(27, 6, 19, 'gold', 'F');
-  // The open front: an ivory shirt between two gold edges, and the scarf knotted at the throat
-  for (let y = 17; y <= 26; y++) {
-    put(10, y, 'gold', 'F');
-    put(14, y, 'gold', 'R');
-    span(y, 11, 13, 'ivory', facing(11, 13));
-  }
-  span(15, 10, 14, 'scarf', 'T');
-  span(16, 10, 14, 'scarf', facing(11, 13));
-  span(17, 11, 13, 'scarf', facing(11, 13));
-  span(18, 11, 12, 'scarf', 'F', -1);
-  put(12, 19, 'scarf', 'F', -1);
-  // A standing collar either side of the scarf
-  span(14, 8, 9, 'ivory', 'T');
-  span(14, 15, 16, 'ivory', 'R');
-  put(8, 15, 'ivory', 'L');
-  put(16, 15, 'ivory', 'R');
-  // The belt with its buckle, and a pouch on the far hip
-  span(22, 7, 18, 'boot', coat);
-  span(23, 7, 18, 'boot', coat, -1);
-  span(22, 11, 12, 'gold', 'T');
-  put(11, 23, 'gold', 'F');
-  for (let y = 23; y <= 25; y++) span(y, 15, 17, 'boot', 'R', y === 23 ? 1 : 0);
-  // Arms: a teal sleeve, a puffed ivory cuff, and a hand; the far arm is in the shade
-  for (const [x0, near] of [
-    [3, true],
-    [19, false],
-  ]) {
-    const face = near ? 'L' : 'R';
-    for (let y = 15; y <= 19; y++) span(y, x0 + 1, x0 + 3, 'coat', near ? facing(x0 + 1, x0 + 3) : face);
-    for (let y = 20; y <= 23; y++) span(y, x0, x0 + 3, 'ivory', near ? facing(x0 + 1, x0 + 3) : face, y === 20 ? 1 : 0);
-    span(20, x0, x0 + 3, 'gold', near ? 'T' : 'R');
-    for (let y = 24; y <= 26; y++) span(y, x0 + 1, x0 + 3, 'skin', near ? facing(x0 + 1, x0 + 3) : face);
-  }
-  // Neck in the shade of the chin
-  span(14, 10, 14, 'skin', 'R');
-  // The face: a rounded oval, its right cheek turned away
-  const face = facing(11, 15);
-  [
-    [6, 8, 16],
-    [7, 7, 17],
-    [8, 7, 17],
-    [9, 7, 17],
-    [10, 7, 17],
-    [11, 8, 16],
-    [12, 9, 15],
-    [13, 10, 14],
-  ].forEach(([y, a, b]) => span(y, a, b, 'skin', face));
-  // Eyes of two pixels under dark brows, the far one narrower; a small mouth
-  span(8, 9, 10, 'hair', 'R', -1);
-  put(14, 8, 'hair', 'R', -1);
-  put(9, 9, 'eye', 'F', -2);
-  put(10, 9, 'eye', 'F', -2);
-  put(14, 9, 'eye', 'F', -2);
-  put(9, 10, 'eye', 'F');
-  put(10, 10, 'eye', 'F', 2);
-  put(14, 10, 'eye', 'F');
-  put(12, 11, 'skin', 'R');
-  put(11, 12, 'skin', 'R', -1);
-  put(12, 12, 'skin', 'R', -1);
-  // An ear on the turned-away side
-  put(17, 9, 'skin', 'R');
-  put(17, 10, 'skin', 'R', -1);
-  // Hair: spikes swept up and to the right, a fringe with a gap on the brow, and locks down the sides
-  const hair = facing(10, 17);
-  [
-    [0, [12, 13], [18, 19]],
-    [1, [10, 14], [16, 20]],
-    [2, [8, 21]],
-    [3, [6, 22]],
-    [4, [5, 22]],
-    [5, [4, 21]],
-    [6, [5, 10], [12, 21]],
-    [7, [5, 7], [9, 10], [17, 20]],
-    [8, [5, 6], [18, 20]],
-    [9, [5, 6], [19, 20]],
-    [10, [6, 6], [19, 19]],
-  ].forEach(([y, ...runs]) => runs.forEach(([a, b]) => span(y, a, b, 'hair', y <= 2 ? 'T' : hair)));
-  // Clumps: the underside of each spike falls a shade, so the hair reads as a few big locks rather than a helmet
-  for (const [x, y] of [
-    [9, 3],
-    [10, 4],
-    [14, 3],
-    [15, 4],
-    [16, 5],
-    [19, 3],
-    [20, 4],
-    [7, 5],
-    [8, 6],
-  ])
-    put(x, y, 'hair', 'R', -1);
-  put(4, 4, 'hair', 'L');
-  put(23, 2, 'hair', 'T');
-  // The fringe throws a little shade on the brow
-  span(7, 11, 16, 'skin', 'R');
-}
+// Standing, facing the viewer's lower left: hair swept up and to the right, a coat open over a shirt and a scarf, gold
+// trim, a belt with a pouch, puffed cuffs, trousers, and tall boots
+const STANDING = [
+  '...........Hh....Hh.......',
+  '.........hHHhh..hHhj......',
+  '........hHHHhhhhHhhjj.....',
+  '.......hHHhhhhhhhhhjjj....',
+  '......hHHhhhjhhhhhhhjj....',
+  '.....hHhhhhjhhhhhhjhjjj...',
+  '.....hhhhhjhhhhhhjjhjjj...',
+  '....hhhhhjjhhhhjjjhjjjj...',
+  '....hhhjjsshhjjsssjjjj....',
+  '....hhjsSSssjssssszjjj....',
+  '.....hjSSSssssssszzjj.....',
+  '.....hjSkkSssskkszzj......',
+  '......jSawSsssawzzz.......',
+  '......sSSSssssssszz.......',
+  '.......SSsssqqsszz........',
+  '........ssssssszz.........',
+  '.........iIzzzzi..........',
+  '......ccCiIrrriicc........',
+  '.....cCCcgIrrrrgccd.......',
+  '....cCCCcgIirrigcccd......',
+  '....CCcccgIiirigccdd......',
+  '....CCcc.gIiiiigcd.dd.....',
+  '....CCcc.gIiiiigcd.dd.....',
+  '...IIIic.gIiiiigcdiiid....',
+  '...IIiiy.bbbBbbbbdiiyy....',
+  '....SSs.cbbBGbbbbdzsz.....',
+  '....SSs.ccgIiiigcbbzz.....',
+  '....sss.ccgIiiigcbbzz.....',
+  '........gggggggggggg......',
+  '.........NNnnmmnnmm.......',
+  '.........NNnnm.nnmm.......',
+  '.........NNnnm.nnmm.......',
+  '.........NNnm..nnmm.......',
+  '.........NNnm..nnmm.......',
+  '.........NNnm..nnmm.......',
+  '........BBBbb.BBbbv.......',
+  '........bbbbv.bbbbv.......',
+  '.........Bbbv..Bbbv.......',
+  '.........Bbbv..Bbbv.......',
+  '.......BBbbbv.Bbbbv.......',
+  '......Bbbbbbv.bbbbbv......',
+  '......vvvvvvv.vvvvvv......',
+];
 
-// fire: the screen side the fire is on (-1 left, 1 right, 0 none); the side facing it takes a step of warm light and
-// the other a step of shade
+// The picture's size, with a pixel of room on every side for the outline
+export const PERSON_W = STANDING[0].length + 2,
+  PERSON_H = STANDING.length + 2;
+
+const channels = (hex) => {
+  const n = parseInt(hex.slice(1), 16);
+  return [n >> 16, (n >> 8) & 255, n & 255];
+};
+// A shade a little toward the flames' color
+const warm = ([r, g, b]) => [r + (255 - r) * 0.18, g + (170 - g) * 0.18, b + (90 - b) * 0.18];
+
+// fire: the screen side the fire is on (-1 left, 1 right, 0 none); the figure's two pixels nearest it along each row
+// warm, the outer one a shade lighter, short of the lightest, and the outermost pixel on the other side a shade darker
 function paint(role, fire) {
-  const look = { ...RAMPS, ...PEOPLE[role] },
-    canvas = new OffscreenCanvas(PERSON_W, PERSON_H),
-    ctx = canvas.getContext('2d');
-  standing((x, y, mat, face, step) => {
-    const toward = fire && ((face === 'L' && fire < 0) || (face === 'R' && fire > 0)),
-      away = fire && ((face === 'L' && fire > 0) || (face === 'R' && fire < 0));
-    const ramp = look[mat],
-      shade = Math.max(0, Math.min(4, BASE[face] + step + (toward ? 1 : 0) - (away ? 1 : 0)));
-    ctx.fillStyle = ramp[shade];
-    ctx.fillRect(x + 1, y + 1, 1, 1);
+  const look = { ...SHARED, ...PEOPLE[role] },
+    img = new ImageData(PERSON_W, PERSON_H);
+  STANDING.forEach((row, y) => {
+    const cells = [...row].map((ch, x) => [ch, x]).filter(([ch]) => ch !== '.');
+    cells.forEach(([ch, x], n) => {
+      const [mat, shade] = KEY[ch],
+        // How far this pixel is from the row's edge on the fire's side, and on the far side
+        near = fire < 0 ? n : fire > 0 ? cells.length - 1 - n : Infinity,
+        far = fire < 0 ? cells.length - 1 - n : fire > 0 ? n : Infinity;
+      const step = near === 0 ? Math.max(shade, Math.min(3, shade + 1)) : far === 0 ? Math.max(0, shade - 1) : shade;
+      const rgb = channels(look[mat][step]);
+      img.data.set([...(near <= 1 ? warm(rgb) : rgb), 255], ((y + 1) * PERSON_W + x + 1) * 4);
+    });
   });
-  const img = ctx.getImageData(0, 0, PERSON_W, PERSON_H);
   outline(img.data, PERSON_W, PERSON_H, [20, 16, 14], 235);
-  ctx.putImageData(img, 0, 0);
+  const canvas = new OffscreenCanvas(PERSON_W, PERSON_H);
+  canvas.getContext('2d').putImageData(img, 0, 0);
   return canvas;
 }
 
