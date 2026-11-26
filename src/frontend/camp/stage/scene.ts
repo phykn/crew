@@ -21,7 +21,7 @@ type Picture = { k: number; dx: number; dy: number; canvas: ImageBitmap };
 function finish(seed: number) {
   return (ctx: CanvasRenderingContext2D, w: number, h: number) => {
     const img = ctx.getImageData(0, 0, w, h);
-    rim(grain(img.data, seed), w, h, 1.1, 0.88);
+    rim(grain(img.data, seed), w, h);
     ctx.putImageData(img, 0, 0);
     const g = ctx.createLinearGradient(0, h * 0.55, 0, h);
     g.addColorStop(0, 'rgba(0, 0, 0, 0)');

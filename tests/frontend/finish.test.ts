@@ -13,7 +13,7 @@ describe('finishing a baked prop', () => {
   it('lights the top edge and shades the bottom edge', () => {
     const { d, w, h } = picture(['#', '#', '#']);
     rim(d, w, h);
-    expect([d[0], d[4], d[8]]).toEqual([118, 100, 78]);
+    expect([d[0], d[4], d[8]]).toEqual([110, 100, 88]);
   });
 
   it('scatters the same grain for the same seed and leaves clear pixels alone', () => {

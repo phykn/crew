@@ -45,7 +45,7 @@ python -m http.server 8766 --bind 127.0.0.1
 - `props.js`: 소품 하나에 함수 하나. 부품(`box`, `round`, `rod`, `facets`)을 조합하고 `paint`로 색을 칠한다.
 - `ground.js`: 바닥과 모닥불 자리
 - `figures.js`: 캠프의 사람. `people/<역할>.js`의 글자 그림(글자 하나가 픽셀 하나)을 칠하고 불 쪽 가장자리를 데운다
-- `finish.js`: 구운 그림 다듬기(확대, 외곽선, 림 라이트, 그레인)
+- `finish.js`: 구운 소품 다듬기(림 라이트, 그레인)
 - `casters.js`: 모닥불과 횃불 빛을 가리는 물체 목록(긴 그림자용)
 
 색은 `src/frontend/camp/palette.js`, 자리는 `layout.js`, 투영은 `projection.js`에 있다.
