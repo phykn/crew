@@ -2,7 +2,7 @@
 
 ## Code figure
 
-Made like the others (see graphics/README.md "캐릭터 만들기"): `trace.py researcher` traces every sheet at its own size and repaints each material in three flat shades.
+Made like the others (see graphics/README.md "Making characters"): `trace.py researcher` traces every sheet at its own size and repaints each material in three flat shades.
 
 - Materials: hair, trousers, and boots share one chestnut and are parted by rows (hair to 22 rows below the crown, boots past 63); ochre mantle, olive tunic, ivory blouse, skin, and the amber lens as one-pixel-thin gold.
 - The mantle's and tunic's dark folds are drawn as outline, so the cloth around them stays clean rather than muddy brown.

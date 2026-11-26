@@ -2,7 +2,7 @@
 
 ## Code figure
 
-Made like the others (see graphics/README.md "캐릭터 만들기"): `trace.py coder` traces every sheet at its own size and repaints each material in three flat shades.
+Made like the others (see graphics/README.md "Making characters"): `trace.py coder` traces every sheet at its own size and repaints each material in three flat shades.
 
 - Materials: chestnut hair, sage tunic, ivory sleeves, brick scarf, skin, leather (belt and boots), cocoa trousers, and the pale-teal wardstone, kept as thin so the held stone survives the cleanup.
 - Hair and trousers share one chestnut, so the rows part them (hair to 22 rows below the crown); the far boot is shaded as dark as the trousers, so it is leather from 62 rows down.
@@ -129,7 +129,7 @@ Whole head/chest/pelvis/knees/toes face lower-left. Feet move left AND toward vi
 ### Cross-legged ground rest
 
 Use case: identity-preserve, single-action sprite replacement.
-Create ONLY the CODER's seated-rest animation sheet for an existing woodland camp game. Replace the implied-bench sitting with CROSS-LEGGED GROUND SITTING (양반다리 / simple tailor's seat).
+Create ONLY the CODER's seated-rest animation sheet for an existing woodland camp game. Replace the implied-bench sitting with CROSS-LEGGED GROUND SITTING (a simple tailor's seat).
 
 REFERENCE ROLES
 Image1 is coder/idle.png: exact character identity, actual moderate head/body ratio, short tousled chestnut hair, warm skin, hazel eyes, muted sage green travel tunic, ivory sleeves and cuffs, short brick-red neckerchief, brown belt, cocoa trousers and cuffed brown boots. The SMALL flat pale-teal wardstone stays secured on SCREEN-RIGHT belt. Preserve these exact features; no new costume or accessories. Image2 is coder/head.png: existing hand-finished face and hair reference ONLY, never enlarge the head or reproduce it as a separate floating portrait. Image3 is researcher/sit.png: use ONLY its cross-legged ground pose and compact seated silhouette, not its face, hair, clothing, glasses or prop.

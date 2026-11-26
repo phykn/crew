@@ -2,7 +2,7 @@
 
 ## Code figure
 
-Made like the others (see graphics/README.md "캐릭터 만들기"): `trace.py librarian` traces every sheet at its own size and repaints each material in three flat shades.
+Made like the others (see graphics/README.md "Making characters"): `trace.py librarian` traces every sheet at its own size and repaints each material in three flat shades.
 
 - Materials: plum hair above the jaw (23 rows below the crown), and the same hue below it is the burgundy sash; moss coat, ivory blouse and cuffs, skin, tan book, brown leather (belt and boots), dark trousers, and the coat's brass piping as one-pixel-thin gold.
 - The hair's dark strands stay hair rather than outline, since as outline they read as specks; boot tops share the hands' bright brown, so skin stops 58 rows below the crown.

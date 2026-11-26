@@ -2,7 +2,7 @@
 
 ## Code figure
 
-Made like the others (see graphics/README.md "캐릭터 만들기"): `trace.py proofreader` traces every sheet at its own size and repaints each material in three flat shades.
+Made like the others (see graphics/README.md "Making characters"): `trace.py proofreader` traces every sheet at its own size and repaints each material in three flat shades.
 
 - Materials: dusty rose hair and sash share one rose and are parted by the jaw line (hair to 22 rows below the crown); sage coat, ivory collar, cuffs, and hem trim (one-pixel-thin, so the coat's piping stays), skin, brown trousers, and leather belt, stamp case, and boots.
 - Trousers and boots share one brown: boots past 62 rows, and a foot raised mid-step by its yellower, fuller brown; the sitting sheet (whose crown starts lowest) parts its crossed legs by shade alone.

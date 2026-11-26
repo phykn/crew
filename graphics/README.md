@@ -1,158 +1,158 @@
 # graphics
 
-캠프 그림을 만들 때 쓰는 작업 파일. 앱은 이 폴더를 읽지 않아서 통째로 지워도 돌아가고, 최종본 코드는 `src/frontend/camp/`에 있다.
+Working files for drawing the camp. The app never reads this folder, so it runs with the folder deleted; the final code is in `src/frontend/camp/`.
 
-## 폴더
+## Folders
 
-물체마다 폴더 하나, 안에는 `brief.md` 하나와 그림만 둔다.
+One folder per thing, holding one `brief.md` and its pictures only.
 
-- `props/<물체>/`: 캠프에 놓이는 소품. 그림이 한 장이면 `image.png`, 여러 장이면 차이를 이름으로 쓴다(lantern: `image.png`, `light.png`).
-- `ground/<종류>/`: 바닥 질감(grass, dirt, worn, edge)
-- `effects/<효과>/`: 불꽃, 연기, 불티, 마법진
-- `characters/<역할>/`: 동작별 최종 그림(`idle`, `walk`, `sit`, `cast-start`, `cast-loop`, `cast-end`)과, 마스터 프롬프트, 동작 프롬프트, 메모를 합친 `brief.md`
-- `characters/head.py`: 서 있기 첫 프레임에서 `head.png` 시작본을 만드는 스크립트
-- `characters/trace.py`: 역할의 동작 그림 전체를 `src/frontend/camp/art/people/<역할>.js`의 글자 그림으로 바꾸는 스크립트(`python graphics/characters/trace.py interpreter`)
-- `characters/<역할>/head.png`: 손으로 다듬은 머리. 모든 프레임에 붙인다
-- `characters/<역할>/rules.py`: 그 역할의 재질 규칙(`kind`)과 깜박임, 얇은 재질(`SPEC`). `trace.py`가 읽는다
-- `preview.html`: 앱 코드로 소품을 그려 보는 페이지
+- `props/<thing>/`: props placed in the camp. One picture is `image.png`; several are named by how they differ (lantern: `image.png`, `light.png`).
+- `ground/<kind>/`: ground textures (grass, dirt, worn, edge)
+- `effects/<effect>/`: flames, smoke, sparks, the ward
+- `characters/<role>/`: the final picture of each motion (`idle`, `walk`, `sit`, `cast-start`, `cast-loop`, `cast-end`), and `brief.md`, which holds the master prompt, the motion prompts, and notes
+- `characters/head.py`: makes the first `head.png` from the standing pose's first frame
+- `characters/trace.py`: turns all of a role's motion pictures into the letter pictures in `src/frontend/camp/art/people/<role>.js` (`python graphics/characters/trace.py interpreter`)
+- `characters/<role>/head.png`: the head, finished by hand and put on every frame
+- `characters/<role>/rules.py`: the role's material rules (`kind`), blink, and thin materials (`SPEC`), read by `trace.py`
+- `preview.html`: a page that draws props with the app's own code
 
-이름에 버전(`v1`), `-prompt`, `-pack` 같은 꼬리는 붙이지 않는다. 후보 그림과 예전 프롬프트는 git 기록에만 남긴다.
+Names carry no version (`v1`) and no tails such as `-prompt` or `-pack`. Candidate pictures and old prompts live only in git history.
 
-## 미리보기
+## Preview
 
-저장소 루트에서 서버를 띄운다.
+Start a server at the repository root.
 
 ```powershell
 python -m http.server 8766 --bind 127.0.0.1
 ```
 
-- 전체: http://127.0.0.1:8766/graphics/preview.html
-- 하나만: `?kind=wagon` (종류: hearth, rug, crates, drum, hay, log, well, wagon, tent, lantern, torch, pine, fern, tuft, rock, woodpile)
-- 확대: `&zoom=6`
-- 캠프 전체 바닥과 소품: `?ground` (소품 없이 바닥만: `?ground&bare`)
-- 사람: `?figure=interpreter` (동작마다 한 줄, 움직이는 첫 칸과 모든 프레임)
+- Everything: http://127.0.0.1:8766/graphics/preview.html
+- One kind: `?kind=wagon` (kinds: hearth, rug, crates, drum, hay, log, well, wagon, tent, lantern, torch, pine, fern, tuft, rock, woodpile)
+- Zoom: `&zoom=6`
+- The whole camp, ground and props: `?ground` (ground alone: `?ground&bare`)
+- People: `?figure=interpreter` (a row per motion: the first frame moving, then every frame)
 
-각 소품은 캠프에서 놓이는 자리에 그려지므로, 모닥불 빛도 앱에서와 똑같이 받는다.
+Each prop is drawn where it stands in the camp, so it takes the fire's light just as in the app.
 
-## 코드
+## Code
 
 `src/frontend/camp/art/`:
 
-- `solids.js`: 3D 소품 렌더러. 모양을 거리 함수(SDF)로 정의하고, 캠프 투영 그대로 픽셀마다 광선을 쏜다. 다루는 것:
-  - 툰 명암
-  - 재질별 색 단계(WOOD, BARK, IRON, ROCK, HAY, CANVAS, WATER, BLAZE)
-  - 모닥불과 횃불 빛(바닥 그림자는 빛 지도 몫)
-- `props.js`: 소품 하나에 함수 하나. 부품(`box`, `round`, `rod`, `facets`)을 조합하고 `paint`로 색을 칠한다.
-- `ground.js`: 바닥, 모닥불 자리, 앉는 러그
-- `figures.js`: 캠프의 사람. `people/<역할>.js`의 글자 그림(글자 하나가 픽셀 하나)을 칠하고 불 쪽 가장자리를 데운다
-- `finish.js`: 구운 소품 다듬기(림 라이트, 그레인)
-- `casters.js`: 모닥불과 횃불 빛을 가리는 물체 목록(긴 그림자용)
+- `solids.js`: the 3D prop renderer. Shapes are signed distance functions (SDF), and a ray is cast per pixel through the camp's own projection. It handles:
+  - toon shading
+  - each material's shades (WOOD, BARK, IRON, ROCK, HAY, CANVAS, WATER, BLAZE, RUG, SAND, SAGE)
+  - the light of the fire and the torches (ground shadows belong to the light map)
+- `props.js`: one function per prop. Parts (`box`, `round`, `rod`, `facets`) are combined and colored by `paint`.
+- `ground.js`: the ground, the hearth, and the rugs people sit on
+- `figures.js`: the camp's people. Paints the letter pictures in `people/<role>.js` (a letter a pixel) and warms the edge toward the fire
+- `finish.js`: touches up baked props (rim light, grain)
+- `casters.js`: what blocks the fire's and the torches' light (for long shadows)
 
-색은 `src/frontend/camp/palette.js`, 자리는 `layout.js`, 투영은 `projection.js`에 있다.
+Colors are in `src/frontend/camp/palette.js`, places in `layout.js`, and the projection in `projection.js`.
 
-## 작업 순서
+## Order of work
 
-1. 물체 하나를 고른다.
-2. 브리프를 먼저 쓴다. 모양, 부품, 색 단계, 피할 것을 적는다.
-3. 참고 그림은 분위기만 맞춘다. 캠프 전체와 어울리는 것이 먼저다.
-4. `preview.html`에서 그 물체만 확인한다.
+1. Pick one thing.
+2. Write the brief first: shape, parts, shades, what to avoid.
+3. Reference pictures set only the mood. Fitting the whole camp comes first.
+4. Check that thing alone in `preview.html`.
 
-피할 것:
+Avoid:
 
-- 지저분한 결, 무작위 선
-- 울퉁불퉁하거나 레이스 같은 가장자리
-- 쇠테의 밝은 줄
-- 바위의 금과 이끼
+- messy grain, random lines
+- lumpy or lacy edges
+- bright stripes on iron bands
+- cracks and moss on rocks
 
-## 캐릭터 만들기
+## Making characters
 
-통역을 만들며 정한 방식. 다른 역할도 같은 순서로 만든다.
+The way settled while making the interpreter. Other roles follow the same order.
 
-### 순서
+### Order
 
-단계마다 그 단계 그림만 보여 주고 확인받은 뒤 다음으로 간다.
+Show only that stage's pictures at each stage, and go on once they are approved.
 
-1. 시안 확인
-   - 시트 6장(`idle`, `walk`, `sit`, `cast-start`, `cast-loop`, `cast-end`)과 칸 수
-   - 모든 시트의 발바닥 줄이 같은지
-   - `sit`이 바닥에 앉는 그림인지
-2. 브리프
-   - `brief.md`의 "Code figure"에 재질, 색, 얼굴, 피할 것을 먼저 적는다.
-3. 재질 규칙
-   - 역할 폴더의 `rules.py`에 `kind`를 두고 시안 픽셀을 찍어 재질마다 색 범위를 정한다. 다른 역할의 `rules.py`를 본보기로 쓴다.
-   - 재질 지도(재질마다 눈에 띄는 색)를 시안 옆에 놓고, 부위가 제 재질로 칠해질 때까지 고친다.
-   - 한 픽셀 굵기의 테두리(지휘의 금색 줄)는 `thin`에 넣는다. 정리 단계가 지우지 않는다.
-   - `SPEC`에 눈 감은 칸을 적는다.
-4. 서 있기 정리
-   - 서 있기 첫 프레임만 뽑아 시안과 나란히 본다.
-   - 자글자글함이 없고 부위마다 또렷해질 때까지 재질 규칙을 고친다.
-5. 얼굴
-   - `python graphics/characters/head.py <역할> <줄 수> <얼굴 위> <아래> <왼쪽> <오른쪽>`으로 `head.png`의 시작본을 만든다. 정리 단계가 작은 얼굴 픽셀을 지우기 때문이다.
-   - 얼굴 상자 안은 시안 픽셀을 그대로 쓴다. 피부만 3단계 평면 명암으로 맞추고, 눈, 안경, 머리핀은 픽셀 하나도 바꾸지 않는다. 머리카락은 정리된 색을 쓴다.
-   - 그다음 손으로 다듬는다. 이마에 뜬 점을 지우고 눈썹을 넣는다.
-   - 눈썹은 시안에 옅게라도 꼭 넣는다. 없으면 얼굴이 이상해 보인다. 코와 입은 시안에 없을 때만 더한다.
-   - 두 눈은 같은 줄에 같은 구조(눈꺼풀, 눈동자, 반짝임)로 둔다. 먼 눈만 좁게. 줄이 다르거나 반짝임이 한쪽만 있으면 짝눈처럼 보인다.
-   - 머리카락 윤기는 시안에서 밝은 곳을 한 단계 밝은 색으로 남긴다.
-   - `SPEC`에 head.png 안 눈 자리와 피부 픽셀 하나를 적는다(깜박임용). 눈 상자는 눈 아래 줄(아래 속눈썹)까지 넣는다. 안 그러면 감은 눈 밑에 점이 남는다.
-   - `head.py`의 머리카락 판단은 밤색 머리에 맞춰져 있다. 다른 머리색은 눈, 안경, 피부를 머리카락으로 바꾸거나 머리카락을 그대로 남기니 픽셀마다 시안과 맞춰 본다.
-   - `rules.py`를 고치면 `head.py`부터 다시 돌린다. 피부 명암이 바뀌어 색 수가 늘어난다.
-6. 모든 동작
-   - `python graphics/characters/trace.py <역할>`
-   - `figures.js`의 `PEOPLE`에 역할을 더한다.
-   - `?figure=<역할>`에서 움직여 보고 어색한 칸을 고친다. 머리가 어긋난 칸, 손이나 발이 끊긴 칸, 색이 번쩍이는 칸.
-7. 마무리
-   - 동작 GIF와 앉기 그림을 보여 준다.
-   - 이 README와 브리프에 새로 안 것을 더한다.
-   - 커밋
+1. Check the concept
+   - 6 sheets (`idle`, `walk`, `sit`, `cast-start`, `cast-loop`, `cast-end`) and their frame counts
+   - every sheet's sole line is the same
+   - `sit` sits on the ground
+2. Brief
+   - Write materials, colors, face, and what to avoid in `brief.md`'s "Code figure" first.
+3. Material rules
+   - In the role's `rules.py`, set `kind` and sample the concept's pixels for each material's color range. Use another role's `rules.py` as the model.
+   - Put a material map (a loud color per material) beside the concept, and fix it until every part takes its own material.
+   - One-pixel trims (the conductor's gold line) go in `thin`, which the clean-up keeps.
+   - Note the closed-eye frames in `SPEC`.
+4. Clean up standing
+   - Take only the standing first frame and set it beside the concept.
+   - Fix the material rules until there is no fizz and every part is clear.
+5. Face
+   - `python graphics/characters/head.py <role> <rows> <face top> <bottom> <left> <right>` makes the first `head.png`, because the clean-up erases small face pixels.
+   - Inside the face box the concept's pixels stay as they are. Only skin is set to 3 flat shades; eyes, glasses, and hairpins keep every pixel. Hair takes the cleaned colors.
+   - Then finish by hand: erase stray dots on the forehead and add the brows.
+   - Always add brows, even faint ones, as in the concept. Without them the face looks wrong. Add a nose and mouth only when the concept has none.
+   - Both eyes sit on one row with the same build (lid, pupil, glint); only the far eye is narrower. Different rows or a glint on one side looks mismatched.
+   - Hair shine keeps the concept's bright spots one shade lighter.
+   - Note in `SPEC` the eye boxes in head.png and one skin pixel (for blinking). An eye box takes in the row under the eye (the lower lashes), or a dot stays under the closed eye.
+   - `head.py`'s hair test is made for chestnut hair. Other hair colors turn eyes, glasses, or skin into hair, or leave hair as it is, so match it to the concept pixel by pixel.
+   - After changing `rules.py`, run `head.py` again first: the skin shades change and the color count grows.
+6. Every motion
+   - `python graphics/characters/trace.py <role>`
+   - Add the role to `PEOPLE` in `figures.js`.
+   - Play it at `?figure=<role>` and fix frames that look off: a head out of place, a broken hand or foot, a flashing color.
+7. Finish
+   - Show the motion GIFs and the sitting picture.
+   - Add what was learned to this README and the brief.
+   - Commit
 
-### 동작
+### Motion
 
-- 모든 시트를 한 상자로 자른다. 발이 제자리에 있다.
-- 서 있기와 앉기는 첫 프레임 몸 하나에 눈만 깜박인다. 시안의 정지 프레임은 한두 픽셀씩 흔들려 떨려 보인다.
-- 걷기와 시전은 시안 프레임을 모두 쓰고, 머리는 프레임마다 실루엣에 가장 잘 맞는 자리에 붙인다.
-- 시안이 프레임마다 몸 전체를 몇 픽셀씩 흔들면(지휘, 이미지) 움직이는 프레임을 옆으로 밀어 머리를 서 있기와 같은 자리에 둔다. `trace.py`가 한다.
-- 색 단계와 경계는 서 있기 첫 프레임 것을 모든 프레임에 쓴다. 프레임 사이에 색이 번쩍이지 않는다.
-- 시트는 모두 화면 왼쪽을 본다. 캠프는 오른쪽으로 갈 때 뒤집는다.
-- 색만으로 두 부위가 안 갈리는 칸(지휘의 가슴에 댄 지팡이)은 `SPEC`의 `fix`로 그 칸의 상자 안 재질을 바꾼다.
-- 앉기는 시안의 `sit`처럼 책상다리로 앉는다. 모닥불 둘레 러그(`layout.js`의 `RUGS`) 중 빈 곳에 앉는다. 벤치는 없다. 서 있는 그림으로 벤치 앉기를 만들면 다리가 어색했다.
+- Every sheet is cut with one box, so the feet stay in place.
+- Standing and sitting use one body, the first frame's, and only the eyes blink. The concept's still frames shift a pixel or two and look shaky.
+- Walking and casting use every concept frame, and each frame's head goes where it best fits the silhouette.
+- When the concept sways the whole body a few pixels a frame (conductor, images), the moving frames are shifted sideways so the head stays where it stands. `trace.py` does it.
+- The standing first frame's shades and borders are used for every frame, so colors never flash between frames.
+- Every sheet faces screen-left. The camp flips them for walking right.
+- Where color alone cannot split two parts (the conductor's wand against the chest), `SPEC`'s `fix` sets the material inside a box on that frame.
+- Sitting is cross-legged on the ground, as in the concept's `sit`, on a free rug round the fire (`RUGS` in `layout.js`). There is no bench: a bench seat made from the standing picture had awkward legs.
 
-### 크기
+### Size
 
-- 시안 크기 그대로(약 28×82). 캠프 화면에서 거의 1:1로 보인다.
-- 26×42로 줄이면 얼굴이 9×8픽셀이 되어 표정이 안 들어간다.
-- 3D 입체는 얼굴과 옷 테두리를 잃는다.
+- The concept's own size (about 28×82), shown a little over 1:1 on the camp screen. People are drawn a little larger than the props would make them (`BIG` in `figure.js`), so faces and poses read.
+- Cut to 26×42, the face is 9×8 pixels and holds no expression.
+- 3D solids lose the face and the clothes' trims.
 
-### 정리 (`trace.py`)
+### Clean-up (`trace.py`)
 
-- 시안은 붓 자국 같은 점으로 칠해져 있어서 그대로 쓰면 자글자글하다.
-- 픽셀마다 재질을 정한다: 머리, 피부, 코트, 셔츠와 소매, 스카프, 금색, 가죽, 바지, 외곽선.
-- 재질 안에서 혼자 튀는 픽셀은 주변 재질로 바꾼다.
-- 재질마다 3단계 평면 명암으로 다시 칠한다. 외곽선은 한 색.
-- 얼굴은 정리하지 않고 `head.png`를 붙인다.
-- 색이 겹치는 재질은 위치로 나눈다. 통역의 머리 회색과 셔츠 아이보리, 지휘의 머리와 코트 남색(턱 줄 위아래).
-- 채도는 HSV로 잰다. HLS는 밝은 회색의 채도를 높게 잡아 머리를 피부로 잘못 나눈다.
+- The concept is painted in brush-like dots, so used as is it fizzes.
+- Each pixel gets a material: hair, skin, coat, shirt and sleeves, scarf, gold, leather, trousers, outline.
+- A pixel alone inside a material takes the material around it.
+- Each material is painted again in 3 flat shades. The outline is one color.
+- The face is not cleaned; `head.png` goes on top.
+- Materials that share colors are split by place: the interpreter's grey hair and ivory shirt, the conductor's hair and navy coat (above and below the chin line).
+- Saturation is measured in HSV. HLS rates light grey as saturated and splits hair into skin.
 
-### 얼굴
+### Face
 
-- 눈은 진한 눈꺼풀이 위를 덮어야 또렷하다. 얇으면 멍해 보인다.
-- 눈썹은 눈 바로 위 한 줄에 붙인다. 떠 있으면 멍해 보인다.
-- 눈썹 모양은 시안을 따른다(통역: 안쪽 낮게, 가운데 올라가고, 바깥쪽 내려감). 일자는 피한다.
-- 코는 앞쪽 뺨 쪽에 어두운 피부 1픽셀.
-- 입은 짧은 일자 2픽셀. 웃는 입꼬리와 진한 입은 피한다.
-- 눈 사이나 뺨에 남은 검은 점은 지운다. 지우기 전에 눈썹 조각인지 확인한다.
-- 얼굴은 시안과 같아 보여야 한다. 손으로 고쳐 그린 눈썹, 턱, 홍조가 쌓이면 다른 사람이 된다(지휘 1차 수정본).
-- 색이 글자 수(62)를 넘으면 눈과 머리핀 밖의 얼굴 픽셀만 몇 색으로 줄인다.
+- Eyes are clear when a dark lid covers their top. A thin one looks blank.
+- Brows sit on the row right above the eyes. Floating ones look blank.
+- Brows follow the concept's shape (interpreter: low inside, rising in the middle, falling outside). Avoid straight ones.
+- Nose: one dark skin pixel on the near cheek.
+- Mouth: a short line of 2 pixels. Avoid smiling corners and a dark mouth.
+- Erase black dots left between the eyes or on the cheeks. Check first that they are not part of a brow.
+- The face must look like the concept. Brows, chin, and blush redrawn by hand add up to someone else (the conductor's first fix).
+- When colors pass the letter count (62), reduce only the face pixels outside the eyes and hairpins to a few colors.
 
-### 불빛
+### Firelight
 
-- 불 쪽 가장자리에서 외곽선 안쪽 세 픽셀을 안으로 갈수록 약하게 데운다(0.2, 0.13, 0.06).
-- 외곽선과 가장 어두운 색은 데우지 않는다.
-- 명암 단계를 올리면 띠처럼 보이니 색만 데운다.
+- On the fire's side, the three pixels inside the outline warm less the further in (0.2, 0.13, 0.06).
+- The outline and the darkest shade never warm.
+- Raising the shade looks like a band, so only the color warms.
 
-### 피할 것
+### Avoid
 
-- 고양이 귀처럼 대칭인 두 갈래 머리
-- 헬멧처럼 한 덩어리인 머리
-- 몸통을 가로지르는 금색 줄
-- 셔츠 가운데의 밝은 세로 줄
-- 몸통보다 밝은 소맷부리
+- hair in two symmetric points like cat ears
+- hair in one lump like a helmet
+- a gold stripe across the body
+- a bright vertical stripe down the shirt
+- cuffs lighter than the body

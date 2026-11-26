@@ -2,7 +2,7 @@
 
 ## Code figure
 
-Made like the others (see graphics/README.md "캐릭터 만들기"): `trace.py reviewer` traces every sheet at its own size and repaints each material in three flat shades.
+Made like the others (see graphics/README.md "Making characters"): `trace.py reviewer` traces every sheet at its own size and repaints each material in three flat shades.
 
 - Materials: hair and trousers share one charcoal and are parted by rows (hair to 22 rows below the crown), with the gray temple streak its own material; aubergine coat (its red-brown shadows kept coat by saturation above the hem, so a seated lap stays trousers), dark teal sash, brown belt and boots, skin, and one ash ivory for shirt, cuffs, silver edging, and token, kept one pixel thin.
 - `head.png` is `head.py reviewer 23 11 21 4 14`: the sheet's own face (violet-brown eyes with glints, blush, mouth) with skin in flat shades, then by hand both brows moved down a row and thinned so each sits right on its lid, low at the inner end, a speck between the eyes cleared, and a one-step-lighter shine at the hair's upper left.

@@ -2,7 +2,7 @@
 
 ## Code figure
 
-Made like the others (see graphics/README.md "캐릭터 만들기"): `trace.py images` traces every sheet at its own size and repaints each material in three flat shades.
+Made like the others (see graphics/README.md "Making characters"): `trace.py images` traces every sheet at its own size and repaints each material in three flat shades.
 
 - Materials: indigo hair (the boot cuffs share it), turquoise coat (the hair's lock shares it), plum lining and collar, ivory shirt and cuffs, golden-tan skin, ochre sash and trims as one-pixel-thin gold, brown leather belt, case, and boots, charcoal trousers.
 - The coat's dark folds (below the jaw) are drawn as outline, so the arms stay apart from the body.

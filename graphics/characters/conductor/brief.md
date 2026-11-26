@@ -2,7 +2,7 @@
 
 ## Code figure
 
-Made like the interpreter (see graphics/README.md "캐릭터 만들기"): `trace.py conductor` traces every sheet at its own size and repaints each material in three flat shades.
+Made like the interpreter (see graphics/README.md "Making characters"): `trace.py conductor` traces every sheet at its own size and repaints each material in three flat shades.
 
 - Materials: hair and coat share the ink blue and part at the jaw line (23 rows below the crown); plum sash, ivory blouse, cuffs, and wand, gold piping and clip, charcoal-brown trousers, brown leather belt and boots.
 - The gold piping is one pixel wide, so the cleanup keeps it wherever any of it touches.

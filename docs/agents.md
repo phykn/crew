@@ -1,106 +1,106 @@
-# crew 에이전트 구성
+# crew agents
 
-> 확정 2026-11-25
+> Settled 2026-11-25
 
-| 에이전트  | 역할    | 하는 일                                                                                                                                                                  | 받음                           | 줌                 | 도구                                       |
-| --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ | ------------------ | ------------------------------------------ |
-| 통역      | 응대    | • 앱 밖의 일반 질문에 답변<br>• 멤버의 작업을 물으면 그 멤버에게 물어 전달<br>• 요청이 모호하면 되묻기<br>• 지휘가 카드로 물은 것에 채팅으로 답하면 카드에서 고르게 안내 | • 사용자                       | • 사용자           | • 선택지 질문<br>• 멤버 질문               |
-|           | 번역    | • 사용자 요청을 지휘용 지시로 정리 (원문 첨부)<br>• 작업 결과를 사용자가 이해할 말로 보고<br>• 끝난 업무를 고치거나 하던 업무에 더하는 말은 같은 업무로 다시 전달        | • 사용자<br>• 앱 (지휘의 보고) | • 지휘<br>• 사용자 | • 작업 생성<br>• 작업 다시 열기            |
-|           | 앱 지원 | • 앱 기능과 사용법 설명<br>• 사용자 대신 설정 변경, 화면 이동<br>• 멤버가 떠나 멈춘 업무를 다른 멤버에게 넘기고 재개                                                     | • 사용자                       | • 사용자           | • 앱 조작                                  |
-| 지휘      | 계획    | • 요청의 목표와 범위 파악<br>• 할 일을 순서 있는 단계로 나누기<br>• 다시 짜기 (실패, 계획 반려, 요청 변경)                                                               | • 통역                         |                    |                                            |
-|           | 배정    | • 업무 종류, 크기, 단독 담당 정하기<br>• 단계별 담당은 워크플로우대로 앱이 맡김<br>• 동시에 할 일은 앱이 에이전트를 복제해 나눔<br>• 결과물 반려는 앱이 작성에 다시 맡김 |                                | • 실무             | • 실무 호출                                |
-|           | 감독    | • 진행은 앱이 맡고, 막히거나 요청이 바뀌면 이어갈 방법 정하기<br>• 검토, 시험 보고로 목표를 이뤘는지 판단<br>• 사용자만 정할 일은 선택지로 묻기                          | • 실무<br>• 사용자 (카드 답)   | • 통역             | • 선택지 질문                              |
-| 조사      | 수집    | • 웹, 문서, 프로젝트에서 필요한 자료 찾기                                                                                                                                | • 지휘                         |                    | • 웹 검색<br>• PDF와 오피스 읽기           |
-|           | 확인    | • 출처가 공식이고 최신인지 확인                                                                                                                                          |                                |                    | • 웹 검색                                  |
-|           | 보고    | • 찾은 내용을 출처와 함께 전달                                                                                                                                           |                                | • 지휘             |                                            |
-| 코드 작성 | 작성    | • 지시 범위 안에서 코드 작성, 수정<br>• 반려 시 고칠 점만 수정<br>• 빌드가 깨지지 않게 확인                                                                              | • 지휘 (지시, 반려 내용)       |                    | • 명령 실행                                |
-|           | 보고    | • 바뀐 파일 전달                                                                                                                                                         |                                | • 지휘             |                                            |
-| 문서 작성 | 작성    | • 지시 범위 안에서 문서, 자료 작성<br>• 반려 시 고칠 점만 수정                                                                                                           | • 지휘 (지시, 반려 내용)       |                    | • PDF와 오피스 쓰기<br>• 차트, 그림 만들기 |
-|           | 보고    | • 만든 결과물 전달                                                                                                                                                       |                                | • 지휘             |                                            |
-| 코드 검토 | 계획    | • 큰 작업은 시작 전에 계획의 범위와 순서 확인                                                                                                                            | • 지휘 (계획)                  | • 지휘             |                                            |
-|           | 범위    | • 요청에 없는 기능이 추가됐는지 확인<br>• 요청한 기능이 빠졌는지 확인                                                                                                    | • 지휘 (요청, 결과물만)        |                    | • 변경 비교                                |
-|           | 정확성  | • 구현이 의도대로 동작하게 짜였는지 확인<br>• 예외 상황과 오류 처리 확인                                                                                                 |                                |                    | • 변경 비교                                |
-|           | 구조    | • 코딩 스타일을 지키는지 확인<br>• 폴더, 파일 구조를 지키는지 확인<br>• 프론트는 디자인 시스템을 지키는지 확인<br>• 백엔드는 레이어드 아키텍처를 지키는지 확인           |                                |                    | • 변경 비교                                |
-|           | 개선    | • 프로젝트 전체 구조를 보고 고칠 점 제안<br>• 코드는 고치지 않음                                                                                                         | • 지휘                         | • 지휘             |                                            |
-|           | 보고    | • 발견한 문제를 하나씩 상세히 전달 (위치, 현상, 재현 방법, 근거)<br>• 문제마다 심각도 표시 (반드시 고침, 참고)<br>• 반드시 고칠 문제가 있으면 반려, 없으면 통과          |                                | • 지휘             |                                            |
-| 문서 검토 | 범위    | • 요청에 없는 내용이 추가됐는지 확인<br>• 요청한 내용이 빠졌는지 확인                                                                                                    | • 지휘 (요청, 결과물만)        |                    | • PDF와 오피스 읽기                        |
-|           | 정확성  | • 사실과 수치가 맞는지 확인<br>• 앞뒤 내용이 어긋나지 않는지 확인                                                                                                        |                                |                    | • 웹 검색                                  |
-|           | 보고    | • 발견한 문제를 하나씩 상세히 전달 (위치, 현상, 근거)<br>• 문제마다 심각도 표시 (반드시 고침, 참고)<br>• 반드시 고칠 문제가 있으면 반려, 없으면 통과                     |                                | • 지휘             |                                            |
-| 시험      | 실행    | • 테스트 실행<br>• 실제 화면에서 동작 확인                                                                                                                               | • 지휘 (요청, 결과물만)        |                    | • 명령 실행<br>• 화면 캡처                 |
-|           | 보고    | • 실패한 항목을 하나씩 상세히 전달 (위치, 출력, 재현 방법)<br>• 실패마다 심각도 표시 (반드시 고침, 참고)<br>• 반드시 고칠 실패가 있으면 반려, 없으면 통과                |                                | • 지휘             |                                            |
-| 이미지    | 설명    | • 스크린샷, 차트, 사진을 글로 설명                                                                                                                                       | • 실무                         | • 실무             | • 이미지 보기                              |
-| 기록      | 반영    | • 업무가 끝나면 보고, 기억, 바뀐 파일을 위키에 반영<br>• 앱 밖에서 생긴 커밋을 위키에 반영                                                                               | • 앱 (업무 종료, 커밋)         |                    | • 명령 실행 (git log)                      |
-|           | 점검    | • 어긋나는 내용, 낡은 내용, 링크 없는 문서, 문서 없는 주제 찾기<br>• 같은 주제 문서 합치기                                                                               |                                |                    |                                            |
+| Agent       | Role        | What it does                                                                                                                                                                                                                | Takes                                    | Gives                 | Tools                                                |
+| ----------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | --------------------- | ---------------------------------------------------- |
+| Interpreter | Front desk  | • Answers general questions outside the app<br>• Asked about a member's work, asks that member and passes it on<br>• Asks back when a request is unclear<br>• Answered in chat about a conductor's card, points to the card | • User                                   | • User                | • Choice questions<br>• Ask a member                 |
+|             | Translate   | • Turns the user's request into the conductor's brief (original attached)<br>• Reports results in words the user follows<br>• Words that fix a finished task or add to one at work go back as the same task                 | • User<br>• App (the conductor's report) | • Conductor<br>• User | • Start a task<br>• Reopen a task                    |
+|             | App help    | • Explains the app's features and use<br>• Changes settings and moves screens for the user<br>• Hands a task stuck by a member who left to another member and resumes it                                                    | • User                                   | • User                | • App actions                                        |
+| Conductor   | Plan        | • Finds the request's goal and scope<br>• Splits the work into ordered steps<br>• Plans again (failure, plan sent back, request changed)                                                                                    | • Interpreter                            |                       |                                                      |
+|             | Assign      | • Sets the task's kind, size, and lone member<br>• The app gives each step to its workflow's member<br>• Work at the same time goes to copies the app makes<br>• The app hands work sent back to its maker again            | • Interpreter                            | • Workers             | • Call workers                                       |
+|             | Supervise   | • The app runs the steps; decides how to go on when one is stuck or the request changes<br>• Judges from the reviews and tests whether the goal is met<br>• Asks the user, with choices, what only they decide              | • Workers<br>• User (card answers)       | • Interpreter         | • Choice questions                                   |
+| Researcher  | Gather      | • Finds what is needed on the web, in documents, and in the project                                                                                                                                                         | • Conductor                              |                       | • Web search<br>• Read PDF and Office                |
+|             | Check       | • Checks that sources are official and current                                                                                                                                                                              |                                          |                       | • Web search                                         |
+|             | Report      | • Passes on what it found, with sources                                                                                                                                                                                     |                                          | • Conductor           |                                                      |
+| Coder       | Write       | • Writes and changes code within the brief<br>• Sent back, fixes only the points raised<br>• Keeps the build working                                                                                                        | • Conductor (brief, points sent back)    |                       | • Run commands                                       |
+|             | Report      | • Passes on the files it changed                                                                                                                                                                                            |                                          | • Conductor           |                                                      |
+| Writer      | Write       | • Writes documents and material within the brief<br>• Sent back, fixes only the points raised                                                                                                                               | • Conductor (brief, points sent back)    |                       | • Write PDF and Office<br>• Make charts and pictures |
+|             | Report      | • Passes on what it made                                                                                                                                                                                                    |                                          | • Conductor           |                                                      |
+| Reviewer    | Plan        | • Before big work starts, checks the plan's scope and order                                                                                                                                                                 | • Conductor (plan)                       | • Conductor           |                                                      |
+|             | Scope       | • Checks for features the request did not ask for<br>• Checks for features the request asked for that are missing                                                                                                           | • Conductor (request and result only)    |                       | • Compare changes                                    |
+|             | Correctness | • Checks the code does what it means to<br>• Checks edge cases and error handling                                                                                                                                           |                                          |                       | • Compare changes                                    |
+|             | Structure   | • Checks the coding style<br>• Checks the folder and file layout<br>• Front end: checks the design system<br>• Back end: checks the layered architecture                                                                    |                                          |                       | • Compare changes                                    |
+|             | Improve     | • Looks at the whole project and suggests what to fix<br>• Changes no code                                                                                                                                                  | • Conductor                              | • Conductor           |                                                      |
+|             | Report      | • Each problem in detail (where, what, how to reproduce, why)<br>• A severity on each (must fix, note)<br>• Sends back if anything must be fixed, passes otherwise                                                          |                                          | • Conductor           |                                                      |
+| Proofreader | Scope       | • Checks for content the request did not ask for<br>• Checks for content the request asked for that is missing                                                                                                              | • Conductor (request and result only)    |                       | • Read PDF and Office                                |
+|             | Correctness | • Checks facts and figures<br>• Checks the parts agree with each other                                                                                                                                                      |                                          |                       | • Web search                                         |
+|             | Report      | • Each problem in detail (where, what, why)<br>• A severity on each (must fix, note)<br>• Sends back if anything must be fixed, passes otherwise                                                                            |                                          | • Conductor           |                                                      |
+| Tester      | Run         | • Runs the tests<br>• Checks the behavior on the real screen                                                                                                                                                                | • Conductor (request and result only)    |                       | • Run commands<br>• Screenshots                      |
+|             | Report      | • Each failure in detail (where, output, how to reproduce)<br>• A severity on each (must fix, note)<br>• Sends back if anything must be fixed, passes otherwise                                                             |                                          | • Conductor           |                                                      |
+| Images      | Describe    | • Describes screenshots, charts, and photos in words                                                                                                                                                                        | • Workers                                | • Workers             | • View images                                        |
+| Librarian   | Record      | • When a task ends, records its report, memories, and changed files in the wiki<br>• Records commits made outside the app                                                                                                   | • App (task ends, commits)               |                       | • Run commands (git log)                             |
+|             | Tidy        | • Finds clashing, stale, and unlinked documents, and topics with none<br>• Merges documents on the same topic                                                                                                               |                                          |                       |                                                      |
 
-실무는 조사, 코드 작성, 문서 작성, 코드 검토, 문서 검토, 시험을 말한다. 파일 검색, 읽기, 쓰기, 위키 읽기, 기억은 모두에게 있어 생략했다.
+Workers are the researcher, coder, writer, reviewer, proofreader, and tester. Searching, reading, and writing files, reading the wiki, and memory are everyone's, so they are left out.
 
-| 에이전트  | 스킬                                           | 쓰기        | 시작 모델 |
-| --------- | ---------------------------------------------- | ----------- | --------- |
-| 통역      | brief                                          | 없음        | Sonnet    |
-| 지휘      | plan                                           | 결과물 폴더 | Opus      |
-| 조사      | research                                       | 결과물 폴더 | Sonnet    |
-| 코드 작성 | code, conventions                              | 프로젝트    | Sonnet    |
-| 문서 작성 | write                                          | 프로젝트    | Sonnet    |
-| 코드 검토 | plan-review, code-review, conventions, verdict | 결과물 폴더 | Opus      |
-| 문서 검토 | doc-review, verdict                            | 결과물 폴더 | Sonnet    |
-| 시험      | verify, verdict                                | 결과물 폴더 | Haiku     |
-| 이미지    | image                                          | 결과물 폴더 | Sonnet    |
-| 기록      | wiki                                           | 위키만      | Sonnet    |
+| Agent       | Skills                                         | Writes        | Starting model |
+| ----------- | ---------------------------------------------- | ------------- | -------------- |
+| Interpreter | brief                                          | Nothing       | Sonnet         |
+| Conductor   | plan                                           | Output folder | Opus           |
+| Researcher  | research                                       | Output folder | Sonnet         |
+| Coder       | code, conventions                              | Project       | Sonnet         |
+| Writer      | write                                          | Project       | Sonnet         |
+| Reviewer    | plan-review, code-review, conventions, verdict | Output folder | Opus           |
+| Proofreader | doc-review, verdict                            | Output folder | Sonnet         |
+| Tester      | verify, verdict                                | Output folder | Haiku          |
+| Images      | image                                          | Output folder | Sonnet         |
+| Librarian   | wiki                                           | Wiki only     | Sonnet         |
 
-**워크플로우**
+**Workflows**
 
-- 모든 업무는 배정 (지휘)으로 시작한다. 통역은 요청만 넘긴다.
-- 모든 단계가 통과하면 감독 (지휘)이 끝낼지, 되돌릴지, 다시 계획할지, 멈출지 정한다.
-- 코드 변경: 계획 (지휘) → 계획 검토 (코드 검토) → 작성 (코드 작성) → 검토 (코드 검토), 시험 (시험) 동시
-  - 작은 변경은 계획과 계획 검토를 건너뛴다.
-- 문서 작성: 작성 (문서 작성) → 검토 (문서 검토)
-- 조사: 조사 (조사)
-- 개선 제안: 구조 검토 (코드 검토)
-- 지휘가 한 에이전트에게만 맡긴 일은 한 단계로 끝난다.
+- Every task starts with assign (conductor). The interpreter passes on the request only.
+- Once every step passes, judge (conductor) decides to finish, send back, plan again, or stop.
+- Code change: plan (conductor) → plan review (reviewer) → develop (coder) → code review (reviewer) and test (tester) together
+  - A small change skips the plan and the plan review.
+- Document: write (writer) → doc review (proofreader)
+- Research: research (researcher)
+- Improvement: structure review (reviewer)
+- Work the conductor gives one agent alone is one step.
 
-**설명**
+**Why**
 
-- 번역: 원문을 함께 넘겨, 지휘가 해석이 틀렸는지 비교할 수 있게 한다.
-- 계획: 결과물 반려는 작성이 고친다. 반려가 횟수 제한을 넘으면 계획이 다시 짠다. 계획이 없는 업무는 감독이 다른 방법으로 되돌리거나 멈춘다.
-- 배정: 복제는 원본과 정의가 같아 승인이 필요 없고, 작업이 끝나면 사라진다.
-- 검토, 시험: 가장 중요한 단계다. 검토는 읽어서, 시험은 돌려서 확인한다.
-  - 요청에 없는 것을 "빠졌다"고 지적하지 않고, 요청 밖으로 추가된 것은 반려한다.
-  - 작성 쪽의 설명은 보지 않고 요청과 결과물만 본다. 설명에 끌려가지 않기 위해서다.
-  - "참고"를 따로 두는 것은 사소한 지적으로 기능이 늘지 않게 하기 위해서다.
-  - 코드 검토의 구조 기준은 프로젝트에 정해진 규칙이다. 규칙에 없는 취향은 "참고"로만 적는다.
-- 작성: 더 좋아 보이는 것이 있으면 만들지 말고 보고에 제안으로만 적는다.
-- 이미지: 텍스트 전용 모델로 도는 실무가 이미지를 다뤄야 할 때 부른다.
-- 실무끼리 묻기: 작업 중 막히면 동료 실무에게 직접 묻는다. 일하는 중인 동료와 자기 자신에게는 묻지 않는다.
+- Translate: the original goes along, so the conductor can check the reading against it.
+- Plan: work sent back is fixed by its maker. Sent back past the limit, the plan is made again. A task with no plan is sent back another way or stopped by judge.
+- Assign: a copy has its original's definition, so it needs no approval, and it leaves when the task ends.
+- Review and test: the most important steps. A review checks by reading, a test by running.
+  - Nothing the request did not ask for is called "missing", and anything added beyond the request is sent back.
+  - The maker's own account is not read, only the request and the result, so it cannot lead the check.
+  - "Note" is its own severity so small points do not grow the feature.
+  - The reviewer's structure rules are the project's own. A taste no rule states is only a "note".
+- Write: something that looks better is suggested in the report, not built.
+- Images: called when a worker on a text-only model has to deal with a picture.
+- Asking a peer: a worker stuck mid-step asks a fellow worker directly, never one at work and never itself.
 
-**규칙**
+**Rules**
 
-- 지휘는 대화 세션마다 하나다. 업무가 동시에 돌면 복제 지휘가 나눠 맡는다.
-- 요청이 바뀌면 통역이 그 작업의 지휘에 전하고, 지휘가 다시 계획한다. 별개의 요청이면 통역이 새 업무를 연다.
-- 프로젝트 파일은 코드 작성, 문서 작성만 고친다.
-- 스킬과 도구는 작업 중에 바꾸지 않는다. 사용자만 바꾼다.
-- 반려는 단계마다 정해진 횟수까지다. 넘거나, 바뀐 것 없이 또 반려되면 지휘가 한 번 다시 계획한다. 다시 넘으면 멈추고 사용자에게 보고한다.
-- 실패한 실행은 잠시 뒤 다시 시도한다.
+- There is one conductor per chat session. Tasks at the same time are shared by conductor copies.
+- A changed request goes from the interpreter to that task's conductor, who plans again. A separate request gets a new task.
+- Only the coder and the writer change project files.
+- Skills and tools never change mid-task. Only the user changes them.
+- Each step may be sent back a set number of times. Past it, or sent back again with nothing changed, the conductor plans again once. Past it again, the task stops and the user is told.
+- A failed run is tried again after a wait.
 
-**기억**
+**Memory**
 
-- 각 에이전트는 다음 실행에 자기만 필요한 것을 기억한다. 사용자가 알려 준 취향, 이 프로젝트에서 되는 명령 같은 것이다.
-- 기억은 에이전트마다 한 파일, 프로젝트 루트의 `.crew/memory/<에이전트>.md`에 저장한다. 복제는 원본의 파일을 쓴다.
-- 남길 때: 사용자가 취향이나 방식을 알려 줄 때, 반려되거나 바로잡혔을 때, 직접 돌려서 되는 명령이나 우회법을 찾았을 때
-- 남기지 않는 것: 이번 작업에서만 의미 있는 진행 상황. 같은 줄을 다시 적지 않고 틀린 줄을 고친다.
-- 인계 직전에 정리한다.
-- 프로젝트에 관한 사실은 기억이 아니라 위키에 쓴다.
+- Each agent remembers what only it needs on its next run: tastes the user told it, commands that work in this project.
+- Memory is one file per agent, `.crew/memory/<agent>.md` at the project root. A copy uses its original's.
+- Kept: when the user states a taste or a way of working, when sent back or corrected, when a command or a workaround is found to work
+- Not kept: progress that matters only to this task. A line is never written twice, and a wrong one is fixed.
+- Tidied just before handing back.
+- Facts about the project go in the wiki, not memory.
 
-**위키**
+**Wiki**
 
-- 카파시의 LLM Wiki를 따른다. 원본은 그대로 두고, 위키는 기록만 쓰고, 새 원본이 생길 때마다 반영한다.
-- 원본: 각 에이전트의 기억, 프로젝트 파일, 커밋 메시지, 업무 보고. 기록은 읽기만 한다.
-- 위키는 프로젝트 루트의 `.crew/wiki/`에 문서마다 한 파일로 두고 `[[제목]]`으로 잇는다. 이 링크가 그래프가 된다.
-- `index.md`(문서마다 링크와 첫 줄)와 `log.md`(변경 기록)는 앱이 만든다. 다른 에이전트는 실행할 때 이 목록을 받는다.
-- 기록은 업무와 따로 돈다. 업무가 끝날 때, 그리고 앱을 켤 때 앱 밖에서 생긴 커밋이 있으면 돈다. 처음 여는 프로젝트는 지금 커밋만 기억하고 지난 기록은 읽지 않는다.
-- 다른 에이전트는 위키를 읽기만 하고, 남길 만한 것은 인계에 적는다.
-- 사용자는 화면에서 읽고, 파일을 직접 고칠 수 있다.
+- Follows Karpathy's LLM Wiki: sources stay as they are, only the librarian writes the wiki, and every new source is taken in.
+- Sources: each agent's memory, the project files, commit messages, and task reports. The librarian only reads them.
+- The wiki is one file per document in `.crew/wiki/` at the project root, linked with `[[title]]`. The links are the graph.
+- `index.md` (each document's link and first line) and `log.md` (the change log) are made by the app. Other agents get the list on each run.
+- The librarian runs apart from tasks: when a task ends, and at start when commits were made outside the app. A project opened the first time only marks the current commit and reads no history.
+- Other agents only read the wiki, and put what is worth keeping in their handback.
+- The user reads it on screen and may edit the files directly.
 
-**이번에 정하지 않음**
+**Not settled yet**
 
-- 추론 강도
-- 에이전트끼리 주고받은 원문을 사용자에게 보여 줄지
+- Reasoning effort
+- Whether to show the user what agents said to each other

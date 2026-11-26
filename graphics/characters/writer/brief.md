@@ -2,7 +2,7 @@
 
 ## Code figure
 
-Made like the others (see graphics/README.md "캐릭터 만들기"): `trace.py writer` traces every sheet at its own size and repaints each material in three flat shades.
+Made like the others (see graphics/README.md "Making characters"): `trace.py writer` traces every sheet at its own size and repaints each material in three flat shades.
 
 - Materials: copper hair and brick coat are near in hue; the hair is a touch yellower and only the braid falls past the jaw, so rows part them (hair to 22 rows below the crown, the braid to 29). Cream blouse and cuffs as ivory, plum sash, dull dark-brown trousers, tan belt, pen case, and boots as leather, and the coat's tan trim and brass pin as one-pixel-thin gold.
 - The coat's dark folds and the hair's dark strands are drawn as outline, so the cloth stays clean and the hair keeps its strands rather than going flat.

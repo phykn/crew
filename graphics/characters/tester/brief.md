@@ -2,7 +2,7 @@
 
 ## Code figure
 
-Made like the others (see graphics/README.md "캐릭터 만들기"): `trace.py tester` traces every sheet at its own size and repaints each material in three flat shades.
+Made like the others (see graphics/README.md "Making characters"): `trace.py tester` traces every sheet at its own size and repaints each material in three flat shades.
 
 - Materials: sandy hair and tan skin share one warm hue and are parted by hue, saturation, and value within 21 rows of the crown; mustard vest, ivory shirt (its greyer tan shadows down to the cuffs), petrol-blue scarf, olive trousers, brown boots and belt as leather, and the turquoise vial.
 - The trousers' darker olive folds and seams are drawn as outline, so the cloth stays clean.
