@@ -97,7 +97,7 @@ export class Crew {
         ...d.mcp.filter((s) => !this.serverNames.includes(s)),
       ];
       if (unknown.length)
-        throw new Error(`${d.key}.md names skills or servers the crew does not have: ${unknown.join(', ')}`);
+        throw new Error(`agents.json gives ${d.key} skills or servers the crew does not have: ${unknown.join(', ')}`);
     }
   }
 
