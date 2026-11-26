@@ -15,6 +15,9 @@ def kind(r, g, b, h, s, v, L, y, top):
         return 'gold'
     if s < 0.32 and v > 0.6:
         return 'ivory'
+    # The blouse's, cuffs', and wand's grey folds are drawn as lines, so the three stay apart where they overlap
+    if s < 0.32 and top + 22 <= y <= top + 42:
+        return 'line'
     if s < 0.45 and v < 0.45:
         return 'legs'
     return 'leather'
