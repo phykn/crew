@@ -1122,7 +1122,7 @@ code {
 }
 .tree-agent {
   display: grid;
-  grid-template-columns: var(--w-tree-role) minmax(0, 1fr) max-content;
+  grid-template-columns: var(--w-tree-role) minmax(0, 1fr) var(--w-tree-runs);
   column-gap: var(--sp-2);
   align-items: center;
   justify-items: start;

@@ -35,7 +35,6 @@ export function Permissions({ memberId }: { memberId: number }) {
   const [data, setData] = useState<Data | null>(null);
   // Only the skills a member holds show until the full list is asked for
   const [allSkills, setAllSkills] = useState(false);
-  const load = () => call('members.permissions', { id: memberId }).then(setData);
   useEffect(() => {
     setAllSkills(false);
     // A reset or a change from another window shows here too
@@ -48,10 +47,8 @@ export function Permissions({ memberId }: { memberId: number }) {
   if (!data) return null;
   const { settings, kit } = data;
 
-  async function save(config: Config) {
-    await call('members.setPermissions', { id: memberId, config });
-    await load();
-  }
+  // The change comes back through the members feed, which follow reads
+  const save = (config: Config) => call('members.setPermissions', { id: memberId, config });
   const toggle = <T,>(list: T[], item: T) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
   const skills = kit.skills
     .filter((name) => allSkills || settings.skills.includes(name))

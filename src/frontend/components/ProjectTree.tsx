@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { call } from '../api';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -32,13 +32,17 @@ export function ProjectTree({
     if (open) load();
   }, [open]);
 
+  // The counts asked for last; a reply for an earlier target, or counts kept from one, never show under another
+  const asked = useRef<Target | null>(null);
   async function ask(t: Target) {
+    asked.current = t;
     setTarget(t);
-    setImpact(
+    setImpact(null);
+    const counts =
       t.kind === 'session'
         ? await call('sessions.impact', { sessionId: t.id })
-        : await call('projects.impact', { projectId: t.id }),
-    );
+        : await call('projects.impact', { projectId: t.id });
+    if (asked.current === t) setImpact(counts);
   }
 
   async function confirm() {

@@ -5,12 +5,6 @@ const ICONS: Record<string, React.ReactNode> = {
   code: <path d="M7.5 6L4 10l3.5 4M12.5 6L16 10l-3.5 4" />,
   clipboard: <path d="M7.5 3.5h5v3h-5zM7.5 5H5v11.5h10V5h-2.5M7.5 11l2 2 3.5-3.5" />,
   ruler: <path d="M3 13L13 3l4 4L7 17zM6 10l1.5 1.5M8.5 7.5L10 9M11 5l1.5 1.5" />,
-  wrench: (
-    <path
-      d="M13.5 3.5a3.5 3.5 0 0 0-3.3 4.7L4 14.4 5.6 16l6.2-6.2a3.5 3.5 0 0 0 4.7-3.3l-2 2-2-2z"
-      fill="currentColor"
-    />
-  ),
   eye: (
     <>
       <path d="M2.5 10s3-5 7.5-5 7.5 5 7.5 5-3 5-7.5 5-7.5-5-7.5-5z" />
@@ -40,13 +34,6 @@ const ICONS: Record<string, React.ReactNode> = {
       <circle cx="13" cy="7.5" r="1.2" fill="currentColor" />
     </>
   ),
-  user: (
-    <>
-      <circle cx="10" cy="7" r="3" />
-      <path d="M4 16.5a6 6 0 0 1 12 0" />
-    </>
-  ),
-  puzzle: <path d="M4 7h3a2 2 0 1 1 4 0h3v3a2 2 0 1 1 0 4v3h-3a2 2 0 1 0-4 0H4v-3a2 2 0 1 0 0-4z" />,
   scroll: <path d="M6 4h9v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1h9v1a2 2 0 0 0 2 2M6 4a2 2 0 0 0-2 2v7M9 8h3M9 11h3" />,
   browser: (
     <>

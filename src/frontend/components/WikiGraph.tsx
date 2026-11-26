@@ -8,10 +8,10 @@ import { t } from '../lang';
 export type Graph = Awaited<ReturnType<typeof call<'wiki.graph'>>>;
 type DocNode = Node<{ title: string; missing: boolean }, 'doc'>;
 
-// The wiki as a graph: each document a dot, each [[link]] a line; a dashed dot is a topic linked to but not written
 // The library's corner link is left out of a canvas the user works in
 export const HIDE_MARK = { hideAttribution: true };
 
+// The wiki as a graph: each document a dot, each [[link]] a line; a dashed dot is a topic linked to but not written
 export function WikiGraph({ graph, onOpen }: { graph: Graph; onOpen: (title: string) => void }) {
   const nodes = useMemo<DocNode[]>(() => {
     const at = spread(
