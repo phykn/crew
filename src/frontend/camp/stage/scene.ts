@@ -3,6 +3,9 @@ import { FIRE, PROPS, TORCHES, WILDS } from '../layout.js';
 import { iso } from '../projection.js';
 import { depthOf } from '../figure.js';
 import { drawProp } from '../art/props.js';
+import { keepPicture } from '../art/solids.js';
+// Inlined, since the window is a file and a worker loaded from a file is refused
+import SolidsWorker from './solids.worker.js?worker&inline';
 import { paintGround } from '../art/ground.js';
 import { grain, rim } from '../art/finish.js';
 import { bake, bakeTight } from './bake';
@@ -12,6 +15,7 @@ import { createLabels } from './labels';
 import { PersonView, type Person } from './people';
 
 type Piece = { kind: string; x: number; y: number; w?: number; h?: number };
+type Picture = { k: number; dx: number; dy: number; canvas: ImageBitmap };
 
 // Each piece gets texture in its surfaces, light on its top edges, and less light near the ground, where the sky is hidden
 function finish(seed: number) {
@@ -72,10 +76,41 @@ export function createScene(renderer: Renderer, box: Box) {
     items.addChild(s);
     baked.push(made.texture);
   };
-  // Solids take a while to paint, so they are baked a few each frame, nearest the fire first, and the window never
-  // stalls; a resize finds most of them already painted
+  // Solids take a while to paint, so workers paint them, nearest the fire first, and each is baked as its pictures
+  // arrive; without workers they are baked a few each frame instead. A resize finds most already painted
   const near = (d: Piece) => Math.hypot(d.x - FIRE.x, d.y - FIRE.y);
   const pending = pieces.map((d, i) => [d, i] as const).sort(([a], [b]) => near(a) - near(b));
+  const level = Math.min(4, Math.ceil(res - 0.05)),
+    workers = new Map<Worker, (typeof pending)[number] | undefined>();
+  let alive = true;
+  const next = (w: Worker) => {
+    const job = pending.shift();
+    workers.set(w, job);
+    if (!job) return w.terminate();
+    const { kind, x, y, w: dw, h, size, wood } = job[0] as Piece & { size?: number; wood?: boolean };
+    w.postMessage({ d: { kind, x, y, w: dw, h, size, wood }, ks: [1, level], i: job[1] });
+  };
+  for (let n = 0; n < Math.max(1, Math.min(4, navigator.hardwareConcurrency - 1)); n++) {
+    try {
+      const w = new SolidsWorker();
+      w.onmessage = ({ data }: MessageEvent<{ name: string; i: number; pictures: Picture[] }>) => {
+        if (!alive) return;
+        for (const p of data.pictures) keepPicture(data.name, p.k, p);
+        bakePiece(pieces[data.i], data.i);
+        next(w);
+      };
+      // A worker that fails leaves its job to the frames
+      w.onerror = () => {
+        const job = workers.get(w);
+        if (job) pending.unshift(job);
+        workers.delete(w);
+      };
+      workers.set(w, undefined);
+      next(w);
+    } catch {
+      break;
+    }
+  }
 
   const light = createLight(renderer, box, [...probe.casters, ...TORCH_CASTERS]);
   const flames = createFlames(items);
@@ -89,8 +124,9 @@ export function createScene(renderer: Renderer, box: Box) {
     root,
     shade: light.shade,
     draw(people: Map<string, Person>, now: number) {
-      for (const until = performance.now() + 8; pending.length && performance.now() < until; )
-        bakePiece(...pending.shift()!);
+      if (!workers.size)
+        for (const until = performance.now() + 8; pending.length && performance.now() < until; )
+          bakePiece(...pending.shift()!);
       const here = new Set(people.values());
       for (const p of here) {
         if (!views.has(p)) views.set(p, new PersonView(items));
@@ -106,6 +142,8 @@ export function createScene(renderer: Renderer, box: Box) {
       labels.draw(here, now);
     },
     destroy() {
+      alive = false;
+      workers.forEach((_, w) => w.terminate());
       views.forEach((v) => v.destroy());
       light.destroy();
       root.destroy({ children: true });

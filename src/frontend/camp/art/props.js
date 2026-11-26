@@ -642,5 +642,5 @@ const PAINT = {
   hearth,
 };
 // A prop's look depends only on what it is and where it stands
-export const drawProp = (ctx, d) =>
-  inPlace([d.kind, d.x, d.y, d.w, d.h, d.size, d.wood].join(), () => PAINT[d.kind](ctx, d));
+export const placeOf = (d) => [d.kind, d.x, d.y, d.w, d.h, d.size, d.wood].join();
+export const drawProp = (ctx, d) => inPlace(placeOf(d), () => PAINT[d.kind](ctx, d));

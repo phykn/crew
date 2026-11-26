@@ -174,6 +174,10 @@ export function inPlace(name, draw) {
   }
 }
 
+// The picture kept for a prop's place at a scale, which a worker paints and hands to the window
+export const pictureOf = (name, k) => kept.get(`${name}@${k}`);
+export const keepPicture = (name, k, picture) => kept.set(`${name}@${k}`, picture);
+
 // key, when given, names solids that look the same wherever they stand once out of the flames' reach
 export function drawSolids(ctx, parts, bounds, key) {
   // The light probe only collects what blocks the flames
@@ -196,6 +200,7 @@ export function drawSolids(ctx, parts, bounds, key) {
     shared = key && unlit && `${key}@${k}`,
     again = (own && kept.get(own)) || (shared && kept.get(shared));
   if (again) {
+    if (own) kept.set(own, again);
     ctx.drawImage(
       again.canvas,
       Math.round(anchor.x + again.dx),
@@ -311,7 +316,8 @@ export function drawSolids(ctx, parts, bounds, key) {
       const tint = 0.15 * f;
       img.data.set([...c.map((v, k) => Math.round(v + (FLAME[k] - v) * tint)), 255], at * 4);
     }
-  const canvas = Object.assign(document.createElement('canvas'), { width: W, height: H });
+  // An offscreen canvas, so a worker can paint solids too
+  const canvas = new OffscreenCanvas(W, H);
   canvas.getContext('2d').putImageData(img, 0, 0);
   ctx.drawImage(canvas, x0, y0, W / k, H / k);
   const picture = { canvas, dx: x0 - anchor.x, dy: y0 - anchor.y };
