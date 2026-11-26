@@ -52,7 +52,12 @@ function firelit(ctx, face, facing) {
 export function shadow(ctx, x, y, rx, ry, h = 0) {
   const p = iso(x, y);
   blot(ctx, p.x, p.y, rx * 0.85, ry * 0.9, 0.5, 0.7);
-  if (h && ctx.casters) ctx.casters.push({ x, y, r: rx / TW, h });
+  if (h) cast(ctx, x, y, rx, h);
+}
+
+// Only the flames' long shadow, for a solid that lays its own spot on the ground
+export function cast(ctx, x, y, rx, h) {
+  ctx.casters?.push({ x, y, r: rx / TW, h });
 }
 
 // A long thing, such as a bench or a log, from its footprint: its spot lies along it on the ground, and it blocks light
@@ -63,6 +68,11 @@ export function longShadow(ctx, x, y, w, h, height) {
   ctx.transform(TW / 2, TH / 2, -TW / 2, TH / 2, c.x, c.y);
   blot(ctx, 0, 0, w / 2 + 0.2, h / 2 + 0.2, 0.5, 0.7);
   ctx.restore();
+  longCast(ctx, x, y, w, h, height);
+}
+
+// Only the flames' shadow along a long thing, for a solid that lays its own spot on the ground
+export function longCast(ctx, x, y, w, h, height) {
   if (!ctx.casters) return;
   const long = w > h,
     n = Math.max(1, Math.round(Math.max(w, h) / 0.4)),

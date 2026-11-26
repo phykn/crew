@@ -1,6 +1,6 @@
 import { iso } from '../projection.js';
 import { COLOR as C } from '../tokens.js';
-import { TAU, longShadow, poly, shadow } from './shapes.js';
+import { TAU, cast, longCast, longShadow, poly, shadow } from './shapes.js';
 import { SEAT_Z } from '../figure.js';
 import { BARK, CANVAS, GLOW, HAY, IRON, ROCK, U, WATER, WOOD, box, drawSolids, facets, rod, round } from './solids.js';
 
@@ -63,7 +63,7 @@ function fern(ctx, d) {
 // A fallen log to sit on: one round trunk, a little thinner toward its far end and sunk into the ground, three furrows
 // along its bark, and a cut end with two growth rings round a dark heart
 function log(ctx, d) {
-  longShadow(ctx, d.x, d.y, d.w, d.h, 10);
+  longCast(ctx, d.x, d.y, d.w, d.h, 10);
   const R = 5,
     half = (d.w * U) / 2,
     c = [d.x * U + half, (d.y + d.h / 2) * U, R * 0.9];
@@ -96,7 +96,7 @@ function log(ctx, d) {
 // A barrel: staves bellied out between a narrower foot and lid, a seam between each pair, two iron hoops, and a lid
 // sunk in a darker rim
 function drum(ctx, d) {
-  shadow(ctx, d.x + 0.15, d.y + 0.15, 12, 4.5, 22);
+  cast(ctx, d.x + 0.15, d.y + 0.15, 12, 22);
   const H = 20,
     r0 = 5,
     belly = 1.8,
@@ -128,7 +128,7 @@ function drum(ctx, d) {
 // A well: a round wall of three stone courses with staggered joints round dark water, two posts on its rim under a
 // beam, and a bucket hanging from the beam on its rope
 function well(ctx, d) {
-  shadow(ctx, d.x + 0.3, d.y + 0.3, 30, 13, 40);
+  cast(ctx, d.x + 0.3, d.y + 0.3, 30, 40);
   const c = [d.x * U, d.y * U],
     out = 17,
     inner = 12.5,
@@ -182,7 +182,7 @@ function bench(ctx, d) {
   const { x, y, w, h } = d,
     leg = 0.18,
     long = w > h;
-  longShadow(ctx, x, y, w, h, SEAT_Z + 2);
+  longCast(ctx, x, y, w, h, SEAT_Z + 2);
   const parts = [];
   if (d.wood) {
     for (const [lx, ly] of [
@@ -221,7 +221,7 @@ function rock(ctx, d) {
   const s = d.size ?? 1,
     r = [9.5 * s, 7.5 * s, 5 * s],
     c = [d.x * U, d.y * U, 0.5 * s];
-  shadow(ctx, d.x + 0.2, d.y + 0.2, 15 * s, 5 * s, 14 * s);
+  cast(ctx, d.x + 0.2, d.y + 0.2, 15 * s, 14 * s);
   // A face's direction and how deep it is cut; fewer, larger faces toward the top keep the stone calm
   const faces = [
     [0, 0, 1, 0.9],
@@ -289,7 +289,7 @@ function tent(ctx, d) {
     W = 1.6 * U,
     H = 26,
     c = [d.x * U, d.y * U];
-  shadow(ctx, d.x + 0.3, d.y + 0.3, 30, 12, 26);
+  cast(ctx, d.x + 0.3, d.y + 0.3, 30, 26);
   const slopeLen = Math.hypot(H, W / 2);
   const parts = [
     {
@@ -336,7 +336,7 @@ function wagon(ctx, d) {
   const L = 2.4 * U,
     W = 1.1 * U,
     c = [d.x * U, d.y * U];
-  shadow(ctx, d.x + 0.3, d.y + 0.3, 34, 12, 32);
+  cast(ctx, d.x + 0.3, d.y + 0.3, 34, 32);
   const hood = { a: W / 2, b: 17 },
     end = L / 2 - 0.15 * U;
   const parts = [
@@ -391,7 +391,7 @@ function wagon(ctx, d) {
 // Crates as the approved art draws them: a lid of three planks, plank faces held in a paler frame, a brace on the
 // near face, and nails on the lid and the near face's top
 function crates(ctx, d) {
-  shadow(ctx, d.x + 0.3, d.y + 0.3, 20, 7, 20);
+  cast(ctx, d.x + 0.3, d.y + 0.3, 20, 20);
   const S = 0.6 * U,
     H = 10;
   const crate = (x, y, z0) => {
@@ -438,7 +438,7 @@ function hay(ctx, d) {
     W = 0.6 * U,
     H = 10,
     c = [d.x * U, d.y * U, H / 2];
-  shadow(ctx, d.x + 0.2, d.y + 0.25, 16, 6, 15);
+  cast(ctx, d.x + 0.2, d.y + 0.25, 16, 15);
   const part = {
     sdf: box(c, [L / 2, W / 2, H / 2], 1.6),
     paint: (p, n, light) => {
@@ -464,7 +464,7 @@ function hay(ctx, d) {
 // A woodpile: five round logs, three under two, each top log in the notch of the two below; a cut end shows its
 // rim of bark and one growth ring
 function woodpile(ctx, d) {
-  shadow(ctx, d.x - 0.05, d.y + 0.1, 20, 7, 15);
+  cast(ctx, d.x - 0.05, d.y + 0.1, 20, 15);
   const R = 0.21 * U,
     half = 0.27 * U,
     cx = (d.x - 0.05) * U,

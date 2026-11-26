@@ -52,6 +52,21 @@ const warmth = (p, n) => {
   return Math.min(1, sum);
 };
 
+// The sky's light comes from behind the camp, so a solid's spot on the ground falls a little toward the viewer
+const SKY = [-0.3, -0.3, 1].map((v) => v / Math.hypot(0.3, 0.3, 1));
+// How dark the ground is at g: soft where the path toward the sky passes close to a solid, and darkest at its foot
+const groundShade = (g, dist, far) => {
+  let open = 1;
+  for (let t = 0.5, n = 0; n < 48 && t < far; n++) {
+    const d = dist([g[0] + SKY[0] * t, g[1] + SKY[1] * t, SKY[2] * t]);
+    if (d < 0.02) return 0.6;
+    open = Math.min(open, (8 * d) / t);
+    t += Math.max(d, 0.4);
+  }
+  const foot = Math.max(0, 1 - dist([g[0], g[1], 1]) / 4);
+  return 0.6 * Math.max(1 - Math.min(1, open), foot * 0.8);
+};
+
 // The ground point (in tiles) under a screen point, from the projection's own axes
 const o = iso(0, 0, 0),
   ax = { x: iso(1, 0, 0).x - o.x, y: iso(1, 0, 0).y - o.y },
@@ -113,10 +128,15 @@ export function rod(a, b, r) {
 
 // parts: [{ sdf, paint(p, n, light) -> [shades, step] }], bounds: [[x, y, z], [x, y, z]] in units
 export function drawSolids(ctx, parts, bounds) {
+  // The frame also holds the spot the solids lay on the ground, which reaches out away from the sky's light
+  const top = bounds[1][2] + 2,
+    reach = (top / SKY[2]) * Math.hypot(SKY[0], SKY[1]),
+    box = [
+      [bounds[0][0] - 4, bounds[0][1] - 4, 0],
+      [bounds[1][0] + reach + 4, bounds[1][1] + reach + 4, bounds[1][2]],
+    ];
   const k = Math.min(4, ctx.getTransform().a),
-    corners = [0, 1, 2, 3, 4, 5, 6, 7].map((n) =>
-      iso(bounds[n & 1][0] / U, bounds[(n >> 1) & 1][1] / U, bounds[n >> 2][2]),
-    ),
+    corners = [0, 1, 2, 3, 4, 5, 6, 7].map((n) => iso(box[n & 1][0] / U, box[(n >> 1) & 1][1] / U, box[n >> 2][2])),
     x0 = Math.floor(Math.min(...corners.map((p) => p.x))) - 1,
     y0 = Math.floor(Math.min(...corners.map((p) => p.y))) - 1,
     w = Math.ceil(Math.max(...corners.map((p) => p.x)) - x0) + 2,
@@ -125,7 +145,8 @@ export function drawSolids(ctx, parts, bounds) {
     H = Math.ceil(h * k);
   const warm = new Float32Array(W * H),
     depth = new Float32Array(W * H).fill(-Infinity),
-    hits = Array.from({ length: W * H });
+    hits = Array.from({ length: W * H }),
+    dark = new Float32Array(W * H);
   const scene = (p) => {
     let best = Infinity,
       part = null;
@@ -135,11 +156,11 @@ export function drawSolids(ctx, parts, bounds) {
     }
     return [best, part];
   };
-  const top = bounds[1][2] + 2;
   for (let j = 0; j < H; j++)
     for (let i = 0; i < W; i++) {
       const [gx, gy] = ground(x0 + (i + 0.5) / k, y0 + (j + 0.5) / k);
       // Along the ray every unit up is also a unit toward +x and +y, so the point keeps its place on screen
+      let hit = false;
       for (let s = top, n = 0; n < 120 && s > -1; n++) {
         const p = [gx + s, gy + s, s],
           [d, part] = scene(p);
@@ -157,11 +178,13 @@ export function drawSolids(ctx, parts, bounds) {
           depth[j * W + i] = s;
           warm[j * W + i] = warmth(p, nrm);
           hits[j * W + i] = part.paint(p, nrm, shade(nrm));
+          hit = true;
           break;
         }
         // A step of s moves the point sqrt(3) units, so the distance divided by that never passes a surface
         s -= Math.max(d, 0.03) / Math.sqrt(3);
       }
+      if (!hit) dark[j * W + i] = groundShade([gx, gy, 0], (p) => scene(p)[0], top / SKY[2]);
     }
   const img = new ImageData(W, H),
     rgb = {};
@@ -169,7 +192,10 @@ export function drawSolids(ctx, parts, bounds) {
     for (let i = 0; i < W; i++) {
       const at = j * W + i,
         hit = hits[at];
-      if (!hit) continue;
+      if (!hit) {
+        if (dark[at] > 0.02) img.data.set([0, 0, 0, Math.round(dark[at] * 255)], at * 4);
+        continue;
+      }
       let [shades, step] = hit;
       // Where a nearer surface starts beside this one, this one falls a step into its shade, so solids stay apart
       const near = [
