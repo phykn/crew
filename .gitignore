@@ -1,6 +1,6 @@
 node_modules/
 .vite/
-out/
+build/
 test-results/
 playwright-report/
 *.log

@@ -8,6 +8,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const config: ForgeConfig = {
+  outDir: 'build',
   packagerConfig: {
     asar: true,
     // The title bar's campfire, drawn from the same paths as TitleBar.tsx; icon.ico on Windows, icon.icns on macOS
@@ -17,15 +18,15 @@ const config: ForgeConfig = {
   },
   rebuildConfig: {},
   hooks: {
-    // Windows packages one folder, so its contents are lifted into out itself and the app is out/crew.exe; the macOS
+    // Windows packages one folder, so its contents are lifted into build itself and the app is build/crew.exe; the macOS
     // package stays in its folder, where its makers look for it
     postPackage: async (_config, { platform, outputPaths }) => {
       if (platform !== 'win32') return;
       for (const dir of outputPaths) {
-        const out = path.dirname(dir);
-        for (const name of await fs.readdir(out))
-          if (path.join(out, name) !== dir) await fs.rm(path.join(out, name), { recursive: true, force: true });
-        for (const name of await fs.readdir(dir)) await fs.rename(path.join(dir, name), path.join(out, name));
+        const build = path.dirname(dir);
+        for (const name of await fs.readdir(build))
+          if (path.join(build, name) !== dir) await fs.rm(path.join(build, name), { recursive: true, force: true });
+        for (const name of await fs.readdir(dir)) await fs.rename(path.join(dir, name), path.join(build, name));
         await fs.rmdir(dir);
       }
     },
