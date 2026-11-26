@@ -1,22 +1,13 @@
 import { FIRE } from '../layout.js';
-import { iso, TH, TW } from '../projection.js';
-import { FONT } from '../tokens.js';
+import { iso, TW } from '../projection.js';
 
-export const TAU = Math.PI * 2;
-export const font = (size, weight = 700) => `${weight} ${size}px ${FONT.base}`;
+const TAU = Math.PI * 2;
 
-export function poly(ctx, pts, fill) {
+function poly(ctx, pts, fill) {
   ctx.beginPath();
   pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
   ctx.closePath();
   ctx.fillStyle = fill;
-  ctx.fill();
-}
-
-export function oval(ctx, x, y, rx, ry, fill, end = TAU) {
-  ctx.fillStyle = fill;
-  ctx.beginPath();
-  ctx.ellipse(x, y, rx, ry, 0, 0, end);
   ctx.fill();
 }
 
@@ -48,7 +39,7 @@ function firelit(ctx, face, facing) {
 }
 
 // The soft dark spot where a thing meets the ground; with a height, the thing also blocks light, which paints the
-// shadows it casts (lighting.js); casters, when the context has a list, collects it
+// shadows it casts (stage/light.ts); casters, when the context has a list, collects it
 export function shadow(ctx, x, y, rx, ry, h = 0) {
   const p = iso(x, y);
   blot(ctx, p.x, p.y, rx * 0.85, ry * 0.9, 0.5, 0.7);
@@ -58,17 +49,6 @@ export function shadow(ctx, x, y, rx, ry, h = 0) {
 // Only the flames' long shadow, for a solid that lays its own spot on the ground
 export function cast(ctx, x, y, rx, h) {
   ctx.casters?.push({ x, y, r: rx / TW, h });
-}
-
-// A long thing, such as a bench or a log, from its footprint: its spot lies along it on the ground, and it blocks light
-// along its whole length rather than at one point
-export function longShadow(ctx, x, y, w, h, height) {
-  const c = iso(x + w / 2, y + h / 2);
-  ctx.save();
-  ctx.transform(TW / 2, TH / 2, -TW / 2, TH / 2, c.x, c.y);
-  blot(ctx, 0, 0, w / 2 + 0.2, h / 2 + 0.2, 0.5, 0.7);
-  ctx.restore();
-  longCast(ctx, x, y, w, h, height);
 }
 
 // Only the flames' shadow along a long thing, for a solid that lays its own spot on the ground
@@ -84,7 +64,7 @@ export function longCast(ctx, x, y, w, h, height) {
 }
 
 // An oval that keeps its darkness out to core, a fraction of its radius, then fades to nothing at its edge
-export function blot(ctx, x, y, rx, ry, alpha, core) {
+function blot(ctx, x, y, rx, ry, alpha, core) {
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(rx, ry);
@@ -97,14 +77,4 @@ export function blot(ctx, x, y, rx, ry, alpha, core) {
   ctx.arc(0, 0, 1, 0, TAU);
   ctx.fill();
   ctx.restore();
-}
-
-// A soft dark edge keeps small text readable on both grass and firelight
-export function label(ctx, text, x, y, fill) {
-  ctx.lineWidth = 2.5;
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = 'rgba(0, 0, 0, .75)';
-  ctx.strokeText(text, x, y);
-  ctx.fillStyle = fill;
-  ctx.fillText(text, x, y);
 }

@@ -1,6 +1,6 @@
 import { FIRE, TORCHES } from '../layout.js';
 import { iso, TW } from '../projection.js';
-import { COLOR as C } from '../tokens.js';
+import { COLOR as C } from '../palette.js';
 
 // Props modelled as solids and drawn by casting a ray per pixel through the camp's own projection, so their shape,
 // overlap, and light follow from the model rather than from strokes placed by hand

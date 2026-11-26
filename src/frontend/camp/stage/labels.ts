@@ -1,7 +1,7 @@
 import { Container, Graphics, Text } from 'pixi.js';
 import gsap from 'gsap';
 import { CAMP, iso } from '../projection.js';
-import { COLOR as C, FONT } from '../tokens.js';
+import { COLOR as C, FONT } from '../palette.js';
 import { headTop } from '../figure.js';
 import type { Person } from './people';
 import { t } from '../../lang';

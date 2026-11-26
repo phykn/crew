@@ -1,8 +1,8 @@
 import { Container, type Renderer, Sprite, type Texture } from 'pixi.js';
-import { DECOR, WILDS } from '../layout.js';
+import { PROPS, WILDS } from '../layout.js';
 import { iso } from '../projection.js';
 import { depthOf } from '../figure.js';
-import { drawDecor } from '../art/decor.js';
+import { drawProp } from '../art/props.js';
 import { paintGround } from '../art/ground.js';
 import { grain, rim } from '../art/finish.js';
 import { bake, bakeTight } from './bake';
@@ -39,7 +39,7 @@ export function createScene(renderer: Renderer, box: Box) {
     const p = iso(d.x, d.y);
     return p.x > view.x - 40 && p.x < view.x + view.w + 40 && p.y > view.y && p.y < view.y + view.h + 70;
   };
-  const pieces: Piece[] = [...DECOR, ...WILDS.filter(shows)];
+  const pieces: Piece[] = [...PROPS, ...WILDS.filter(shows)];
 
   const root = new Container(),
     world = new Container(),
@@ -57,10 +57,10 @@ export function createScene(renderer: Renderer, box: Box) {
 
   // Every piece is painted once off screen to learn what blocks the light, and where
   const probe = Object.assign(document.createElement('canvas').getContext('2d')!, { casters: [] as Caster[] });
-  for (const d of pieces) drawDecor(probe, d);
+  for (const d of pieces) drawProp(probe, d);
   pieces.forEach((d, i) => {
     const c = iso(d.x + (d.w || 0) / 2, d.y + (d.h || 0) / 2),
-      made = bakeTight({ x: c.x - 160, y: c.y - 220, w: 320, h: 300 }, res, (ctx) => drawDecor(ctx, d), finish(i + 1));
+      made = bakeTight({ x: c.x - 160, y: c.y - 220, w: 320, h: 300 }, res, (ctx) => drawProp(ctx, d), finish(i + 1));
     if (!made) return;
     const s = new Sprite(made.texture);
     s.position.set(made.area.x, made.area.y);

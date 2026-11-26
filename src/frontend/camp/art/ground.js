@@ -1,5 +1,5 @@
 import { FIRE, GROUND } from '../layout.js';
-import { COLOR as C } from '../tokens.js';
+import { COLOR as C } from '../palette.js';
 import { TW, TH, iso } from '../projection.js';
 import { prism, shadow } from './shapes.js';
 

@@ -2,7 +2,7 @@ import { Container, Graphics, Sprite, Texture } from 'pixi.js';
 import gsap from 'gsap';
 import { FIRE } from '../layout.js';
 import { iso } from '../projection.js';
-import { COLOR as C } from '../tokens.js';
+import { COLOR as C } from '../palette.js';
 import { BIG, FIGURE, depthOf, headTop, isCasting } from '../figure.js';
 import { SEALS, SPRITE_SCALE, litFor, spriteFor } from '../art/sprites.js';
 import { blotTexture } from './light';

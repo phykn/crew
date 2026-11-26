@@ -12,7 +12,7 @@ const place = (kind, deg, d, more) => ({ kind, ...around(deg, d), ...more });
 export const TORCHES = [...Array(6)].map((_, i) => around(30 + i * 60, 7.6));
 
 // r is how far around a piece nobody walks; a bench's seats sit on its plank, and `from` is where a person steps on and off it
-export const DECOR = [
+export const PROPS = [
   // The two pines stand just past the trodden ground, so they are always painted behind everyone
   { kind: 'pine', x: 6.3, y: 10.5, r: 0.6 },
   { kind: 'pine', x: 15.2, y: 5.4, r: 0.6 },
@@ -67,13 +67,13 @@ export const DECOR = [
   },
 ];
 // Each seat knows its bench, so a sitting person is painted just in front of it
-export const SEATS = DECOR.flatMap((d) => (d.seats || []).map((s) => Object.assign(s, { bench: d })));
+export const SEATS = PROPS.flatMap((d) => (d.seats || []).map((s) => Object.assign(s, { bench: d })));
 
 const SOLID = [
   { ...FIRE, r: 1.7 },
   // Wide enough that nobody stands with the pole through their body
   ...TORCHES.map((t) => ({ ...t, r: 0.6 })),
-  ...DECOR.map((d) => ({ x: d.x + (d.w || 0) / 2, y: d.y + (d.h || 0) / 2, r: d.r })),
+  ...PROPS.map((d) => ({ x: d.x + (d.w || 0) / 2, y: d.y + (d.h || 0) / 2, r: d.r })),
 ];
 export const blocked = (x, y) =>
   Math.hypot(x - FIRE.x, y - FIRE.y) > GROUND || SOLID.some((s) => Math.hypot(x - s.x, y - s.y) < s.r + 0.35);

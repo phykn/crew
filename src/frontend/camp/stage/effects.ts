@@ -1,7 +1,7 @@
 import { Container, Graphics, Sprite } from 'pixi.js';
 import { FIRE, TORCHES } from '../layout.js';
 import { iso } from '../projection.js';
-import { COLOR as C } from '../tokens.js';
+import { COLOR as C } from '../palette.js';
 import { blotTexture, glowTexture } from './light';
 
 const hex = (c: string) => parseInt(c.slice(1), 16);
