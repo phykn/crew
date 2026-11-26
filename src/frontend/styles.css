@@ -217,9 +217,8 @@ code {
 
 /* The folder lines up with the first four tabs below it, the ones about its work; the session, named after what was asked, takes the rest, and the folder gives way once the session would be shorter than its minimum */
 .project-picker {
-  flex: 0 1 auto;
+  flex: 0 1 calc(4 * var(--w-tab) + 3 * var(--sp-1));
   min-width: 0;
-  max-width: calc(4 * var(--w-tab) + 3 * var(--sp-1));
 }
 .session-picker {
   flex: 1 0 var(--w-session-min);

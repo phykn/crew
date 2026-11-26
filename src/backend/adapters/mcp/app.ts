@@ -392,8 +392,15 @@ export function appServer(sdk: Sdk, chat: Chat, sessionId: number) {
       // bypass checks nothing; otherwise who may do what, and deleting, is the user's call
       const prompt = store.projectOf(sessionId).mode === 'bypass' ? null : a.confirm?.(parsed.data as never);
       if (prompt) {
-        // The last option is the card's main button, as on every other card
-        const answer = await chat.questions.choose(sessionId, prompt, [REFUSE, ALLOW]);
+        // An approval, so the window words its options; the last is the card's main button, as on every other card
+        const answer = await chat.questions.ask({
+          sessionId,
+          taskId: null,
+          kind: 'approval',
+          say: prompt,
+          options: [REFUSE, ALLOW],
+          payload: {},
+        });
         if (answer !== ALLOW) return text('The user refused, so it was not done.');
       }
       const out = await a.run(parsed.data as never);
