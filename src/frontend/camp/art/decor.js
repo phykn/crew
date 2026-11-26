@@ -1,6 +1,6 @@
 import { iso } from '../projection.js';
 import { COLOR as C } from '../tokens.js';
-import { TAU, longShadow, oval, poly, prism, shadow } from './shapes.js';
+import { TAU, longShadow, oval, poly, shadow } from './shapes.js';
 import { SEAT_Z } from '../figure.js';
 import { BARK, HAY, IRON, ROCK, U, WOOD, box, drawSolids, facets, round } from './solids.js';
 
@@ -188,44 +188,47 @@ function well(ctx, d) {
   oval(ctx, b.x + 0.5, mouth, 5.5, 1.5, C.wood);
 }
 
+// A box from a footprint in tiles and a height range in px, as solids measure it, its edges rounded by r
+const slab = (x, y, w, h, z0, z1, r = 0) =>
+  box([(x + w / 2) * U, (y + h / 2) * U, (z0 + z1) / 2], [(w / 2) * U, (h / 2) * U, (z1 - z0) / 2], r);
+
+// A bench whose top is the seat people sit at: a plank of two boards on four square legs, or a stone slab on two blocks
 function bench(ctx, d) {
   const { x, y, w, h } = d,
     leg = 0.18,
     long = w > h;
   longShadow(ctx, x, y, w, h, SEAT_Z + 2);
+  const parts = [];
   if (d.wood) {
     for (const [lx, ly] of [
       [x, y],
       [x + w - leg, y],
       [x, y + h - leg],
       [x + w - leg, y + h - leg],
-    ]) {
-      prism(ctx, { x: lx, y: ly, w: leg, h: leg, z: SEAT_Z - 2 }, C.woodDeep, C.barkDark, C.barkDark);
-    }
-    prism(ctx, { x, y, w, h, z: SEAT_Z, z0: SEAT_Z - 2 }, C.wood, C.woodDark, C.woodDeep);
-    // One groove down the plank shows the grain
-    line(
-      ctx,
-      iso(x + (long ? 0.1 : w / 2), y + (long ? h / 2 : 0.1), SEAT_Z),
-      iso(x + (long ? w - 0.1 : w / 2), y + (long ? h / 2 : h - 0.1), SEAT_Z),
-      C.woodDark,
-    );
-    return;
+    ])
+      parts.push({
+        sdf: slab(lx + 0.02, ly + 0.02, leg - 0.04, leg - 0.04, 0, SEAT_Z - 2),
+        paint: (p, n, l) => [WOOD, l - 1],
+      });
+    // The seam between the two boards runs down the middle of the plank
+    const mid = long ? (y + h / 2) * U : (x + w / 2) * U;
+    parts.push({
+      sdf: slab(x, y, w, h, SEAT_Z - 2.2, SEAT_Z, 0.5),
+      paint: (p, n, l) => [WOOD, n[2] > 0.9 && Math.abs(p[long ? 1 : 0] - mid) < 0.35 ? l - 2 : l],
+    });
+  } else {
+    const block = long ? [0.4, h] : [w, 0.4];
+    for (const [bx, by] of [[x, y], long ? [x + w - 0.4, y] : [x, y + h - 0.4]])
+      parts.push({
+        sdf: slab(bx + 0.04, by + 0.04, block[0] - 0.08, block[1] - 0.08, 0, SEAT_Z - 2, 0.8),
+        paint: (p, n, l) => [ROCK, l - 1],
+      });
+    parts.push({ sdf: slab(x, y, w, h, SEAT_Z - 2, SEAT_Z + 1, 0.9), paint: (p, n, l) => [ROCK, l] });
   }
-  const block = long ? { w: 0.4, h } : { w, h: 0.4 };
-  for (const at of [{ x, y }, long ? { x: x + w - 0.4, y } : { x, y: y + h - 0.4 }]) {
-    prism(ctx, { ...at, ...block, z: SEAT_Z - 2 }, C.rock, C.rockDark, C.barkDark);
-  }
-  prism(ctx, { x, y, w, h, z: SEAT_Z + 1, z0: SEAT_Z - 2 }, C.rockLight, C.rock, C.rockDark);
-  const m = iso(x + w * 0.3, y + h * 0.5, SEAT_Z + 1);
-  pixels(
-    ctx,
-    [
-      [m.x, m.y, 4, 1],
-      [m.x + 6, m.y + 2, 2, 1],
-    ],
-    C.mossDark,
-  );
+  drawSolids(ctx, parts, [
+    [x * U, y * U, 0],
+    [(x + w) * U, (y + h) * U, SEAT_Z + 1],
+  ]);
 }
 
 // A low boulder cut into flat faces, higher toward its left; each face takes its shade from where it turns
