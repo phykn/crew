@@ -850,7 +850,6 @@ export default {
         '........................ooloo.........',
       ],
       [
-        '......................................',
         '....................mwwm..............',
         '.................wwwwwwwwm............',
         '...............FFwmwwFFFFmmm..........',
@@ -873,7 +872,8 @@ export default {
         '...........mm0000000000NmmYYYmmwwwmm..',
         '..........mmxN00QQQ0000Lwmmmmmwwwmm...',
         '..........mmim00000000fwwmmmmmmmmm....',
-        '..........mmm.YNYNNNNNmmmm.mmmmmm.....',
+        '..........mmmmYNYNNNNNmmmm.mmmmmm.....',
+        '..................NNN0YNmm............',
         '...............ii0NY000YNmin..........',
         '.............nnnMyY4K4yyMEyyn.........',
         '.............nnMyEKKK4yESiEEyn........',

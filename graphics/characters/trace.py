@@ -136,6 +136,9 @@ def find_head(mask):
 def place_head(img, mask, closed, dy, dx):
     H, W = mask.shape
     h = blink(head) if closed else head
+    # The frame's own hair above the head gives way too, so no tuft shows in one frame only
+    for yy in range(max(0, dy)):
+        mask[yy, max(0, dx) : dx + hw] = False
     # The frame's own pixels in the head's rows give way, so no old face shows round the new one
     for y in range(hh):
         for x in range(W):
@@ -159,14 +162,18 @@ STILL = {'idle', 'sit'}
 PAD = 8
 shift = lambda a, n: np.roll(np.pad(a, ((0, 0), (PAD, PAD)) + ((0, 0),) * (a.ndim - 2)), n, axis=1)
 frames = {}
-still_dx = None
+still = None
 for sheet, _ in SHEETS:
     frames[sheet] = []
     for k, a in enumerate(cells[sheet][:1] * 2 if sheet in STILL else cells[sheet]):
         img, mask = paint(a)
         dy, dx = find_head(mask)
-        if sheet == 'idle' and still_dx is None:
-            still_dx = dx
+        if still is None:
+            still = dy, dx
+        still_dy, still_dx = still
+        # Casting stands where idle does, so its head keeps idle's row too rather than the fit's pixel either way
+        if sheet.startswith('cast'):
+            dy = still_dy
         n = 0 if sheet in STILL else still_dx - dx
         img, mask = shift(img, n), shift(mask, n)
         place_head(img, mask, k == 1 if sheet in STILL else (sheet, k) in spec['closed'], dy, dx + n + PAD)
