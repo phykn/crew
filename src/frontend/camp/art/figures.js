@@ -14,7 +14,7 @@ const channels = (hex) => {
   return [n >> 16, (n >> 8) & 255, n & 255];
 };
 // The letters, in the order of a role's colors
-const LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 // A shade a little toward the flames' color
 const warm = ([r, g, b], f) => [r + (255 - r) * f, g + (170 - g) * f, b + (90 - b) * f];
 // The picture's own outline and its darkest shadows stay dark in any light

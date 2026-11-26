@@ -69,14 +69,14 @@ ROLES = {
     'conductor': {
         'kind': conductor,
         'thin': {'gold'},
-        'eyes': [(15, 17, 8, 10), (14, 17, 2, 4)],
+        'eyes': [(15, 17, 8, 10), (14, 16, 2, 4)],
         'skin': (19, 9),
         'closed': {('cast-loop', 2)},
     },
 }
 SHEETS = [('idle', 4), ('walk', 4), ('sit', 2), ('cast-start', 4), ('cast-loop', 4), ('cast-end', 4)]
 SHADES = 3
-LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
 role = sys.argv[1]
 spec = ROLES[role]
