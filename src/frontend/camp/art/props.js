@@ -43,8 +43,8 @@ function fern(ctx, d) {
       sdf: (p) => {
         const [along, across, z] = frame(p),
           t = Math.max(0, Math.min(1, along / L)),
-          rise = 1.5 * L * t * (1.1 - t),
-          half = 1.5 * Math.sin(Math.PI * Math.min(1, t * 1.1)) ** 0.8 + 0.35;
+          rise = 2.8 * L * t * (1.08 - t),
+          half = 1.1 * Math.sin(Math.PI * Math.min(1, t * 1.1)) ** 0.8 + 0.3;
         // A blade a little thicker than a pixel, so it is found from above and from the side
         return Math.max(Math.abs(across) - half, Math.abs(z - rise) - 0.45, -along, along - L) * 0.65;
       },
@@ -56,14 +56,14 @@ function fern(ctx, d) {
     parts,
     [
       [c[0] - 13, c[1] - 13, 0],
-      [c[0] + 13, c[1] + 13, 9],
+      [c[0] + 13, c[1] + 13, 11],
     ],
     'fern',
   );
 }
 
-// A fallen log to sit on: one round trunk, a little thinner toward its far end and sunk into the ground, three furrows
-// along its bark, and a cut end with two growth rings round a dark heart
+// A fallen log to sit on: one round trunk, a little thinner toward its far end and sunk into the ground, plain bark,
+// and a cut end with two growth rings round a dark heart
 function log(ctx, d) {
   longCast(ctx, d.x, d.y, d.w, d.h, 10);
   const R = 5,
@@ -109,7 +109,7 @@ function drum(ctx, d) {
         r = Math.hypot(p[0] - c[0], p[1] - c[1]);
       if (n[2] > 0.9) return [WOOD, r > radius(1) - 0.9 ? light - 2 : light];
       // Iron is matte and dark: even where the belly turns it up to the light it stays below the wood
-      if (Math.abs(Math.abs(t) - 0.56) < 0.09) return [IRON, Math.min(light, 2)];
+      if (Math.abs(Math.abs(t) - 0.56) < 0.09) return [IRON, light];
       const stave = ((Math.atan2(p[1] - c[1], p[0] - c[0]) / (Math.PI * 2)) * 14 + 14) % 1;
       return [WOOD, stave < 0.1 ? light - 1 : light];
     },
@@ -145,10 +145,10 @@ function well(ctx, d) {
         return Math.hypot(Math.max(dr, 0), Math.max(dz, 0)) + Math.min(Math.max(dr, dz), 0);
       },
       paint: (p, n, l) => {
-        if (n[2] > 0.9) return [ROCK, l];
+        if (n[2] > 0.9) return [ROCK, Math.min(l, 3)];
         const course = Math.floor(p[2] / (wall / 3)),
           mortar = Math.abs(p[2] - Math.round(p[2] / (wall / 3)) * (wall / 3)) < 0.4 && p[2] > 1 && p[2] < wall - 1,
-          turn = ((Math.atan2(p[1] - c[1], p[0] - c[0]) / (Math.PI * 2)) * 11 + course * 0.5 + 11) % 1;
+          turn = ((Math.atan2(p[1] - c[1], p[0] - c[0]) / (Math.PI * 2)) * 9 + course * 0.5 + 9) % 1;
         return [ROCK, mortar || turn < 0.05 ? l - 1 : l];
       },
     },
@@ -158,12 +158,17 @@ function well(ctx, d) {
       paint: (p, n, l) => [WOOD, l],
     })),
     { sdf: box([c[0], c[1], beam + 1.5], [1.4, rim + 2.5, 1.5]), paint: (p, n, l) => [WOOD, l] },
-    { sdf: round([c[0], c[1], beam - 6], 2, 6, () => 0.35), paint: (p, n, l) => [HAY, l] },
+    // The rope hangs from the beam down to the bucket's top
+    {
+      sdf: round([c[0], c[1], (beam + wall + 16) / 2], 2, (beam - wall - 16) / 2, () => 0.35),
+      paint: (p, n, l) => [HAY, l],
+    },
     {
       sdf: round([c[0], c[1], wall + 13], 2, 3, (t) => 3 + 0.5 * t),
       paint: (p, n, l) => {
-        if (n[2] > 0.9) return [WOOD, 1];
-        return Math.abs(p[2] - (wall + 13)) < 0.7 ? [IRON, l] : [WOOD, l];
+        // The top is told by height, so its edge is one dark ring rather than stray light dots
+        if (p[2] > wall + 16 - 0.4) return [WOOD, 1];
+        return Math.abs(p[2] - (wall + 13)) < 0.7 ? [IRON, 2] : [WOOD, l];
       },
     },
   ];
@@ -211,10 +216,10 @@ function bench(ctx, d) {
       long ? [x + w - 0.55, y + 0.1] : [x + 0.1, y + h - 0.55],
     ])
       parts.push({
-        sdf: slab(bx, by, block[0], block[1], 0, SEAT_Z - 2, 0.8),
-        paint: (p, n, l) => [ROCK, l - 1],
+        sdf: slab(bx, by, block[0], block[1], 0, SEAT_Z - 3, 0.8),
+        paint: (p, n, l) => [ROCK, l],
       });
-    parts.push({ sdf: slab(x, y, w, h, SEAT_Z - 2, SEAT_Z + 1, 0.9), paint: (p, n, l) => [ROCK, l] });
+    parts.push({ sdf: slab(x, y, w, h, SEAT_Z - 3, SEAT_Z + 1, 0.9), paint: (p, n, l) => [ROCK, l] });
   }
   drawSolids(ctx, parts, [
     [x * U, y * U, 0],
@@ -238,7 +243,7 @@ const STONE = [
   [-0.8, 0.7, 0.2, 0.98],
 ];
 
-// A low boulder cut into flat faces, higher toward its left; each face takes its shade from where it turns
+// A low boulder cut into flat faces; each face takes its shade from where it turns
 function rock(ctx, d) {
   const s = d.size ?? 1,
     r = [9.5 * s, 7.5 * s, 5 * s],
@@ -261,9 +266,9 @@ function pine(ctx, d) {
   const s = d.size ?? 1,
     c = [d.x * U, d.y * U];
   cast(ctx, d.x + 0.3, d.y + 0.3, 14 * s, 70 * s);
-  const parts = [{ sdf: round([c[0], c[1], 7 * s], 2, 7 * s, () => 1.8 * s), paint: (p, n, l) => [BARK, l] }];
+  const parts = [{ sdf: round([c[0], c[1], 8 * s], 2, 8 * s, () => 1.8 * s), paint: (p, n, l) => [BARK, l] }];
   for (let tier = 0; tier < 3; tier++) {
-    const base = (11 + tier * 11) * s,
+    const base = (13 + tier * 11) * s,
       r = [11, 8.6, 6.2][tier] * s,
       h = 22 * s;
     parts.push({
@@ -286,7 +291,7 @@ function pine(ctx, d) {
     parts,
     [
       [c[0] - R, c[1] - R, 0],
-      [c[0] + R, c[1] + R, (11 + 22 + 22) * s],
+      [c[0] + R, c[1] + R, (13 + 22 + 22) * s],
     ],
     `pine${s}`,
   );
@@ -298,8 +303,8 @@ function tuft(ctx, d) {
   const c = [d.x * U, d.y * U];
   const parts = [...Array(7)].map((_, i) => {
     const k = i - 3,
-      H = 8 - Math.abs(k) * 1.2,
-      lean = Math.abs(k) * 1.3,
+      H = Math.abs(k) === 3 ? 5.5 : 8 - Math.abs(k) * 1.2,
+      lean = Math.abs(k) === 3 ? 2.6 : Math.abs(k) * 1.3,
       // Blades face the camera: their width and their lean both run across the view, along x - y on the ground
       frame = bladeFrame([c[0] + k * 0.45, c[1] - k * 0.45], -Math.PI / 4);
     return {
@@ -315,7 +320,7 @@ function tuft(ctx, d) {
           ) * 0.5
         );
       },
-      paint: (p, n, l) => (Math.abs(k) === 3 ? [HAY, Math.min(l - 1, 1)] : [LEAF, l + 1]),
+      paint: (p, n, l) => (Math.abs(k) === 3 ? [HAY, 0] : [LEAF, l]),
     };
   });
   drawSolids(
@@ -348,10 +353,10 @@ function tent(ctx, d) {
         ),
       paint: (p, n, l) => {
         if (n[1] > 0.9) {
-          // The doorway is a narrower triangle in the end; its lower part glows
+          // The doorway is a narrower triangle in the end, dark inside and warm at its floor
           const x = Math.abs(p[0] - c[0]) / (W / 4),
             z = p[2] / (H * 0.75);
-          if (x + z < 1) return [GLOW, x + z < 0.85 ? 2 : 1];
+          if (x + z < 1) return [GLOW, z < 0.4 ? 2 : 1];
           // The gable stands upright, so it reads a step darker than the slopes beside it
           return [CANVAS, l - 1];
         }
@@ -421,17 +426,17 @@ function wagon(ctx, d) {
           const y = p[1] - w[1],
             z = p[2] - w[2],
             r = Math.hypot(y, z) / 6;
-          if (r < 0.2) return [IRON, l];
+          if (r < 0.28) return [IRON, 2];
           if (r > 0.78) return [WOOD, l];
           // Eight spokes run out from the hub; between them the wheel is dark
           const a = Math.atan2(z, y);
-          return Math.abs(Math.sin(2 * a)) < 0.22 || Math.abs(Math.cos(2 * a)) < 0.22 ? [WOOD, l] : [BARK, 1];
+          return Math.abs(Math.sin(2 * a)) < 0.22 || Math.abs(Math.cos(2 * a)) < 0.22 ? [WOOD, l] : [BARK, 2];
         },
       });
     }
   drawSolids(ctx, parts, [
     [c[0] - W / 2 - 3, c[1] - L / 2, 0],
-    [c[0] + W / 2 + 3, c[1] + L / 2 + 0.9 * U, 32],
+    [c[0] + W / 2 + 3, c[1] + L / 2 + 0.9 * U + 1.5, 32],
   ]);
 }
 
@@ -495,7 +500,7 @@ function hay(ctx, d) {
         const layers = n[0] > 0.6 ? [5] : [3.5, 6.5];
         if (layers.some((z) => Math.abs(p[2] - z) < 0.35)) return [HAY, light - 1];
       }
-      return [HAY, light];
+      return [HAY, n[2] > 0.9 ? Math.min(light, 3) : light];
     },
   };
   drawSolids(
@@ -549,11 +554,12 @@ function lantern(ctx, d) {
     h = [c[0] + 3, c[1] - 3],
     glass = 12.2;
   const parts = [
-    { sdf: box([c[0], c[1], 9], [0.7, 0.7, 9], 0.2), paint: (p, n, l) => [WOOD, l - 1] },
+    { sdf: box([c[0], c[1], 10], [0.7, 0.7, 10], 0.2), paint: (p, n, l) => [WOOD, l - 1] },
     { sdf: rod([c[0], c[1], 17], [h[0], h[1], 17], 0.45), paint: (p, n, l) => [WOOD, l - 1] },
-    { sdf: rod([h[0], h[1], 17], [h[0], h[1], 15], 0.25), paint: (p, n, l) => [IRON, Math.min(l, 2)] },
-    { sdf: box([h[0], h[1], 15], [1.6, 1.6, 0.6], 0.3), paint: (p, n, l) => [IRON, Math.min(l, 2)] },
-    { sdf: box([h[0], h[1], 9.6], [1.6, 1.6, 0.5], 0.3), paint: (p, n, l) => [IRON, Math.min(l, 2)] },
+    // The lantern lights itself, so its iron casts no shadow either
+    { sdf: rod([h[0], h[1], 17], [h[0], h[1], 15], 0.25), paint: (p, n, l) => [IRON, l], glow: true },
+    { sdf: box([h[0], h[1], 15], [1.6, 1.6, 0.6], 0.3), paint: (p, n, l) => [IRON, l], glow: true },
+    { sdf: box([h[0], h[1], 9.6], [1.6, 1.6, 0.5], 0.3), paint: (p, n, l) => [IRON, l], glow: true },
     {
       sdf: box([h[0], h[1], glass], [1.3, 1.3, 2.2]),
       paint: (p) => {
@@ -566,7 +572,7 @@ function lantern(ctx, d) {
   ];
   drawSolids(ctx, parts, [
     [c[0] - 2, c[1] - 5, 0],
-    [c[0] + 5, c[1] + 2, 18],
+    [c[0] + 5, c[1] + 2, 21],
   ]);
 }
 
@@ -575,12 +581,12 @@ function torch(ctx, d) {
   const c = [d.x * U, d.y * U];
   const parts = [
     {
-      sdf: round([c[0], c[1], 13.5], 2, 13.5, (t) => 1.1 - 0.15 * t),
-      paint: (p, n, l) => (Math.abs(p[2] - 22) < 0.7 ? [IRON, Math.min(l, 2)] : [WOOD, l - 1]),
+      sdf: round([c[0], c[1], 14], 2, 14, (t) => 1.1 - 0.15 * t),
+      paint: (p, n, l) => (Math.abs(p[2] - 22) < 0.7 ? [IRON, l] : [WOOD, l - 1]),
     },
     {
       sdf: round([c[0], c[1], 29.5], 2, 1.5, (t) => 1.9 + 0.5 * t),
-      paint: (p, n, l) => (n[2] > 0.9 ? [BARK, 1] : [IRON, Math.min(l, 2)]),
+      paint: (p, n) => (n[2] > 0.9 ? [BARK, 1] : [IRON, 2]),
     },
   ];
   drawSolids(ctx, parts, [
@@ -607,19 +613,19 @@ function hearth(ctx, d) {
   for (const a of [0.5, 2.6, 4.7]) {
     const foot = [c[0] + 11 * Math.cos(a), c[1] + 11 * Math.sin(a), 1.6];
     parts.push({
-      sdf: rod(foot, [c[0] - 1.5 * Math.cos(a), c[1] - 1.5 * Math.sin(a), 6.5], 2, true),
+      sdf: rod(foot, [c[0] - 1.5 * Math.cos(a), c[1] - 1.5 * Math.sin(a), 8.5], 2, true),
       paint: (p, n, l) => {
         const out = Math.hypot(p[0] - c[0], p[1] - c[1]);
         if (out < 2.5 && n[2] > 0.5) return [BLAZE, 1];
         // The cut end away from the fire shows its pale wood
-        if (out > 9 && Math.abs(n[0] * Math.cos(a) + n[1] * Math.sin(a)) > 0.8) return [WOOD, l + 1];
+        if (out > 9 && Math.abs(n[0] * Math.cos(a) + n[1] * Math.sin(a)) > 0.8) return [WOOD, 3];
         return [BARK, out < 7 ? 1 : l];
       },
     });
   }
   drawSolids(ctx, parts, [
     [c[0] - ring - 5.5, c[1] - ring - 5.5, 0],
-    [c[0] + ring + 5.5, c[1] + ring + 5.5, 9],
+    [c[0] + ring + 5.5, c[1] + ring + 5.5, 11],
   ]);
 }
 

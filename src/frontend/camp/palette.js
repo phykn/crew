@@ -21,6 +21,7 @@ export const COLOR = {
   rockLight: '#706b60',
   rockDark: '#3a3833',
   rockDeep: '#2c2a26',
+  rockNight: '#221f1c',
   mossDark: '#4a5a2c',
   water: '#141e24',
   canvas: '#b8a98a',

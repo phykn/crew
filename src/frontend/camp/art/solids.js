@@ -12,9 +12,10 @@ export const U = 16;
 export const WOOD = [C.barkDark, C.woodDeep, C.woodDark, C.wood, C.woodLight];
 // Bark stays darker than the cut wood it wraps, so a log's end reads at a glance
 export const BARK = [C.eye, C.barkDark, C.barkDark, C.bark, C.woodDeep];
-export const ROCK = [C.eye, C.rockDeep, C.rockDark, C.rock, C.rockLight];
+export const ROCK = [C.rockNight, C.rockDeep, C.rockDark, C.rock, C.rockLight];
 export const HAY = [C.woodDark, C.hayDeep, C.hayDark, C.hay, C.hayLight];
-export const CANVAS = [C.leather, C.canvasDeep, C.canvasDark, C.canvas, C.parchmentDeep];
+// Canvas tops out at its own color, so tents and the wagon don't outshine the fire at night
+export const CANVAS = [C.leather, C.canvasDeep, C.canvasDark, C.canvasDark, C.canvas];
 // Needles stay dark at night: the ramp starts and ends darker than the other materials'
 export const LEAF = [C.leafDeep, C.leafDeep, C.leafDark, C.leaf, C.leafLight];
 // A flame behind glass gives its own light, so its shades run from the deep orange to the white core
@@ -84,11 +85,12 @@ const groundShade = (g, dist, far, lo, hi) => {
   for (let t = Math.max(0.5, enter - 2), n = 0; n < 96 && t < Math.min(far, leave + 2); n++) {
     const d = dist([g[0] + SKY[0] * t, g[1] + SKY[1] * t, SKY[2] * t]),
       fade = (1 - t / far) ** 2;
-    if (d < 0.02) return 0.6 * fade;
-    open = Math.min(open, 1 - (1 - Math.min(1, (12 * d) / t)) * fade);
+    // A high part's shadow is lighter than a foot's contact shade
+    if (d < 0.02) return (t > 8 ? 0.45 : 0.6) * fade;
+    open = Math.min(open, 1 - (1 - Math.min(1, (5 * d) / t)) * fade);
     t += Math.max(d, 0.4);
   }
-  const foot = Math.max(0, 1 - dist([g[0], g[1], 1]) / 1.5);
+  const foot = Math.max(0, 1 - dist([g[0], g[1], 0.5]));
   return 0.6 * Math.max(1 - Math.min(1, open), foot * 0.8);
 };
 
@@ -309,11 +311,12 @@ export function drawSolids(ctx, parts, bounds, key) {
       if (near) step -= 1;
       // A face turned to a flame close by is a step lighter and takes a little of the flame's color
       const f = warm[at];
-      if (f > 0.5) step += 1;
+      if (f > 0.5 && shades !== LEAF) step += 1;
       if (shades === IRON) step = Math.min(step, 2);
       const hex = shades[Math.max(0, Math.min(shades.length - 1, step))];
       const c = (rgb[hex] ??= [1, 3, 5].map((n) => parseInt(hex.slice(n, n + 2), 16)));
-      const tint = 0.15 * f;
+      // Needles stay dark green under firelight instead of turning khaki
+      const tint = (shades === LEAF ? 0.08 : 0.15) * f;
       img.data.set([...c.map((v, k) => Math.round(v + (FLAME[k] - v) * tint)), 255], at * 4);
     }
   // An offscreen canvas, so a worker can paint solids too
