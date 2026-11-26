@@ -29,7 +29,7 @@ def kind(r, g, b, h, s, v, L, y, top):
 
 SPEC = {
     'thin': {'gold'},
-    'eyes': [(14, 17, 11, 13), (14, 17, 5, 6)],
+    'eyes': [(14, 17, 11, 13), (14, 17, 5, 7)],
     'skin': (19, 8),
     'closed': {('cast-loop', 2)},
 }
