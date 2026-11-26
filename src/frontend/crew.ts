@@ -1,17 +1,17 @@
 import type { Key } from './ko';
 
-// How each shipped member looks in the camp: its name tag's color, and the sprite parts as head, upper, lower
-export const LOOKS: Record<string, { color: string; look: [string, string, string] }> = {
-  interpreter: { color: '#ff4b3e', look: ['hat', 'robe', 'gown'] },
-  conductor: { color: '#9aa5ff', look: ['hair', 'armor', 'wraps'] },
-  researcher: { color: '#e0a96d', look: ['hat', 'vest', 'greaves'] },
-  coder: { color: '#2ee0c4', look: ['hood', 'tunic', 'boots'] },
-  writer: { color: '#b8e04a', look: ['hat', 'tunic', 'wraps'] },
-  reviewer: { color: '#c77dff', look: ['helm', 'armor', 'greaves'] },
-  proofreader: { color: '#3d8bff', look: ['braids', 'vest', 'gown'] },
-  tester: { color: '#ffd23f', look: ['helm', 'vest', 'boots'] },
-  images: { color: '#ff6fb5', look: ['hood', 'robe', 'wraps'] },
-  librarian: { color: '#8fd16a', look: ['braids', 'robe', 'boots'] },
+// Each shipped member's name tag color in the camp; how they look is their figure in camp/art/people/
+export const COLORS: Record<string, string> = {
+  interpreter: '#ff4b3e',
+  conductor: '#9aa5ff',
+  researcher: '#e0a96d',
+  coder: '#2ee0c4',
+  writer: '#b8e04a',
+  reviewer: '#c77dff',
+  proofreader: '#3d8bff',
+  tester: '#ffd23f',
+  images: '#ff6fb5',
+  librarian: '#8fd16a',
 };
 
 // Each skill and MCP server of the crew folder as the permissions window shows it

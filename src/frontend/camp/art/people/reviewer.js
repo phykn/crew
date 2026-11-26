@@ -1,5 +1,6 @@
 // Made by graphics/characters/trace.py from graphics/characters/reviewer/; run it again rather than editing
 export default {
+  anchor: 19,
   colors: ['#140d0f', '#1a1311', '#2a0c16', '#221615', '#29171a', '#2d111c', '#2b1d20', '#371f24', '#302627', '#332525', '#352729', '#37282b', '#372d2c', '#392b2e', '#3f2b29', '#422631', '#32373d', '#4b312b', '#413334', '#523026', '#5b3226', '#4f2d3b', '#46373c', '#522f3d', '#4a3b3a', '#503b3c', '#3c4548', '#553d38', '#513f3f', '#683b2c', '#632f41', '#623e37', '#564349', '#70304d', '#644c48', '#485a5c', '#753853', '#754c3f', '#7e4653', '#6c575e', '#b16242', '#ad684c', '#967e77', '#d3895f', '#a88f86', '#d38a60', '#ae9792', '#f99975', '#f99b75', '#c7b0a1', '#cfb49a', '#f6b07d', '#f6b07e', '#fab683', '#dec3af', '#d8d3d6', '#efe0db', '#f3e8d5', '#f9f5eb', '#fcfdff'],
   poses: {
     idle: [

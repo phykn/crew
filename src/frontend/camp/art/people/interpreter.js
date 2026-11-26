@@ -1,5 +1,6 @@
 // Made by graphics/characters/trace.py from graphics/characters/interpreter/; run it again rather than editing
 export default {
+  anchor: 23,
   colors: ['#160300', '#281208', '#251f22', '#2d2c3d', '#523026', '#523126', '#353345', '#753305', '#2f3f42', '#363446', '#6e3f2f', '#3b5154', '#70412f', '#9d4c02', '#405755', '#5d4a4c', '#864c37', '#894e38', '#9e5b42', '#ac4f42', '#bb6d1a', '#b56b48', '#95785c', '#cc614d', '#cb6550', '#ce8f51', '#a79092', '#db9f58', '#e09662', '#e09663', '#e89d69', '#e89d6a', '#f4b363', '#c7b2af', '#debc9a', '#f4d8be', '#ffe9d7', '#fcf3e4', '#fffaec'],
   poses: {
     idle: [

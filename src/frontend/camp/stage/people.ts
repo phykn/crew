@@ -1,16 +1,14 @@
 import { Container, Graphics, Sprite, Texture } from 'pixi.js';
-import gsap from 'gsap';
 import { FIRE } from '../layout.js';
 import { iso } from '../projection.js';
-import { COLOR as C } from '../palette.js';
-import { BIG, FIGURE, headTop, isCasting } from '../figure.js';
-import { SEALS, SPRITE_SCALE, litFor, spriteFor } from '../art/sprites.js';
+import { PIXEL, isCasting } from '../figure.js';
+import { anchorOf, framesOf, personPicture } from '../art/figures.js';
 import { blotTexture } from './light';
 import { textureOf } from './bake';
 import { drawWard } from './effects';
 
 export type Person = {
-  room: { team: string; name: string; color: string; look: string[] };
+  room: { team: string; name: string; color: string; role: string };
   x: number;
   y: number;
   facing: number;
@@ -24,26 +22,21 @@ export type Person = {
   lift?: number;
 };
 
-// Feet pass each other between steps, so each leg gets its own frame
-const STRIDE = ['stand', 'walkL', 'stand', 'walkR'];
 // Legs move with the ground covered, not the clock, so a walker speeding up or slowing down never skates; tiles per frame
 const STEP = 0.2;
-const hex = (c: string) => parseInt(c.slice(1), 16);
+// Casting plays its start once, then loops, and plays its end once when the work stops; ms a frame
+const CAST = 180;
+// Eyes close for a moment every few seconds, each person on their own beat
+const BLINK = { every: 4200, for: 160 };
 
-function poseOf(p: Person, now: number, stride: number) {
-  if (p.sitting) return 'sit';
-  if (isCasting(p)) return SEALS[Math.floor(now / 500) % SEALS.length];
-  return p.moving ? STRIDE[Math.floor(stride / STEP) % STRIDE.length] : 'stand';
-}
-
-// Each painted pose becomes a texture once; pixels stay square when scaled up
-const made = new WeakMap<HTMLCanvasElement, Texture>();
-const textureFor = (canvas: HTMLCanvasElement) => {
+// Each painted frame becomes a texture once; pixels stay square when scaled
+const made = new WeakMap<OffscreenCanvas, Texture>();
+const textureFor = (canvas: OffscreenCanvas) => {
   if (!made.has(canvas)) made.set(canvas, textureOf(canvas, 1, true));
   return made.get(canvas)!;
 };
 
-// One person on the stage: the spell on the ground, the spot under the feet, the figure, and the seal in the hands
+// One person on the stage: the ward on the ground, the spot under the feet, and the figure with its firelit copy over it
 export class PersonView {
   root = new Container();
   spell = new Graphics();
@@ -52,29 +45,38 @@ export class PersonView {
   figure = new Container();
   body = new Sprite();
   lit = new Sprite();
-  seal = new Graphics();
-  // Breath is a slow rise and fall while standing
-  breath = 0;
   stride = 0;
   at: { x: number; y: number } | null = null;
-  breathing = gsap.to(this, {
-    breath: 1,
-    duration: 1.4 + Math.random() * 0.6,
-    ease: 'sine.inOut',
-    yoyo: true,
-    repeat: -1,
-  });
+  blinkAt = Math.random() * BLINK.every;
+  // When the current casting began, and when the last one ended
+  castFrom: number | null = null;
+  castTo: number | null = null;
   constructor(layer: Container) {
     this.spot.anchor.set(0.5);
     this.spot.tint = 0x000000;
     this.spot.alpha = 0.5;
     this.spot.width = 20.4;
     this.spot.height = 7.2;
-    this.body.anchor.set(0.5, 1);
-    this.lit.anchor.set(0.5, 1);
     this.figure.addChild(this.body, this.lit);
-    this.root.addChild(this.spell, this.spot, this.figure, this.seal);
+    this.root.addChild(this.spell, this.spot, this.figure);
     layer.addChild(this.root);
+  }
+
+  // Which pose and frame the person shows now
+  frame(p: Person, now: number, casting: boolean): [string, number] {
+    const role = p.room.role,
+      blink = (now + this.blinkAt) % BLINK.every < BLINK.for ? 1 : 0;
+    if (casting && this.castFrom === null) [this.castFrom, this.castTo] = [now, null];
+    if (!casting && this.castFrom !== null) [this.castFrom, this.castTo] = [null, now];
+    if (p.sitting) return ['sit', blink];
+    if (p.moving) return ['walk', Math.floor(this.stride / STEP) % framesOf(role, 'walk')];
+    if (casting) {
+      const k = Math.floor((now - this.castFrom!) / CAST),
+        start = framesOf(role, 'castStart');
+      return k < start ? ['castStart', k] : ['castLoop', (k - start) % framesOf(role, 'castLoop')];
+    }
+    const end = this.castTo === null ? Infinity : Math.floor((now - this.castTo) / CAST);
+    return end < framesOf(role, 'castEnd') ? ['castEnd', end] : ['idle', blink];
   }
 
   draw(p: Person, now: number) {
@@ -85,31 +87,25 @@ export class PersonView {
     this.spot.position.set(f.x, f.y);
     if (this.at) this.stride += Math.hypot(p.x - this.at.x, p.y - this.at.y);
     this.at = { x: p.x, y: p.y };
-    const flip = p.facing < 0 ? -1 : 1;
-    const pose = poseOf(p, now, this.stride),
-      // The fire's side on screen, turned into the sprite's own side when it is drawn mirrored
+    const flip = p.facing < 0 ? -1 : 1,
+      [pose, k] = this.frame(p, now, casting),
+      // The fire's side on screen, turned into the picture's own side when it is drawn mirrored
       toward = (Math.sign(iso(FIRE.x, FIRE.y).x - f.x) || 1) * flip,
-      // A walker rises a little as each leg passes the other; someone standing breathes
-      bob = p.moving ? -Math.abs(Math.sin((this.stride / STEP) * (Math.PI / 2))) : 0,
-      breathe = p.moving ? 1 : 1 + 0.025 * this.breath;
-    this.body.texture = textureFor(spriteFor(p.room, pose));
-    this.figure.position.set(Math.round(f.x), Math.round(headTop(p) + FIGURE.h * BIG + bob));
-    this.figure.scale.set((BIG / SPRITE_SCALE) * flip, (BIG / SPRITE_SCALE) * breathe);
-    this.lit.texture = textureFor(litFor(p.room, pose, toward));
+      body = personPicture(p.room.role, pose, k);
+    this.body.texture = textureFor(body);
+    this.lit.texture = textureFor(personPicture(p.room.role, pose, k, toward));
+    // The picture stands on its bottom row, over the column under its standing head
+    for (const s of [this.body, this.lit]) s.anchor.set((anchorOf(p.room.role) + 0.5) / body.width, 1);
+    this.figure.position.set(Math.round(f.x), Math.round(f.y));
+    this.figure.scale.set(PIXEL * flip, PIXEL);
     this.lit.alpha = Math.max(0, 1 - Math.hypot(p.x - FIRE.x, p.y - FIRE.y) / 10);
     // Someone with nothing to do fades a little, so the eye finds who is at work
     this.figure.alpha = p.state === 'idle' ? 0.85 : 1;
     this.spell.clear();
-    this.seal.clear();
-    if (casting) {
-      drawWard(this.spell, f, now);
-      const y = headTop(p) + 11.5 * BIG;
-      this.seal.rect(Math.round(f.x) - 1, Math.round(y) - 1, 3, 3).fill({ color: hex(C.wardLight), alpha: 0.8 });
-    }
+    if (casting) drawWard(this.spell, f, now);
   }
 
   destroy() {
-    this.breathing.kill();
     this.root.destroy({ children: true });
   }
 }

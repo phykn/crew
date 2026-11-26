@@ -67,3 +67,6 @@ export function personPicture(role, pose, frame = 0, fire = 0) {
 
 // How many frames a role's pose has
 export const framesOf = (role, pose) => PEOPLE[role].poses[pose].length;
+
+// The column under a role's standing head, where the picture stands over the person's spot
+export const anchorOf = (role) => PEOPLE[role].anchor;

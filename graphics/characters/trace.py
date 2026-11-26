@@ -179,6 +179,8 @@ for sheet, _ in SHEETS:
         place_head(img, mask, k == 1 if sheet in STILL else (sheet, k) in spec['closed'], dy, dx + n + PAD)
         frames[sheet].append((img, mask))
 cols = np.nonzero(np.max([m.any(0) for fs in frames.values() for _, m in fs], 0))[0]
+# The column under the standing head's middle, which the camp stands over the person's spot and mirrors about
+anchor = still_dx + PAD + hw // 2 - cols[0]
 frames = {s: [(img[:, cols[0] : cols[-1] + 1], m[:, cols[0] : cols[-1] + 1]) for img, m in fs] for s, fs in frames.items()}
 
 hex_of = lambda c: '#%02x%02x%02x' % tuple(np.round(c).astype(int))
@@ -197,6 +199,7 @@ def rows(img, mask):
 
 name = lambda s: s.split('-')[0] + ''.join(p.title() for p in s.split('-')[1:])
 out = [f'// Made by graphics/characters/trace.py from graphics/characters/{role}/; run it again rather than editing', 'export default {']
+out.append(f'  anchor: {anchor},')
 out.append('  colors: [' + ', '.join(f"'{h}'" for h in hexes) + '],')
 out.append('  poses: {')
 for sheet, _ in SHEETS:

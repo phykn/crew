@@ -12,7 +12,7 @@ function canvasOf(w: number, h: number) {
   });
 }
 
-export function textureOf(canvas: HTMLCanvasElement, resolution = 1, nearest = false) {
+export function textureOf(canvas: HTMLCanvasElement | OffscreenCanvas, resolution = 1, nearest = false) {
   // Made at resolution 1 and only then given its own: Pixi works out canvas size / resolution * resolution, and when that
   // rounds a pixel short it resizes the canvas, which wipes it, so a piece vanished and left only its shadow
   const source = new CanvasSource({ resource: canvas, resolution: 1, scaleMode: nearest ? 'nearest' : 'linear' });

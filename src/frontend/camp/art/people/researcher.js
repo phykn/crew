@@ -1,5 +1,6 @@
 // Made by graphics/characters/trace.py from graphics/characters/researcher/; run it again rather than editing
 export default {
+  anchor: 19,
   colors: ['#2a1413', '#291c15', '#2e1c16', '#331b16', '#301f1b', '#311f1a', '#331f1a', '#33201b', '#37201a', '#36241d', '#3b2c21', '#402c1d', '#3e2b23', '#442b24', '#452d2c', '#4d2d26', '#4d2e26', '#523026', '#57362f', '#5d3a30', '#67352d', '#5c3b35', '#5c4133', '#604132', '#683d32', '#683e32', '#6c5a27', '#6f443a', '#7c463a', '#76503a', '#78513e', '#7e503e', '#6e544d', '#844d3e', '#74613b', '#78663d', '#a16732', '#8f703e', '#947841', '#ce7c14', '#bf7d38', '#de901c', '#ac8d75', '#eca81c', '#ca9855', '#c6a46a', '#a3a1a4', '#efa879', '#f0a97a', '#f5b080', '#d4b7a0', '#f8b484', '#c8b9b8', '#f1dbc6', '#f5dfca', '#fbe7d3', '#f8ede3'],
   poses: {
     idle: [

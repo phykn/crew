@@ -1,11 +1,14 @@
 import { iso } from './projection.js';
 
-// A person stands this many world pixels before the camp's scale, whatever resolution their sprite is painted at
-export const FIGURE = { w: 16, h: 26 };
+// A standing person is this many world pixels tall, before the camp's scale
+export const FIGURE = { h: 26 };
 export const BIG = 1.6;
-// Sitting on the ground, a person is this many rows from the crown to the crossed legs
-const SITTING = 22;
-export const headTop = (p) => iso(p.x, p.y).y - (p.sitting ? SITTING : FIGURE.h) * BIG;
+// A person's picture has this many rows from crown to soles standing, so each of its pixels is this much of the scene
+const STANDING = 82;
+export const PIXEL = (FIGURE.h * BIG) / STANDING;
+// Sitting cross-legged on the ground, a person's picture is about this many rows from crown to the folded legs
+const SITTING = 60;
+export const headTop = (p) => iso(p.x, p.y).y - (p.sitting ? SITTING : STANDING) * PIXEL;
 
 // A worker casts wherever they stand once they stop walking
 export const isCasting = (p) => p.state === 'working' && !p.path.length && !p.sitting;

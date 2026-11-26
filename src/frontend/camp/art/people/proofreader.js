@@ -1,5 +1,6 @@
 // Made by graphics/characters/trace.py from graphics/characters/proofreader/; run it again rather than editing
 export default {
+  anchor: 20,
   colors: ['#2f1a17', '#19212c', '#36211c', '#37201c', '#322325', '#3b2320', '#382623', '#392426', '#3f2c29', '#452a2b', '#343239', '#523026', '#5c3b34', '#613d33', '#6a4622', '#4d4652', '#6c403d', '#6b463d', '#6f493f', '#744b3e', '#884f26', '#61584c', '#844f34', '#8d5929', '#956435', '#995d38', '#925050', '#886249', '#606770', '#965e47', '#5f6c71', '#766b5c', '#9d5556', '#7a7261', '#9d6e45', '#a05a56', '#9a6f53', '#a67346', '#af6b49', '#6a7785', '#ab7057', '#b26162', '#ac7e55', '#b86765', '#ac7d6e', '#c07c5c', '#e2938f', '#e3a47e', '#d6b69b', '#f6b88e', '#f9bd95', '#f1d8bd', '#f7dcc2', '#fcddc5', '#f7e5cc', '#f9ecd8', '#f9ebdd'],
   poses: {
     idle: [

@@ -1,5 +1,6 @@
 // Made by graphics/characters/trace.py from graphics/characters/conductor/; run it again rather than editing
 export default {
+  anchor: 29,
   colors: ['#0f0205', '#260a0d', '#241216', '#22151f', '#2d191d', '#221c29', '#241d2b', '#241f2e', '#351f1f', '#381a26', '#431626', '#2e2734', '#402c28', '#402c29', '#3a2c33', '#2f2c44', '#4c2e27', '#45302e', '#523026', '#40303a', '#36334e', '#383552', '#393652', '#4e3c38', '#393756', '#5c2c3e', '#563e3b', '#3d3a5a', '#6b4031', '#5c3b4e', '#703749', '#763950', '#6b5246', '#8d4a31', '#8b4a36', '#8c3b46', '#8a523a', '#8e553f', '#894754', '#5a5c8d', '#a75d3f', '#b07b3c', '#b17355', '#be903e', '#ca9640', '#d8a14d', '#e28e6e', '#eda26f', '#eda671', '#d6ac8e', '#fab581', '#fcb984', '#f7d9be', '#f9dec4', '#f8efdc', '#fbf0dd'],
   poses: {
     idle: [
