@@ -42,7 +42,7 @@ test('a tool outside the role becomes an answer card, and the approval holds onl
   expect(card.question?.kind).toBe('approval');
   expect(card.question?.options).toEqual(['refuse', 'allow']);
   // The member is named once, then what it lacks
-  expect(say(card.question!.say!)).toBe('통역 모아: Bash 도구가 역할에 없습니다.\nls');
+  expect(say(card.question!.say!)).toBe('통역 유진: Bash 도구가 역할에 없습니다.\nls');
   chat.questions.answer(card.question!.id, 'allow');
   expect((await pending)!.behavior).toBe('allow');
 

@@ -18,16 +18,8 @@ export const TORCH_TOP = 50;
 
 // r is how far around a piece nobody walks
 export const PROPS = [
-  // The two pines stand just past the trodden ground, so they are always painted behind everyone
+  // The pine stands just past the trodden ground, so it is always painted behind everyone
   { kind: 'pine', x: 6.3, y: 10.5, r: 0.6 },
-  { kind: 'pine', x: 15.2, y: 5.4, r: 0.6 },
-  { kind: 'fern', x: 10.5, y: 8.5, r: 0.6 },
-  { kind: 'fern', x: 24, y: 13.5, r: 0.6 },
-  { kind: 'fern', x: 12, y: 23, r: 0.6 },
-  { kind: 'fern', x: 6.8, y: 16.8, r: 0.6 },
-  { kind: 'rock', x: 19.8, y: 6.9, r: 0.5 },
-  { kind: 'rock', x: 10.2, y: 19.8, r: 0.5 },
-  { kind: 'rock', x: 21.6, y: 20.4, r: 0.5 },
   { kind: 'log', x: 19.6, y: 15.4, w: 1.6, h: 0.5, r: 0.9 },
   { kind: 'crates', x: 11.2, y: 6.9, r: 0.6 },
   { kind: 'drum', x: 12.4, y: 7.7, r: 0.5 },
@@ -86,7 +78,6 @@ export const WILDS = [
   ...grove(140, 12.8, [1, 1.2]),
   ...grove(318, 13.4, [1.1, 0.9]),
   place('wagon', 152, 11),
-  place('crates', 212, 10.5),
   place('drum', 240, 10.4),
   place('drum', 244, 10.9),
   place('woodpile', 272, 10.6),
@@ -95,6 +86,8 @@ export const WILDS = [
   place('fern', 186, 10.6),
   place('fern', 286, 10.4),
   place('rock', 310, 10.3, { size: 0.6 }),
+  // A tuft at the foot of every torch, on its outer side, repeats the torches' ring
+  ...TORCHES.map((t) => ({ kind: 'tuft', x: FIRE.x + (t.x - FIRE.x) * 1.08, y: FIRE.y + (t.y - FIRE.y) * 1.08 })),
   ...[150, 170, 344, 356].map((deg, i) => place('tuft', deg, 10.2 + (i % 2) * 0.4)),
   ...LOW_LANTERNS,
   ...NEAR,

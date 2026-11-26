@@ -49,7 +49,7 @@ test('the legend lists the crew with their models, and its settings change nickn
   await page.getByLabel('초기화').getByRole('button', { name: '되돌리기' }).click();
   await expect(page.getByRole('dialog').getByLabel('브라우저 접근')).toHaveText('없음');
   await page.getByRole('dialog').getByRole('button', { name: '닫기' }).click();
-  await expect(page.getByLabel('코드 작성 설정')).toContainText('모루');
+  await expect(page.getByLabel('코드 작성 설정')).toContainText('지안');
   await expect(page.getByLabel('코드 작성 설정')).toContainText('Sonnet');
   await app.close();
 });

@@ -36,7 +36,7 @@ const SIT_FOR = [25000, 20000];
 // When a sitter's while is up, the chance they stay on for another
 const SIT_ON = 0.4;
 // How close to a rug's middle, in tiles, a stroller may stop
-const RUG_CLEAR = 0.9;
+const RUG_CLEAR = 1.2;
 // Gap between one arrival and the next when the crew first walks in, in ms
 const ARRIVAL_GAP = 250;
 

@@ -76,7 +76,7 @@ test('통역 finds the stopped test task the user picks, opens its log, resumes 
 test('a temp whose work is done leaves without a card, and a regular leaves or comes back only once allowed', async () => {
   const { store, fake, chat, p, s } = openChat();
   appServer(fake.sdk, chat, s.id);
-  const temp = store.addMember(p.id, { key: 'researcher-1-research', nickname: '누리2', model: 'haiku', temp: true });
+  const temp = store.addMember(p.id, { key: 'researcher-1-research', nickname: '이안2', model: 'haiku', temp: true });
   const hire = (role: string, hired: boolean) =>
     toolText(fake, 'app_act', { action: 'crew.hire', args: { role, hired } });
   const card = () => store.listMessages(s.id).at(-1)?.question;
@@ -94,7 +94,7 @@ test('a temp whose work is done leaves without a card, and a regular leaves or c
   for (const hired of [false, true]) {
     const asked = hire('시험', hired);
     await vi.waitFor(() => expect(card()?.answer).toBeNull());
-    expect(say(card()!.say!)).toContain(hired ? '시험(시우)을 다시 고용할까요' : '시험(시우)을 내보낼까요');
+    expect(say(card()!.say!)).toContain(hired ? '시험(시안)을 다시 고용할까요' : '시험(시안)을 내보낼까요');
     chat.questions.answer(card()!.id, 'allow');
     await asked;
     expect(store.readMemberById(tester.id).status).toBe(hired ? 'hired' : 'unhired');

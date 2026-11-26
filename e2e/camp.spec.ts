@@ -23,7 +23,7 @@ test('a nickname change shows over the head at once, and clicking a member opens
   const page = await openProject(app, scratch.project);
   const where = (key: string) =>
     page.evaluate((k) => (window as unknown as { camp: (k: string) => Where }).camp(k), key);
-  await expect.poll(async () => (await where('researcher'))?.name).toBe('누리');
+  await expect.poll(async () => (await where('researcher'))?.name).toBe('이안');
   // The camp draws with WebGL, so a canvas left on 2D would mean the old painter came back
   const gl = await page.evaluate(() => {
     const c = document.querySelector('.camp-canvas canvas') as HTMLCanvasElement;

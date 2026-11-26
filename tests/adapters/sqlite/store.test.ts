@@ -6,7 +6,7 @@ test("a resumed Claude session reports running totals, so usage counts only each
   const { store, project } = openScratch();
   const p = store.addProject(project);
   const s = store.createSession(p.id);
-  store.seedMembers(p.id, [{ key: 'coder', nickname: '모루', model: 'sonnet' }]);
+  store.seedMembers(p.id, [{ key: 'coder', nickname: '지안', model: 'sonnet' }]);
   const agent = store.openAgentSession(s.id, store.readMember(p.id, 'coder').id).id;
   const run = (model: string, costUsd: number, inputTokens: number, side = false) =>
     store.finishRun(store.startRun(agent, model, null, side), {
