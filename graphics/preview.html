@@ -9,14 +9,14 @@
 <script type="module">
   // Each prop is painted where the camp places it, by the app's own code, so the fire lights it as it will in the app
   import { iso } from '../src/frontend/camp/projection.js';
-  import { PROPS, TORCHES, WILDS } from '../src/frontend/camp/layout.js';
+  import { FIRE, PROPS, TORCHES, WILDS } from '../src/frontend/camp/layout.js';
   import { drawProp } from '../src/frontend/camp/art/props.js';
 
   const q = new URLSearchParams(location.search),
     pick = q.get('kind'),
     k = +(q.get('zoom') ?? (pick ? 10 : 4));
   // One of each kind, or every one of the kind asked for
-  const all = [...PROPS, ...TORCHES.map((t) => ({ ...t, kind: 'torch' })), ...WILDS],
+  const all = [{ ...FIRE, kind: 'hearth' }, ...PROPS, ...TORCHES.map((t) => ({ ...t, kind: 'torch' })), ...WILDS],
     shown = pick ? all.filter((d) => d.kind === pick) : all.filter((d, i) => all.findIndex((e) => e.kind === d.kind) === i);
   for (const d of shown) {
     const fig = document.createElement('figure'),

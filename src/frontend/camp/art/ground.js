@@ -1,7 +1,7 @@
 import { FIRE, GROUND } from '../layout.js';
 import { COLOR as C } from '../palette.js';
 import { TW, TH, iso } from '../projection.js';
-import { prism, shadow } from './shapes.js';
+import { drawProp } from './props.js';
 
 // A fixed seed keeps the ground pattern identical across resizes and reloads
 function seeded(seed) {
@@ -67,21 +67,6 @@ export function paintGround(ctx, view) {
   blot(fire.x, fire.y, 70, C.barkDark, 0.6);
   speckle(fire.x - rx, fire.y - ry, rx * 2, ry * 2, 900, [C.rockDark, C.dirtWorn, C.rock], 0.5);
 
-  // A ring of stones and three logs make the hearth; the flames themselves move, so they are painted each frame
-  for (let k = 0; k < 12; k++) {
-    const a = (k * Math.PI) / 6,
-      p = iso(FIRE.x + 1.15 * Math.cos(a), FIRE.y + 1.15 * Math.sin(a));
-    ctx.fillStyle = C.rockDark;
-    ctx.fillRect(p.x - 4, p.y - 3, 8, 5);
-    ctx.fillStyle = k % 3 ? C.rock : C.rockLight;
-    ctx.fillRect(p.x - 4, p.y - 4, 7, 2);
-  }
-  for (const [dx, dy] of [
-    [-0.7, -0.15],
-    [0.1, -0.15],
-    [-0.3, 0.35],
-  ]) {
-    shadow(ctx, FIRE.x + dx + 0.3, FIRE.y + dy + 0.3, 9, 3);
-    prism(ctx, { x: FIRE.x + dx, y: FIRE.y + dy, w: 0.6, h: 0.25, z: 4 }, C.wood, C.woodDark, C.barkDark);
-  }
+  // The hearth lies low enough to be part of the ground; the flames themselves move, so they are painted each frame
+  drawProp(ctx, { kind: 'hearth', ...FIRE });
 }

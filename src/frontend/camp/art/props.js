@@ -217,27 +217,29 @@ function bench(ctx, d) {
   ]);
 }
 
+// A face's direction and how deep it is cut; fewer, larger faces toward the top keep the stone calm
+const STONE = [
+  [0, 0, 1, 0.9],
+  [-0.6, 0.3, 1, 0.97],
+  [0.5, -0.4, 1, 0.92],
+  [0.3, 0.7, 0.8, 0.95],
+  [-0.4, -0.7, 0.9, 0.96],
+  [1, 0.2, 0.5, 0.9],
+  [-1, 0, 0.3, 0.98],
+  [0.2, 1, 0.3, 0.97],
+  [-0.3, -1, 0.3, 0.95],
+  [0.8, 0.8, 0.2, 0.93],
+  [0.8, -0.7, 0.2, 0.96],
+  [-0.8, 0.7, 0.2, 0.98],
+];
+
 // A low boulder cut into flat faces, higher toward its left; each face takes its shade from where it turns
 function rock(ctx, d) {
   const s = d.size ?? 1,
     r = [9.5 * s, 7.5 * s, 5 * s],
     c = [d.x * U, d.y * U, 0.5 * s];
   cast(ctx, d.x + 0.2, d.y + 0.2, 15 * s, 14 * s);
-  // A face's direction and how deep it is cut; fewer, larger faces toward the top keep the stone calm
-  const faces = [
-    [0, 0, 1, 0.9],
-    [-0.6, 0.3, 1, 0.97],
-    [0.5, -0.4, 1, 0.92],
-    [0.3, 0.7, 0.8, 0.95],
-    [-0.4, -0.7, 0.9, 0.96],
-    [1, 0.2, 0.5, 0.9],
-    [-1, 0, 0.3, 0.98],
-    [0.2, 1, 0.3, 0.97],
-    [-0.3, -1, 0.3, 0.95],
-    [0.8, 0.8, 0.2, 0.93],
-    [0.8, -0.7, 0.2, 0.96],
-    [-0.8, 0.7, 0.2, 0.98],
-  ];
+  const faces = STONE;
   const part = { sdf: facets(c, r, faces), paint: (p, n, light) => [ROCK, light] };
   drawSolids(
     ctx,
@@ -536,5 +538,54 @@ function torch(ctx, d) {
   ]);
 }
 
-const PAINT = { fern, rock, log, drum, well, bench, pine, tuft, tent, wagon, crates, hay, woodpile, lantern, torch };
+// The hearth: a ring of stones, each cut like the rock but smaller and its size its own, round three logs that lean
+// in to meet under the flames, charred and glowing where they burn
+function hearth(ctx, d) {
+  const c = [d.x * U, d.y * U],
+    ring = 1.15 * U,
+    parts = [];
+  for (let k = 0; k < 11; k++) {
+    const a = (k / 11) * Math.PI * 2 + 0.2,
+      s = 0.85 + (0.3 * ((k * 7) % 5)) / 4,
+      r = [3.6 * s, 3.2 * s, 2.6 * s];
+    parts.push({
+      sdf: facets([c[0] + ring * Math.cos(a), c[1] + ring * Math.sin(a), 0.4], r, STONE),
+      paint: (p, n, l) => [ROCK, l],
+    });
+  }
+  for (const a of [0.5, 2.6, 4.7]) {
+    const foot = [c[0] + 11 * Math.cos(a), c[1] + 11 * Math.sin(a), 1.6];
+    parts.push({
+      sdf: rod(foot, [c[0] - 1.5 * Math.cos(a), c[1] - 1.5 * Math.sin(a), 6.5], 1.6),
+      paint: (p, n, l) => {
+        const out = Math.hypot(p[0] - c[0], p[1] - c[1]);
+        if (out < 4) return [BLAZE, 1];
+        return [BARK, out < 7 ? 1 : l];
+      },
+    });
+  }
+  drawSolids(ctx, parts, [
+    [c[0] - ring - 4, c[1] - ring - 4, 0],
+    [c[0] + ring + 4, c[1] + ring + 4, 9],
+  ]);
+}
+
+const PAINT = {
+  fern,
+  rock,
+  log,
+  drum,
+  well,
+  bench,
+  pine,
+  tuft,
+  tent,
+  wagon,
+  crates,
+  hay,
+  woodpile,
+  lantern,
+  torch,
+  hearth,
+};
 export const drawProp = (ctx, d) => PAINT[d.kind](ctx, d);

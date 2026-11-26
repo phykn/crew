@@ -1,42 +1,6 @@
-import { FIRE } from '../layout.js';
 import { iso, TW } from '../projection.js';
 
 const TAU = Math.PI * 2;
-
-function poly(ctx, pts, fill) {
-  ctx.beginPath();
-  pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
-  ctx.closePath();
-  ctx.fillStyle = fill;
-  ctx.fill();
-}
-
-// A box b = { x, y, w, h, z, z0 } from height z0 (the floor by default) up to z, with its top and the two faces the camera sees;
-// detail paints over the faces before the fire lights them
-export function prism(ctx, b, top, left, right, detail) {
-  const { x, y, w, h, z, z0 = 0 } = b;
-  const near = [iso(x, y + h, z0), iso(x + w, y + h, z0), iso(x + w, y + h, z), iso(x, y + h, z)],
-    side = [iso(x + w, y, z0), iso(x + w, y + h, z0), iso(x + w, y + h, z), iso(x + w, y, z)];
-  poly(ctx, near, left);
-  poly(ctx, side, right);
-  poly(ctx, [iso(x, y, z), iso(x + w, y, z), iso(x + w, y + h, z), iso(x, y + h, z)], top);
-  detail?.(ctx);
-  // The near face looks along +y and the side face along +x: whichever turns to the fire takes its light
-  const dx = FIRE.x - (x + w / 2),
-    dy = FIRE.y - (y + h / 2),
-    dist = Math.hypot(dx, dy);
-  if (dist < 0.5) return;
-  const reach = Math.max(0, 1 - dist / 12);
-  firelit(ctx, near, (dy / dist) * reach);
-  firelit(ctx, side, (dx / dist) * reach);
-}
-
-// facing runs from -1, turned away from the fire, to 1, square to it
-function firelit(ctx, face, facing) {
-  ctx.globalAlpha = Math.abs(facing) * (facing > 0 ? 0.22 : 0.4);
-  poly(ctx, face, facing > 0 ? 'rgb(255, 180, 110)' : 'rgb(0, 0, 0)');
-  ctx.globalAlpha = 1;
-}
 
 // The soft dark spot where a thing meets the ground; with a height, the thing also blocks light, which paints the
 // shadows it casts (stage/light.ts); casters, when the context has a list, collects it
