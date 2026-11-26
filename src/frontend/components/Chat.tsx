@@ -11,6 +11,7 @@ import { ListMenu, ListOption } from '../ui/Menu';
 import type { ChangesTarget } from './Changes';
 import { TaskCards } from './TaskCards';
 import { type Key, t } from '../lang';
+import { useStickToBottom } from '../stick';
 
 // The window's own commands: typed after a slash, they act here and never reach 통역
 // A label only where the name alone does not say it
@@ -27,8 +28,6 @@ type Queued = { id: number; sessionId: number; text: string; images: Image[] };
 // Claude takes up to five pictures of about 5MB each in one message
 const MAX_IMAGES = 5;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-// How near the bottom still counts as at it, so a line's worth of rounding does not unstick the list
-const STICK_PX = 24;
 
 function readImage(file: File): Promise<Image | null> {
   const type = IMAGE_TYPES.find((t) => t === file.type);
@@ -71,10 +70,8 @@ export function Chat({
   // Why the last pictures were left out, or that a message did not go
   const [notice, setNotice] = useState<string | null>(null);
   const nextId = useRef(0);
-  // The list follows new words only while the user is at its bottom, so reading back is not pulled away
-  const stick = useRef(true);
+  const list = useStickToBottom<HTMLDivElement>([session.id]);
   const picker = useRef<HTMLInputElement>(null);
-  const end = useRef<HTMLDivElement>(null);
   const [pick, setPick] = useState(0);
   // A lone word after a slash lists the commands it could start
   const matches = /^\/\S*$/.test(draft) ? commands.filter((c) => `/${c.name}`.startsWith(draft)) : [];
@@ -91,7 +88,6 @@ export function Chat({
     setDraft('');
     setImages([]);
     setNotice(null);
-    stick.current = true;
     call('messages.busy', { sessionId: session.id }).then((busy) => {
       if (!current) return;
       if (busy) setStreaming((s) => s ?? '');
@@ -111,11 +107,6 @@ export function Chat({
       offStream();
     };
   }, [session.id]);
-
-  // Braces matter: scrollIntoView returns a promise in current Chromium, which React would take for a cleanup
-  useEffect(() => {
-    if (stick.current) end.current?.scrollIntoView({ block: 'end' });
-  }, [messages, streaming, queued, images.length]);
 
   const waiting = messages.some((m) => m.question && m.question.answer === null);
   useEffect(() => onWaiting(waiting), [waiting]);
@@ -157,8 +148,7 @@ export function Chat({
     setNotice(null);
     const command = !images.length && commands.find((c) => `/${c.name}` === text);
     if (command) return command.run();
-    // What the user just said is shown, even if they had scrolled back to read
-    stick.current = true;
+    list.stick();
     if (later && streaming !== null)
       return setQueued((qs) => [...qs, { id: nextId.current++, sessionId: session.id, text, images }]);
     dispatch(text, images);
@@ -184,14 +174,7 @@ export function Chat({
   return (
     <div className="chat">
       <TaskCards tasks={tasks} messages={messages} onLog={onLog} onAnswer={showQuestion} />
-      <div
-        className="messages"
-        aria-label={t('tab.chat')}
-        onScroll={(e) => {
-          const el = e.currentTarget;
-          stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < STICK_PX;
-        }}
-      >
+      <div ref={list.ref} className="messages" aria-label={t('tab.chat')} onScroll={list.onScroll}>
         {messages.map((m) => (
           <Bubble
             key={m.id}
@@ -223,7 +206,6 @@ export function Chat({
               </Button>
             </div>
           ))}
-        <div ref={end} />
       </div>
       <form
         className="composer"

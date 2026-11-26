@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Event, Handback, Session, Task } from '../../backend/domain/records';
 import type { CrewMember } from '../../backend/domain/crew';
 import { call, follow } from '../api';
@@ -10,6 +10,7 @@ import { MarkIcon } from './Icons';
 import type { ChangesTarget } from './Changes';
 import { modelLabel, roleName, say } from '../locale';
 import { t } from '../lang';
+import { useStickToBottom } from '../stick';
 
 const ALL = 'all';
 type Logged = Handback & { version?: number };
@@ -117,7 +118,6 @@ export function Log({
         tasks={tasks}
         members={members}
         taskId={taskId}
-        showUsage={showUsage}
         onChanges={onChanges}
       />
     </div>
@@ -130,7 +130,6 @@ function LogList({
   tasks,
   members,
   taskId,
-  showUsage,
   onChanges,
 }: {
   sessionId: number;
@@ -138,44 +137,12 @@ function LogList({
   tasks: Task[];
   members: CrewMember[];
   taskId: number | null;
-  showUsage: boolean;
   onChanges: (target: ChangesTarget) => void;
 }) {
   const [open, setOpen] = useState<number | null>(null);
-  const scroll = useRef<HTMLOListElement>(null);
+  const list = useStickToBottom<HTMLOListElement>([sessionId, taskId]);
+  const scroll = list.ref;
   const expanded = useRef<HTMLElement>(null);
-  const stick = useRef(true);
-  const size = useRef({ height: 0, content: 0 });
-  const observer = useRef<ResizeObserver | null>(null);
-  const rows = useRef(new Set<HTMLLIElement>());
-  const observeRow = useCallback((row: HTMLLIElement | null) => {
-    if (!row) return;
-    rows.current.add(row);
-    observer.current?.observe(row);
-    return () => {
-      observer.current?.unobserve(row);
-      rows.current.delete(row);
-    };
-  }, []);
-  const followBottom = useCallback(() => {
-    const el = scroll.current;
-    if (!el) return;
-    if (stick.current) el.scrollTop = el.scrollHeight;
-    size.current = { height: el.clientHeight, content: el.scrollHeight };
-  }, []);
-
-  useLayoutEffect(() => {
-    const el = scroll.current;
-    if (!el) return;
-    const watcher = new ResizeObserver(followBottom);
-    observer.current = watcher;
-    watcher.observe(el);
-    for (const row of rows.current) watcher.observe(row);
-    return () => {
-      watcher.disconnect();
-      observer.current = null;
-    };
-  }, [followBottom]);
 
   const entries = useMemo(() => {
     // A start line is past once its task has a later status line: the next start, or the task's end
@@ -195,10 +162,6 @@ function LogList({
       });
   }, [events]);
   const shown = entries.filter(({ event }) => taskId === null || event.taskId === taskId);
-  const latest = shown.at(-1)?.event.id;
-  useLayoutEffect(() => {
-    stick.current = true;
-  }, [sessionId, taskId]);
 
   useLayoutEffect(() => {
     if (open === null) return;
@@ -215,33 +178,16 @@ function LogList({
     }
   }, [open]);
 
-  useLayoutEffect(followBottom, [followBottom, sessionId, taskId, latest, open, showUsage]);
-
   const who = (id: number | null) => members.find((m) => m.id === id);
   return (
-    <ol
-      ref={scroll}
-      className="log-list"
-      aria-label={t('log.list')}
-      onScroll={({ currentTarget: el }) => {
-        if (size.current.height !== el.clientHeight || size.current.content !== el.scrollHeight) return;
-        stick.current =
-          el.scrollHeight - el.scrollTop - el.clientHeight <= 2 * parseFloat(getComputedStyle(el).lineHeight);
-      }}
-    >
+    <ol ref={scroll} className="log-list" aria-label={t('log.list')} onScroll={list.onScroll}>
       {shown.map(({ event: e, handback: hb, errors }) => {
         const role = who(e.memberId)?.role ?? (e.memberId && e.say.role ? roleName(e.say.role) : null);
         // A handback with nothing past its summary, as an assignment's, has nothing to open
         const opens = !!((hb && hasDetail(hb)) || errors);
         const mark = markOf(e, hb, errors);
         return (
-          <li
-            key={e.id}
-            ref={observeRow}
-            className="log-row"
-            data-kind={e.kind}
-            data-bad={mark.state === 'bad' || undefined}
-          >
+          <li key={e.id} className="log-row" data-kind={e.kind} data-bad={mark.state === 'bad' || undefined}>
             <Button
               variant="row"
               className="log-line"
@@ -249,7 +195,7 @@ function LogList({
               aria-expanded={opens ? open === e.id : undefined}
               onClick={({ currentTarget }) => {
                 expanded.current = currentTarget.parentElement;
-                if (open !== e.id) stick.current = false;
+                if (open !== e.id) list.unstick();
                 setOpen(open === e.id ? null : e.id);
               }}
             >
