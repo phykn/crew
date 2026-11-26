@@ -18,6 +18,8 @@ export const HAY = [C.woodDark, C.hayDeep, C.hayDark, C.hay, C.hayLight];
 export const CANVAS = [C.leather, C.canvasDeep, C.canvasDark, C.canvasDark, C.canvas];
 // Needles stay dark at night: the ramp starts and ends darker than the other materials'
 export const LEAF = [C.leafDeep, C.leafDeep, C.leafDark, C.leaf, C.leafLight];
+// A pine's needles are olive, as in its approved picture, apart from the ferns' and tufts' greener leaves
+export const NEEDLE = [C.needleDeep, C.needleDeep, C.needleDark, C.needle, C.needleLight];
 // A flame behind glass gives its own light, so its shades run from the deep orange to the white core
 export const BLAZE = [C.flameDeep, C.flameDeep, C.flame, C.flame, C.flameCore];
 // A doorway's dark inside, warmed by the lantern within
@@ -71,28 +73,6 @@ const blocked = (p, n, u, far, dist) => {
 
 // How far p lies outside the box b ([[x, y, z], [x, y, z]]), or 0 inside it
 const boxDistance = (p, b) => Math.hypot(...[0, 1, 2].map((a) => Math.max(b[0][a] - p[a], 0, p[a] - b[1][a])));
-
-// The sky's light comes from behind the camp, so a solid's spot on the ground falls a little toward the viewer
-const SKY = [-0.3, -0.3, 1].map((v) => v / Math.hypot(0.3, 0.3, 1));
-// How dark the ground is at g: soft where the path toward the sky passes close to a solid, and darkest at its foot
-const groundShade = (g, dist, far, lo, hi) => {
-  // Only the stretch of the path to the sky that passes over the solids' box can be shaded
-  const enter = Math.max(0.5, ...[0, 1].map((a) => (g[a] - hi[a]) / -SKY[a])),
-    leave = Math.min(far, hi[2] / SKY[2], ...[0, 1].map((a) => (g[a] - lo[a]) / -SKY[a]));
-  const near = [0, 1].every((a) => g[a] > lo[a] - 4 && g[a] < hi[a] + 4);
-  if (enter > leave && !near) return 0;
-  let open = 1;
-  for (let t = Math.max(0.5, enter - 2), n = 0; n < 96 && t < Math.min(far, leave + 2); n++) {
-    const d = dist([g[0] + SKY[0] * t, g[1] + SKY[1] * t, SKY[2] * t]),
-      fade = (1 - t / far) ** 2;
-    // A high part's shadow is lighter than a foot's contact shade
-    if (d < 0.02) return (t > 8 ? 0.45 : 0.6) * fade;
-    open = Math.min(open, 1 - (1 - Math.min(1, (5 * d) / t)) * fade);
-    t += Math.max(d, 0.4);
-  }
-  const foot = Math.max(0, 1 - dist([g[0], g[1], 0.5]));
-  return 0.6 * Math.max(1 - Math.min(1, open), foot * 0.8);
-};
 
 // The ground point (in tiles) under a screen point, from the projection's own axes
 const o = iso(0, 0, 0),
@@ -160,8 +140,7 @@ export function rod(a, b, r, flat = false) {
   };
 }
 
-// parts: [{ sdf, paint(p, n, light) -> [shades, step], glow }], bounds: [[x, y, z], [x, y, z]] in units; a part
-// that glows casts no shadow
+// parts: [{ sdf, paint(p, n, light) -> [shades, step] }], bounds: [[x, y, z], [x, y, z]] in units
 // Pictures already drawn, by scale and by name: a prop's own place, kept so a resize draws nothing again, or a look
 // the caller shares between props, kept only while no flame touched it
 const kept = new Map();
@@ -184,13 +163,11 @@ export const keepPicture = (name, k, picture) => kept.set(`${name}@${k}`, pictur
 export function drawSolids(ctx, parts, bounds, key) {
   // The light probe only collects what blocks the flames
   if (ctx.casters) return;
-  // The frame also holds the spot the solids lay on the ground, which reaches out away from the sky's light
+  // Shadows on the ground are the flames' alone, cast by the light map, so the frame holds only the solids
   const top = bounds[1][2] + 2,
-    reach = (top / SKY[2]) * Math.hypot(SKY[0], SKY[1]),
-    margin = 4 + top / SKY[2] / 12,
     frame = [
-      [bounds[0][0] - margin, bounds[0][1] - margin, 0],
-      [bounds[1][0] + reach + margin, bounds[1][1] + reach + margin, bounds[1][2]],
+      [bounds[0][0] - 1, bounds[0][1] - 1, 0],
+      [bounds[1][0] + 1, bounds[1][1] + 1, bounds[1][2]],
     ];
   // Whole steps of scale, so a window resized a little draws from what is kept
   const k = Math.min(4, Math.ceil(ctx.getTransform().a - 0.05)),
@@ -223,9 +200,7 @@ export function drawSolids(ctx, parts, bounds, key) {
     H = Math.ceil(h * k);
   const warm = new Float32Array(W * H),
     depth = new Float32Array(W * H).fill(-Infinity),
-    hits = Array.from({ length: W * H }),
-    dark = new Float32Array(W * H),
-    found = new Uint8Array(W * H);
+    hits = Array.from({ length: W * H });
   const scene = (p) => {
     let best = Infinity,
       part = null;
@@ -235,18 +210,11 @@ export function drawSolids(ctx, parts, bounds, key) {
     }
     return [best, part];
   };
-  const solid = (p) => scene(p)[0],
-    blocking = parts.filter((q) => !q.glow),
-    blocks = (p) => {
-      let best = Infinity;
-      for (const q of blocking) best = Math.min(best, q.sdf(p));
-      return best;
-    };
+  const solid = (p) => scene(p)[0];
   for (let j = 0; j < H; j++)
     for (let i = 0; i < W; i++) {
       const [gx, gy] = ground(x0 + (i + 0.5) / k, y0 + (j + 0.5) / k);
       // Along the ray every unit up is also a unit toward +x and +y, so the point keeps its place on screen
-      let hit = false;
       // A ray is marched only where it is inside the solids' box
       const from = Math.min(top, bounds[1][0] - gx, bounds[1][1] - gy) + 0.5,
         to = Math.max(-1, bounds[0][0] - gx, bounds[0][1] - gy) - 0.5;
@@ -267,23 +235,10 @@ export function drawSolids(ctx, parts, bounds, key) {
           depth[j * W + i] = s;
           if (!unlit) warm[j * W + i] = warmth(p, nrm, solid);
           hits[j * W + i] = part.paint(p, nrm, shade(nrm));
-          hit = true;
           break;
         }
         // A step of s moves the point sqrt(3) units, so the distance divided by that never passes a surface
         s -= Math.max(d, 0.03) / Math.sqrt(3);
-      }
-      // The ground's shade is soft, so it is found on every other pixel each way and shared with the pixels beside it
-      if (!hit) {
-        const ei = i & ~1,
-          ej = j & ~1,
-          at = ej * W + ei;
-        if (!found[at]) {
-          const [ex, ey] = ground(x0 + (ei + 0.5) / k, y0 + (ej + 0.5) / k);
-          dark[at] = groundShade([ex, ey, 0], blocks, top / SKY[2], bounds[0], bounds[1]);
-          found[at] = 1;
-        }
-        dark[j * W + i] = dark[at];
       }
     }
   const img = new ImageData(W, H),
@@ -292,10 +247,7 @@ export function drawSolids(ctx, parts, bounds, key) {
     for (let i = 0; i < W; i++) {
       const at = j * W + i,
         hit = hits[at];
-      if (!hit) {
-        if (dark[at] > 0.02) img.data.set([0, 0, 0, Math.round(dark[at] * 255)], at * 4);
-        continue;
-      }
+      if (!hit) continue;
       let [shades, step] = hit;
       // Where a nearer surface starts beside this one, this one falls a step into its shade, so solids stay apart
       const near = [
@@ -311,12 +263,12 @@ export function drawSolids(ctx, parts, bounds, key) {
       if (near) step -= 1;
       // A face turned to a flame close by is a step lighter and takes a little of the flame's color
       const f = warm[at];
-      if (f > 0.5 && shades !== LEAF) step += 1;
+      if (f > 0.5 && shades !== LEAF && shades !== NEEDLE) step += 1;
       if (shades === IRON) step = Math.min(step, 2);
       const hex = shades[Math.max(0, Math.min(shades.length - 1, step))];
       const c = (rgb[hex] ??= [1, 3, 5].map((n) => parseInt(hex.slice(n, n + 2), 16)));
       // Needles stay dark green under firelight instead of turning khaki
-      const tint = (shades === LEAF ? 0.08 : 0.15) * f;
+      const tint = (shades === LEAF || shades === NEEDLE ? 0.08 : 0.15) * f;
       img.data.set([...c.map((v, k) => Math.round(v + (FLAME[k] - v) * tint)), 255], at * 4);
     }
   // An offscreen canvas, so a worker can paint solids too

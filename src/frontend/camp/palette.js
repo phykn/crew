@@ -1,11 +1,7 @@
 // The camp canvas's palette; the window's own colors live in tokens.css
 export const COLOR = {
   grass: '#263021',
-  grassDark: '#1c2418',
   grassLight: '#313d27',
-  grassDry: '#3f3d29',
-  dirt: '#4f4330',
-  dirtWorn: '#45392a',
   pole: '#3d2b1a',
   wood: '#6b4a2c',
   woodDark: '#4a321d',
@@ -17,6 +13,10 @@ export const COLOR = {
   leafDark: '#212b1b',
   leafDeep: '#161d13',
   leafLight: '#43523a',
+  needle: '#40472f',
+  needleDark: '#2e3423',
+  needleDeep: '#1f2419',
+  needleLight: '#535a3b',
   rock: '#55524a',
   rockLight: '#706b60',
   rockDark: '#3a3833',

@@ -8,16 +8,30 @@
 </style>
 <script type="module">
   // Each prop is painted where the camp places it, by the app's own code, so the fire lights it as it will in the app
-  import { iso } from '../src/frontend/camp/projection.js';
+  import { CAMP, iso } from '../src/frontend/camp/projection.js';
   import { FIRE, PROPS, TORCHES, WILDS } from '../src/frontend/camp/layout.js';
   import { drawProp } from '../src/frontend/camp/art/props.js';
+  import { paintGround } from '../src/frontend/camp/art/ground.js';
 
   const q = new URLSearchParams(location.search),
     pick = q.get('kind'),
     k = +(q.get('zoom') ?? (pick ? 10 : 4));
+  const all = [{ ...FIRE, kind: 'hearth' }, ...PROPS, ...TORCHES.map((t) => ({ ...t, kind: 'torch' })), ...WILDS];
+  // ?ground: the whole camp as the app frames it, its ground and then every prop from the back forward
+  if (q.has('ground')) {
+    const g = +(q.get('zoom') ?? 2),
+      c = document.createElement('canvas');
+    c.width = CAMP.w * g;
+    c.height = CAMP.h * g;
+    const ctx = c.getContext('2d');
+    ctx.setTransform(g, 0, 0, g, -CAMP.x * g, -CAMP.y * g);
+    paintGround(ctx, CAMP);
+    if (!q.has('bare'))
+      for (const d of all.slice(1).sort((a, b) => a.x + a.y - (b.x + b.y))) drawProp(ctx, d);
+    document.body.append(c);
+  }
   // One of each kind, or every one of the kind asked for
-  const all = [{ ...FIRE, kind: 'hearth' }, ...PROPS, ...TORCHES.map((t) => ({ ...t, kind: 'torch' })), ...WILDS],
-    shown = pick ? all.filter((d) => d.kind === pick) : all.filter((d, i) => all.findIndex((e) => e.kind === d.kind) === i);
+  const shown = q.has('ground') ? [] : pick ? all.filter((d) => d.kind === pick) : all.filter((d, i) => all.findIndex((e) => e.kind === d.kind) === i);
   for (const d of shown) {
     const fig = document.createElement('figure'),
       c = document.createElement('canvas'),

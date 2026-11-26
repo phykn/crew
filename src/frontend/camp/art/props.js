@@ -8,6 +8,7 @@ import {
   HAY,
   IRON,
   LEAF,
+  NEEDLE,
   ROCK,
   U,
   WATER,
@@ -260,38 +261,40 @@ function rock(ctx, d) {
   );
 }
 
-// A pine: a short bark trunk under three tiers of needles, each smaller and higher; a tier is cut in seven flat faces
-// whose sides curve out to a drooping hem, so the light falls on it in steps; each overlaps the one below
+// A pine: a short brown trunk, a step darker than cut wood, under three broad skirts of needles, each smaller and higher; a skirt's hem juts out in
+// nine pointed boughs whose tips hang a little lower, turned from tier to tier, so the light falls on it in steps
 function pine(ctx, d) {
   const s = d.size ?? 1,
     c = [d.x * U, d.y * U];
-  cast(ctx, d.x + 0.3, d.y + 0.3, 14 * s, 70 * s);
-  const parts = [{ sdf: round([c[0], c[1], 8 * s], 2, 8 * s, () => 1.8 * s), paint: (p, n, l) => [BARK, l] }];
+  cast(ctx, d.x + 0.3, d.y + 0.3, 16 * s, 76 * s);
+  const parts = [
+    { sdf: round([c[0], c[1], 12 * s], 2, 12 * s, () => 2.2 * s), paint: (p, n, l) => [WOOD, Math.max(1, l - 1)] },
+  ];
   for (let tier = 0; tier < 3; tier++) {
-    const base = (13 + tier * 11) * s,
-      r = [11, 8.6, 6.2][tier] * s,
+    const base = (21 + tier * 11) * s,
+      r = [13, 10.4, 7.6][tier] * s,
       h = 22 * s;
     parts.push({
       sdf: (p) => {
-        const z = p[2] - base,
-          a = Math.atan2(p[1] - c[1], p[0] - c[0]),
-          face = (Math.PI * 2) / 7,
-          // Distance out to the nearest of seven flat faces rather than to a circle
-          out = Math.hypot(p[0] - c[0], p[1] - c[1]) * Math.cos(a - (Math.round(a / face - 0.3) + 0.3) * face),
+        const a = Math.atan2(p[1] - c[1], p[0] - c[0]),
+          turn = (a / (Math.PI * 2)) * 9 + tier * 0.37,
+          // 1 at a bough's tip and 0 between two
+          tip = 1 - 2 * Math.abs(turn - Math.floor(turn) - 0.5),
+          z = p[2] - base + 2.2 * s * tip,
           t = Math.min(1, Math.max(0, z / h));
-        return Math.max((out - r * (1 - t) ** 1.35) * 0.7, -z, z - h);
+        const out = Math.hypot(p[0] - c[0], p[1] - c[1]) - r * (0.84 + 0.22 * tip) * (1 - t) ** 1.3;
+        return Math.max(out * 0.55, -z, z - h);
       },
-      paint: (p, n, l) => [LEAF, n[2] < -0.5 ? 0 : l],
+      paint: (p, n, l) => [NEEDLE, n[2] < -0.5 ? 0 : l],
     });
   }
-  // A face's corner stands further out than its middle
-  const R = 12.4 * s;
+  const R = 14.5 * s;
   drawSolids(
     ctx,
     parts,
     [
       [c[0] - R, c[1] - R, 0],
-      [c[0] + R, c[1] + R, (13 + 22 + 22) * s],
+      [c[0] + R, c[1] + R, (21 + 22 + 22) * s],
     ],
     `pine${s}`,
   );
@@ -555,10 +558,9 @@ function lantern(ctx, d) {
   const parts = [
     { sdf: box([c[0], c[1], 10], [0.7, 0.7, 10], 0.2), paint: (p, n, l) => [WOOD, l - 1] },
     { sdf: rod([c[0], c[1], 17], [h[0], h[1], 17], 0.45), paint: (p, n, l) => [WOOD, l - 1] },
-    // The lantern lights itself, so its iron casts no shadow either
-    { sdf: rod([h[0], h[1], 17], [h[0], h[1], 15], 0.25), paint: (p, n, l) => [IRON, l], glow: true },
-    { sdf: box([h[0], h[1], 15], [1.6, 1.6, 0.6], 0.3), paint: (p, n, l) => [IRON, l], glow: true },
-    { sdf: box([h[0], h[1], 9.6], [1.6, 1.6, 0.5], 0.3), paint: (p, n, l) => [IRON, l], glow: true },
+    { sdf: rod([h[0], h[1], 17], [h[0], h[1], 15], 0.25), paint: (p, n, l) => [IRON, l] },
+    { sdf: box([h[0], h[1], 15], [1.6, 1.6, 0.6], 0.3), paint: (p, n, l) => [IRON, l] },
+    { sdf: box([h[0], h[1], 9.6], [1.6, 1.6, 0.5], 0.3), paint: (p, n, l) => [IRON, l] },
     {
       sdf: box([h[0], h[1], glass], [1.3, 1.3, 2.2]),
       paint: (p) => {
@@ -566,7 +568,6 @@ function lantern(ctx, d) {
         if (across > 0.95) return [IRON, 1];
         return [BLAZE, across < 0.5 && Math.abs(p[2] - glass) < 1.1 ? 4 : 2];
       },
-      glow: true,
     },
   ];
   drawSolids(ctx, parts, [
