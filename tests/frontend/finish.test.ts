@@ -8,7 +8,6 @@ const picture = (rows: string[]) => {
   rows.forEach((r, y) => [...r].forEach((ch, x) => ch === '#' && d.set([100, 100, 100, 255], (y * w + x) * 4)));
   return { d, w, h: rows.length };
 };
-const alpha = (d: Uint8ClampedArray, w: number, x: number, y: number) => d[(y * w + x) * 4 + 3];
 
 describe('finishing a baked prop', () => {
   it('lights the top edge and shades the bottom edge', () => {

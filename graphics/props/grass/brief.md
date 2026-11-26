@@ -6,7 +6,7 @@ One candidate generated with the built-in image tool; approval pending. Output: 
 
 ## Renderer measurements
 
-The existing `tuft` creates seven blade paths for i=-3..3, with source heights 7-abs(i)*1.5: tallest center 7 and shortest outer 2.5 scene units. The blades fan from a shared base near iso(d.x,d.y), with outward curvature and sparse mossDark #4a5a2c and grassDry #3f3d29 colors. This is a much smaller, simpler prop than the six-frond fern. Ground anchor: common base, lower center of visible blades. A coherent small blade cluster is the proposed clarification of the source's seven sparse paths.
+The existing `tuft` creates seven blade paths for i=-3..3, with source heights 7-abs(i)\*1.5: tallest center 7 and shortest outer 2.5 scene units. The blades fan from a shared base near iso(d.x,d.y), with outward curvature and sparse mossDark #4a5a2c and grassDry #3f3d29 colors. This is a much smaller, simpler prop than the six-frond fern. Ground anchor: common base, lower center of visible blades. A coherent small blade cluster is the proposed clarification of the source's seven sparse paths.
 
 ## Generation prompt
 

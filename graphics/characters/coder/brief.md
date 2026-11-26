@@ -283,15 +283,15 @@ Full motion GIF · All frame contact sheet · Casting contact sheet · Light-bac
 
 Logical character cells are 96 × 96; the upgraded ground effect uses 128 × 128 cells. Exported PNGs are horizontal strips; source layouts are listed below. GIFs are 440 × 440, with extra lower margin for the larger circle. The full preview includes left and horizontally mirrored right walking, seated rest and the idle→start→chant→end→idle sequence: **60 frames, 16.32 seconds**.
 
-| Action | Frames / source layout | Logical strip | Preview duration | Source | Exact prompt |
-| --- | --- | --- | --- | --- | --- |
-| Idle | 4 / 2 × 2 | PNG | GIF, 1.88 s | PNG | Prompt |
-| Walk | 4 / 2 × 2 | PNG | GIF, 0.88 s | PNG | Prompt |
-| Seated rest | 2 / 2 × 1 | PNG | GIF, 1.13 s | PNG | Prompt |
-| Casting start | 4 / 2 × 2 | PNG | GIF, 1.00 s, once | PNG | Prompt |
-| Working chant | 4 / 2 × 2 | PNG | GIF with separate effect, 0.72 s | Corrected PNG | Initial prompt, targeted cleanup |
-| Casting end | 4 / 2 × 2 | PNG | GIF, 1.14 s, once | PNG | Prompt |
-| Ground ward effect | 4 / 2 × 2 | PNG | Effect-only GIF, 0.72 s | PNG | Prompt |
+| Action             | Frames / source layout | Logical strip | Preview duration                 | Source        | Exact prompt                     |
+| ------------------ | ---------------------- | ------------- | -------------------------------- | ------------- | -------------------------------- |
+| Idle               | 4 / 2 × 2              | PNG           | GIF, 1.88 s                      | PNG           | Prompt                           |
+| Walk               | 4 / 2 × 2              | PNG           | GIF, 0.88 s                      | PNG           | Prompt                           |
+| Seated rest        | 2 / 2 × 1              | PNG           | GIF, 1.13 s                      | PNG           | Prompt                           |
+| Casting start      | 4 / 2 × 2              | PNG           | GIF, 1.00 s, once                | PNG           | Prompt                           |
+| Working chant      | 4 / 2 × 2              | PNG           | GIF with separate effect, 0.72 s | Corrected PNG | Initial prompt, targeted cleanup |
+| Casting end        | 4 / 2 × 2              | PNG           | GIF, 1.14 s, once                | PNG           | Prompt                           |
+| Ground ward effect | 4 / 2 × 2              | PNG           | Effect-only GIF, 0.72 s          | PNG           | Prompt                           |
 
 #### Identity and tool continuity
 

@@ -20,12 +20,12 @@ Use those proportions to judge a generated candidate. Export resolution and in-s
 
 The current palette provides these material references.
 
-| Surface | Existing color |
-| --- | --- |
-| Top wood | `#6b4a2c` |
-| Left wood | `#4a321d` |
-| Right wood and frame definition | `#3d2918` |
-| Iron | `#3a3834` |
+| Surface                         | Existing color |
+| ------------------------------- | -------------- |
+| Top wood                        | `#6b4a2c`      |
+| Left wood                       | `#4a321d`      |
+| Right wood and frame definition | `#3d2918`      |
+| Iron                            | `#3a3834`      |
 
 Treat these as color-family anchors. Allow a restrained increase in readability while keeping the finished sprite compatible with the dim woodland camp.
 
@@ -57,15 +57,15 @@ Make the left and right visible faces equally wide. The top diamond is half as t
 
 Use this normalized 64 × 64 construction guide to establish the volume. Coordinates refer to the logical pixel canvas, with x increasing rightward and y increasing downward.
 
-| Vertex | x | y |
-| --- | --- | --- |
-| Rear top corner | 32 | 8 |
-| Right top corner | 56 | 20 |
-| Front top corner | 32 | 32 |
-| Left top corner | 8 | 20 |
-| Right ground corner | 56 | 45 |
-| Front ground corner | 32 | 57 |
-| Left ground corner | 8 | 45 |
+| Vertex              | x   | y   |
+| ------------------- | --- | --- |
+| Rear top corner     | 32  | 8   |
+| Right top corner    | 56  | 20  |
+| Front top corner    | 32  | 32  |
+| Left top corner     | 8   | 20  |
+| Right ground corner | 56  | 45  |
+| Front ground corner | 32  | 57  |
+| Left ground corner  | 8   | 45  |
 
 Connect the four top vertices into a closed diamond. Connect each visible top corner straight down to its corresponding ground corner. Use the resulting planes for every plank, rail, brace, and nail. Retain the guide's proportions when exporting at a larger resolution.
 

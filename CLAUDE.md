@@ -70,6 +70,7 @@ A new screen picks parts first; a look no part has becomes a variant of one, sho
 
 ## Rules
 
+- A bug-fix and refactor plan is in `docs/groove/PLAN.md` (local, not in git); a session continuing it uses groove to do its first unchecked task.
 - Prompts, code, and comments are written in English; on-screen text is Korean or English, from `ko.ts` and `en.ts` only (`tests/frontend/words.test.ts` fails on Hangul anywhere else in `src/frontend` but the gallery).
 - Comments say only why, in one line.
 - Git: commit on main and push to GitHub by URL (`git push https://github.com/phykn/crew main`); pull the same way; add no remote and never force-push. The hooks in `scripts/hooks` (`core.hooksPath`) bump the version in `scripts/version.mjs` on each commit.

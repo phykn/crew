@@ -109,11 +109,9 @@ FOUR frames, 2x2 equal cells. Fixed planted feet and lower-left three-quarter ca
 
 #### cast-loop
 
-
 FOUR frames, 2x2 equal cells. Image2 is EXACT canonical held casting pose: hand on SCREEN-LEFT grips single baton, hand on SCREEN-RIGHT is open supporting palm; screen-RIGHT belt loop EMPTY. Keep that tool-hand ownership in every frame. Feet planted, head and pelvis fixed. Gentle conducting loop: 1 exact reference held stance; 2 small downbeat of left-side wrist and slightly open chanting mouth; 3 small upbeat, eyelids slightly lowered; 4 return toward1, mouth softly closes. Baton tip moves only a small arc, no whole-body swing or shoulder rotation. No second baton, orb, effect or light. Same body dimensions and camera as references. Do not revert to opposite tool hand from standing.
 
 #### cast-end
-
 
 FOUR frames, 2x2 equal cells. Image2 is canonical held casting pose. One wand held in SCREEN-LEFT hand throughout returning, screen-RIGHT hand supports empty. 1 exact reference held stance, baton at screen-left, EMPTY screen-right belt holder. 2 SCREEN-LEFT arm bends inward, lowering wand toward belly; right-side hand relaxes empty. 3 SAME SCREEN-LEFT arm reaches ACROSS the front of plum sash to SCREEN-RIGHT belt holder, seats baton shaft downward into loop; baton brass grip visible above holder, sleeve/hand across waist, right-side hand stays empty at side. 4 both hands empty at sides, one baton secured in its original screen-right belt holder, canonical standing idle as image1. Never switch holding hands, never duplicate baton. Fixed soles/root, same camera and body size, no effects.
 
@@ -139,6 +137,7 @@ REGISTRATION: exact requested equal cells in row-major order. One whole figure p
 MEDIUM: crisp deliberately grouped pixel art, stepped contours, coherent coarse grid readable at 96x96 logical cells, neutral upper-left shading. Actual transparent RGBA background, opaque body pixels and transparent limb gaps. No floor/shadow, gradient, checkerboard drawing, captions, grids, text, watermarks, guide bones/colors, smooth painterly/3D shading, fringe/colored noise. ABSOLUTELY NO magic circles, light, sparks, aura or effects in body sheets: common ward circle is separate. Keep face and physical hand/tool contacts legible.
 
 FOUR frames, 2x2 equal cells. Image2 is EXACT canonical held casting pose: hand on SCREEN-LEFT grips single baton, hand on SCREEN-RIGHT is open supporting palm; screen-RIGHT belt loop EMPTY. Keep that tool-hand ownership in every frame. Feet planted, head and pelvis fixed. Gentle conducting loop: 1 exact reference held stance; 2 small downbeat of left-side wrist and slightly open chanting mouth; 3 small upbeat, eyelids slightly lowered; 4 return toward1, mouth softly closes. Baton tip moves only a small arc, no whole-body swing or shoulder rotation. No second baton, orb, effect or light. Same body dimensions and camera as references. Do not revert to opposite tool hand from standing.
+
 #### Cast-end
 
 Use case: identity-preserve. Production transparent pixel-art sprite sheet for the EXISTING conductor mage from image 1. This reference is the exact accepted identity, not inspiration for redesign.
@@ -162,14 +161,14 @@ Original coordination mage for the project's conductor role: compact ink-blue bo
 
 Body strips in `exports/conductor/`, 96 × 96 RGBA cells, left-to-right frame order:
 
-| Action | Frames | Duration |
-| --- | --- | --- |
-| idle | 4 | 1880 ms |
-| walk | 4 | 880 ms |
-| sit | 2 | 1130 ms |
-| cast-start | 4 | 1000 ms |
-| cast-loop | 4 | 720 ms |
-| cast-end | 4 | 1140 ms |
+| Action     | Frames | Duration |
+| ---------- | ------ | -------- |
+| idle       | 4      | 1880 ms  |
+| walk       | 4      | 880 ms   |
+| sit        | 2      | 1130 ms  |
+| cast-start | 4      | 1000 ms  |
+| cast-loop  | 4      | 720 ms   |
+| cast-end   | 4      | 1140 ms  |
 
 Use horizontal mirroring for rightward movement. Both-direction walk preview. Start/end are one-shot actions; idle, walk, sit and casting are loops.
 
