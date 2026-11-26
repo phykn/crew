@@ -2,7 +2,7 @@ import { Container, Graphics, Sprite } from 'pixi.js';
 import { FIRE, TORCHES } from '../layout.js';
 import { iso } from '../projection.js';
 import { COLOR as C } from '../palette.js';
-import { blotTexture, glowTexture } from './light';
+import { glowTexture } from './light';
 
 const hex = (c: string) => parseInt(c.slice(1), 16);
 // The same number for the same spark and round, so each spark's flight differs from the last without random flashing
@@ -23,27 +23,14 @@ const PUFFS = 9;
 // A thin pole still stands in the firelight, so it casts a long thin shadow
 export const TORCH_CASTERS = TORCHES.map((t: { x: number; y: number }) => ({ x: t.x, y: t.y, r: 5 / 32, h: 30 }));
 
-// The flames: each torch and the fire are redrawn every frame, sorted among the pieces by where they stand
+// The flames: each torch and the fire are redrawn every frame, sorted among the pieces by where they stand; a torch's
+// flame sits just in front of its baked pole
 export function createFlames(items: Container) {
   const torches = TORCHES.map((t: { x: number; y: number }) => {
     const p = iso(t.x, t.y),
-      root = new Container(),
-      spot = new Sprite(blotTexture(0.7)),
-      pole = new Graphics()
-        .rect(p.x - 1.5, p.y - 30, 3, 30)
-        .fill(hex(C.pole))
-        .rect(p.x - 3, p.y - 31, 6, 3)
-        .fill(hex(C.iron)),
       flame = new Graphics();
-    spot.anchor.set(0.5);
-    spot.position.set(p.x, p.y);
-    spot.width = 8.5;
-    spot.height = 3.6;
-    spot.tint = 0x000000;
-    spot.alpha = 0.5;
-    root.zIndex = t.x + t.y;
-    root.addChild(spot, pole, flame);
-    items.addChild(root);
+    flame.zIndex = t.x + t.y + 0.01;
+    items.addChild(flame);
     return { p, flame };
   });
   const fire = new Graphics(),

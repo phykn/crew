@@ -2,7 +2,23 @@ import { iso } from '../projection.js';
 import { COLOR as C } from '../palette.js';
 import { cast, longCast, shadow } from './shapes.js';
 import { SEAT_Z } from '../figure.js';
-import { BARK, CANVAS, GLOW, HAY, IRON, ROCK, U, WATER, WOOD, box, drawSolids, facets, rod, round } from './solids.js';
+import {
+  BARK,
+  CANVAS,
+  BLAZE,
+  GLOW,
+  HAY,
+  IRON,
+  ROCK,
+  U,
+  WATER,
+  WOOD,
+  box,
+  drawSolids,
+  facets,
+  rod,
+  round,
+} from './solids.js';
 
 const pixels = (ctx, list, fill) => {
   ctx.fillStyle = fill;
@@ -474,20 +490,51 @@ function woodpile(ctx, d) {
   ]);
 }
 
+// A lantern on a post: a square post with an arm at its top, and from the arm an iron cap, four corner bars round
+// glowing glass, and an iron base; the glass burns brightest round the wick
 function lantern(ctx, d) {
-  const b = iso(d.x, d.y);
-  pixels(
-    ctx,
-    [
-      [b.x - 1, b.y - 18, 2, 18],
-      [b.x - 1, b.y - 18, 6, 1],
-    ],
-    C.pole,
-  );
-  pixels(ctx, [[b.x + 2, b.y - 16, 3, 1]], C.iron);
-  pixels(ctx, [[b.x + 2, b.y - 15, 3, 4]], C.flame);
-  pixels(ctx, [[b.x + 3, b.y - 14, 1, 2]], C.flameCore);
+  const c = [d.x * U, d.y * U],
+    h = [c[0] + 3, c[1] - 3],
+    glass = 12.2;
+  const parts = [
+    { sdf: box([c[0], c[1], 9], [0.7, 0.7, 9], 0.2), paint: (p, n, l) => [WOOD, l - 1] },
+    { sdf: rod([c[0], c[1], 17], [h[0], h[1], 17], 0.45), paint: (p, n, l) => [WOOD, l - 1] },
+    { sdf: rod([h[0], h[1], 17], [h[0], h[1], 15], 0.25), paint: (p, n, l) => [IRON, Math.min(l, 2)] },
+    { sdf: box([h[0], h[1], 15], [1.6, 1.6, 0.6], 0.3), paint: (p, n, l) => [IRON, Math.min(l, 2)] },
+    { sdf: box([h[0], h[1], 9.6], [1.6, 1.6, 0.5], 0.3), paint: (p, n, l) => [IRON, Math.min(l, 2)] },
+    {
+      sdf: box([h[0], h[1], glass], [1.3, 1.3, 2.2]),
+      paint: (p) => {
+        const across = Math.min(Math.abs(p[0] - h[0]), Math.abs(p[1] - h[1]));
+        if (across > 0.95) return [IRON, 1];
+        return [BLAZE, across < 0.5 && Math.abs(p[2] - glass) < 1.1 ? 4 : 3];
+      },
+    },
+  ];
+  drawSolids(ctx, parts, [
+    [c[0] - 2, c[1] - 5, 0],
+    [c[0] + 5, c[1] + 2, 18],
+  ]);
 }
 
-const PAINT = { fern, rock, log, drum, well, bench, pine, tuft, tent, wagon, crates, hay, woodpile, lantern };
+// A torch's pole and iron cup, tapering up to the cup's charred top where the live flame stands (stage/effects.ts)
+function torch(ctx, d) {
+  const c = [d.x * U, d.y * U];
+  const parts = [
+    {
+      sdf: round([c[0], c[1], 13.5], 2, 13.5, (t) => 1.1 - 0.15 * t),
+      paint: (p, n, l) => (Math.abs(p[2] - 22) < 0.7 ? [IRON, Math.min(l, 2)] : [WOOD, l - 1]),
+    },
+    {
+      sdf: round([c[0], c[1], 29.5], 2, 1.5, (t) => 1.9 + 0.5 * t),
+      paint: (p, n, l) => (n[2] > 0.9 ? [BARK, 1] : [IRON, Math.min(l, 2)]),
+    },
+  ];
+  drawSolids(ctx, parts, [
+    [c[0] - 3, c[1] - 3, 0],
+    [c[0] + 3, c[1] + 3, 31],
+  ]);
+}
+
+const PAINT = { fern, rock, log, drum, well, bench, pine, tuft, tent, wagon, crates, hay, woodpile, lantern, torch };
 export const drawProp = (ctx, d) => PAINT[d.kind](ctx, d);

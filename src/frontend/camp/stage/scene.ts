@@ -1,5 +1,5 @@
 import { Container, type Renderer, Sprite, type Texture } from 'pixi.js';
-import { PROPS, WILDS } from '../layout.js';
+import { PROPS, TORCHES, WILDS } from '../layout.js';
 import { iso } from '../projection.js';
 import { depthOf } from '../figure.js';
 import { drawProp } from '../art/props.js';
@@ -39,7 +39,11 @@ export function createScene(renderer: Renderer, box: Box) {
     const p = iso(d.x, d.y);
     return p.x > view.x - 40 && p.x < view.x + view.w + 40 && p.y > view.y && p.y < view.y + view.h + 70;
   };
-  const pieces: Piece[] = [...PROPS, ...WILDS.filter(shows)];
+  const pieces: Piece[] = [
+    ...PROPS,
+    ...TORCHES.map((t: { x: number; y: number }) => ({ ...t, kind: 'torch' })),
+    ...WILDS.filter(shows),
+  ];
 
   const root = new Container(),
     world = new Container(),

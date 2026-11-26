@@ -15,6 +15,8 @@ export const BARK = [C.eye, C.barkDark, C.barkDark, C.bark, C.woodDeep];
 export const ROCK = [C.eye, C.rockDeep, C.rockDark, C.rock, C.rockLight];
 export const HAY = [C.woodDark, C.hayDeep, C.hayDark, C.hay, C.hayLight];
 export const CANVAS = [C.leather, C.canvasDeep, C.canvasDark, C.canvas, C.parchmentDeep];
+// A flame behind glass gives its own light, so its shades run from the deep orange to the white core
+export const BLAZE = [C.flameDeep, C.flameDeep, C.flame, C.flame, C.flameCore];
 // A doorway's dark inside, warmed by the lantern within
 export const GLOW = [C.leather, C.leather, C.doorGlow, C.doorGlow, C.doorGlow];
 // Still water is one dark color whichever way the light falls

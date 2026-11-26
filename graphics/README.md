@@ -19,7 +19,7 @@ python -m http.server 8766 --bind 127.0.0.1
 ```
 
 - 전체: http://127.0.0.1:8766/graphics/preview/
-- 하나만: `?kind=wagon` (종류: crates, drum, hay, log, bench, well, wagon, tent, lantern, pine, fern, tuft, rock, woodpile)
+- 하나만: `?kind=wagon` (종류: crates, drum, hay, log, bench, well, wagon, tent, lantern, torch, pine, fern, tuft, rock, woodpile)
 - 확대: `&zoom=6`
 
 각 소품은 캠프에 놓이는 자리에 그려져서, 모닥불 빛도 앱과 똑같이 받는다.
