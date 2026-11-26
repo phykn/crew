@@ -401,6 +401,7 @@ export class Tasks {
       if (missing.length) {
         // An incomplete handoff goes back to the same member, in its own session, before anyone takes it
         store.finishStepRun(runId, 'failed', hb, `missing ${missing.join(', ')}`);
+        errors.push(`missing ${missing.join(', ')}`);
         log({ code: 'step.incomplete', role, step: step.label, missing }, { missing });
         retry = `Your handback is missing ${missing.join(' and ')}, which the next step needs. Answer again with the complete handback.`;
         continue;

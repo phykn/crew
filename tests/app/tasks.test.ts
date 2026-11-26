@@ -575,3 +575,32 @@ test('two steps for one role at once run side by side through a copy, which leav
   await vi.waitFor(() => expect(store.readTask(task.id).status).toBe('done'));
   expect(store.readMemberById(copy.id).status).toBe('unhired');
 });
+
+test('a step that keeps handing back without what the next step needs fails with that reason on record', async () => {
+  const bare = handback('claude-test', { summary: '시험', verdict: 'pass' });
+  const { store, chat, s } = openChat({
+    통역: [reply('실패 보고', 'claude-secretary')],
+    시험: [bare, bare, bare, bare],
+  });
+  const workflow = {
+    kind: 'check',
+    label: '',
+    use: '',
+    steps: [
+      {
+        id: 'test',
+        role: 'tester',
+        label: '시험',
+        does: 'x',
+        after: [],
+        verdict: false,
+        loops: 3,
+        requires: ['checks' as const],
+      },
+    ],
+  };
+  const task = chat.tasks.create(s.id, 'check', '시험', 'r', workflow);
+  await vi.waitFor(() => expect(store.readTask(task.id).status).toBe('failed'));
+  const failed = store.listEvents(s.id).find((e) => e.say?.code === 'step.failed')!;
+  expect(JSON.parse(failed.detail!).errors).toEqual(Array(4).fill('missing checks'));
+});
