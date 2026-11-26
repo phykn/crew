@@ -85,7 +85,8 @@ for m in sorted(set(M0[M0 != ''])):
     n = 1 if m == 'line' else SHADES
     cuts = np.quantile(L0[sel], np.linspace(0, 1, n + 1)[1:-1]) if n > 1 else np.array([])
     band = np.digitize(L0, cuts)
-    ramps[m] = (cuts, [np.median(first[sel & (band == k), :3], 0) for k in range(n)])
+    # A material too small to fill every band (a vial of a few pixels) takes its overall median for an empty one
+    ramps[m] = (cuts, [np.median(first[sel & (band == k) if (sel & (band == k)).any() else sel, :3], 0) for k in range(n)])
 
 
 def paint(a):
@@ -114,8 +115,8 @@ def blink(h):
     return h
 
 
-def place_head(img, mask, closed):
-    # The head lands where this frame's own head silhouette fits it best
+def find_head(mask):
+    # Where this frame's own head silhouette fits the head best
     H, W = mask.shape
     top = np.nonzero(mask.any(1))[0][0]
     best = None
@@ -129,7 +130,11 @@ def place_head(img, mask, closed):
                     score += inside == hmask[y, x]
             if best is None or score > best[0]:
                 best = (score, dy, dx)
-    _, dy, dx = best
+    return best[1:]
+
+
+def place_head(img, mask, closed, dy, dx):
+    H, W = mask.shape
     h = blink(head) if closed else head
     # The frame's own pixels in the head's rows give way, so no old face shows round the new one
     for y in range(hh):
@@ -148,13 +153,26 @@ def place_head(img, mask, closed):
 # Standing and sitting still keep one body and only blink, since the sheets' still frames drift a pixel or two and
 # would jitter; the moving sheets keep every frame
 STILL = {'idle', 'sit'}
+# Some sheets sway their whole figure a few pixels from frame to frame; each moving frame slides sideways until its
+# head sits where the standing head does, so the head stays put and the figure never jumps. Frames get room to slide,
+# and are cut back to what they all draw at the end
+PAD = 8
+shift = lambda a, n: np.roll(np.pad(a, ((0, 0), (PAD, PAD)) + ((0, 0),) * (a.ndim - 2)), n, axis=1)
 frames = {}
+still_dx = None
 for sheet, _ in SHEETS:
     frames[sheet] = []
     for k, a in enumerate(cells[sheet][:1] * 2 if sheet in STILL else cells[sheet]):
         img, mask = paint(a)
-        place_head(img, mask, k == 1 if sheet in STILL else (sheet, k) in spec['closed'])
+        dy, dx = find_head(mask)
+        if sheet == 'idle' and still_dx is None:
+            still_dx = dx
+        n = 0 if sheet in STILL else still_dx - dx
+        img, mask = shift(img, n), shift(mask, n)
+        place_head(img, mask, k == 1 if sheet in STILL else (sheet, k) in spec['closed'], dy, dx + n + PAD)
         frames[sheet].append((img, mask))
+cols = np.nonzero(np.max([m.any(0) for fs in frames.values() for _, m in fs], 0))[0]
+frames = {s: [(img[:, cols[0] : cols[-1] + 1], m[:, cols[0] : cols[-1] + 1]) for img, m in fs] for s, fs in frames.items()}
 
 hex_of = lambda c: '#%02x%02x%02x' % tuple(np.round(c).astype(int))
 hexes = sorted(
