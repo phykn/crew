@@ -129,7 +129,7 @@ export class GitVersions implements Versions {
     return diff(dir, taskRef(taskId, from), taskRef(taskId, to), files);
   }
 
-  // Drops the commits kept for these tasks, once the tasks themselves are gone
+  // The commit the project's branch stands on; null outside a repository or before its first commit
   async head(dir: string) {
     try {
       return (await git(dir, ['rev-parse', 'HEAD'])).trim() || null;
@@ -138,6 +138,7 @@ export class GitVersions implements Versions {
     }
   }
 
+  // Drops the commits kept for these tasks, once the tasks themselves are gone
   async forget(dir: string, taskIds: number[]) {
     for (const id of taskIds)
       for (const name of await taskRefs(dir, id))
