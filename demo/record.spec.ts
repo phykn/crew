@@ -21,13 +21,21 @@ const FILES: Record<string, string> = {
   'test/store.test.js':
     "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { memoryStore } from '../src/store.js';\n\ntest('finds an item by its sku', async () => {\n  const store = memoryStore({ lamp: { stock: 3, price: 20 } });\n  assert.equal((await store.find('lamp')).price, 20);\n});\n\ntest('taking stock lowers it', async () => {\n  const store = memoryStore({ lamp: { stock: 3, price: 20 } });\n  await store.take('lamp', 2);\n  assert.equal((await store.find('lamp')).stock, 1);\n});\n",
   '.crew/wiki/Checkout.md':
-    'The checkout path\n\n`POST /checkout` finds the item, charges the card, then takes the stock. Price is the item price with 10% tax, rounded.\n\nThe order of those three steps is the whole design: see [[Payment retries]] for what happens after a charge and [[Testing]] for how the flow is proven.\n',
+    'Checkout is the only path allowed to change stock and charge a card. Prices include 10% tax, rounded to whole cents.\n\nCurrent flow\n1. Look up the SKU and available quantity.\n2. Charge the selected card.\n3. Take the purchased stock.\n\nKnown risk\nTwo carts can read the same last unit before either takes it. The regression work must move the stock decision into one claim.\n\nRelated: [[Architecture]], [[Stock claims]], [[Payment retries]], [[Testing]]\n',
   '.crew/wiki/Payment retries.md':
-    'Payment retries\n\nA failed charge is retried twice with the same card token, then the cart is left as it was. A retry must never take stock twice, which is why the stock must be settled before the charge.\n\nRelated: [[Checkout]]\n',
+    'Retry a failed payment without selling the same unit twice.\n\nRetry contract\n• Reuse the original card token and cart identity.\n• Retry a temporary gateway failure at most twice.\n• Never create a second stock claim for the same attempt.\n\nFailure recovery\nIf charging still fails, release the held stock before returning the error. A sold-out response never reaches the card gateway. Keep the original failure for diagnosis.\n\nRegression evidence\nTwo carts compete for one lamp: exactly one charge, one successful claim, and one sold-out response. A failed charge restores the available quantity.\n\nRelated: [[Checkout]], [[Stock claims]], [[Failure recovery]], [[Testing]]\n',
   '.crew/wiki/Testing.md':
-    'Testing\n\nThe shop runs `npm test` on node:test; every flow test builds a memory store instead of a database. A bug fix lands with the test that fails without it.\n\nRelated: [[Checkout]] and [[Release checklist]]\n',
+    'Run `npm test` with node:test. Every checkout test creates an isolated memory store; no live gateway or production database is touched.\n\nCoverage\n• Price includes tax and respects quantity.\n• Sold-out carts never charge a card.\n• Two carts racing for the last unit produce one charge.\n• A failed charge releases its stock claim.\n\nReview rule\nKeep the regression test that fails before the fix. The final report includes the command and its result, not only a claim that it works.\n\nRelated: [[Checkout]], [[Payment retries]], [[Release checklist]]\n',
   '.crew/wiki/Release checklist.md':
-    'Release checklist\n\n1. `npm test` is green.\n2. The checkout was tried by hand on a phone, twice in a row.\n3. Anything that changed the price is noted in the changelog.\n\nRelated: [[Testing]]\n',
+    'Release the checkout only after the evidence is recorded.\n\n1. `npm test` passes, including the two-cart race.\n2. Try Pay twice quickly on a narrow phone viewport.\n3. Confirm a failed charge restores stock.\n4. Verify the sold-out response does not trigger another charge.\n5. Record pricing changes and the rollback point.\n6. Link the final review and regression result in the handoff.\n\nRelated: [[Testing]], [[API contracts]], [[Failure recovery]]\n',
+  '.crew/wiki/Architecture.md':
+    'The shop separates checkout decisions from storage and card transport.\n\nCheckout coordinates the operation. The store owns stock and claims; the gateway owns the charge. A caller must not read stock and take it across an await.\n\nOwnership\n• Checkout: calculate the total and handle failure.\n• Store: hand out each available unit once.\n• Gateway: accept the card token and total.\n• Tests: prove concurrent and failed paths in memory.\n\nRelated: [[Checkout]], [[Stock claims]], [[API contracts]]\n',
+  '.crew/wiki/Stock claims.md':
+    'One unit can belong to one checkout attempt at a time.\n\nClaim invariant\nCheck availability and subtract the quantity in one store operation. Return a claim ID and the price only after the reservation succeeds.\n\nA failed claim returns sold out before a charge. A failed charge releases the claim; a successful charge consumes it. Never split the check and subtraction across asynchronous calls.\n\nExample\nTwo carts request the last lamp. The first claim succeeds; the second receives sold out. Only the first cart reaches the gateway.\n\nRelated: [[Checkout]], [[Payment retries]], [[Failure recovery]], [[Testing]]\n',
+  '.crew/wiki/Failure recovery.md':
+    'A payment failure must leave stock available for another customer.\n\nRecovery order\n1. Preserve the original gateway error.\n2. Release the reservation by its claim ID.\n3. Return a clear failure to the caller.\n4. Keep enough context to investigate the attempt.\n\nA stock failure never starts a charge. Avoid automatic retries that create new claims or hide a release failure.\n\nRelated: [[Payment retries]], [[Stock claims]], [[API contracts]], [[Release checklist]]\n',
+  '.crew/wiki/API contracts.md':
+    'POST /checkout accepts a cart ID, SKU, quantity and card token.\n\nSuccess\nReturn the charged total, including 10% tax. The stock claim and charge refer to the same purchase.\n\nFailure\n• Missing or insufficient stock: sold out, with no charge.\n• Gateway failure: preserve the error and restore the claim.\n• Retry: retain the original attempt identity.\n\nAmounts are rounded once after tax. Quantity must be positive and belong to the requested SKU.\n\nRelated: [[Architecture]], [[Checkout]], [[Payment retries]]\n',
   '.crew/memory/coder.md':
     'The checkout is the only place that takes stock; nothing else may.\nA charge and the stock it paid for belong in one claim.',
   '.crew/memory/reviewer.md':
@@ -161,7 +169,7 @@ const SCRIPT = {
         name: 'wiki_write',
         input: {
           title: 'Checkout',
-          body: 'The checkout path\n\n`POST /checkout` claims the stock from the store in one step, then charges the card; a failed charge releases the claim. Two checkouts of the last unit get one charge and one "sold out".\n\nRelated: [[Payment retries]], [[Testing]]',
+          body: 'Checkout owns the purchase from stock claim to card charge.\n\nSafe purchase order\n1. Claim the stock in one store operation.\n2. Charge only after that claim succeeds.\n3. Release the claim if charging fails.\n\nWhat changed\nThe old read-then-take race let two carts buy the last lamp. The store now hands out each unit once, so the second cart gets sold out before any card charge.\n\nEvidence\nThe regression test runs two carts together: one charge and one sold-out response. All 6 tests pass.\n\nRelated: [[Architecture]], [[Stock claims]], [[Payment retries]], [[Failure recovery]], [[Testing]], [[API contracts]]',
         },
       },
     },
@@ -239,7 +247,8 @@ test('record the English demo', async () => {
   await page.getByRole('button', { name: 'Graph', exact: true }).click();
   const paymentRetries = page.getByLabel('Document Payment retries', { exact: true });
   await expect(paymentRetries).toBeVisible();
-  await page.waitForTimeout(400);
+  await expect(page.getByLabel('Wiki graph').getByLabel(/^Document /)).toHaveCount(8);
+  await page.waitForTimeout(600);
   await still('wiki');
   await paymentRetries.click();
   await expect(page.getByLabel('Wiki document').getByRole('heading', { name: 'Payment retries' })).toBeVisible();
