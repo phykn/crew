@@ -22,6 +22,9 @@ def kind(r, g, b, h, s, v, L, y, top):
         return 'gold'
     if s < 0.32 and v > 0.6:
         return 'ivory'
+    # The sash's dark warm rim is leather, not trousers, so the cleanup cannot fold it into the gold beside it
+    if 0.03 < h < 0.1 and s > 0.18 and top + 30 <= y <= top + 52:
+        return 'leather'
     if s < 0.32:
         return 'legs'
     return 'leather'
