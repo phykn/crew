@@ -13,6 +13,7 @@
 - `characters/head.py`: 서 있기 첫 프레임에서 `head.png` 시작본을 만드는 스크립트
 - `characters/trace.py`: 역할의 동작 그림 전체를 `src/frontend/camp/art/people/<역할>.js`의 글자 그림으로 바꾸는 스크립트(`python graphics/characters/trace.py interpreter`)
 - `characters/<역할>/head.png`: 손으로 다듬은 머리. 모든 프레임에 붙인다
+- `characters/<역할>/rules.py`: 그 역할의 재질 규칙(`kind`)과 깜박임, 얇은 재질(`SPEC`). `trace.py`가 읽는다
 - `preview.html`: 앱 코드로 소품을 그려 보는 페이지
 
 이름에 버전(`v1`), `-prompt`, `-pack` 같은 꼬리는 붙이지 않는다. 후보 그림과 예전 프롬프트는 git 기록에만 남긴다.
@@ -79,10 +80,10 @@ python -m http.server 8766 --bind 127.0.0.1
 2. 브리프
    - `brief.md`의 "Code figure"에 재질, 색, 얼굴, 피할 것을 먼저 적는다.
 3. 재질 규칙
-   - `trace.py`에 역할 이름의 함수(`interpreter`, `conductor`)를 두고 시안 픽셀을 찍어 재질마다 색 범위를 정한다. `ROLES`의 `kind`로 건다.
+   - 역할 폴더의 `rules.py`에 `kind`를 두고 시안 픽셀을 찍어 재질마다 색 범위를 정한다. 다른 역할의 `rules.py`를 본보기로 쓴다.
    - 재질 지도(재질마다 눈에 띄는 색)를 시안 옆에 놓고, 부위가 제 재질로 칠해질 때까지 고친다.
    - 한 픽셀 굵기의 테두리(지휘의 금색 줄)는 `thin`에 넣는다. 정리 단계가 지우지 않는다.
-   - `ROLES`에 눈 감은 칸을 적는다.
+   - `SPEC`에 눈 감은 칸을 적는다.
 4. 서 있기 정리
    - 서 있기 첫 프레임만 뽑아 시안과 나란히 본다.
    - 자글자글함이 없고 부위마다 또렷해질 때까지 재질 규칙을 고친다.
@@ -93,7 +94,7 @@ python -m http.server 8766 --bind 127.0.0.1
    - 눈썹은 시안에 옅게라도 꼭 넣는다. 없으면 얼굴이 이상해 보인다. 코와 입은 시안에 없을 때만 더한다.
    - 두 눈은 같은 줄에 같은 구조(눈꺼풀, 눈동자, 반짝임)로 둔다. 먼 눈만 좁게. 줄이 다르거나 반짝임이 한쪽만 있으면 짝눈처럼 보인다.
    - 머리카락 윤기는 시안에서 밝은 곳을 한 단계 밝은 색으로 남긴다.
-   - `ROLES`에 head.png 안 눈 자리와 피부 픽셀 하나를 적는다(깜박임용).
+   - `SPEC`에 head.png 안 눈 자리와 피부 픽셀 하나를 적는다(깜박임용).
 6. 모든 동작
    - `python graphics/characters/trace.py <역할>`
    - `figures.js`의 `PEOPLE`에 역할을 더한다.

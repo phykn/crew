@@ -16,104 +16,19 @@ import numpy as np
 from PIL import Image
 
 
-def interpreter(r, g, b, h, s, v, L, y, top):
-    if L < 42:
-        return 'line'
-    if g > r + 4 and b > r:
-        return 'coat'
-    if y <= top + 17:
-        return 'skin' if s > 0.33 and h < 0.1 else 'hair'
-    if b >= r and L < 85:
-        return 'legs'
-    if h < 0.045 and s > 0.5 and r > 150 and top + 15 <= y <= top + 29:
-        return 'scarf'
-    if s > 0.3 and v > 0.6 and h < 0.073:
-        return 'skin'
-    if s > 0.45 and v > 0.6:
-        return 'gold'
-    # The shirt's shadows are warm greys, paler and greyer than the leather's browns
-    if s < 0.45 and v > 0.42:
-        return 'ivory'
-    return 'leather'
-
-
-def conductor(r, g, b, h, s, v, L, y, top):
-    if L < 36:
-        return 'line'
-    # Hair and coat share the ink blue, so the jaw line parts them
-    if 0.55 < h < 0.8 and s > 0.15:
-        return 'hair' if y <= top + 23 else 'coat'
-    if h > 0.85 and s > 0.3:
-        return 'sash'
-    if 0.04 < h < 0.1 and s > 0.35 and v > 0.85:
-        return 'skin'
-    if 0.085 <= h < 0.17 and s > 0.5 and v > 0.5:
-        return 'gold'
-    if s < 0.32 and v > 0.6:
-        return 'ivory'
-    if s < 0.45 and v < 0.45:
-        return 'legs'
-    return 'leather'
-
-
-def researcher(r, g, b, h, s, v, L, y, top):
-    skin = 0.055 < h < 0.09 and s > 0.3 and v > 0.8
-    torso = top + 23 <= y <= top + 48
-    # The mantle's and tunic's dark folds are drawn as lines, so the cloth around them stays clean
-    if L < 36 or (torso and L < 62 and not skin):
-        return 'line'
-    # Hair, trousers, and boots share one chestnut, so the rows part them
-    if y <= top + 22:
-        return 'skin' if skin else 'hair'
-    if s < 0.3 and v > 0.6:
-        return 'ivory'
-    if skin:
-        return 'skin'
-    if h >= 0.11 and s > 0.7 and v > 0.8:
-        return 'gold'
-    if 0.1 <= h < 0.25 and v < 0.6:
-        return 'tunic'
-    if y <= top + 34 and 0.04 <= h < 0.11 and s > 0.5 and v > 0.45:
-        return 'mantle'
-    if y > top + 63:
-        return 'leather'
-    if y > top + 46:
-        return 'legs'
-    return 'leather'
-
-
-# Per role: which material a sheet pixel is (from its color, its row, and the frame's top row), each eye's box in
-# head.png (top, bottom, left, right) and a skin pixel there for blinking, and which cells of the moving sheets have
-# closed eyes
-ROLES = {
-    'interpreter': {
-        'kind': interpreter,
-        'eyes': [(15, 17, 6, 8), (15, 17, 11, 14)],
-        'skin': (19, 14),
-        'closed': {('cast-loop', 2)},
-    },
-    'researcher': {
-        'kind': researcher,
-        'thin': {'gold'},
-        'eyes': [(16, 17, 11, 14), (16, 17, 5, 7)],
-        'skin': (20, 9),
-        'closed': {('cast-loop', 2)},
-    },
-    'conductor': {
-        'kind': conductor,
-        'thin': {'gold'},
-        'eyes': [(15, 17, 8, 10), (15, 17, 3, 4)],
-        'skin': (19, 9),
-        'closed': {('cast-loop', 2)},
-    },
-}
+# Each role's folder holds rules.py: kind(r, g, b, h, s, v, L, y, top) names a sheet pixel's material from its color,
+# its row, and the frame's top row; SPEC gives the materials one pixel thin that the cleanup keeps ('thin'), each
+# eye's box in head.png (top, bottom, left, right) and a skin pixel there for blinking, and which cells of the moving
+# sheets have closed eyes
 SHEETS = [('idle', 4), ('walk', 4), ('sit', 2), ('cast-start', 4), ('cast-loop', 4), ('cast-end', 4)]
 SHADES = 3
 LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
 role = sys.argv[1]
-spec = ROLES[role]
 here = Path(__file__).parent / role
+rules = {}
+exec((here / 'rules.py').read_text(encoding='utf-8'), rules)
+spec = {**rules['SPEC'], 'kind': rules['kind']}
 cells = {}
 for sheet, n in SHEETS:
     im = Image.open(here / f'{sheet}.png').convert('RGBA')
@@ -244,7 +159,7 @@ for sheet, _ in SHEETS:
 hex_of = lambda c: '#%02x%02x%02x' % tuple(np.round(c).astype(int))
 hexes = sorted(
     {hex_of(img[y, x]) for fs in frames.values() for img, m in fs for y, x in zip(*np.nonzero(m))},
-    key=lambda h: sum(int(h[i : i + 2], 16) for i in (1, 3, 5)),
+    key=lambda h: (sum(int(h[i : i + 2], 16) for i in (1, 3, 5)), h),
 )
 assert len(hexes) <= len(LETTERS), f'{len(hexes)} shades'
 index = {h: LETTERS[i] for i, h in enumerate(hexes)}
