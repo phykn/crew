@@ -17,27 +17,33 @@ const px = (g: Graphics, x: number, y: number, w: number, h: number, color: stri
 // A thin pole still stands in the firelight, so it casts a long thin shadow
 export const TORCH_CASTERS = TORCHES.map((t: { x: number; y: number }) => ({ x: t.x, y: t.y, r: 5 / 32, h: 30 }));
 
-// Four broad tongues, each two pixels wide at its top and stepping down three rows a column so a notch parts it from the next, each rising and falling on its own slow beat, so the tallest wanders across the fire
+// Four broad tongues, each two pixels wide at its top and stepping down two rows a column so a notch parts it from the
+// next, each rising and falling on its own slow beat, so the tallest wanders across the fire
 const TONGUES = [
-  { c: -4.5, h: 7, rate: 230, phase: 0 },
-  { c: -1.5, h: 11, rate: 270, phase: 2.1 },
-  { c: 1.5, h: 9, rate: 250, phase: 4.2 },
-  { c: 4.5, h: 7.5, rate: 210, phase: 1.3 },
+  { c: -4.5, h: 7, rate: 520, phase: 0 },
+  { c: -1.5, h: 11, rate: 460, phase: 2.1 },
+  { c: 1.5, h: 9, rate: 560, phase: 4.2 },
+  { c: 4.5, h: 7.5, rate: 420, phase: 1.3 },
 ];
 const HALF = 7;
 const CORE = [1, 2, 3, 2, 1];
 
-function drawFire(g: Graphics, x0: number, base: number, now: number) {
-  const heights = new Map<number, number>();
+// Each column's height, kept between frames; the key it returns changes only when a column or the core steps
+const heights = new Int8Array(HALF * 2 + 1);
+function fireHeights(now: number) {
   for (let x = -HALF; x <= HALF; x++) {
     let h = 2;
     for (const t of TONGUES) {
-      const top = t.h + 3 * Math.sin(now / t.rate + t.phase);
-      h = Math.max(h, top - 3 * (Math.abs(x - t.c) - 0.5));
+      const top = t.h + 2 * Math.sin(now / t.rate + t.phase);
+      h = Math.max(h, top - 2 * (Math.abs(x - t.c) - 0.5));
     }
-    heights.set(x, Math.floor(h));
+    heights[x + HALF] = Math.floor(h);
   }
-  const at = (x: number) => heights.get(x) ?? 0;
+  return heights.join() + (Math.sin(now / 520) > 0.3 ? '+' : '');
+}
+
+function drawFire(g: Graphics, x0: number, base: number, now: number) {
+  const at = (x: number) => (Math.abs(x) <= HALF ? heights[x + HALF] : 0);
   for (let x = -HALF; x <= HALF; x++) {
     const h = at(x),
       edge = Math.abs(x) === HALF;
@@ -49,7 +55,7 @@ function drawFire(g: Graphics, x0: number, base: number, now: number) {
     const inner = Math.min(at(x - 1), at(x), at(x + 1)) - 3;
     if (inner > 0) px(g, x0 + x, base - 1 - inner, 1, inner, C.flame);
   }
-  const lift = Math.sin(now / 230) > 0.3 ? 1 : 0;
+  const lift = Math.sin(now / 520) > 0.3 ? 1 : 0;
   CORE.forEach((h, i) => {
     const x = i - 2,
       tall = Math.min(h + (x === 0 ? lift : 0), Math.min(at(x - 1), at(x), at(x + 1)) - 1);
@@ -57,21 +63,24 @@ function drawFire(g: Graphics, x0: number, base: number, now: number) {
   });
 }
 
-// A teardrop on the cup: narrow at its root, widest low down, stepping in to a tip that leans on a slow beat
-function drawTorch(g: Graphics, x0: number, root: number, now: number, i: number) {
-  const h = Math.round(10 + 1.5 * Math.sin(now / 210 + i * 1.3)),
-    sway = 1.6 * Math.sin(now / 330 + i * 2.1);
+// A torch flame's height and lean in whole pixels, so it is redrawn only when one steps
+const torchShape = (now: number, i: number) => ({
+  h: 8 + Math.round(1.5 * Math.sin(now / 420 + i * 1.3)),
+  lean: Math.max(-1, Math.min(1, Math.round(1.4 * Math.sin(now / 660 + i * 2.1)))),
+});
+
+// A teardrop on the cup: narrow at its root, widest low down, stepping in to a tip; only its top third leans, by one
+// pixel, so the outline never breaks into ledges
+function drawTorch(g: Graphics, x0: number, root: number, { h, lean }: { h: number; lean: number }) {
   for (let r = 0; r < h; r++) {
-    const u = r / (h - 1),
-      half = u < 0.3 ? 2 + u / 0.3 : 3 * Math.pow(1 - (u - 0.3) / 0.7, 0.7),
-      outer = Math.round(half),
-      inner = r < Math.round(h * 0.72) ? outer - 1 : -1,
-      core = r < 2 ? 1 : r < 3 ? 0 : -1,
-      x = x0 + Math.round(sway * u * u),
+    const outer = r < 1 ? 2 : r < 4 ? 3 : r < 6 ? 2 : r < h - 1 ? 1 : 0,
+      inner = r < h - 3 ? outer - 1 : -1,
+      core = [1, 1, 0][r] ?? -1,
+      x = x0 + (r >= (h * 2) / 3 ? lean : 0),
       y = root - 1 - r;
     px(g, x - outer, y, outer * 2 + 1, 1, C.flameDeep);
     if (inner >= 0) px(g, x - inner, y, inner * 2 + 1, 1, C.flame);
-    if (core >= 0 && core < inner) px(g, x - core, y, core * 2 + 1, 1, C.flameCore);
+    if (core >= 0 && core <= inner) px(g, x - core, y, core * 2 + 1, 1, C.flameCore);
   }
 }
 
@@ -82,7 +91,7 @@ const EMBER = [
   { w: 1, h: 2, color: C.flameDeep, alpha: 0.9, until: 0.75 },
   { w: 1, h: 1, color: C.flameDark, alpha: 0.55, until: 1 },
 ];
-const SPARKS = 6;
+const SPARKS = 8;
 
 function drawSparks(g: Graphics, x0: number, y0: number, now: number) {
   for (let k = 0; k < SPARKS; k++) {
@@ -133,13 +142,22 @@ export function createFlames(items: Container) {
     x0 = Math.round(at.x),
     base = Math.round(at.y - 2);
 
+  const shown = { fire: '', torches: torches.map(() => '') };
   return function draw(now: number) {
     torches.forEach(({ p, flame }: { p: { x: number; y: number }; flame: Graphics }, i: number) => {
+      const shape = torchShape(now, i),
+        key = `${shape.h},${shape.lean}`;
+      if (key === shown.torches[i]) return;
+      shown.torches[i] = key;
       flame.clear();
-      drawTorch(flame, Math.round(p.x), Math.round(p.y - 31), now, i);
+      drawTorch(flame, Math.round(p.x), Math.round(p.y - 31), shape);
     });
-    fire.clear();
-    drawFire(fire, x0, base, now);
+    const key = fireHeights(now);
+    if (key !== shown.fire) {
+      shown.fire = key;
+      fire.clear();
+      drawFire(fire, x0, base, now);
+    }
     sparks.clear();
     drawSparks(sparks, x0, base - 8, now);
     smoke.clear();
@@ -147,16 +165,26 @@ export function createFlames(items: Container) {
   };
 }
 
-// A stepped one-pixel ellipse on the ground, plotted once per whole-unit point
-function ring(g: Graphics, cx: number, cy: number, rx: number, ry: number, color: string, alpha: number) {
-  const seen = new Set<string>();
-  for (let a = 0; a < TAU; a += 1 / (rx * 3)) {
-    const x = Math.round(cx + Math.cos(a) * rx),
-      y = Math.round(cy + Math.sin(a) * ry);
-    if (seen.has(`${x},${y}`)) continue;
-    seen.add(`${x},${y}`);
-    px(g, x, y, 1, 1, color, alpha);
+// A stepped one-pixel ellipse on the ground; its whole-unit points are found once for each size
+const rings = new Map<string, [number, number][]>();
+function ringPoints(rx: number, ry: number) {
+  const key = `${rx},${ry}`;
+  if (!rings.has(key)) {
+    const seen = new Set<string>(),
+      points: [number, number][] = [];
+    for (let a = 0; a < TAU; a += 1 / (rx * 3)) {
+      const x = Math.round(Math.cos(a) * rx),
+        y = Math.round(Math.sin(a) * ry);
+      if (seen.has(`${x},${y}`)) continue;
+      seen.add(`${x},${y}`);
+      points.push([x, y]);
+    }
+    rings.set(key, points);
   }
+  return rings.get(key)!;
+}
+function ring(g: Graphics, cx: number, cy: number, rx: number, ry: number, color: string, alpha: number) {
+  for (const [x, y] of ringPoints(rx, ry)) px(g, cx + x, cy + y, 1, 1, color, alpha);
 }
 // Rays stand at the ring's sides, where they read as rising rather than crossing the caster
 const RAYS = [3.0, 3.55, -0.25, 0.25];
@@ -174,8 +202,10 @@ export function drawWard(g: Graphics, f: { x: number; y: number }, now: number) 
     const a = (k * TAU) / 8 + now / 2400,
       x = Math.round(cx + Math.cos(a) * 12),
       y = Math.round(cy + Math.sin(a) * 6);
-    px(g, x - 1, y, 3, 1, C.wardGold);
-    px(g, x, y - 1, 1, 3, C.wardGold);
+    // A small lozenge flat on the ground, wider than tall like the ground's own diamonds
+    px(g, x - 2, y, 5, 1, C.wardGold);
+    px(g, x, y - 1, 1, 1, C.wardGold);
+    px(g, x, y + 1, 1, 1, C.wardGold);
     px(g, x, y, 1, 1, C.wardLight);
   }
   RAYS.forEach((a, k) => {
@@ -183,11 +213,13 @@ export function drawWard(g: Graphics, f: { x: number; y: number }, now: number) 
       y = Math.round(cy + Math.sin(a) * 8),
       h = Math.round(4 + 6 * (0.5 + 0.5 * Math.sin(now / 600 + k * 1.9)));
     px(g, x, y - 1, 1, 1, C.wardGold, 0.9);
-    for (let r = 1; r < h; r += 2) px(g, x, y - 1 - r - 1, 1, 2, C.wardLight, 0.8 * (1 - r / h));
+    // Two flat steps, the lower half brighter, rather than a fade
+    for (let r = 1; r < h; r += 2) px(g, x, y - 1 - r - 1, 1, 2, C.wardLight, r < h / 2 ? 0.8 : 0.4);
   });
   for (let i = 0; i < GLINTS; i++) {
     const m = (now / 1800 + i / GLINTS) % 1,
       a = (i * TAU) / GLINTS + 0.7;
-    px(g, cx + Math.cos(a) * 14, cy + Math.sin(a) * 7 - m * 14, 1, 1, C.wardLight, 0.9 * (1 - m));
+    // Fading in and out, so a glint never pops onto the ring
+    px(g, cx + Math.cos(a) * 14, cy + Math.sin(a) * 7 - m * 14, 1, 1, C.wardLight, 0.9 * Math.sin(Math.PI * m));
   }
 }

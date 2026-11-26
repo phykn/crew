@@ -187,7 +187,7 @@ export function createLight(renderer: Renderer, box: Box, casters: Caster[]) {
       o.spell.position.set(f.x, f.y);
       o.spell.width = 180;
       o.spell.height = 180 * SQUASH;
-      o.spell.alpha = isCasting(p) ? 0.55 + 0.15 * Math.sin(now / 180) : 0;
+      o.spell.alpha = isCasting(p) ? 0.55 + 0.05 * Math.sin(now / 1200) : 0;
     }
     // Someone who left takes their shadows and light with them
     for (const [p, casts] of moving)

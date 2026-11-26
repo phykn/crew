@@ -58,35 +58,35 @@ const KEY = {
 // Standing, facing the viewer's lower left: hair swept up and to the right, a coat open over a shirt and a scarf, gold
 // trim, a belt with a pouch, puffed cuffs, trousers, and tall boots
 const STANDING = [
-  '...........Hh....Hh.......',
-  '.........hHHhh..hHhj......',
+  '.............HHh..........',
+  '.........hHHhhHHhhj.......',
   '........hHHHhhhhHhhjj.....',
   '.......hHHhhhhhhhhhjjj....',
-  '......hHHhhhjhhhhhhhjj....',
-  '.....hHhhhhjhhhhhhjhjjj...',
-  '.....hhhhhjhhhhhhjjhjjj...',
-  '....hhhhhjjhhhhjjjhjjjj...',
+  '......hHHhhhhhhhhhhhjj....',
+  '.....hHhhhhhhhhhhhjjjjj...',
+  '.....hhhhhhhhhhhhjjjjjj...',
+  '....hhhhhjjhhhhjjjjjjjj...',
   '....hhhjjsshhjjsssjjjj....',
-  '....hhjsSSssjssssszjjj....',
+  '....hhjsSSsssssssszjjj....',
   '.....hjSSSssssssszzjj.....',
   '.....hjSkkSssskkszzj......',
   '......jSawSsssawzzz.......',
   '......sSSSssssssszz.......',
-  '.......SSsssqqsszz........',
+  '.......SSssszssszz........',
   '........ssssssszz.........',
   '.........iIzzzzi..........',
-  '......ccCiIrrriicc........',
-  '.....cCCcgIrrrrgccd.......',
-  '....cCCCcgIirrigcccd......',
-  '....CCcccgIiirigccdd......',
-  '....CCcc.gIiiiigcd.dd.....',
-  '....CCcc.gIiiiigcd.dd.....',
-  '...IIIic.gIiiiigcdiiid....',
-  '...IIiiy.bbbBbbbbdiiyy....',
-  '....SSs.cbbBGbbbbdzsz.....',
-  '....SSs.ccgIiiigcbbzz.....',
-  '....sss.ccgIiiigcbbzz.....',
-  '........gggggggggggg......',
+  '......ccCiiRrriicc........',
+  '.....cCCcgiRrrrgccd.......',
+  '....cCCCcgiirrigcccd......',
+  '....CCcccgiiirigccdd......',
+  '....CCcc.giiiiigcd.cd.....',
+  '....CCcc.giiiiigcd.cd.....',
+  '...iiiic.giiiiigcdiiiy....',
+  '...iiiyy.bbbgGbbbdiiyy....',
+  '....SSs.cvvvggvvvdszz.....',
+  '....SSs.ccgiiiigcbbzz.....',
+  '....sss.ccgiiiigcbbzz.....',
+  '........ddgyyyygdvv.......',
   '.........NNnnmmnnmm.......',
   '.........NNnnm.nnmm.......',
   '.........NNnnm.nnmm.......',
@@ -98,8 +98,8 @@ const STANDING = [
   '.........Bbbv..Bbbv.......',
   '.........Bbbv..Bbbv.......',
   '.......BBbbbv.Bbbbv.......',
-  '......Bbbbbbv.bbbbbv......',
-  '......vvvvvvv.vvvvvv......',
+  '......Bbbbbbv.Bbbbv.......',
+  '......vvvvvvv.vvvvv.......',
 ];
 
 // The picture's size, with a pixel of room on every side for the outline
@@ -111,10 +111,13 @@ const channels = (hex) => {
   return [n >> 16, (n >> 8) & 255, n & 255];
 };
 // A shade a little toward the flames' color
-const warm = ([r, g, b]) => [r + (255 - r) * 0.18, g + (170 - g) * 0.18, b + (90 - b) * 0.18];
+const warm = ([r, g, b], f) => [r + (255 - r) * f, g + (170 - g) * f, b + (90 - b) * f];
+// The row where the trousers start
+const LEGS = 29;
 
-// fire: the screen side the fire is on (-1 left, 1 right, 0 none); the figure's two pixels nearest it along each row
-// warm, the outer one a shade lighter, short of the lightest, and the outermost pixel on the other side a shade darker
+// fire: the screen side the fire is on (-1 left, 1 right, 0 none); the outermost pixel of each row on that side warms,
+// and the one inside it half as much, so the light fades in rather than drawing a band; the legs, lower and in the
+// coat's shadow, catch half of it
 function paint(role, fire) {
   const look = { ...SHARED, ...PEOPLE[role] },
     img = new ImageData(PERSON_W, PERSON_H);
@@ -122,12 +125,9 @@ function paint(role, fire) {
     const cells = [...row].map((ch, x) => [ch, x]).filter(([ch]) => ch !== '.');
     cells.forEach(([ch, x], n) => {
       const [mat, shade] = KEY[ch],
-        // How far this pixel is from the row's edge on the fire's side, and on the far side
         near = fire < 0 ? n : fire > 0 ? cells.length - 1 - n : Infinity,
-        far = fire < 0 ? cells.length - 1 - n : fire > 0 ? n : Infinity;
-      const step = near === 0 ? Math.max(shade, Math.min(3, shade + 1)) : far === 0 ? Math.max(0, shade - 1) : shade;
-      const rgb = channels(look[mat][step]);
-      img.data.set([...(near <= 1 ? warm(rgb) : rgb), 255], ((y + 1) * PERSON_W + x + 1) * 4);
+        amount = (near === 0 ? 0.18 : near === 1 ? 0.09 : 0) * (y >= LEGS ? 0.5 : 1);
+      img.data.set([...warm(channels(look[mat][shade]), amount), 255], ((y + 1) * PERSON_W + x + 1) * 4);
     });
   });
   outline(img.data, PERSON_W, PERSON_H, [20, 16, 14], 235);

@@ -44,7 +44,6 @@ export const COLOR = {
   bloodBright: '#c9574a',
   moss: '#7bc96f',
   spell: '#a9c4ff',
-  spellCore: '#eef3ff',
   flame: '#ffb347',
   flameDeep: '#ff8c2e',
   flameCore: '#fff1b8',

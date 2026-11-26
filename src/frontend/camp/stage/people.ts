@@ -106,9 +106,7 @@ export class PersonView {
     if (casting) {
       drawWard(this.spell, f, now);
       const y = headTop(p) + 11.5 * BIG;
-      this.seal
-        .rect(Math.round(f.x) - 1, Math.round(y) - 1, 3, 3)
-        .fill({ color: hex(C.spellCore), alpha: 0.55 + 0.35 * Math.sin(now / 160) });
+      this.seal.rect(Math.round(f.x) - 1, Math.round(y) - 1, 3, 3).fill({ color: hex(C.wardLight), alpha: 0.8 });
     }
   }
 

@@ -45,7 +45,7 @@ npm start
 npm run package
 ```
 
-The app lands at `out/crew-win32-x64/crew.exe`.
+The app lands at `out/crew.exe`.
 
 ## Test
 
