@@ -44,16 +44,35 @@ const FLAMES = [{ ...FIRE, z: 14, reach: 430 }, ...TORCHES.map((t) => ({ ...t, z
   reach: (f.reach / TW) * U,
 }));
 const FLAME = [0xff, 0x8c, 0x2e];
-const warmth = (p, n) => {
+const warmth = (p, n, dist) => {
   let sum = 0;
   for (const f of FLAMES) {
     const v = [f.at[0] - p[0], f.at[1] - p[1], f.at[2] - p[2]],
-      dist = Math.hypot(...v);
-    if (dist >= f.reach || dist < 1) continue;
-    const facing = (n[0] * v[0] + n[1] * v[1] + n[2] * v[2]) / dist;
-    if (facing > 0) sum += facing * (1 - dist / f.reach) ** 2;
+      far = Math.hypot(...v);
+    if (far >= f.reach || far < 1) continue;
+    const facing = (n[0] * v[0] + n[1] * v[1] + n[2] * v[2]) / far;
+    if (
+      facing > 0 &&
+      !blocked(
+        p,
+        n,
+        v.map((c) => c / far),
+        far,
+        dist,
+      )
+    )
+      sum += facing * (1 - far / f.reach) ** 2;
   }
   return Math.min(1, sum);
+};
+// Whether a solid stands between p and a flame along u, such as the cup above a torch's pole or a wall
+const blocked = (p, n, u, far, dist) => {
+  for (let t = 0.6, k = 0; k < 32 && t < far - 1.5; k++) {
+    const d = dist([p[0] + n[0] * 0.3 + u[0] * t, p[1] + n[1] * 0.3 + u[1] * t, p[2] + n[2] * 0.3 + u[2] * t]);
+    if (d < 0.05) return true;
+    t += Math.max(d, 0.3);
+  }
+  return false;
 };
 
 // The sky's light comes from behind the camp, so a solid's spot on the ground falls a little toward the viewer
@@ -66,10 +85,11 @@ const groundShade = (g, dist, far, lo, hi) => {
   const near = [0, 1].every((a) => g[a] > lo[a] - 4 && g[a] < hi[a] + 4);
   if (enter > leave && !near) return 0;
   let open = 1;
-  for (let t = Math.max(0.5, enter - 2), n = 0; n < 48 && t < Math.min(far, leave + 2); n++) {
-    const d = dist([g[0] + SKY[0] * t, g[1] + SKY[1] * t, SKY[2] * t]);
-    if (d < 0.02) return 0.6;
-    open = Math.min(open, (8 * d) / t);
+  for (let t = Math.max(0.5, enter - 2), n = 0; n < 96 && t < Math.min(far, leave + 2); n++) {
+    const d = dist([g[0] + SKY[0] * t, g[1] + SKY[1] * t, SKY[2] * t]),
+      fade = 1 - (0.5 * t) / far;
+    if (d < 0.02) return 0.6 * fade;
+    open = Math.min(open, 1 - (1 - Math.min(1, (12 * d) / t)) * fade);
     t += Math.max(d, 0.4);
   }
   const foot = Math.max(0, 1 - dist([g[0], g[1], 1]) / 4);
@@ -124,18 +144,26 @@ export function round(c, axis, half, radius) {
   };
 }
 
-// A rod of radius r from a to b, rounded at both ends, for poles, ropes, and shafts
-export function rod(a, b, r) {
+// A rod of radius r from a to b, for poles, ropes, and shafts: rounded at both ends, or cut flat like sawn wood
+export function rod(a, b, r, flat = false) {
   const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]],
-    ll = ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2;
+    ll = ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2,
+    long = Math.sqrt(ll);
   return (p) => {
     const ap = [p[0] - a[0], p[1] - a[1], p[2] - a[2]],
-      t = Math.max(0, Math.min(1, (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / ll));
-    return len(ap[0] - ab[0] * t, ap[1] - ab[1] * t, ap[2] - ab[2] * t) - r;
+      along = (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / ll;
+    if (!flat) {
+      const t = Math.max(0, Math.min(1, along));
+      return len(ap[0] - ab[0] * t, ap[1] - ab[1] * t, ap[2] - ab[2] * t) - r;
+    }
+    const out = len(ap[0] - ab[0] * along, ap[1] - ab[1] * along, ap[2] - ab[2] * along) - r,
+      past = (Math.abs(along - 0.5) - 0.5) * long;
+    return Math.hypot(Math.max(out, 0), Math.max(past, 0)) + Math.min(Math.max(out, past), 0);
   };
 }
 
-// parts: [{ sdf, paint(p, n, light) -> [shades, step] }], bounds: [[x, y, z], [x, y, z]] in units
+// parts: [{ sdf, paint(p, n, light) -> [shades, step], glow }], bounds: [[x, y, z], [x, y, z]] in units; a part
+// that glows casts no shadow
 // Pictures of solids the fire never reaches, by the key the caller gives and the scale, to draw again elsewhere
 const kept = new Map();
 
@@ -146,9 +174,10 @@ export function drawSolids(ctx, parts, bounds, key) {
   // The frame also holds the spot the solids lay on the ground, which reaches out away from the sky's light
   const top = bounds[1][2] + 2,
     reach = (top / SKY[2]) * Math.hypot(SKY[0], SKY[1]),
-    box = [
-      [bounds[0][0] - 4, bounds[0][1] - 4, 0],
-      [bounds[1][0] + reach + 4, bounds[1][1] + reach + 4, bounds[1][2]],
+    margin = 4 + top / SKY[2] / 12,
+    frame = [
+      [bounds[0][0] - margin, bounds[0][1] - margin, 0],
+      [bounds[1][0] + reach + margin, bounds[1][1] + reach + margin, bounds[1][2]],
     ];
   const k = Math.min(4, ctx.getTransform().a),
     anchor = iso(bounds[0][0] / U, bounds[0][1] / U, 0),
@@ -163,7 +192,9 @@ export function drawSolids(ctx, parts, bounds, key) {
     );
     return;
   }
-  const corners = [0, 1, 2, 3, 4, 5, 6, 7].map((n) => iso(box[n & 1][0] / U, box[(n >> 1) & 1][1] / U, box[n >> 2][2])),
+  const corners = [0, 1, 2, 3, 4, 5, 6, 7].map((n) =>
+      iso(frame[n & 1][0] / U, frame[(n >> 1) & 1][1] / U, frame[n >> 2][2]),
+    ),
     x0 = Math.floor(Math.min(...corners.map((p) => p.x))) - 1,
     y0 = Math.floor(Math.min(...corners.map((p) => p.y))) - 1,
     w = Math.ceil(Math.max(...corners.map((p) => p.x)) - x0) + 2,
@@ -183,6 +214,9 @@ export function drawSolids(ctx, parts, bounds, key) {
     }
     return [best, part];
   };
+  const solid = (p) => scene(p)[0],
+    blocking = parts.filter((q) => !q.glow),
+    blocks = (p) => Math.min(...blocking.map((q) => q.sdf(p)));
   for (let j = 0; j < H; j++)
     for (let i = 0; i < W; i++) {
       const [gx, gy] = ground(x0 + (i + 0.5) / k, y0 + (j + 0.5) / k);
@@ -206,7 +240,7 @@ export function drawSolids(ctx, parts, bounds, key) {
             gl = Math.hypot(...g) || 1,
             nrm = g.map((v) => v / gl);
           depth[j * W + i] = s;
-          warm[j * W + i] = warmth(p, nrm);
+          warm[j * W + i] = warmth(p, nrm, solid);
           hits[j * W + i] = part.paint(p, nrm, shade(nrm));
           hit = true;
           break;
@@ -214,7 +248,7 @@ export function drawSolids(ctx, parts, bounds, key) {
         // A step of s moves the point sqrt(3) units, so the distance divided by that never passes a surface
         s -= Math.max(d, 0.03) / Math.sqrt(3);
       }
-      if (!hit) dark[j * W + i] = groundShade([gx, gy, 0], (p) => scene(p)[0], top / SKY[2], bounds[0], bounds[1]);
+      if (!hit) dark[j * W + i] = groundShade([gx, gy, 0], blocks, top / SKY[2], bounds[0], bounds[1]);
     }
   const img = new ImageData(W, H),
     rgb = {};
@@ -241,10 +275,11 @@ export function drawSolids(ctx, parts, bounds, key) {
       if (near) step -= 1;
       // A face turned to a flame close by is a step lighter and takes a little of the flame's color
       const f = warm[at];
-      if (f > 0.3) step += 1;
+      if (f > 0.5) step += 1;
+      if (shades === IRON) step = Math.min(step, 2);
       const hex = shades[Math.max(0, Math.min(shades.length - 1, step))];
       const c = (rgb[hex] ??= [1, 3, 5].map((n) => parseInt(hex.slice(n, n + 2), 16)));
-      const tint = 0.3 * f;
+      const tint = 0.25 * f;
       img.data.set([...c.map((v, k) => Math.round(v + (FLAME[k] - v) * tint)), 255], at * 4);
     }
   const canvas = Object.assign(document.createElement('canvas'), { width: W, height: H });

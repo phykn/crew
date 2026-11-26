@@ -80,9 +80,7 @@ function log(ctx, d) {
         if (r < 0.12) return [WOOD, light];
         return [WOOD, light + ([0.35, 0.62].some((a) => Math.abs(r - a) < 0.05) ? 1 : 2)];
       }
-      // Furrows run the length of the bark at fixed angles round the trunk
-      const a = Math.atan2(z, y);
-      return [BARK, [0.5, 1.6, 2.5].some((f) => Math.abs(a - f) < 0.07) ? light - 1 : light];
+      return [BARK, light];
     },
   };
   drawSolids(
@@ -157,7 +155,7 @@ function well(ctx, d) {
     { sdf: round([c[0], c[1], wall - 4], 2, 0.5, () => inner), paint: () => [WATER, 2] },
     ...[-rim, rim].map((dy) => ({
       sdf: box([c[0], c[1] + dy, (wall + beam + 2) / 2], [1.3, 1.3, (beam + 2 - wall) / 2]),
-      paint: (p, n, l) => [WOOD, l - 1],
+      paint: (p, n, l) => [WOOD, l],
     })),
     { sdf: box([c[0], c[1], beam + 1.5], [1.4, rim + 2.5, 1.5]), paint: (p, n, l) => [WOOD, l] },
     { sdf: round([c[0], c[1], beam - 6], 2, 6, () => 0.35), paint: (p, n, l) => [HAY, l] },
@@ -187,27 +185,33 @@ function bench(ctx, d) {
   longCast(ctx, x, y, w, h, SEAT_Z + 2);
   const parts = [];
   if (d.wood) {
+    // The plank overhangs its legs at both ends
+    const [ex, ey] = long ? [0.12, 0.03] : [0.03, 0.12];
     for (const [lx, ly] of [
-      [x, y],
-      [x + w - leg, y],
-      [x, y + h - leg],
-      [x + w - leg, y + h - leg],
+      [x + ex, y + ey],
+      [x + w - leg - ex, y + ey],
+      [x + ex, y + h - leg - ey],
+      [x + w - leg - ex, y + h - leg - ey],
     ])
       parts.push({
-        sdf: slab(lx + 0.02, ly + 0.02, leg - 0.04, leg - 0.04, 0, SEAT_Z - 2),
+        sdf: slab(lx, ly, leg, leg, 0, SEAT_Z - 2),
         paint: (p, n, l) => [WOOD, l - 1],
       });
     // The seam between the two boards runs down the middle of the plank
     const mid = long ? (y + h / 2) * U : (x + w / 2) * U;
     parts.push({
       sdf: slab(x, y, w, h, SEAT_Z - 2.2, SEAT_Z, 0.5),
-      paint: (p, n, l) => [WOOD, n[2] > 0.9 && Math.abs(p[long ? 1 : 0] - mid) < 0.35 ? l - 2 : l],
+      paint: (p, n, l) => [WOOD, n[2] > 0.9 && Math.abs(p[long ? 1 : 0] - mid) < 0.25 ? l - 1 : l],
     });
   } else {
-    const block = long ? [0.4, h] : [w, 0.4];
-    for (const [bx, by] of [[x, y], long ? [x + w - 0.4, y] : [x, y + h - 0.4]])
+    // Two blocks stand in from the slab's ends and sides, so the slab overhangs them all round
+    const block = long ? [0.4, h - 0.2] : [w - 0.2, 0.4];
+    for (const [bx, by] of [
+      long ? [x + 0.15, y + 0.1] : [x + 0.1, y + 0.15],
+      long ? [x + w - 0.55, y + 0.1] : [x + 0.1, y + h - 0.55],
+    ])
       parts.push({
-        sdf: slab(bx + 0.04, by + 0.04, block[0] - 0.08, block[1] - 0.08, 0, SEAT_Z - 2, 0.8),
+        sdf: slab(bx, by, block[0], block[1], 0, SEAT_Z - 2, 0.8),
         paint: (p, n, l) => [ROCK, l - 1],
       });
     parts.push({ sdf: slab(x, y, w, h, SEAT_Z - 2, SEAT_Z + 1, 0.9), paint: (p, n, l) => [ROCK, l] });
@@ -240,8 +244,7 @@ function rock(ctx, d) {
     r = [9.5 * s, 7.5 * s, 5 * s],
     c = [d.x * U, d.y * U, 0.5 * s];
   cast(ctx, d.x + 0.2, d.y + 0.2, 15 * s, 14 * s);
-  const faces = STONE;
-  const part = { sdf: facets(c, r, faces), paint: (p, n, light) => [ROCK, light] };
+  const part = { sdf: facets(c, r, STONE), paint: (p, n, light) => [ROCK, light] };
   drawSolids(
     ctx,
     [part],
@@ -320,7 +323,7 @@ function tent(ctx, d) {
           // The doorway is a narrower triangle in the end; its lower part glows
           const x = Math.abs(p[0] - c[0]) / (W / 4),
             z = p[2] / (H * 0.75);
-          if (x + z < 1) return [GLOW, z < 0.55 && x + z < 0.7 ? 2 : 1];
+          if (x + z < 1) return [GLOW, x + z < 0.85 ? 2 : 1];
           // The gable stands upright, so it reads a step darker than the slopes beside it
           return [CANVAS, l - 1];
         }
@@ -353,7 +356,7 @@ function wagon(ctx, d) {
     W = 1.1 * U,
     c = [d.x * U, d.y * U];
   cast(ctx, d.x + 0.3, d.y + 0.3, 34, 32);
-  const hood = { a: W / 2, b: 17 },
+  const hood = { a: W / 2 + 1, b: 17 },
     end = L / 2 - 0.15 * U;
   const parts = [
     {
@@ -382,17 +385,17 @@ function wagon(ctx, d) {
   ];
   for (const u of [-L / 2 + 0.4 * U, L / 2 - 0.4 * U])
     for (const side of [-1, 1]) {
-      const w = [c[0] + side * (W / 2 + 1.2), c[1] + u, 7];
+      const w = [c[0] + side * (W / 2 + 1.2), c[1] + u, 6];
       parts.push({
-        sdf: round(w, 0, 0.8, () => 7),
+        sdf: round(w, 0, 0.8, () => 6),
         paint: (p, n, l) => {
           if (Math.abs(n[0]) < 0.6) return [WOOD, l - 1];
           const y = p[1] - w[1],
             z = p[2] - w[2],
-            r = Math.hypot(y, z) / 7;
+            r = Math.hypot(y, z) / 6;
           if (r < 0.2) return [IRON, l];
           if (r > 0.78) return [WOOD, l];
-          // Four spokes cross at the hub; between them the wheel is open, so the dark under the wagon shows
+          // Eight spokes run out from the hub; between them the wheel is dark
           const a = Math.atan2(z, y);
           return Math.abs(Math.sin(2 * a)) < 0.22 || Math.abs(Math.cos(2 * a)) < 0.22 ? [WOOD, l] : [BARK, 1];
         },
@@ -528,8 +531,9 @@ function lantern(ctx, d) {
       paint: (p) => {
         const across = Math.min(Math.abs(p[0] - h[0]), Math.abs(p[1] - h[1]));
         if (across > 0.95) return [IRON, 1];
-        return [BLAZE, across < 0.5 && Math.abs(p[2] - glass) < 1.1 ? 4 : 3];
+        return [BLAZE, across < 0.5 && Math.abs(p[2] - glass) < 1.1 ? 4 : 2];
       },
+      glow: true,
     },
   ];
   drawSolids(ctx, parts, [
@@ -561,12 +565,12 @@ function torch(ctx, d) {
 // in to meet under the flames, charred and glowing where they burn
 function hearth(ctx, d) {
   const c = [d.x * U, d.y * U],
-    ring = 1.15 * U,
+    ring = 1.1 * U,
     parts = [];
-  for (let k = 0; k < 11; k++) {
-    const a = (k / 11) * Math.PI * 2 + 0.2,
+  for (let k = 0; k < 13; k++) {
+    const a = (k / 13) * Math.PI * 2 + 0.2,
       s = 0.85 + (0.3 * ((k * 7) % 5)) / 4,
-      r = [3.6 * s, 3.2 * s, 2.6 * s];
+      r = [4.4 * s, 3.4 * s, 2.6 * s];
     parts.push({
       sdf: facets([c[0] + ring * Math.cos(a), c[1] + ring * Math.sin(a), 0.4], r, STONE),
       paint: (p, n, l) => [ROCK, l],
@@ -575,17 +579,19 @@ function hearth(ctx, d) {
   for (const a of [0.5, 2.6, 4.7]) {
     const foot = [c[0] + 11 * Math.cos(a), c[1] + 11 * Math.sin(a), 1.6];
     parts.push({
-      sdf: rod(foot, [c[0] - 1.5 * Math.cos(a), c[1] - 1.5 * Math.sin(a), 6.5], 1.6),
+      sdf: rod(foot, [c[0] - 1.5 * Math.cos(a), c[1] - 1.5 * Math.sin(a), 6.5], 2, true),
       paint: (p, n, l) => {
         const out = Math.hypot(p[0] - c[0], p[1] - c[1]);
-        if (out < 4) return [BLAZE, 1];
+        if (out < 2.5 && n[2] > 0.5) return [BLAZE, 1];
+        // The cut end away from the fire shows its pale wood
+        if (out > 9 && Math.abs(n[0] * Math.cos(a) + n[1] * Math.sin(a)) > 0.8) return [WOOD, l + 1];
         return [BARK, out < 7 ? 1 : l];
       },
     });
   }
   drawSolids(ctx, parts, [
-    [c[0] - ring - 4, c[1] - ring - 4, 0],
-    [c[0] + ring + 4, c[1] + ring + 4, 9],
+    [c[0] - ring - 5.5, c[1] - ring - 5.5, 0],
+    [c[0] + ring + 5.5, c[1] + ring + 5.5, 9],
   ]);
 }
 
