@@ -491,41 +491,66 @@ function hay(ctx, d) {
   });
 }
 
-// A woodpile: chunky round logs, three under two, each a bark body lit along its top and shaded beneath, with a
-// mid-toned cut end toward the camera, as the barrel's lid sits in its rim
+// The outline round a set of points (Andrew's monotone chain), for a body that joins two round ends
+function hull(pts) {
+  const sorted = [...pts].sort((a, b) => a.x - b.x || a.y - b.y);
+  const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const chain = (list) => {
+    const out = [];
+    for (const p of list) {
+      while (out.length > 1 && cross(out[out.length - 2], out[out.length - 1], p) <= 0) out.pop();
+      out.push(p);
+    }
+    return out.slice(0, -1);
+  };
+  return [...chain(sorted), ...chain(sorted.reverse())];
+}
+
+// A woodpile: true cylinders, three under two. Each log's cut end is its round end seen at the camp's angle, and its
+// bark body joins the two ends, lit along its top
 function woodpile(ctx, d) {
-  shadow(ctx, d.x - 0.05, d.y + 0.2, 20, 7, 15);
-  const r = 4,
-    x0 = d.x - 0.3,
+  shadow(ctx, d.x - 0.05, d.y + 0.1, 20, 7, 15);
+  // A log's radius in tiles; a tile is as long as 16.7 px of height, as the crate's cube shows
+  const R = 0.21,
+    Z = 16.7,
+    x0 = d.x - 0.32,
     x1 = d.x + 0.22;
-  const log = (t, z, ridge) => {
-    const y = d.y - 0.5 + t,
-      a = iso(x0, y, z),
-      b = iso(x1, y, z);
-    const along = (k, dy) => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k + dy });
-    oval(ctx, a.x, a.y, r, r, C.bark);
-    line(ctx, a, b, C.barkDark, r * 2);
-    line(ctx, along(0, -0.5), along(1, -0.5), C.bark, r * 2 - 1.6);
-    line(ctx, along(0, -r + 1.4), along(1, -r + 1.4), C.woodDark, 1.6);
-    line(ctx, along(ridge, 0.6), along(ridge + 0.35, 0.6), C.barkDark, 0.6);
-    oval(ctx, b.x, b.y, r, r, C.barkDark);
-    oval(ctx, b.x, b.y, r - 0.6, r - 0.6, C.wood);
+  // The point at angle a round a log's end: across the pile along y, and up
+  const rim = (x, y, z, a) => iso(x, y + R * Math.cos(a), z + R * Z * Math.sin(a));
+  const ring = (x, y, z, k = 1) =>
+    [...Array(24)].map((_, n) => {
+      const a = (n / 24) * TAU;
+      return iso(x, y + k * R * Math.cos(a), z + k * R * Z * Math.sin(a));
+    });
+  const log = (y, z, ridge) => {
+    poly(ctx, hull([...ring(x0, y, z), ...ring(x1, y, z)]), C.bark);
+    // A strip of the bark between two angles round the log, from end to end
+    const band = (a0, a1, fill) => {
+      const arc = (x, n0, n1) => [...Array(7)].map((_, n) => rim(x, y, z, n0 + ((n1 - n0) * n) / 6));
+      poly(ctx, [...arc(x0, a0, a1), ...arc(x1, a1, a0)], fill);
+    };
+    band(0.2 * Math.PI, 0.6 * Math.PI, C.woodDark);
+    line(ctx, rim(x0 + ridge, y, z, 1.9), rim(x0 + ridge + 0.18, y, z, 1.9), C.barkDark, 0.6);
+    poly(ctx, ring(x1, y, z), C.barkDark);
+    poly(ctx, ring(x1, y, z, 0.82), C.wood);
     ctx.strokeStyle = C.woodDark;
     ctx.lineWidth = 0.5;
     ctx.beginPath();
-    ctx.arc(b.x, b.y, 1.6, 0, TAU);
+    ring(x1, y, z, 0.4).forEach((p, n) => (n ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+    ctx.closePath();
     ctx.stroke();
   };
-  // Back to front, so each nearer log covers the one it leans on; a top log sits in the notch of the two below
-  const notch = r + Math.sqrt((2 * r) ** 2 - 20);
-  for (const [t, z, ridge] of [
-    [0, r, 0.15],
-    [0.25, notch, 0.4],
-    [0.5, r, 0.3],
-    [0.75, notch, 0.1],
-    [1, r, 0.45],
+  // Back to front: the far side of the pile first, each top log after the bottom log behind it
+  const low = R * Z,
+    high = R * Z * (1 + Math.sqrt(3));
+  for (const [k, z, ridge] of [
+    [-2, low, 0.05],
+    [-1, high, 0.25],
+    [0, low, 0.15],
+    [1, high, 0.05],
+    [2, low, 0.3],
   ])
-    log(t, z, ridge);
+    log(d.y + k * R, z, ridge);
 }
 
 function lantern(ctx, d) {
